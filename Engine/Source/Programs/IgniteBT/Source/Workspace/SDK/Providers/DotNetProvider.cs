@@ -141,7 +141,6 @@ public class DotNetProvider : BaseSDKProvider
         }
         catch
         {
-            // Ignore errors
         }
         
         return await Task.FromResult(SDKResult<string>.Ok("Unknown"));

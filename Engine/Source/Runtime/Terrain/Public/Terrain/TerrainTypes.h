@@ -212,7 +212,7 @@ struct TERRAIN_API TerrainCreateInfo {
     // Performance comes from aggressive LOD + frustum cull, not a tiny heightfield.
     int resolutionX = 1017; // (8 * 127) + 1
     int resolutionY = 1017;
-    float worldSizeX = 2048.0f; // meters (width)
+    float worldSizeX = 2048.0f;
     float worldSizeY = 2048.0f; // meters (depth / "height" in plan)
     float heightScale = 256.0f; // meters at max uint16
     float heightOffset = 0.0f;
@@ -309,7 +309,7 @@ inline void TerrainCopyCStr(char* dst, std::size_t dstSize, const char* src) {
 
 struct TERRAIN_API TerrainBrushSettings {
     TerrainBrushOp op = TerrainBrushOp::Raise;
-    float radius = 16.0f;      // heightfield samples
+    float radius = 16.0f;
     float strength = 0.35f;    // 0..1
     float falloff = 0.5f;      // soft edge
     float targetHeight = 0.5f; // normalized flatten target

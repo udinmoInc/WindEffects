@@ -115,7 +115,6 @@ UndoBenchmarkReport RunUndoRuntimeBenchmarks(const UndoBenchmarkConfig& config) 
         }
     }));
 
-    // Multi-object
     std::vector<BenchItem> items(config.multiObjectCount);
     std::vector<void*> ptrs;
     ptrs.reserve(items.size());

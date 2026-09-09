@@ -85,7 +85,6 @@ RHIResult<void> DX12Device::WaitForFences(std::span<const RHIFenceHandle> fences
         return RHIResult<void>::Success();
     }
 
-    // waitAny
     for (auto h : fences) {
         if (waitOne(h)) {
             return RHIResult<void>::Success();

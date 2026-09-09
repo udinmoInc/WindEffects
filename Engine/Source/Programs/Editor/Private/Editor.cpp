@@ -312,7 +312,6 @@ void Editor::Shutdown() {
     }
     we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
 
-    // EditorCompositor no longer used
     m_UIEventSystem.reset();
 
     m_Scene.reset();

@@ -30,13 +30,11 @@ namespace we::platform {
 using EventHandler = std::function<void(const PlatformEvent&)>;
 
 // Abstract platform backend. Engine code must go through Platform::Get(), never OS APIs.
-//
 // Design principles:
 // - Opaque handles only in the public API (no HWND / Display* / ANativeWindow*).
 // - Capability queries instead of platform #ifdefs in Engine / Editor / Tools.
 // - Failures report via Result<T> and/or GetLastError() — no silent failures.
 // - Main-thread vs thread-safe contract documented in ThreadSafety.h.
-//
 // If a TU includes windows.h after this header, also include Platform/UndefWin32Macros.h
 // afterward so CreateWindow / LoadLibrary / etc. stay usable as method names.
 class PLATFORM_API IPlatform {

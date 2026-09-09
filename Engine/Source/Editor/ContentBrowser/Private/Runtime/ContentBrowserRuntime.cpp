@@ -912,7 +912,6 @@ public:
     [[nodiscard]] bool OpenInEditor(const ContentAssetId& id) override {
         ContentBrowserDiagnostics::Get().OnCommand();
         m_History.PushRecent(id);
-        // Future: route to Material/Animation/etc. editors via plugin registry.
         return Reveal(id);
     }
 

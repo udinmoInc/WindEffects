@@ -129,7 +129,7 @@ void ArchetypeManager::BuildLayout(ArchetypeLayout& layout) {
     std::uint32_t offset = kChunkHeaderSize;
     offset = AlignUp(offset, alignof(std::uint64_t));
     layout.entityIdColumnOffset = offset;
-    offset += sizeof(std::uint64_t); // placeholder per entity, scaled later
+    offset += sizeof(std::uint64_t);
 
     offset = AlignUp(offset, alignof(std::uint8_t));
     layout.entityEnabledColumnOffset = offset;

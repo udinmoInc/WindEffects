@@ -59,7 +59,6 @@ public:
     [[nodiscard]] int Width() const noexcept { return m_Width; }
     [[nodiscard]] int Height() const noexcept { return m_Height; }
 
-    // ITerrainAsset
     [[nodiscard]] TerrainGuid GetGuid() const noexcept override {
         return TerrainGuid{m_Desc.guidHi, m_Desc.guidLo};
     }

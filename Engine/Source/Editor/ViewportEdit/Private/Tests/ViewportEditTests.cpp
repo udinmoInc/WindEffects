@@ -63,7 +63,6 @@ ViewportEditTestReport RunViewportEditRuntimeTests() {
     editor->SetViewportSize(800.f, 600.f);
     editor->SetActiveTool(ViewportToolId::Select);
 
-    // Selection API
     const ViewportObjectId a{entities[0].Id};
     const ViewportObjectId b{entities[1].Id};
     editor->Selection().Set(a);

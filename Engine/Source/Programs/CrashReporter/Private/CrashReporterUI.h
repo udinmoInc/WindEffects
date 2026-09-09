@@ -39,7 +39,6 @@ private:
     std::string m_EngineLog;
     std::string m_CrashDir;
 
-    // State for UI
     bool m_IncludeLogs = true;
     bool m_IncludeDump = true;
     bool m_IncludeScreenshot = true;

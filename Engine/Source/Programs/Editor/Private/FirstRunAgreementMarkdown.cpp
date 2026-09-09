@@ -43,7 +43,6 @@ void FirstRunAgreementPopup::ParseDocument() {
     std::string codeBlockContent;
     
     while (std::getline(input, line)) {
-        // Code blocks
         if (StartsWith(line, "```")) {
             if (inCodeBlock) {
                 DocumentNode node;
@@ -65,7 +64,6 @@ void FirstRunAgreementPopup::ParseDocument() {
         
         const std::string trimmed = Trim(line);
         
-        // Horizontal rule
         if (trimmed == "---" || trimmed == "***" || StartsWith(trimmed, "---") || StartsWith(trimmed, "***")) {
             DocumentNode node;
             node.type = NodeType::HorizontalRule;
@@ -75,7 +73,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Blockquotes
         if (StartsWith(trimmed, ">")) {
             DocumentNode node;
             node.type = NodeType::Blockquote;
@@ -95,7 +92,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Headings
         if (StartsWith(trimmed, "# ")) {
             DocumentNode node;
             node.type = NodeType::Heading1;
@@ -124,7 +120,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Ordered lists
         static const std::regex orderedListRegex(R"(^(\d+)[.)]\s+(.*)$)");
         std::smatch orderedMatch;
         if (std::regex_match(trimmed, orderedMatch, orderedListRegex)) {
@@ -138,7 +133,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Unordered lists
         if (StartsWith(trimmed, "- ") || StartsWith(trimmed, "* ") || StartsWith(trimmed, "+ ")) {
             DocumentNode node;
             node.type = NodeType::UnorderedList;
@@ -149,7 +143,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Paragraph
         DocumentNode node;
         node.type = NodeType::Paragraph;
         node.runs = ParseInlineText(trimmed);
@@ -167,7 +160,6 @@ std::vector<FirstRunAgreementPopup::TextRun> FirstRunAgreementPopup::ParseInline
     bool inCode = false;
     
     for (size_t i = 0; i < text.length(); ++i) {
-        // Bold: **text**
         if (i + 1 < text.length() && text[i] == '*' && text[i + 1] == '*') {
             if (!current.empty()) {
                 TextRun run;
@@ -195,7 +187,6 @@ std::vector<FirstRunAgreementPopup::TextRun> FirstRunAgreementPopup::ParseInline
             continue;
         }
         
-        // Code: `text`
         if (text[i] == '`') {
             if (!current.empty()) {
                 TextRun run;

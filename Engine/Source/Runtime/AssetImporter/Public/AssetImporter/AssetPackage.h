@@ -22,7 +22,7 @@ namespace we::runtime::assetimporter {
 /// Native cooked container: WEAS magic + versioned header + JSON metadata + binary payload.
 /// Specialized formats (.wefont, .weiconatlas) remain valid; .weasset wraps any payload.
 struct ASSETIMPORTER_API AssetPackage {
-    static constexpr uint32_t kMagic = 0x53414557; // "WEAS" LE
+    static constexpr uint32_t kMagic = 0x53414557;
     static constexpr uint16_t kVersion = 1;
 
     AssetMetadata metadata{};

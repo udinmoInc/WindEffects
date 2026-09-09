@@ -96,7 +96,7 @@ struct TextureDesc {
 
 struct TextureViewDesc {
     RHITextureHandle texture = RHITextureHandle::Invalid;
-    Format format = Format::Unknown; // Unknown = inherit
+    Format format = Format::Unknown;
     uint32_t baseMip = 0;
     uint32_t mipCount = 1;
     uint32_t baseLayer = 0;
@@ -174,7 +174,7 @@ struct BlendStateDesc {
     BlendFactor srcAlpha = BlendFactor::One;
     BlendFactor dstAlpha = BlendFactor::OneMinusSrcAlpha;
     BlendOp alphaOp = BlendOp::Add;
-    uint8_t writeMask = 0xF; // RGBA
+    uint8_t writeMask = 0xF;
 };
 
 struct StencilOpStateDesc {

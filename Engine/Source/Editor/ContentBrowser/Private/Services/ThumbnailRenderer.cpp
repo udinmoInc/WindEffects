@@ -591,7 +591,6 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     FillRoundedRect(bmp, X(9.0f) + castX, Y(10.0f) + castY, X(35.0f), Y(18.0f), S(4.0f),
         shadowRgb[0], shadowRgb[1], shadowRgb[2], 35);
 
-    // Gradient for body
     FillRoundedRectVerticalGradient(bmp, X(9.0f), Y(27.0f), X(132.0f), Y(67.0f), S(4.0f),
         bodyTop[0], bodyTop[1], bodyTop[2], bodyBot[0], bodyBot[1], bodyBot[2], 255);
 

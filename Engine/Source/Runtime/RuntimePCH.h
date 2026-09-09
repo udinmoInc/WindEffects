@@ -14,7 +14,6 @@
 // Engine-specific headers are included per-module to avoid dependency issues
 // -----------------------------------------------------------------------------
 
-// C++ Standard Library
 #include <algorithm>
 #include <array>
 #include <atomic>

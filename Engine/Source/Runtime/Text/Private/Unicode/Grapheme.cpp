@@ -34,7 +34,7 @@ bool IsRegionalIndicator(const Codepoint cp)
 
 bool IsGraphemeBreak(const Codepoint prev, const Codepoint next)
 {
-    if (next == 0x200D) { // ZWJ
+    if (next == 0x200D) {
         return false;
     }
     if (prev == 0x200D) {
@@ -46,7 +46,7 @@ bool IsGraphemeBreak(const Codepoint prev, const Codepoint next)
     if (IsRegionalIndicator(prev) && IsRegionalIndicator(next)) {
         return false;
     }
-    if (next == 0xFE0F) { // variation selector
+    if (next == 0xFE0F) {
         return false;
     }
     return true;

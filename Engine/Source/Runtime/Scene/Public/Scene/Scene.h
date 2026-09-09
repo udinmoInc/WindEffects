@@ -80,7 +80,6 @@ public:
     SCENE_API void SyncViewToEcs();
     SCENE_API void RebuildViewFromEcs();
 
-    // Deprecated aliases kept for Editor compatibility.
     SCENE_API void SyncLegacyToEcs();
     SCENE_API void SyncEcsToLegacy();
 

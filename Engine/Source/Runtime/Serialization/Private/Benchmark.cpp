@@ -124,7 +124,6 @@ SerializationBenchmarkReport RunSerializationBenchmarks(const SerializationBench
     });
     report.samples.push_back(MakeSample("object_roundtrip", serMs, ok));
 
-    // Graph stress
     ObjectGraph graph;
     std::vector<BenchObj> storage(config.graphSize);
     for (std::uint32_t i = 0; i < config.graphSize; ++i) {

@@ -315,5 +315,5 @@ KeyModifier WindowsPlatform::GetKeyModifiers() const {
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_WINDOWS
+#endif
 

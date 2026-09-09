@@ -54,7 +54,7 @@ public:
     float CloudThickness = 700.0f;    // meters
     float BottomAltitude = 900.0f;
     float TopAltitude = 1600.0f;
-    float Altitude = 1250.0f;         // kept for settings/IO compatibility
+    float Altitude = 1250.0f;
     float Extinction = 0.55f;
 
     we::math::Vec3 WindDirection{ 1.0f, 0.0f, 0.25f };

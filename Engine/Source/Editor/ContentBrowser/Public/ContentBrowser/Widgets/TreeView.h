@@ -76,19 +76,16 @@ public:
     bool ShowsPointerCursor(const Point& position) const override;
     [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override;
 
-    // Tree management
     void SetRoot(const std::shared_ptr<TreeNode>& root);
     void AddItem(const std::shared_ptr<TreeNode>& item, const std::string& parentId = "");
     void RemoveItem(const std::string& id);
     void Clear();
 
-    // Selection
     void SetSelectedId(const std::string& id);
     void SetSelectedIds(const std::vector<std::string>& ids);
     std::string GetSelectedId() const;
     const std::vector<std::string>& GetSelectedIds() const { return m_SelectedIds; }
 
-    // Callbacks
     void SetOnSelectionChanged(OnSelectionChanged callback) { m_OnSelectionChanged = callback; }
     OnSelectionChanged GetOnSelectionChanged() const { return m_OnSelectionChanged; }
     void SetOnItemDoubleClicked(OnItemDoubleClicked callback) { m_OnItemDoubleClicked = callback; }
@@ -97,7 +94,6 @@ public:
     void SetOnRenameCommitted(OnRenameCommitted callback) { m_OnRenameCommitted = callback; }
     void SetOnReparentRequested(OnReparentRequested callback) { m_OnReparentRequested = callback; }
 
-    // Styling
     void SetItemHeight(float height);
     void SetIndentWidth(float width);
     void SetExplorerStyle(bool enabled) {
@@ -115,7 +111,6 @@ public:
     void SetShowRowHighlight(bool show) { m_ShowRowHighlight = show; }
     size_t GetRenderItemCount() const { return m_RenderList.size(); }
 
-    // Search and Filter
     void SetSearchQuery(const std::string& query);
     std::string GetSearchQuery() const { return m_SearchQuery; }
     struct FilterOptions {

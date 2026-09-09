@@ -131,7 +131,6 @@ SerializationTestReport RunSerializationTests() {
         && loaded.id == 42 && loaded.value == 3.5f && loaded.enabled == false;
     Record(report, "serialize_deserialize_correctness", roundTrip);
 
-    // Nested object
     Node node{};
     node.tag = 7;
     node.item = original;
@@ -146,7 +145,6 @@ SerializationTestReport RunSerializationTests() {
     // Document validation / checksum
     Record(report, "document_validation", IsDocumentValid(bytes.data(), bytes.size(), true));
 
-    // Corruption detection
     auto corrupted = bytes;
     if (corrupted.size() > sizeof(DocumentHeader) + 4) {
         corrupted[sizeof(DocumentHeader) + 2] ^= 0xFFu;
@@ -189,7 +187,6 @@ SerializationTestReport RunSerializationTests() {
         ref.typeId = itemId;
         ref.kind = ReferenceKind::Strong;
         graph.AddReference(idA, ref);
-        // Circular
         ObjectReference back;
         back.objectId = idA;
         back.typeId = itemId;
@@ -238,7 +235,6 @@ SerializationTestReport RunSerializationTests() {
         Record(report, "delta_patch", ApplyDelta(*registry, &patched, delta) && patched.id == 99);
     }
 
-    // Snapshot
     {
         const Snapshot snap = CaptureSnapshot(*serializer, itemId, &original);
         Item restored{};
@@ -273,7 +269,6 @@ SerializationTestReport RunSerializationTests() {
         reflection::UnregisterTypeMigrations(itemId);
     }
 
-    // Custom serializer
     {
         static std::atomic<int> customCalls{0};
         RegisterCustomSerializer({
@@ -297,7 +292,6 @@ SerializationTestReport RunSerializationTests() {
         UnregisterCustomSerializer(itemId);
     }
 
-    // Async
     {
         std::vector<std::uint8_t> copy(sizeof(Item));
         std::memcpy(copy.data(), &original, sizeof(Item));
@@ -329,7 +323,6 @@ SerializationTestReport RunSerializationTests() {
         Record(report, "thread_safety", ok.load() == 8);
     }
 
-    // Binary compatibility / deterministic output
     {
         auto a = serializer->SerializeObject(itemId, &original);
         auto b = serializer->SerializeObject(itemId, &original);
@@ -337,7 +330,6 @@ SerializationTestReport RunSerializationTests() {
         Record(report, "binary_compatibility", IsDocumentValid(a.data(), a.size(), true));
     }
 
-    // Stress (moderate)
     {
         constexpr int kCount = 5000;
         int ok = 0;

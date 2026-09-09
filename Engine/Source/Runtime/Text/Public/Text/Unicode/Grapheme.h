@@ -24,8 +24,8 @@ namespace we::runtime::text::unicode {
 [[nodiscard]] TEXT_API bool IsGraphemeBreak(Codepoint prev, Codepoint next);
 
 struct GraphemeRange {
-    size_t start = 0; // codepoint index
-    size_t end = 0;   // exclusive
+    size_t start = 0;
+    size_t end = 0;
 };
 
 [[nodiscard]] TEXT_API std::vector<GraphemeRange> SegmentGraphemes(

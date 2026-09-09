@@ -41,7 +41,6 @@ void CopyVec4(float dst[4], const we::math::Vec4& v) {
 void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
     out.Clear();
 
-    // Opaque meshes
     const_cast<World&>(world).QueryAll<TransformComponent, StaticMeshComponent, MaterialComponent,
         VisibilityComponent>()
         .Each([&](Entity e,
@@ -63,7 +62,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.meshes.push_back(draw);
         });
 
-    // Directional lights
     const_cast<World&>(world).QueryAll<DirectionalLightComponent, TransformComponent>()
         .Each([&](Entity e, DirectionalLightComponent& light, TransformComponent&) {
             if (!world.IsEntityEnabled(e)) {
@@ -78,7 +76,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.directionalLights.push_back(item);
         });
 
-    // Point lights
     const_cast<World&>(world).QueryAll<PointLightComponent, TransformComponent>()
         .Each([&](Entity e, PointLightComponent& light, TransformComponent& t) {
             if (!world.IsEntityEnabled(e)) {
@@ -97,7 +94,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.pointLights.push_back(item);
         });
 
-    // Spot lights
     const_cast<World&>(world).QueryAll<SpotLightComponent, TransformComponent>()
         .Each([&](Entity e, SpotLightComponent& light, TransformComponent& t) {
             if (!world.IsEntityEnabled(e)) {
@@ -117,7 +113,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.spotLights.push_back(item);
         });
 
-    // Cameras
     const_cast<World&>(world).QueryAll<CameraComponent, TransformComponent>()
         .Each([&](Entity e, CameraComponent& cam, TransformComponent& t) {
             if (!world.IsEntityEnabled(e)) {
@@ -133,7 +128,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.cameras.push_back(item);
         });
 
-    // Sky atmosphere
     const_cast<World&>(world).QueryAll<SkyAtmosphereComponent>()
         .Each([&](Entity e, SkyAtmosphereComponent& sky) {
             ExtractedSkyAtmosphere item{};
@@ -144,7 +138,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.skyAtmospheres.push_back(item);
         });
 
-    // Volumetric clouds
     const_cast<World&>(world).QueryAll<VolumetricCloudComponent>()
         .Each([&](Entity e, VolumetricCloudComponent& clouds) {
             ExtractedVolumetricCloud item{};
@@ -157,7 +150,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.volumetricClouds.push_back(item);
         });
 
-    // Terrain
     const_cast<World&>(world).QueryAll<TerrainComponent, TransformComponent>()
         .Each([&](Entity e, TerrainComponent& terrain, TransformComponent& t) {
             ExtractedTerrain item{};
@@ -170,7 +162,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.terrains.push_back(item);
         });
 
-    // Water
     const_cast<World&>(world).QueryAll<WaterComponent, TransformComponent>()
         .Each([&](Entity e, WaterComponent& water, TransformComponent&) {
             ExtractedWater item{};

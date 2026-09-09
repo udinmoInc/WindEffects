@@ -9,7 +9,7 @@
 #pragma once
 
 #include "KindUI/Core/Widget.h"
-#include "Widgets/MenuBar.h" // For MenuItem
+#include "Widgets/MenuBar.h"
 #include <vector>
 #include <memory>
 #include "KindUI/Core/Style.h"

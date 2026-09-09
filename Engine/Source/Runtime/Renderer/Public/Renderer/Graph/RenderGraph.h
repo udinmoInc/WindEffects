@@ -60,7 +60,7 @@ struct TransientTextureDesc {
     we::rhi::Format format = we::rhi::Format::R8G8B8A8_UNORM;
     we::rhi::TextureUsage usage = we::rhi::TextureUsage::ColorAttachment;
     const char* debugName = "RG.TransientTexture";
-    bool neverRealize = false; // Stub placeholder — tracked but not allocated
+    bool neverRealize = false;
 };
 
 struct TransientBufferDesc {

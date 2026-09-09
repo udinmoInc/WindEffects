@@ -894,4 +894,4 @@ void WindowsPlatform::ConsoleWrite(std::string_view text) {
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_WINDOWS
+#endif

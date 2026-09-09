@@ -61,7 +61,7 @@ public:
     enum class Mode : std::uint8_t { Saving, Loading };
 
     explicit MemoryBinaryArchive(Mode mode);
-    explicit MemoryBinaryArchive(std::vector<std::uint8_t> existingBytes); // loading
+    explicit MemoryBinaryArchive(std::vector<std::uint8_t> existingBytes);
     MemoryBinaryArchive(const std::uint8_t* bytes, std::size_t size);      // loading view copy
 
     [[nodiscard]] bool IsLoading() const override { return m_Mode == Mode::Loading; }

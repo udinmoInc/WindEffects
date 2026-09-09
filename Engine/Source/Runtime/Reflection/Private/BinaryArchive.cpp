@@ -84,7 +84,6 @@ bool SerializeStepValue(
     const PropertyInfo& property = *step.property;
     void* field = nullptr;
     if (property.getter || property.setter) {
-        // Accessor path — use temporary buffer for non-direct storage.
         if (step.size == 0) {
             return false;
         }

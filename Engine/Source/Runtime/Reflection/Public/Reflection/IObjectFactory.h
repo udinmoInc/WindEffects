@@ -39,7 +39,7 @@ public:
 };
 
 struct REFLECTION_API ObjectFactoryDependencies {
-    ITypeRegistry* registry = nullptr; // required; not owned
+    ITypeRegistry* registry = nullptr;
 };
 
 [[nodiscard]] REFLECTION_API std::unique_ptr<IObjectFactory> CreateObjectFactory(

@@ -9,10 +9,8 @@
 #pragma once
 
 // KindUI declarative DSL — describe hierarchy, structure, and behavior.
-//
 //   #include "KindUI/KindUI.h"
 //   using namespace we::runtime::kindui::UI;
-//
 //   auto page = Column({
 //       Section("Projects", "Recent work"),
 //       SearchBar("Filter..."),

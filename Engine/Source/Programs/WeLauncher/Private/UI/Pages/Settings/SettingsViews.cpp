@@ -244,6 +244,5 @@ void SettingsRow::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// ToggleSwitch
 
 } // namespace we::programs::welauncher

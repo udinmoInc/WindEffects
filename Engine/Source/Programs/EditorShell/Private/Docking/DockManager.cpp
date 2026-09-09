@@ -179,7 +179,7 @@ bool DeserializePanelDescriptor(const nlohmann::json& json, DockPanelDescriptor&
     return true;
 }
 
-#endif // WE_HAS_NLOHMANN_JSON
+#endif
 
 } // namespace
 

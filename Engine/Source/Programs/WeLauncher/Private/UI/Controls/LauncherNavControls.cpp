@@ -224,7 +224,6 @@ void NavSidebar::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SearchField
 
 SearchField::SearchField() = default;
 
@@ -348,7 +347,6 @@ void SearchField::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SegmentedControl
 
 SegmentedControl::SegmentedControl(
     std::vector<std::string> labels,
@@ -476,7 +474,6 @@ void SegmentedControl::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// StatusFooter
 
 void StatusFooter::SetStatus(std::string status) {
     m_Status = std::move(status);
@@ -546,6 +543,5 @@ void StatusFooter::Paint(PaintContext& context) {
     }
 }
 
-// SectionCard
 
 } // namespace we::programs::welauncher

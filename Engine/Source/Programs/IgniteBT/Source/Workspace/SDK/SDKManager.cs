@@ -75,7 +75,6 @@ public class SDKManager
             new Providers.MSVCProvider(),
             new Providers.WindowsSDKProvider(),
             
-            // Graphics SDKs
             new Providers.VulkanSDKProvider(),
             new Providers.SDL3Provider(),
             new Providers.DirectXProvider(),
@@ -85,7 +84,6 @@ public class SDKManager
             new Providers.DotNetProvider(),
             new Providers.PythonProvider(),
             
-            // Platform SDKs
             new Providers.AndroidProvider()
         };
         
@@ -187,7 +185,6 @@ public class SDKManager
             }
         }
         
-        // Save cache
         _database.SaveCache(_cache);
         
         stopwatch.Stop();
@@ -210,7 +207,6 @@ public class SDKManager
             return SDKResult<SDKInfo>.Ok(cachedInfo);
         }
         
-        // Find provider
         var provider = _providers.FirstOrDefault(p => 
             p.SDKName.Equals(sdkName, StringComparison.OrdinalIgnoreCase));
         
@@ -261,7 +257,6 @@ public class SDKManager
             info.Version = versionResult.Value ?? "Unknown";
         }
         
-        // Locate paths
         var headersResult = await provider.LocateHeadersAsync(path);
         if (headersResult.Success)
         {

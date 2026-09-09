@@ -28,4 +28,4 @@ public:
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_IOS
+#endif

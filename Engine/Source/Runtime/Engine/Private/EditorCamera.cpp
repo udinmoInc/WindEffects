@@ -497,7 +497,7 @@ we::math::Vec3 EditorCamera::GetOrbitPivot() const {
     return m_TargetLookAt;
 }
 
-#else // !WE_HAS_GLM
+#else
 
 // Stub implementations when GLM is not available
 EditorCamera::EditorCamera() {
@@ -523,7 +523,6 @@ void EditorCamera::SetCameraSpeed(float speed) {
 }
 
 void EditorCamera::Reset() {
-    // Stub
 }
 
 void EditorCamera::SetOrbitPivot(const we::math::Vec3& pivot) {
@@ -554,7 +553,6 @@ void EditorCamera::ExitFlyMode() {
 }
 
 void EditorCamera::ResumeOrbitNavigation() {
-    // Stub
 }
 
 void EditorCamera::Update(float dt) {
@@ -684,6 +682,6 @@ we::math::Vec3 EditorCamera::GetOrbitPivot() const {
     return m_TargetLookAt;
 }
 
-#endif // WE_HAS_GLM
+#endif
 
 } // namespace we::runtime::engine

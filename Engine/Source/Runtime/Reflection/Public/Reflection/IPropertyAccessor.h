@@ -85,7 +85,7 @@ public:
 };
 
 struct REFLECTION_API PropertyAccessorDependencies {
-    ITypeRegistry* registry = nullptr; // required; not owned
+    ITypeRegistry* registry = nullptr;
 };
 
 [[nodiscard]] REFLECTION_API std::unique_ptr<IPropertyAccessor> CreatePropertyAccessor(

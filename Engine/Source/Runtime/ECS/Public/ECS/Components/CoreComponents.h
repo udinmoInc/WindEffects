@@ -50,7 +50,7 @@ struct UuidComponent {
 
 struct TransformComponent {
     we::math::Vec3 localPosition{ 0.0f };
-    we::math::Vec3 localRotation{ 0.0f }; // euler degrees
+    we::math::Vec3 localRotation{ 0.0f };
     we::math::Vec3 localScale{ 1.0f };
     we::math::Mat4 worldMatrix{ 1.0f };
     bool dirty = true;

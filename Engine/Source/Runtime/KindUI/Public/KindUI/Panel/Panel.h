@@ -51,7 +51,6 @@ public:
     [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
     [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
 
-    // Content management
     void SetContent(const std::shared_ptr<Widget>& content);
     std::shared_ptr<Widget> GetContent() const;
 
@@ -63,15 +62,12 @@ public:
     [[nodiscard]] std::shared_ptr<PanelBodyLayout> GetBodyLayout() const { return m_BodyLayout; }
     [[nodiscard]] Rect GetRegionRect(PanelBodyRegion region) const;
     
-    // Toolbar management
     void SetToolbar(const std::shared_ptr<Widget>& toolbar);
     std::shared_ptr<Widget> GetToolbar() const;
 
-    // Header management
     void SetTitle(const std::string& title) { m_Title = title; }
     std::string GetTitle() const { return m_Title; }
 
-    // Collapse state
     void SetExpanded(bool expanded);
     bool IsExpanded() const { return m_Expanded; }
     void Toggle() { SetExpanded(!m_Expanded); }
@@ -83,7 +79,6 @@ public:
     void InvokeOptionsMenu() const;
     bool HasOptionsMenuHandler() const { return static_cast<bool>(m_OnOptionsMenu); }
 
-    // Styling
     void SetHeaderHeight(float height) { m_HeaderHeight = height; }
     void SetCollapsible(bool collapsible) { m_Collapsible = collapsible; }
     void SetBackgroundColor(const Color& color) { m_Style.background.color = color; }

@@ -243,4 +243,4 @@ private:
 
 } // namespace we::platform
 
-#endif // WE_PLATFORM_WINDOWS
+#endif

@@ -16,7 +16,6 @@
 namespace we::platform {
 
 // Thread-safety contract for public Platform APIs:
-//
 // MAIN-THREAD ONLY (must call AssertMainThread):
 //   Initialize / Shutdown
 //   CreateWindow / DestroyWindow / all window mutators
@@ -24,7 +23,6 @@ namespace we::platform {
 //   ShowMessageBox / ShowFileDialog
 //   SetClipboardText / SetSystemCursor / SetRelativeMouseMode
 //   SetWindowHitTest / ApplyWindowChrome / SetWindowIcon
-//
 // THREAD-SAFE:
 //   GetTimeSeconds / GetTimeNanoseconds / GetHighResolutionCounter / Frequency
 //   GetCapabilities / GetDiagnostics (snapshot may race; values are diagnostics-only)
@@ -33,7 +31,6 @@ namespace we::platform {
 //   SleepMilliseconds / YieldThread / GetCurrentThreadId / IsMainThread
 //   CreateMutex / LockMutex / UnlockMutex / CreateEvent / Signal / Wait
 //   DebugOutput / ConsoleWrite
-//
 // AFFINITY REQUIRED (same thread that created the object unless documented):
 //   JoinThread / DetachThread / SetThreadPriority / SetThreadAffinity
 //   Directory watcher create/destroy (prefer main thread)

@@ -246,7 +246,6 @@ PropertyEditorTestReport RunPropertyEditorTests() {
     details->SetFilter(filter);
     AddCase(report, "SearchFilter", !details->GetTree().GetFilteredRootNodes().empty(), "health search");
 
-    // Multi-object
     TestActor a{};
     TestActor b{};
     a.health = 10;
@@ -279,13 +278,11 @@ PropertyEditorTestReport RunPropertyEditorTests() {
     const auto merged = MergeCommonProperties(*registry, binding, {});
     AddCase(report, "MergeCommonProperties", !merged.empty(), "merged");
 
-    // Enum
     TestEnumHolder holder{};
     details->SetObject(enumHolderId, &holder);
     auto modeNode = details->GetTree().FindByPath("mode");
     AddCase(report, "EnumNode", modeNode != nullptr, "mode");
 
-    // Customization registration
     bool customized = false;
     runtime->RegisterDetailCustomization(actorId, [&]() {
         struct Custom final : IDetailCustomization {

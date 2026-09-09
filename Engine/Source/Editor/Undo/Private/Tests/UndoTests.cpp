@@ -116,7 +116,6 @@ UndoTestReport RunUndoRuntimeTests() {
         AddCase(report, "RedoProperty", redone && item.health == 55.f, "health reapplied");
     }
 
-    // Nested transactions
     {
         item.id = 1;
         TransactionDescriptor outer;
@@ -197,7 +196,6 @@ UndoTestReport RunUndoRuntimeTests() {
         AddCase(report, "WorldHook", worldHook != nullptr, "adapter");
     }
 
-    // Checkpoint / dirty
     {
         manager.History().Clear();
         const auto cp = manager.History().MarkCheckpoint("Save");

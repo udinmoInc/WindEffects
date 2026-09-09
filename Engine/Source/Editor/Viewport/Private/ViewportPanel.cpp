@@ -11,7 +11,6 @@
 #include "ViewportToolbarState.h"
 #include "KindUI/Widgets/Label.h"
 
-// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 using ::we::runtime::kindui::panels::Panel;
 using ::we::runtime::kindui::panels::PanelBuilder;

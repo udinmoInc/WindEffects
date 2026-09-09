@@ -112,7 +112,6 @@ void ToggleSwitch::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SettingsCheckBox
 
 SettingsCheckBox::SettingsCheckBox(bool checked)
     : m_Checked(checked) {
@@ -197,7 +196,6 @@ void SettingsCheckBox::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SettingsDropdown
 
 SettingsDropdown::SettingsDropdown(std::vector<std::string> options, int selected)
     : m_Options(std::move(options))
@@ -374,7 +372,6 @@ void SettingsDropdown::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SettingsSegmented
 
 SettingsSegmented::SettingsSegmented(std::vector<std::string> labels)
     : m_Labels(std::move(labels)) {
@@ -497,6 +494,5 @@ void SettingsSegmented::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SettingsTextField
 
 } // namespace we::programs::welauncher

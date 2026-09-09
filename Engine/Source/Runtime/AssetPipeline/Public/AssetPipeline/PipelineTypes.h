@@ -34,7 +34,7 @@ enum class PipelineJobState : uint32_t {
 
 struct ASSETPIPELINE_API PipelineRequest {
     we::runtime::assetimporter::ImportRequest import{};
-    std::filesystem::path intermediateRoot; // Intermediate/AssetPipeline
+    std::filesystem::path intermediateRoot;
     std::filesystem::path processedRoot;    // optional processed output mirror
     std::string platformTarget = "Windows";
     bool forceRebuild = false;
@@ -63,7 +63,7 @@ struct ASSETPIPELINE_API PipelineProgress {
 
 struct ASSETPIPELINE_API PipelineAssetResult {
     bool success = false;
-    bool skipped = false; // cache hit
+    bool skipped = false;
     we::runtime::assetimporter::ImportedAsset asset{};
     we::runtime::assetprocessors::ProcessResult process{};
     std::string cacheKey;

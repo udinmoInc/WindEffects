@@ -45,7 +45,7 @@ struct TERRAINEDITOR_API NewLandscapeDialogState {
         runtime_terrain::TerrainCreationMethod::Flat;
     runtime_terrain::TerrainGeneratorId generatorId = runtime_terrain::TerrainGeneratorId::Flat;
     runtime_terrain::TerrainGeneratorParams generator{};
-    std::filesystem::path importHeightmapPath; // optional
+    std::filesystem::path importHeightmapPath;
     std::string materialSlot0;
     bool enableStreaming = true;
     bool enableCollision = true;
@@ -104,7 +104,7 @@ struct TERRAINEDITOR_API LandscapeBrushUiState {
     bool mirror = false;
     bool showPreview = true;
     bool showCursor = true;
-    std::string alphaPath; // placeholder path for custom alpha brush
+    std::string alphaPath;
 };
 
 struct TERRAINEDITOR_API LandscapeInfoSnapshot {

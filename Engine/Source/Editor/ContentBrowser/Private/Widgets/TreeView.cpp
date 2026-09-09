@@ -401,7 +401,6 @@ void TreeView::Paint(PaintContext& context) {
             }
         }
 
-        // Expander Triangle
         if (layout.hasExpander) {
             const WindIconRef triangleIcon = node->expanded ? WindIcons::TriangleDown16 : WindIcons::TriangleRight16;
             const Color expanderColor = hovered ? ThemeColor(ColorToken::TextPrimary) :
@@ -410,7 +409,6 @@ void TreeView::Paint(PaintContext& context) {
                 expanderColor);
         }
 
-        // Node Icon
         if (layout.hasIcon) {
             Rect iconRect = IconMetrics::PlaceGlyphCentered(layout.iconBounds, layout.iconBounds.width);
             PaintTreeNodeIcon(context, *node, iconRect, hovered);

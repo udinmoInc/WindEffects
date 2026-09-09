@@ -30,7 +30,6 @@ void ExplorerPanelHeader::Initialize() {
         }
     });
     AddIconButton(WindIcons::Settings16, [this]() {
-        // Normal Settings
     });
 
     Finalize();

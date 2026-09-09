@@ -23,7 +23,6 @@
 #include <memory>
 #include <string>
 
-// Re-compiled for PanelBuilder API updates
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;

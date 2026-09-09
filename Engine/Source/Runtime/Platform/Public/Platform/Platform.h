@@ -16,7 +16,6 @@
 namespace we::platform {
 
 // Developer-facing facade. Auto-selects and initializes the host backend.
-//
 // Example:
 //   auto& platform = Platform::Get();
 //   auto window = platform.CreateWindow({

@@ -205,7 +205,7 @@ bool SceneSerializer::LoadFromFile(Registry& registry, const std::string& path) 
         ReadString(in, se.name);
         std::size_t blobSize = 0;
         in >> blobSize;
-        in.get(); // newline
+        in.get();
         se.componentBlob.resize(blobSize);
         if (blobSize > 0) {
             in.read(reinterpret_cast<char*>(se.componentBlob.data()),
@@ -240,7 +240,6 @@ SerializedScene SceneSerializer::CapturePrefab(const Registry& registry, Entity 
 }
 
 Entity SceneSerializer::InstantiatePrefab(Registry& registry, const SerializedScene& prefab, Entity parent) {
-    // Remap into a fresh registry slice by Apply into temporary then... 
     // Simpler: capture new entities from prefab blob with remapped IDs.
     Registry temp;
     if (!Apply(temp, prefab)) {

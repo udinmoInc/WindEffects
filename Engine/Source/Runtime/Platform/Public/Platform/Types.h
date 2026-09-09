@@ -138,7 +138,7 @@ enum class FileDialogMode : uint8_t {
 
 struct FileFilter {
     const char* name = "All Files";
-    const char* pattern = "*.*"; // e.g. "*.png;*.jpg"
+    const char* pattern = "*.*";
 };
 
 struct FileDialogDesc {

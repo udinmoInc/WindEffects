@@ -633,7 +633,7 @@ void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
     
     m_CurrentTextureSet = cmd.textureId;
     
-    float type = 0.0f; // Textured
+    float type = 0.0f;
     
     Color colorTop = cmd.color;
     Color colorBottom = cmd.colorBottom;

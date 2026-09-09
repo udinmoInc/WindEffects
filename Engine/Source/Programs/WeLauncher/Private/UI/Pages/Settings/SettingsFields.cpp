@@ -165,7 +165,6 @@ void SettingsTextField::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// PathPickerField
 
 PathPickerField::PathPickerField(std::string path, bool folderMode)
     : m_Path(std::move(path))
@@ -292,7 +291,6 @@ void PathPickerField::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// ColorSwatchPicker
 
 ColorSwatchPicker::ColorSwatchPicker(std::string hexColor)
     : m_Hex(std::move(hexColor)) {
@@ -400,7 +398,6 @@ void ColorSwatchPicker::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// NumberStepper
 
 NumberStepper::NumberStepper(float value, float minValue, float maxValue, float step, std::string suffix)
     : m_Value(value)
@@ -531,7 +528,6 @@ void NumberStepper::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// CacheUsageBar
 
 CacheUsageBar::CacheUsageBar(std::string label, float usedMb, float capacityMb)
     : m_Label(std::move(label))
@@ -589,7 +585,6 @@ void CacheUsageBar::Paint(PaintContext& context) {
     }
 }
 
-// AppearancePreviewPanel
 
 void AppearancePreviewPanel::SetTheme(std::string theme) {
     m_Theme = std::move(theme);
@@ -691,7 +686,6 @@ void AppearancePreviewPanel::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-// SettingsActionBar
 
 void SettingsActionBar::AddAction(
     std::string label,

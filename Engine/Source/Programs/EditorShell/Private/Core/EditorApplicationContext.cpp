@@ -82,4 +82,3 @@ void EditorApplicationContext::Shutdown() {
 
 } // namespace we::editor::services
 
-// relink

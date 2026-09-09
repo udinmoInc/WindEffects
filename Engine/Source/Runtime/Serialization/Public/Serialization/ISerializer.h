@@ -142,7 +142,7 @@ public:
 };
 
 struct SERIALIZATION_API SerializerDependencies {
-    reflection::ITypeRegistry* registry = nullptr; // required; not owned
+    reflection::ITypeRegistry* registry = nullptr;
 };
 
 [[nodiscard]] SERIALIZATION_API std::unique_ptr<ISerializer> CreateSerializer(

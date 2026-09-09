@@ -84,7 +84,6 @@ void FirstRunAgreementPopup::Arrange(const we::runtime::kindui::Rect& allottedRe
         dialogH
     };
     
-    // Content area
     const float margin = kContentMargin * m_DpiScale;
     const float headerHeight = 50.0f * m_DpiScale;
     const float footerHeight = 60.0f * m_DpiScale;
@@ -96,7 +95,6 @@ void FirstRunAgreementPopup::Arrange(const we::runtime::kindui::Rect& allottedRe
         m_DialogRect.height - headerHeight - footerHeight
     };
     
-    // Buttons
     const float buttonY = m_DialogRect.y + m_DialogRect.height - footerHeight + 10.0f * m_DpiScale;
     const float scaledButtonWidth = kButtonWidth * m_DpiScale;
     const float scaledButtonHeight = kButtonHeight * m_DpiScale;
@@ -133,7 +131,6 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     context.DrawRoundedRect(m_DialogRect, ThemeColor(ColorToken::PanelBackground), 8.0f);
     context.DrawRoundedRectOutline(m_DialogRect, ThemeColor(ColorToken::BorderDefault), 1.0f, 8.0f);
     
-    // Header
     const float titleFontSize = 17.0f * m_DpiScale;
     const float subtitleFontSize = 11.0f * m_DpiScale;
     context.DrawText(m_Title.empty() ? "License Agreement" : m_Title,
@@ -171,7 +168,6 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     
     context.PopClipRect();
     
-    // Scrollbar
     UpdateScrollbarGeometry();
     if (m_TotalDocumentHeight > m_ContentRect.height + 1.0f) {
         context.DrawRoundedRect(
@@ -193,7 +189,6 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
             m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
         ThemeColor(ColorToken::TextSecondary), hintFontSize);
     
-    // Buttons
     auto paintButton = [&](const ButtonState& button, bool primary) {
         const float radius = 4.0f;
         const float hoverAnim = button.hovered ? 1.0f : 0.0f;

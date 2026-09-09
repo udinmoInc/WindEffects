@@ -78,7 +78,6 @@ public class SDKValidator
             result.Warnings.Add("Could not determine SDK version");
         }
         
-        // Validate platform compatibility
         if (!provider.SupportedPlatforms.Contains(info.Platform))
         {
             result.ValidationErrors.Add($"Platform {info.Platform} is not supported by this SDK");

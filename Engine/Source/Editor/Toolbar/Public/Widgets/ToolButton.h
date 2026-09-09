@@ -28,7 +28,7 @@ using ::we::runtime::kindui::WidgetStyle;
 
 enum class ToolButtonStyle {
     Normal,
-    PlayButton,      // Legacy – kept for compatibility
+    PlayButton,
     TransportButton, // Play / Pause / Stop – compact icon-only
     WindowControl,
     WindowClose,

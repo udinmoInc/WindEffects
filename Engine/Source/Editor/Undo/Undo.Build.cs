@@ -23,7 +23,7 @@ public class Undo : ModuleRules
         PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Serialization");
         PublicDependencies.Add("World");
-        PublicDependencies.Add("PropertyEditor"); // IPropertyTransactionHook adapter
+        PublicDependencies.Add("PropertyEditor");
 
         Definitions.Add("UNDO_EXPORTS");
     }

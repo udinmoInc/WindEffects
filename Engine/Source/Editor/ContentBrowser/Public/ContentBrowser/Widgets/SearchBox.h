@@ -50,15 +50,12 @@ public:
     void OnFocus() override;
     void OnBlur() override;
 
-    // Text management
     void SetText(const std::string& text);
     std::string GetText() const { return m_Text; }
     void SetPlaceholder(const std::string& placeholder) { m_Placeholder = placeholder; }
 
-    // Callbacks
     void SetOnTextChanged(OnTextChanged callback) { m_OnTextChanged = callback; }
 
-    // Styling
     void SetFillWidth(bool fill) { m_FillWidth = fill; }
     void SetWidth(float width) { m_Width = width; }
     void SetToolbarInset(bool inset) { m_ToolbarInset = inset; }
