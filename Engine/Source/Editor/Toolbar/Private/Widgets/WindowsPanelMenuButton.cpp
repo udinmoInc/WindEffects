@@ -111,12 +111,15 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
     const float padH = ToolbarButtonChrome::ChipHorizontalPad(uiScale);
     const float iconSize = ToolbarButtonChrome::IconSize(uiScale);
     const float iconGap = ToolbarButtonChrome::IconGapPx(uiScale);
-    const auto iconColor = ToolbarButtonChrome::ResolveIconColor(m_HoverAnim, pressStrength, false);
 
-    IconPainter::Draw(
-        context, WindIcons::Window16, ToolbarButtonChrome::PlaceIconInControl(
-            Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
-            iconSize));
+    ToolbarButtonChrome::PaintFloatingIcon(
+        context,
+        WindIcons::Window16,
+        Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
+        iconSize,
+        m_HoverAnim,
+        pressStrength,
+        false);
 
     const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float textX = m_Geometry.x + padH + iconSize + iconGap;
@@ -128,8 +131,14 @@ void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context)
 
     const float tier = static_cast<float>(16u);
     const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
-    IconPainter::Draw(
-        context, WindIcons::ChevronDownV212, IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
+    ToolbarButtonChrome::PaintFloatingIcon(
+        context,
+        WindIcons::ChevronDownV212,
+        IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
+        tier,
+        m_HoverAnim,
+        pressStrength,
+        false);
 }
 
 void WindowsPanelMenuButton::OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) {

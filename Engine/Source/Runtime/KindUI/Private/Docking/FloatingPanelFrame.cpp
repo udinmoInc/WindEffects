@@ -293,14 +293,8 @@ void FloatingPanelFrame::Paint(::we::runtime::kindui::PaintContext& context) {
         m_Dock->Paint(context);
     }
 
-    auto paintControl = [&](const Rect& rect, auto icon, int controlIndex, bool isClose) {
+    auto paintControl = [&](const Rect& rect, auto icon, int controlIndex, bool /*isClose*/) {
         const bool hovered = m_HoveredControl == controlIndex;
-        if (hovered) {
-            const Color hover = isClose
-                ? ThemeColor(ColorToken::CloseButtonHover)
-                : ThemeColor(ColorToken::HoverBackground);
-            context.DrawRect(rect, hover);
-        }
         ::we::runtime::kindui::panels::PanelChrome::PaintHeaderIconButton(
             context, rect, icon, hovered, false, true);
     };

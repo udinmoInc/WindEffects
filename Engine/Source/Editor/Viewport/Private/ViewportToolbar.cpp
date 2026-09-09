@@ -220,8 +220,14 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
     builder.Height(we::runtime::kindui::ResolveMetric(
         we::runtime::kindui::MetricToken::ViewportToolbarHeight));
 
-    // Flat left items on the toolbar strip (ungrouped, no separators)
+    // Flat left items — floating icons/labels, no rounded hover boxes.
     builder.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
+        const auto floatChrome = [](const std::shared_ptr<ToolButton>& btn) {
+            if (btn) {
+                btn->SetChromeless(true);
+            }
+        };
+
         const WindIconRef handIcon = WindIcons::ToolbarHand16;
         const WindIconRef moveIcon = WindIcons::MoveOutline16;
         const WindIconRef rotateIcon = WindIcons::ToolbarRotate16;
@@ -229,51 +235,61 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
         tools.IconItem(
             handIcon,
             "Hand (Pan Viewport)",
-            [toolbarHolder, handIcon]() { ActivateViewportTool(toolbarHolder, handIcon, "SelectTool"); });
+            [toolbarHolder, handIcon]() { ActivateViewportTool(toolbarHolder, handIcon, "SelectTool"); },
+            floatChrome);
         tools.IconItem(
             moveIcon,
             "Move (W)",
-            [toolbarHolder, moveIcon]() { ActivateViewportTool(toolbarHolder, moveIcon, "MoveTool"); });
+            [toolbarHolder, moveIcon]() { ActivateViewportTool(toolbarHolder, moveIcon, "MoveTool"); },
+            floatChrome);
         tools.IconItem(
             rotateIcon,
             "Rotate (E)",
-            [toolbarHolder, rotateIcon]() { ActivateViewportTool(toolbarHolder, rotateIcon, "RotateTool"); });
+            [toolbarHolder, rotateIcon]() { ActivateViewportTool(toolbarHolder, rotateIcon, "RotateTool"); },
+            floatChrome);
         tools.IconItem(
             scaleIcon,
             "Scale (R)",
-            [toolbarHolder, scaleIcon]() { ActivateViewportTool(toolbarHolder, scaleIcon, "ScaleTool"); });
+            [toolbarHolder, scaleIcon]() { ActivateViewportTool(toolbarHolder, scaleIcon, "ScaleTool"); },
+            floatChrome);
 
         tools.IconItem(
             WindIcons::Globe16,
             "Cycle Coordinate Space (World / Local)",
-            []() {});
+            []() {},
+            floatChrome);
         tools.IconItem(
             WindIcons::Speaker16,
             "Toggle Viewport Audio",
-            []() {});
+            []() {},
+            floatChrome);
 
         tools.DropdownItem(
             WindIcons::Grid16,
             "10",
             []() { ToggleGridSnap(); },
-            "Toggle Grid Snap");
+            "Toggle Grid Snap",
+            floatChrome);
         tools.DropdownItem(
             WindIcons::ToolbarRotate16,
             "90°",
             []() { ToggleRotationSnap(); },
-            "Toggle Rotation Snap");
+            "Toggle Rotation Snap",
+            floatChrome);
         tools.DropdownItem(
             WindIcons::ToolbarScaling16,
             "0.25",
             []() { ToggleScaleSnap(); },
-            "Toggle Scale Snap");
+            "Toggle Scale Snap",
+            floatChrome);
 
         tools.DropdownItem(
             WindIcons::ToolbarCamera16,
             "Perspective",
             []() {},
             "Viewport Projection",
-            [](const std::shared_ptr<ToolButton>& btn) {
+            [floatChrome](const std::shared_ptr<ToolButton>& btn) {
+                floatChrome(btn);
                 btn->SetOnClicked([btn]() {
                     ShowPerspectiveMenu(btn->GetGeometry());
                 });
@@ -283,7 +299,8 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
             "Lit",
             []() {},
             "Viewport Lighting Mode",
-            [](const std::shared_ptr<ToolButton>& btn) {
+            [floatChrome](const std::shared_ptr<ToolButton>& btn) {
+                floatChrome(btn);
                 btn->SetOnClicked([btn]() {
                     ShowLitMenu(btn->GetGeometry());
                 });
@@ -293,7 +310,8 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
             "Show",
             []() {},
             "Show Viewport Options",
-            [](const std::shared_ptr<ToolButton>& btn) {
+            [floatChrome](const std::shared_ptr<ToolButton>& btn) {
+                floatChrome(btn);
                 btn->SetOnClicked([btn]() {
                     ShowShowMenu(btn->GetGeometry());
                 });
@@ -302,16 +320,22 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
 
     // Right-aligned group (Camera speed + Multi-Viewport Layout)
     builder.Group(ToolbarAlignment::Right, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
+        const auto floatChrome = [](const std::shared_ptr<ToolButton>& btn) {
+            if (btn) {
+                btn->SetChromeless(true);
+            }
+        };
         tools.DropdownItem(
             WindIcons::ToolbarVideocamera16,
             "1",
             []() { ShowViewportCameraSpeedPopup(); },
             "Camera Speed",
-            [cameraButtonPtr = &cameraSpeedButton](const std::shared_ptr<ToolButton>& btn) {
+            [floatChrome, &cameraSpeedButton](const std::shared_ptr<ToolButton>& btn) {
+                floatChrome(btn);
                 btn->SetOnMouseWheel([](float wheelDeltaY) {
                     AdjustViewportCameraSpeedFromWheel(wheelDeltaY);
                 });
-                *cameraButtonPtr = btn;
+                cameraSpeedButton = btn;
             });
         tools.IconItem(
             WindIcons::Grid16,
@@ -321,7 +345,8 @@ std::shared_ptr<::we::runtime::kindui::Widget> CreateViewportToolbar() {
                     auto& grid = editor->Grid();
                     grid.SetVisible(!grid.IsVisible());
                 }
-            });
+            },
+            floatChrome);
     });
 
     auto toolbar = builder.Build();

@@ -75,25 +75,28 @@ public:
             ThemeMetric(we::runtime::kindui::MetricToken::HoverAnimationDamping));
 
         const float pressStrength = m_Pressed ? 1.0f : 0.0f;
-        we::runtime::kindui::ToolbarButtonChrome::PaintIconButton(
-            context, m_Geometry, m_HoverAnim, pressStrength, false, 0.0f, uiScale);
-
-        const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
         const float padH = we::runtime::kindui::ToolbarButtonChrome::HorizontalPad(uiScale);
         const float iconSize = we::runtime::kindui::ToolbarButtonChrome::IconSize(uiScale);
-        we::runtime::kindui::Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(
-            m_HoverAnim, pressStrength, false);
 
-        we::runtime::kindui::IconPainter::Draw(
-            context, we::runtime::kindui::WindIcons::Globe16,
-            we::runtime::kindui::ToolbarButtonChrome::PlaceIconInControl(
-                we::runtime::kindui::Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
-                iconSize));
+        we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+            context,
+            we::runtime::kindui::WindIcons::Globe16,
+            we::runtime::kindui::Rect{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height },
+            iconSize,
+            m_HoverAnim,
+            pressStrength,
+            false);
 
         const float tier = static_cast<float>(16u);
         const float chevronX = m_Geometry.x + m_Geometry.width - padH - tier;
-        we::runtime::kindui::IconPainter::Draw(
-            context, we::runtime::kindui::WindIcons::ChevronDownV212, we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX));
+        we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+            context,
+            we::runtime::kindui::WindIcons::ChevronDownV212,
+            we::runtime::kindui::IconMetrics::CompactGlyphBand(m_Geometry, chevronX),
+            tier,
+            m_HoverAnim,
+            pressStrength,
+            false);
     }
 
     void OnMouseMove(const we::runtime::kindui::MouseEvent& event) override {

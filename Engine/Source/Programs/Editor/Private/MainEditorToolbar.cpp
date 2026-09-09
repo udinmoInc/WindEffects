@@ -58,16 +58,16 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         left.AddWidget(modeSelector);
         left.Separator();
         left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
-            file.IconItem(WindIcons::Save24, "Save Level (Ctrl+S)", []() {});
-            file.IconItem(WindIcons::Blueprint24, "Open Blueprints", []() {});
-            file.IconItem(WindIcons::Clapperboard24, "Cinematics & Sequencer", []() {});
+            file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
+            file.IconItem(WindIcons::Blueprint16, "Open Blueprints", []() {});
+            file.IconItem(WindIcons::Clapperboard16, "Cinematics & Sequencer", []() {});
         });
     });
 
-    // Center group: Transport controls (Green Play + Mode Dropdown + Play Settings) at true window center
+    // Center group: Transport controls (Play + Mode Dropdown + Play Settings) at true window center
     builder.Center([&](ToolbarBuilder& center) {
         center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
-            transport.IconItem(WindIcons::Play24, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
+            transport.IconItem(WindIcons::Play16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::PlayButton);
             });
             transport.DropdownItem(
@@ -75,15 +75,15 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
                 "Default (Debug)",
                 []() {},
                 "Play Mode Options");
-            transport.IconItem(WindIcons::SettingsV224, "Play Options", []() { ShowViewportNavigationPreferences(); });
+            transport.IconItem(WindIcons::Settings16, "Play Options", []() { ShowViewportNavigationPreferences(); });
         });
     });
 
     // Right group: Build & Accessibility dropdown controls
     builder.Right([&](ToolbarBuilder& right) {
         right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& tools) {
-            tools.DropdownItem(WindIcons::ConstructV224, "", []() {}, "Build Options");
-            tools.DropdownItem(WindIcons::AccessibilityV224, "", []() {}, "Accessibility Options");
+            tools.DropdownItem(WindIcons::Construct16, "", []() {}, "Build Options");
+            tools.DropdownItem(WindIcons::Accessibility16, "", []() {}, "Accessibility Options");
         });
     });
 

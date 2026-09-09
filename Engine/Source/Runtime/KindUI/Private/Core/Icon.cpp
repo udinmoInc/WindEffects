@@ -3,6 +3,8 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 
+#include <algorithm>
+
 namespace we::runtime::kindui {
 
 void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& position) {
@@ -21,6 +23,21 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Point& pos
 }
 
 void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, uint32_t displayPx) {
+    Draw(context, icon, controlBounds, displayPx, Color::White());
+}
+
+void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, const Color& tint) {
+    const uint32_t displayPx = icon.sizePx > 0 ? icon.sizePx : 0u;
+    Draw(context, icon, controlBounds, displayPx, tint);
+}
+
+void IconPainter::Draw(
+    PaintContext& context,
+    WindIconRef icon,
+    const Rect& controlBounds,
+    uint32_t displayPx,
+    const Color& tint)
+{
     if (!icon.IsValid()) {
         return;
     }
@@ -31,19 +48,6 @@ void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& cont
             : ((controlBounds.width > 0.0f && controlBounds.height > 0.0f)
                 ? std::min(controlBounds.width, controlBounds.height)
                 : 16.0f));
-    const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
-    context.DrawWindIcon(icon, drawRect, Color::White());
-}
-
-void IconPainter::Draw(PaintContext& context, WindIconRef icon, const Rect& controlBounds, const Color& tint) {
-    if (!icon.IsValid()) {
-        return;
-    }
-    const float targetPx = (icon.sizePx > 0)
-        ? static_cast<float>(icon.sizePx)
-        : ((controlBounds.width > 0.0f && controlBounds.height > 0.0f)
-            ? std::min(controlBounds.width, controlBounds.height)
-            : 16.0f);
     const Rect drawRect = IconMetrics::PlaceGlyphCentered(controlBounds, targetPx);
     context.DrawWindIcon(icon, drawRect, tint);
 }

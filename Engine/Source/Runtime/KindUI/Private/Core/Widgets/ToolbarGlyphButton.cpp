@@ -4,6 +4,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -47,35 +48,19 @@ void ToolbarGlyphButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolbarGlyphButton::Paint(PaintContext& context) {
-    const auto baseStyle = ResolveStyle(m_Role);
-    const auto hoverStyle = ResolveStyle(StyleRole::IconButtonHover);
-    const auto pressStyle = ResolveStyle(StyleRole::IconButtonPressed);
-
-    Color bgColor = IsEnabled() ? baseStyle.background : ThemeColor(ColorToken::DisabledBackground);
-    Color borderColor = IsEnabled() ? baseStyle.border : ThemeColor(ColorToken::Separator);
-
-    if (IsEnabled() && m_HoverAnim >= 0.5f) {
-        bgColor = hoverStyle.background;
-        borderColor = hoverStyle.border;
-    }
-    if (IsEnabled() && m_PressAnim >= 0.5f) {
-        bgColor = pressStyle.background;
-    }
-
     Rect buttonRect = m_Geometry;
     buttonRect.y += m_PressOffset;
 
-    if (bgColor.a > 0.01f) {
-        context.DrawRoundedRect(buttonRect, bgColor, baseStyle.cornerRadius);
-    }
-
-    if (IsEnabled() && (m_Role == StyleRole::IconButton || m_HoverAnim > 0.01f)) {
-        context.DrawRoundedRectOutline(buttonRect, borderColor, baseStyle.borderWidth * 0.5f, baseStyle.cornerRadius);
-    }
-
     if (m_Icon.IsValid()) {
         const float iconPx = ThemeMetric(m_IconSizeToken);
-        IconPainter::Draw(context, m_Icon, buttonRect, static_cast<uint32_t>(iconPx));
+        we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+            context,
+            m_Icon,
+            buttonRect,
+            iconPx,
+            IsEnabled() ? m_HoverAnim : 0.0f,
+            IsEnabled() ? m_PressAnim : 0.0f,
+            IsSelected());
     }
 }
 

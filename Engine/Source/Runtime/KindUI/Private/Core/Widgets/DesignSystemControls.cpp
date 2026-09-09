@@ -5,6 +5,7 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
@@ -170,17 +171,18 @@ void IconButton::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    ControlChrome::InteractionState state{ m_HoverAnim, m_PressAnim, m_Active, m_Focused, false };
-    if (m_Borderless) {
-        ControlChrome::PaintBorderlessIconButton(context, m_Geometry, state);
-    } else {
-        ControlChrome::PaintIconButtonFrame(context, m_Geometry, state, m_Active);
-    }
     if (m_Icon.IsValid()) {
         const ResolvedStyle style = ThemeManager::Get().Resolve(
             m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
         const float iconPx = style.iconSize;
-        IconPainter::Draw(context, m_Icon, m_Geometry, static_cast<uint32_t>(iconPx));
+        we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
+            context,
+            m_Icon,
+            m_Geometry,
+            iconPx,
+            m_HoverAnim,
+            m_PressAnim,
+            m_Active);
     }
 }
 
