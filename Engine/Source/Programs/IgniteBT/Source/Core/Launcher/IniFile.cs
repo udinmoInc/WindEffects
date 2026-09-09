@@ -63,7 +63,8 @@ public static class IniFile
         using var writer = new StreamWriter(path);
 
         WriteSection(writer, null, document.Global);
-        foreach (var (sectionName, values) in document.Sections.OrderBy(static pair => pair.Key, StringComparer.OrdinalIgnoreCase))
+        foreach (var (sectionName, values) in document.Sections.OrderBy(static pair => pair.Key,
+            StringComparer.OrdinalIgnoreCase))
         {
             WriteSection(writer, sectionName, values);
         }

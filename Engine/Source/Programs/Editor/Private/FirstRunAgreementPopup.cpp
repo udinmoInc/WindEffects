@@ -137,10 +137,12 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     const float titleFontSize = 17.0f * m_DpiScale;
     const float subtitleFontSize = 11.0f * m_DpiScale;
     context.DrawText(m_Title.empty() ? "License Agreement" : m_Title,
-        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 6.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding *
+            m_DpiScale + 6.0f * m_DpiScale },
         ThemeColor(ColorToken::TextPrimary), titleFontSize, true);
     context.DrawText("Please review and accept before using the editor.",
-        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding * m_DpiScale + 28.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + kDialogPadding *
+            m_DpiScale + 28.0f * m_DpiScale },
         ThemeColor(ColorToken::TextSecondary), subtitleFontSize);
     
     // Content area background
@@ -187,7 +189,8 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
     // Footer hint text
     const float hintFontSize = 10.0f * m_DpiScale;
     context.DrawText("Press Ctrl+C to copy the full agreement text.",
-        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y + m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
+        we::runtime::kindui::Point{ m_DialogRect.x + kDialogPadding * m_DpiScale, m_DialogRect.y +
+            m_DialogRect.height - kDialogPadding * m_DpiScale - 14.0f * m_DpiScale },
         ThemeColor(ColorToken::TextSecondary), hintFontSize);
     
     // Buttons
@@ -238,7 +241,8 @@ void FirstRunAgreementPopup::Paint(we::runtime::kindui::PaintContext& context) {
             contentX += iconSize + textGap;
         }
         context.DrawText(button.label,
-            we::runtime::kindui::Point{ contentX, button.rect.y + (button.rect.height - fontSize) * 0.5f + 1.5f * m_DpiScale },
+            we::runtime::kindui::Point{ contentX, button.rect.y + (button.rect.height - fontSize) * 0.5f + 1.5f *
+                m_DpiScale },
             textColor, fontSize, true);
     };
     

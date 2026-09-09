@@ -74,7 +74,8 @@ public static class PackageCommand
 
             if (!Directory.Exists(outputRoot))
             {
-                Log.Error("Build output not found at {OutputRoot}. Run 'we build' first or omit --skip-build.", outputRoot);
+                Log.Error("Build output not found at {OutputRoot}. Run 'we build' first or omit --skip-build.",
+                    outputRoot);
                 return 1;
             }
 
@@ -103,7 +104,8 @@ public static class PackageCommand
             Directory.CreateDirectory(packagesRoot);
 
             var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
-            var packageName = $"WindEffects-{normalizedTarget}-{layout.PlatformFolder}-{layout.ConfigurationFolder}-{stamp}";
+            var packageName =
+                $"WindEffects-{normalizedTarget}-{layout.PlatformFolder}-{layout.ConfigurationFolder}-{stamp}";
             var stagingDir = Path.Combine(layout.TempRoot, "PackageStaging", packageName);
             var zipPath = Path.Combine(packagesRoot, packageName + ".zip");
 

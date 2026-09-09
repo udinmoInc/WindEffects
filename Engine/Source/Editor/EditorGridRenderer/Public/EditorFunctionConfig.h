@@ -85,10 +85,12 @@ private:
 
     std::filesystem::path GetConfigPath() const;
     std::unordered_map<std::string, std::string> LoadIniFile(const std::filesystem::path& path) const;
-    void WriteIniFile(const std::filesystem::path& path, const std::unordered_map<std::string, std::string>& values) const;
+    void WriteIniFile(const std::filesystem::path& path, const std::unordered_map<std::string, std::string>& values)
+        const;
     std::unordered_map<std::string, std::string> BuildDefaultEntries() const;
     void ApplyValues(const std::unordered_map<std::string, std::string>& values);
-    void MergeMissingKeys(const std::filesystem::path& path, const std::unordered_map<std::string, std::string>& defaults);
+    void MergeMissingKeys(const std::filesystem::path& path, const std::unordered_map<std::string, std::string>&
+        defaults);
 
     EditorGridConfig m_GridConfig{};
     std::filesystem::file_time_type m_LastWriteTime{};

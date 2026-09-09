@@ -446,10 +446,12 @@ void Splitter::Paint(PaintContext& context) {
     const float thickness = std::max(1.0f, ResolveMetric(MetricToken::SplitterThickness) * scale);
 
     if (m_Orientation == Orientation::Horizontal) {
-        Rect visualRect{ std::floor(barRect.x + (barRect.width - thickness) * 0.5f), barRect.y, thickness, barRect.height };
+        Rect visualRect{ std::floor(barRect.x + (barRect.width - thickness) * 0.5f), barRect.y, thickness,
+            barRect.height };
         context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
     } else {
-        Rect visualRect{ barRect.x, std::floor(barRect.y + (barRect.height - thickness) * 0.5f), barRect.width, thickness };
+        Rect visualRect{ barRect.x, std::floor(barRect.y + (barRect.height - thickness) * 0.5f), barRect.width,
+            thickness };
         context.DrawSurface(visualRect, SurfaceRole::Separator, 0.0f, "SplitterDivider");
     }
 }

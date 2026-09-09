@@ -107,7 +107,8 @@ public static class BuildCommand
         int unitySize = 0;
         if (int.TryParse(parsed.GetOption("unity-size", ""), out var us)) unitySize = us;
         var unityDisabled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var mod in parsed.GetOption("unity-disable", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var mod in parsed.GetOption("unity-disable", "").Split(',', StringSplitOptions.RemoveEmptyEntries |
+            StringSplitOptions.TrimEntries))
             unityDisabled.Add(mod);
 
         int jobs;
@@ -157,7 +158,8 @@ public static class BuildCommand
             var outputLayout = new OutputLayout(layout, engineDir);
             using (profiler.Scope(BuildStages.ShaderCompilation))
             {
-                var shaderStats = ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot, layout.CacheDirectory);
+                var shaderStats = ShaderBytecodeCompiler.CompileAndStage(engineDir, outputLayout.ConfigurationRoot,
+                    layout.CacheDirectory);
                 if (!shaderStats.Success)
                 {
                     Log.Error("Build aborted due to shader compilation failures.");
@@ -212,28 +214,33 @@ public static class BuildCommand
 
             Log.Information("=== Build Profile ===");
             Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}% | CPU util: {Cpu:F1}%",
-                profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent, profile.CpuUtilizationPercent);
+                profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent,
+                    profile.CpuUtilizationPercent);
             Log.Information("Hash: {Hash}ms | Scan: {Scan}ms | Compiler wait: {Cw}ms | Link wait: {Lw}ms | Link cache: {LinkCache:F1}% | Scheduler idle: {Idle}ms",
-                profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs, profile.LinkCacheHitPercent, stats.SchedulerIdleMs);
+                profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs,
+                    profile.LinkCacheHitPercent, stats.SchedulerIdleMs);
             if (profile.ShaderCacheHits > 0)
                 Log.Information("Shader cache hits: {Count}", profile.ShaderCacheHits);
             if (stats.ModulesLinkSkipped > 0)
                 Log.Information("Links skipped (cache): {Count}", stats.ModulesLinkSkipped);
             foreach (var scope in profile.Scopes.Take(10))
-                Log.Information("  {Name}: {Total}ms ({Count}x, avg {Avg:F1}ms)", scope.Name, scope.TotalMs, scope.Count, scope.AverageMs);
+                Log.Information("  {Name}: {Total}ms ({Count}x, avg {Avg:F1}ms)", scope.Name, scope.TotalMs,
+                    scope.Count, scope.AverageMs);
 
             Log.Information("=== Cache Stats ===");
             Log.Information("Object cache hit rate: {Rate:P1} ({Hits}/{Total})",
                 stats.ObjectCacheHitRate, stats.ObjectCacheHits, stats.ObjectCacheHits + stats.ObjectCacheMisses);
             Log.Information("Header cache hit rate: {Rate:P1}", stats.HeaderCacheHitRate);
             Log.Information("Files compiled: {Compiled}, skipped: {Skipped}", stats.FilesCompiled, stats.FilesSkipped);
-            Log.Information("Object cache entries: {Count} ({Size:F1} MB)", cacheStats.EntryCount, cacheStats.TotalSizeMB);
+            Log.Information("Object cache entries: {Count} ({Size:F1} MB)", cacheStats.EntryCount,
+                cacheStats.TotalSizeMB);
 
             if (result.Success)
             {
                 using (profiler.Scope(BuildStages.AssetCompilation))
                 {
-                    var iconStats = IconAtlasCompiler.CompileAndStage(projectRoot, engineDir, outputLayout.ConfigurationRoot, layout.CacheDirectory);
+                    var iconStats = IconAtlasCompiler.CompileAndStage(projectRoot, engineDir,
+                        outputLayout.ConfigurationRoot, layout.CacheDirectory);
                     if (iconStats.Skipped > 0)
                         profiler.RecordShaderCacheHit(iconStats.Skipped);
                 }

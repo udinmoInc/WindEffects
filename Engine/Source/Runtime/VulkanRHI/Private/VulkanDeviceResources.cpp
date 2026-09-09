@@ -231,7 +231,8 @@ RHIResult<RHISamplerHandle> VulkanDevice::CreateSampler(const SamplerDesc& desc)
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     info.magFilter = ToVkFilter(desc.magFilter);
     info.minFilter = ToVkFilter(desc.minFilter);
-    info.mipmapMode = desc.mipFilter == Filter::Nearest ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    info.mipmapMode = desc.mipFilter == Filter::Nearest ? VK_SAMPLER_MIPMAP_MODE_NEAREST :
+        VK_SAMPLER_MIPMAP_MODE_LINEAR;
     info.addressModeU = ToVkAddressMode(desc.addressU);
     info.addressModeV = ToVkAddressMode(desc.addressV);
     info.addressModeW = ToVkAddressMode(desc.addressW);

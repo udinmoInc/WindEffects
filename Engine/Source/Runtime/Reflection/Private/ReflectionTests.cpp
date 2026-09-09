@@ -46,7 +46,8 @@ struct Actor {
     bool active = true;
 };
 
-bool InvokeAddHealth(void* instance, const void* args, std::size_t argsSize, void* returnBuffer, std::size_t returnBufferSize) {
+bool InvokeAddHealth(void* instance, const void* args, std::size_t argsSize, void* returnBuffer,
+    std::size_t returnBufferSize) {
     if (!instance || !args || argsSize < sizeof(std::int32_t)) {
         return false;
     }

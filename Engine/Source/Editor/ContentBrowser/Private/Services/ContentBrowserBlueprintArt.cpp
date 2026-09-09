@@ -30,7 +30,8 @@ void ContentBrowserBlueprintArt::InvalidateCache() {
     m_Cache.clear();
 }
 
-we::runtime::kindui::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::runtime::kindui::Rect& bounds, float widthFill, float heightFill) {
+we::runtime::kindui::Rect ContentBrowserBlueprintArt::ComputeBlueprintRect(const we::runtime::kindui::Rect& bounds,
+    float widthFill, float heightFill) {
     const float maxW = bounds.width * std::clamp(widthFill, 0.5f, 0.95f);
     const float maxH = bounds.height * std::clamp(heightFill, 0.5f, 0.95f);
     float width = maxW;
@@ -64,14 +65,16 @@ we::rhi::RHIDescriptorSetHandle ContentBrowserBlueprintArt::GetTexture(uint32_t 
     const BitmapRGBA bitmap = ThumbnailRenderer::RenderContentBrowserBlueprint(rasterHeight, hovered ? 1.0f : 0.0f);
     if (bitmap.pixels.empty()) return we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width, bitmap.height);
+    const we::rhi::RHIDescriptorSetHandle texture = m_Renderer->CreateTextureFromBitmap(bitmap.pixels, bitmap.width,
+        bitmap.height);
     if ((texture != we::rhi::RHIDescriptorSetHandle::Invalid)) {
         m_Cache[key] = texture;
     }
     return texture;
 }
 
-void ContentBrowserBlueprintArt::PaintThumbnail(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& thumbRect, bool hovered) const {
+void ContentBrowserBlueprintArt::PaintThumbnail(we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& thumbRect, bool hovered) const {
     const we::runtime::kindui::Rect blueprintRect = ComputeBlueprintRect(thumbRect);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);
@@ -80,7 +83,8 @@ void ContentBrowserBlueprintArt::PaintThumbnail(we::runtime::kindui::PaintContex
     }
 }
 
-void ContentBrowserBlueprintArt::PaintSmallIcon(we::runtime::kindui::PaintContext& context, const we::runtime::kindui::Rect& iconRect, bool hovered) const {
+void ContentBrowserBlueprintArt::PaintSmallIcon(we::runtime::kindui::PaintContext& context,
+    const we::runtime::kindui::Rect& iconRect, bool hovered) const {
     const we::runtime::kindui::Rect blueprintRect = ComputeBlueprintRect(iconRect, 0.88f, 0.88f);
     const uint32_t heightPx = static_cast<uint32_t>(std::ceil(blueprintRect.height));
     const we::rhi::RHIDescriptorSetHandle texture = GetTexture(heightPx, hovered);

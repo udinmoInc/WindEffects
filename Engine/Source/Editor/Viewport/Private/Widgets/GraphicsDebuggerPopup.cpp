@@ -119,7 +119,8 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
         we::runtime::kindui::SurfaceRole::Popup,
         ResolveMetric(MetricToken::CornerRadiusSmall),
         "GraphicsDebuggerPopup");
-    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f, ResolveMetric(MetricToken::CornerRadiusSmall));
+    context.DrawRoundedRectOutline(m_Geometry, ThemeColor(ColorToken::BorderDefault), 1.0f,
+        ResolveMetric(MetricToken::CornerRadiusSmall));
     context.DrawSurface(m_HeaderRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "GraphicsDebuggerHeader");
     const float padding = ResolveMetric(MetricToken::Space2);
     const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);

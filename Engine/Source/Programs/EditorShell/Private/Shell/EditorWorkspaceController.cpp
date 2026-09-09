@@ -1094,7 +1094,8 @@ void EditorWorkspaceController::SaveLayout() const {
         return;
     }
 
-    auto writeFixedSecond = [&](const char* key, const std::shared_ptr<we::runtime::kindui::Splitter>& splitter, float minSize) {
+    auto writeFixedSecond = [&](const char* key, const std::shared_ptr<we::runtime::kindui::Splitter>& splitter,
+        float minSize) {
         if (!splitter || splitter->GetResizeMode() != Splitter::ResizeMode::FixedSecond) {
             return;
         }

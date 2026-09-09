@@ -90,11 +90,16 @@ constexpr std::size_t kSceneEnvironmentUniformSize = 328;
 static_assert(sizeof(SceneEnvironmentUniform) == kSceneEnvironmentUniformSize,
     "Environment UBO size drift — rebuild ALL Renderer/World translation units that include this header.");
 static_assert(offsetof(SceneEnvironmentUniform, enableClouds) == 156, "Environment UBO packing drift (enableClouds).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudDensityMult) == 232, "Environment UBO packing drift (cloudDensityMult).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudWindDir) == 256, "Environment UBO packing drift (cloudWindDir pad).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudQualitySteps) == 316, "Environment UBO packing drift (cloudQualitySteps).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudShapeNoise) == 320, "Environment UBO packing drift (cloudShapeNoise).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudErosionNoise) == 324, "Environment UBO packing drift (cloudErosionNoise).");
+static_assert(offsetof(SceneEnvironmentUniform, cloudDensityMult) == 232,
+    "Environment UBO packing drift (cloudDensityMult).");
+static_assert(offsetof(SceneEnvironmentUniform, cloudWindDir) == 256,
+    "Environment UBO packing drift (cloudWindDir pad).");
+static_assert(offsetof(SceneEnvironmentUniform, cloudQualitySteps) == 316,
+    "Environment UBO packing drift (cloudQualitySteps).");
+static_assert(offsetof(SceneEnvironmentUniform, cloudShapeNoise) == 320,
+    "Environment UBO packing drift (cloudShapeNoise).");
+static_assert(offsetof(SceneEnvironmentUniform, cloudErosionNoise) == 324,
+    "Environment UBO packing drift (cloudErosionNoise).");
 
 } // namespace we::runtime::renderer
 

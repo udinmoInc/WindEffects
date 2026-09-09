@@ -102,7 +102,8 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
         editor.Dialog().createInfo.worldScale = {s, s, s};
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Initial Height", FormFormatFloat(dialog.createInfo.initialElevation), [&](std::string_view v) {
+    AddFormField(layout, "Initial Height", FormFormatFloat(dialog.createInfo.initialElevation),
+        [&](std::string_view v) {
         editor.Dialog().createInfo.initialElevation =
             std::clamp(FormParseFloat(v, editor.Dialog().createInfo.initialElevation), 0.f, 1.f);
         editor.Wizard().State() = editor.Dialog();

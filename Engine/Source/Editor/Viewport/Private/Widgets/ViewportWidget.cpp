@@ -194,7 +194,8 @@ we::rhi::RHITextureHandle ViewportWidget::GetViewportColorTexture() const {
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
     const float inset = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::Space2);
-    const float hitRadius = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::NavigationButtonSize) * 0.5f;
+    const float hitRadius = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::NavigationButtonSize)
+        * 0.5f;
     const Point gizmoCenter = Point{
         m_Geometry.x + m_Geometry.width - inset - hitRadius,
         m_Geometry.y + inset + hitRadius

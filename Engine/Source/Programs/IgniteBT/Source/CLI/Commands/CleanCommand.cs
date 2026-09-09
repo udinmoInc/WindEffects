@@ -187,7 +187,8 @@ public static class CleanCommand
             TryDeleteFile(file, description);
         }
 
-        foreach (var dir in Directory.EnumerateDirectories(directory, "*", SearchOption.AllDirectories).OrderByDescending(d => d.Length))
+        foreach (var dir in Directory.EnumerateDirectories(directory, "*",
+            SearchOption.AllDirectories).OrderByDescending(d => d.Length))
         {
             try
             {

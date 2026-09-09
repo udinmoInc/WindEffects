@@ -61,7 +61,8 @@ Size DropdownMenu::Measure(const Size& availableSize) {
         maxContentW = std::max(maxContentW, itemW);
     }
 
-    const float calcW = std::clamp(maxContentW, ThemeMetric(MetricToken::PopupMinWidth), ThemeMetric(MetricToken::PopupMaxWidth));
+    const float calcW = std::clamp(maxContentW, ThemeMetric(MetricToken::PopupMinWidth),
+        ThemeMetric(MetricToken::PopupMaxWidth));
     const float fullH = m_PaddingY * 2.0f + static_cast<float>(m_Items.size()) * m_ItemHeight;
     const float maxAllowedH = availableSize.height > 0.0f
         ? std::min(availableSize.height, ThemeMetric(MetricToken::PopupMaxHeight))
@@ -132,10 +133,12 @@ void DropdownMenu::Paint(PaintContext& context) {
                 }
 
                 const Color textColor = item->enabled
-                    ? (m_HoveredItem == static_cast<int>(i) ? ResolveColor(ColorToken::TextPrimary) : ResolveColor(ColorToken::TextSecondary))
+                    ? (m_HoveredItem == static_cast<int>(i) ? ResolveColor(ColorToken::TextPrimary) :
+                        ResolveColor(ColorToken::TextSecondary))
                     : ResolveColor(ColorToken::TextDisabled);
                 const float centerY = std::floor(itemRect.y + itemRect.height * 0.5f);
-                const float textY = std::floor(we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize));
+                const float textY = std::floor(we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY,
+                    textSize));
 
                 context.DrawText(item->label, Point{ textX, textY }, textColor, textSize);
 
@@ -169,7 +172,8 @@ void DropdownMenu::Paint(PaintContext& context) {
             const float tooltipW = tooltipTextW + tooltipPadX * 2.0f;
             const float tooltipH = tooltipTextSize + tooltipPadY * 2.0f;
 
-            const float hoveredY = m_Geometry.y + m_PaddingY + static_cast<float>(m_HoveredItem) * m_ItemHeight - m_ScrollOffset;
+            const float hoveredY = m_Geometry.y + m_PaddingY + static_cast<float>(m_HoveredItem) * m_ItemHeight -
+                m_ScrollOffset;
             const Rect tooltipRect{
                 m_Geometry.x + m_Geometry.width + 6.0f,
                 hoveredY + (m_ItemHeight - tooltipH) * 0.5f,
@@ -198,7 +202,8 @@ void DropdownMenu::OnMouseMove(const MouseEvent& event) {
 void DropdownMenu::OnMouseWheel(const MouseEvent& event) {
     const float fullH = m_PaddingY * 2.0f + static_cast<float>(m_Items.size()) * m_ItemHeight;
     const float maxScroll = std::max(0.0f, fullH - m_Geometry.height);
-    m_ScrollOffset = std::clamp(m_ScrollOffset - event.wheelDeltaY * ThemeMetric(MetricToken::ListRowHeight), 0.0f, maxScroll);
+    m_ScrollOffset = std::clamp(m_ScrollOffset - event.wheelDeltaY * ThemeMetric(MetricToken::ListRowHeight), 0.0f,
+        maxScroll);
     InvalidatePaint();
 }
 

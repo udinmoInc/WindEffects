@@ -585,7 +585,8 @@ Result<DirectoryWatcherId> WindowsPlatform::WatchDirectory(std::string_view path
         watcher.buffer,
         static_cast<DWORD>(sizeof(watcher.buffer)),
         recursive ? TRUE : FALSE,
-        FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE,
+        FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE |
+            FILE_NOTIFY_CHANGE_SIZE,
         nullptr,
         &watcher.overlapped,
         nullptr);
@@ -737,7 +738,8 @@ void WindowsPlatform::PollDirectoryWatchers() {
             watcher.buffer,
             static_cast<DWORD>(sizeof(watcher.buffer)),
             watcher.recursive ? TRUE : FALSE,
-            FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE,
+            FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE |
+                FILE_NOTIFY_CHANGE_SIZE,
             nullptr,
             &watcher.overlapped,
             nullptr);

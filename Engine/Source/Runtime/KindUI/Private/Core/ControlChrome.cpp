@@ -111,7 +111,8 @@ void PaintControlFrame(
     context.DrawRoundedRect(rect, bg, style.cornerRadius);
 
     const ResolvedControlBorder border = ResolveControlBorder(state, borderMode, styleBorder);
-    Color borderCol = border.color.a > 0.01f ? border.color : (styleBorder.a > 0.01f ? styleBorder : ResolveColor(ColorToken::Separator));
+    Color borderCol = border.color.a > 0.01f ? border.color : (styleBorder.a > 0.01f ? styleBorder :
+        ResolveColor(ColorToken::Separator));
     const float borderW = border.width > 0.0f ? border.width : ResolveMetric(MetricToken::BorderWidth);
     context.DrawRoundedRectOutline(rect, borderCol, borderW, style.cornerRadius);
 
@@ -225,9 +226,11 @@ void PaintPanelButtonFace(
 
     Color borderColor = ResolveColor(ColorToken::BorderDefault);
     if (hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f,
+            1.0f));
     } else if (pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(pressAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(pressAnim, 0.0f,
+            1.0f));
     }
     context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), radius);
 }
@@ -267,7 +270,8 @@ void PaintInputFrameInternal(
     if (state.focused) {
         borderColor = ResolveColor(ColorToken::BorderFocus);
     } else if (state.hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f,
+            1.0f));
     }
     context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), cornerRadius);
 
@@ -378,9 +382,11 @@ void PaintFilledButton(
 
     Color borderColor = base.border.a > 0.01f ? base.border : ResolveColor(ColorToken::BorderDefault);
     if (state.hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f,
+            1.0f));
     } else if (state.pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(state.pressAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(state.pressAnim, 0.0f,
+            1.0f));
     }
     context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), base.cornerRadius);
 }

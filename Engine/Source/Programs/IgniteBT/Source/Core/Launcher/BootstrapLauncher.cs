@@ -27,7 +27,8 @@ public static class BootstrapLauncher
             if (tool != null && BootstrapManifest.IsToolRunnable(tool))
             {
                 if (string.Equals(tool.Kind, "dotnet", StringComparison.OrdinalIgnoreCase)
-                    && (string.IsNullOrWhiteSpace(tool.ExecutablePath) || !BootstrapManifest.IsDotNetExecutableUsable(tool.ExecutablePath)))
+                    && (string.IsNullOrWhiteSpace(tool.ExecutablePath) ||
+                        !BootstrapManifest.IsDotNetExecutableUsable(tool.ExecutablePath)))
                 {
                     return RunDotNetProject(tool.SourcePath, descriptor.EngineRoot, args);
                 }

@@ -73,9 +73,11 @@ public:
     void BindComputePipeline(RHIComputePipelineHandle pipeline) override;
     void BindVertexBuffer(uint32_t binding, RHIBufferHandle buffer, uint64_t offset = 0) override;
     void BindIndexBuffer(RHIBufferHandle buffer, uint64_t offset = 0, IndexType type = IndexType::UInt32) override;
-    void BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t, std::span<const RHIDescriptorSetHandle>) override;
+    void BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t,
+        std::span<const RHIDescriptorSetHandle>) override;
     void PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) override;
-    void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
+    void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0)
+        override;
     void DrawIndexed(uint32_t, uint32_t = 1, uint32_t = 0, int32_t = 0, uint32_t = 0) override;
     void DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
     void DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
@@ -303,17 +305,20 @@ public:
     [[nodiscard]] RHIResult<RHIShaderHandle> CreateShader(const ShaderDesc& desc) override;
     RHIResult<void> DestroyShader(RHIShaderHandle handle) override;
 
-    [[nodiscard]] RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc& desc) override;
+    [[nodiscard]] RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc&
+        desc) override;
     RHIResult<void> DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) override;
     [[nodiscard]] RHIResult<RHIDescriptorPoolHandle> CreateDescriptorPool(const DescriptorPoolDesc& desc) override;
     RHIResult<void> DestroyDescriptorPool(RHIDescriptorPoolHandle handle) override;
     RHIResult<void> ResetDescriptorPool(RHIDescriptorPoolHandle handle) override;
-    [[nodiscard]] RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc) override;
+    [[nodiscard]] RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc)
+        override;
     void UpdateDescriptorSets(std::span<const WriteDescriptorSet> writes) override;
 
     [[nodiscard]] RHIResult<RHIPipelineLayoutHandle> CreatePipelineLayout(const PipelineLayoutDesc& desc = {}) override;
     RHIResult<void> DestroyPipelineLayout(RHIPipelineLayoutHandle handle) override;
-    [[nodiscard]] RHIResult<RHIGraphicsPipelineHandle> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
+    [[nodiscard]] RHIResult<RHIGraphicsPipelineHandle> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
+        override;
     RHIResult<void> DestroyGraphicsPipeline(RHIGraphicsPipelineHandle handle) override;
     [[nodiscard]] RHIResult<RHIComputePipelineHandle> CreateComputePipeline(const ComputePipelineDesc& desc) override;
     RHIResult<void> DestroyComputePipeline(RHIComputePipelineHandle handle) override;
@@ -381,7 +386,8 @@ public:
     [[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE SamplerGpu(uint32_t offset) const;
     void EnqueueDeferred(DeferredKind kind, uint64_t handle);
     [[nodiscard]] ID3D12CommandSignature* GetDrawIndirectSignature() const { return m_DrawIndirectSig.Get(); }
-    [[nodiscard]] ID3D12CommandSignature* GetDrawIndexedIndirectSignature() const { return m_DrawIndexedIndirectSig.Get(); }
+    [[nodiscard]] ID3D12CommandSignature* GetDrawIndexedIndirectSignature() const {
+        return m_DrawIndexedIndirectSig.Get(); }
     [[nodiscard]] ID3D12CommandSignature* GetDispatchIndirectSignature() const { return m_DispatchIndirectSig.Get(); }
 
 private:

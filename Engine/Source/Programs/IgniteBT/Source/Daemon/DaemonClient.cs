@@ -18,7 +18,8 @@ namespace IgniteBT.Daemon;
 /// </summary>
 public static class DaemonClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy =
+        JsonNamingPolicy.CamelCase };
 
     public static bool TryExecute(
         string projectRoot,
@@ -32,7 +33,8 @@ public static class DaemonClient
         try
         {
             if (OperatingSystem.IsWindows())
-                return TryExecuteNamedPipe(projectRoot, command, args, workingDirectory, out response, connectTimeoutMs);
+                return TryExecuteNamedPipe(projectRoot, command, args, workingDirectory, out response,
+                    connectTimeoutMs);
 
             return TryExecuteUnixSocket(projectRoot, command, args, workingDirectory, out response, connectTimeoutMs);
         }
@@ -92,7 +94,8 @@ public static class DaemonClient
         return Exchange(stream, command, args, workingDirectory, out response);
     }
 
-    private static bool Exchange(Stream stream, string command, string[] args, string workingDirectory, out DaemonResponse? response)
+    private static bool Exchange(Stream stream, string command, string[] args, string workingDirectory,
+        out DaemonResponse? response)
     {
         response = null;
         var request = JsonSerializer.Serialize(new DaemonRequest

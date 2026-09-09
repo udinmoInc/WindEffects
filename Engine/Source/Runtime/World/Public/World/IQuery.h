@@ -53,8 +53,10 @@ public:
 
     virtual void Rebuild() = 0;
     [[nodiscard]] virtual std::vector<ActorHandle> Query(const SpatialQueryParams& params) const = 0;
-    [[nodiscard]] virtual std::vector<ActorHandle> OverlapSphere(const Sphere3f& sphere, const ActorQueryFilter& filter = {}) const = 0;
-    [[nodiscard]] virtual std::vector<ActorHandle> OverlapBox(const Aabb3f& box, const ActorQueryFilter& filter = {}) const = 0;
+    [[nodiscard]] virtual std::vector<ActorHandle> OverlapSphere(const Sphere3f& sphere, const ActorQueryFilter&
+        filter = {}) const = 0;
+    [[nodiscard]] virtual std::vector<ActorHandle> OverlapBox(const Aabb3f& box, const ActorQueryFilter& filter = {})
+        const = 0;
 };
 
 } // namespace we::runtime::world

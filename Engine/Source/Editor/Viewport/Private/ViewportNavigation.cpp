@@ -28,7 +28,8 @@ using ::we::runtime::kindui::KeyEventType;
 
 namespace {
 
-we::runtime::engine::EditorCameraNavigationSettings ToCameraSettings(const ::we::editor::viewport::ViewportNavigationSettings& settings) {
+we::runtime::engine::EditorCameraNavigationSettings ToCameraSettings(const
+    ::we::editor::viewport::ViewportNavigationSettings& settings) {
     we::runtime::engine::EditorCameraNavigationSettings result{};
     result.mouseSensitivity = settings.mouseSensitivity;
     result.cameraAcceleration = settings.cameraAcceleration;

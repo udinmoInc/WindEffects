@@ -126,8 +126,10 @@ std::array<uint8_t, 3> ThemeRgb(const we::runtime::kindui::Color& color, float h
 
 std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
     // Use multi-color palette for folder: blend between tab color (top) and body color (bottom)
-    const auto tabColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab), hoverBrightness);
-    const auto bodyColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderBody), hoverBrightness);
+    const auto tabColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab),
+        hoverBrightness);
+    const auto bodyColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderBody),
+        hoverBrightness);
     
     const float factor = std::clamp(t, 0.0f, 1.0f);
     
@@ -193,7 +195,8 @@ void ThumbnailRenderer::SetPixel(BitmapRGBA& bmp, int x, int y, uint8_t r, uint8
     bmp.pixels[idx + 3] = a;
 }
 
-void ThumbnailRenderer::FillRect(BitmapRGBA& bmp, int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void ThumbnailRenderer::FillRect(BitmapRGBA& bmp, int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b,
+    uint8_t a) {
     for (int py = y; py < y + h; ++py) {
         for (int px = x; px < x + w; ++px) {
             SetPixel(bmp, px, py, r, g, b, a);
@@ -201,7 +204,8 @@ void ThumbnailRenderer::FillRect(BitmapRGBA& bmp, int x, int y, int w, int h, ui
     }
 }
 
-void ThumbnailRenderer::DrawCircle(BitmapRGBA& bmp, int cx, int cy, int radius, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void ThumbnailRenderer::DrawCircle(BitmapRGBA& bmp, int cx, int cy, int radius, uint8_t r, uint8_t g, uint8_t b,
+    uint8_t a) {
     for (int y = -radius; y <= radius; ++y) {
         for (int x = -radius; x <= radius; ++x) {
             if (x * x + y * y <= radius * radius) {
@@ -422,7 +426,8 @@ BitmapRGBA ThumbnailRenderer::RenderScriptIcon(const AssetRecord&) {
 BitmapRGBA ThumbnailRenderer::RenderScenePreview(const AssetRecord&) {
     auto bmp = CreateEmpty(kThumbnailSize);
     FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 18, 20, 26, 255);
-    FillRect(bmp, 0, static_cast<int>(kThumbnailSize) * 2 / 3, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize) / 3, 40, 80, 50, 255);
+    FillRect(bmp, 0, static_cast<int>(kThumbnailSize) * 2 / 3, static_cast<int>(kThumbnailSize),
+        static_cast<int>(kThumbnailSize) / 3, 40, 80, 50, 255);
     FillRect(bmp, 40, 50, 48, 36, 70, 75, 85, 255);
     return bmp;
 }
@@ -521,7 +526,8 @@ void ThumbnailRenderer::FillRoundedRect(BitmapRGBA& bmp, float x, float y, float
     }
 }
 
-void ThumbnailRenderer::FillRoundedRectVerticalGradient(BitmapRGBA& bmp, float x, float y, float w, float h, float radius,
+void ThumbnailRenderer::FillRoundedRectVerticalGradient(BitmapRGBA& bmp, float x, float y, float w, float h,
+    float radius,
     uint8_t rTop, uint8_t gTop, uint8_t bTop, uint8_t rBot, uint8_t gBot, uint8_t bBot, uint8_t a)
 {
     const int x0 = std::max(0, static_cast<int>(std::floor(x)));
@@ -549,14 +555,22 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
     // Use full theme palette for folder
-    const auto shadowRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderShadow), hoverBrightness);
-    const auto edgeRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderEdge), hoverBrightness);
-    const auto tabTop = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderHighlight), hoverBrightness);
-    const auto tabBot = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab), hoverBrightness);
-    const auto bodyTop = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab), hoverBrightness);
-    const auto bodyMid = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderPrimary), hoverBrightness);
-    const auto bodyBot = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderBody), hoverBrightness);
-    const auto highlightRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderHighlight), hoverBrightness);
+    const auto shadowRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderShadow),
+        hoverBrightness);
+    const auto edgeRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderEdge),
+        hoverBrightness);
+    const auto tabTop = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderHighlight),
+        hoverBrightness);
+    const auto tabBot = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab),
+        hoverBrightness);
+    const auto bodyTop = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab),
+        hoverBrightness);
+    const auto bodyMid = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderPrimary),
+        hoverBrightness);
+    const auto bodyBot = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderBody),
+        hoverBrightness);
+    const auto highlightRgb =
+        ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderHighlight), hoverBrightness);
 
     constexpr float kRefW = 146.0f;
     constexpr float kRefH = 100.0f;
@@ -594,7 +608,8 @@ BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, u
     return bmp;
 }
 
-BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved, uint32_t w, uint32_t h, float hoverBrightness,
+BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved, uint32_t w, uint32_t h,
+    float hoverBrightness,
     const std::function<std::array<uint8_t, 3>(float verticalT)>& sampleColor) {
     constexpr int kSSAA = 4;
     const uint32_t rasterW = w * kSSAA;
@@ -629,7 +644,8 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
                 for (int dx = 0; dx < kSSAA; ++dx) {
                     const int sx = static_cast<int>(x) * kSSAA + dx;
                     const int sy = static_cast<int>(y) * kSSAA + dy;
-                    const size_t srcIdx = (static_cast<size_t>(sy) * static_cast<size_t>(rasterW) + static_cast<size_t>(sx)) * 4;
+                    const size_t srcIdx = (static_cast<size_t>(sy) * static_cast<size_t>(rasterW) +
+                        static_cast<size_t>(sx)) * 4;
                     const uint8_t a = rasterData[srcIdx + 3];
                     sumR += rasterData[srcIdx] * a;
                     sumG += rasterData[srcIdx + 1] * a;

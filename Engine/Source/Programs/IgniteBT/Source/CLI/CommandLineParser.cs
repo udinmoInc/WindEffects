@@ -36,7 +36,8 @@ public sealed class CommandSchema
         CommandName = commandName;
     }
 
-    public CommandSchema WithOption(string longName, char? shortName = null, string? defaultValue = null, string description = "")
+    public CommandSchema WithOption(string longName, char? shortName = null, string? defaultValue = null,
+        string description = "")
     {
         var spec = new OptionSpec
         {

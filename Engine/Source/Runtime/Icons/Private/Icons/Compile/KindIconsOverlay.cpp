@@ -56,7 +56,8 @@ void BlitRgbaOntoAtlas(
     for (uint32_t y = 0; y < copyH; ++y) {
         for (uint32_t x = 0; x < copyW; ++x) {
             const size_t srcIndex = (static_cast<size_t>(srcOffsetY + y) * srcWidth  + (srcOffsetX + x)) * 4u;
-            const size_t dstIndex = (static_cast<size_t>(dstY + dstOffsetY + y) * atlasWidth + (dstX + dstOffsetX + x)) * 4u;
+            const size_t dstIndex = (static_cast<size_t>(dstY + dstOffsetY + y) * atlasWidth + (dstX + dstOffsetX + x))
+                * 4u;
             if (srcIndex + 3 >= srcRgba.size() || dstIndex + 3 >= atlasRgba.size()) {
                 continue;
             }

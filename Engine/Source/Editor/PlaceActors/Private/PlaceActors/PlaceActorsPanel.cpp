@@ -319,7 +319,8 @@ float PlaceActorsPanel::CategoryExpandAnim(const std::string& categoryId) const 
         return 1.0f;
     }
     const auto it = m_CategoryExpandAnim.find(categoryId);
-    return it != m_CategoryExpandAnim.end() ? it->second : (m_CategoryExpanded.count(categoryId) ? (m_CategoryExpanded.at(categoryId) ? 1.0f : 0.0f) : 1.0f);
+    return it != m_CategoryExpandAnim.end() ? it->second : (m_CategoryExpanded.count(categoryId)
+        ? (m_CategoryExpanded.at(categoryId) ? 1.0f : 0.0f) : 1.0f);
 }
 
 void PlaceActorsPanel::RebuildData() {

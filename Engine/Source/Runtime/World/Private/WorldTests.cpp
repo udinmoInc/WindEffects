@@ -85,7 +85,8 @@ WorldTestReport RunWorldRuntimeTests() {
     AddCase(report, "LayerSystem", world->Layers().GetLayer(hero) == gameplay, "Gameplay");
 
     world->BeginPlay();
-    AddCase(report, "BeginPlay", world->Actors().TryGet(hero) && world->Actors().TryGet(hero)->HasBegunPlay(), "playing");
+    AddCase(report, "BeginPlay", world->Actors().TryGet(hero) && world->Actors().TryGet(hero)->HasBegunPlay(),
+        "playing");
 
     WorldTickParams tick{};
     tick.deltaSeconds = 1.f / 60.f;

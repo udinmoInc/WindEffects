@@ -80,7 +80,8 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
         return RHIError::Make(RHIErrorCode::NotInitialized, "Device not ready.", "Swapchain::Create");
     }
     if (desc.window.type != we::platform::NativeWindowType::Win32Hwnd || !desc.window.window) {
-        return RHIError::Make(RHIErrorCode::InvalidArgument, "Expected Win32Hwnd for DXGI swapchain.", "Swapchain::Create");
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Expected Win32Hwnd for DXGI swapchain.",
+            "Swapchain::Create");
     }
 
     const HWND hwnd = static_cast<HWND>(desc.window.window);
@@ -150,13 +151,16 @@ RHIResult<void> DX12Swapchain::Create(const DeviceDesc& desc) {
     factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 
     if (FAILED(swap1.As(&m_Swap)) || !m_Swap) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain3 failed.", "Swapchain::Create");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain3 failed.",
+            "Swapchain::Create");
     }
     if (FAILED(m_Swap.As(&m_Swap2)) || !m_Swap2) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain2 failed.", "Swapchain::Create");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "QueryInterface IDXGISwapChain2 failed.",
+            "Swapchain::Create");
     }
 
-    if (ComPtr<IDXGIDevice1> dxgiDevice; SUCCEEDED(m_Device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice)))) {
+    if (ComPtr<IDXGIDevice1> dxgiDevice;
+        SUCCEEDED(m_Device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice)))) {
         (void)dxgiDevice->SetMaximumFrameLatency(m_MaxFrameLatency);
     }
     (void)m_Swap2->SetMaximumFrameLatency(m_MaxFrameLatency);
@@ -210,7 +214,8 @@ RHIResult<void> DX12Swapchain::Resize(Extent2D extent) {
     m_Extent.height = extent.height ? extent.height : 1;
 
     const UINT bufferCount = (std::max)(m_BufferCount, 2u);
-    const HRESULT hr = m_Swap->ResizeBuffers(bufferCount, m_Extent.width, m_Extent.height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
+    const HRESULT hr = m_Swap->ResizeBuffers(bufferCount, m_Extent.width, m_Extent.height,
+        DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
     if (FAILED(hr)) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "ResizeBuffers failed.", "Resize", hr);
     }

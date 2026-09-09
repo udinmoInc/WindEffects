@@ -102,7 +102,8 @@ namespace {
     }
 }
 
-ToolButton::ToolButton(WindIconRef icon, const std::string& label, std::function<void()> onClicked, const std::string& tooltip)
+ToolButton::ToolButton(WindIconRef icon, const std::string& label, std::function<void()> onClicked, const std::string&
+    tooltip)
     : m_Icon(icon)
     , m_Label(label)
     , m_Tooltip(tooltip)
@@ -244,9 +245,11 @@ Size ToolButton::Measure(const Size& availableSize) {
         return m_DesiredSize;
     }
 
-    if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton || m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
+    if (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton ||
+        m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly) {
         const float itemH = ToolbarButtonChrome::ItemSize(uiScale);
-        const float width = (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle == ToolButtonStyle::PlayButton)
+        const float width = (m_ButtonStyle == ToolButtonStyle::TransportButton || m_ButtonStyle ==
+            ToolButtonStyle::PlayButton)
             ? std::round(itemH * 1.15f)
             : itemH;
         m_DesiredSize = Size{ width, itemH };

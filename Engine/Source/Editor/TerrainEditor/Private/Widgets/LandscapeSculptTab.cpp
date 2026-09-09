@@ -17,7 +17,8 @@ using we::runtime::kindui::kWindIconNone;
 namespace WindIcons = we::runtime::kindui::WindIcons;
 } // namespace
 
-static void ActivateOp(ILandscapeEditor& editor, runtime_terrain::TerrainBrushOp op, viewportedit::ViewportToolId tool) {
+static void ActivateOp(ILandscapeEditor& editor, runtime_terrain::TerrainBrushOp op,
+    viewportedit::ViewportToolId tool) {
     editor.SetBrushOp(op);
     if (auto* ve = viewportedit::ViewportEditSession::Editor()) {
         ve->SetActiveMode("Landscape");

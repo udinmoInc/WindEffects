@@ -28,7 +28,8 @@ public:
 
     // Callback parameter is for progress (0.0 to 1.0) and status message.
     // Returns true if successfully submitted.
-    virtual bool SubmitReport(const ReportData& payload, std::function<void(float, const std::string&)> progressCallback) = 0;
+    virtual bool SubmitReport(const ReportData& payload, std::function<void(float, const std::string&)>
+        progressCallback) = 0;
 };
 
 } // namespace we::programs::crashreporter

@@ -79,8 +79,10 @@ void CrashReporterApp::MainLoop() {
                 mouseEvent.position = {static_cast<float>(button->position.x), static_cast<float>(button->position.y)};
                 switch (button->button) {
                 case we::platform::MouseButton::Left: mouseEvent.button = we::runtime::kindui::MouseButton::Left; break;
-                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right; break;
-                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle; break;
+                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right;
+                    break;
+                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle;
+                    break;
                 default: break;
                 }
                 mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);

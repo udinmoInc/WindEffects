@@ -60,7 +60,8 @@ we::math::Vec3 ParseColor(const std::string& value, const we::math::Vec3& fallba
     while (std::getline(stream, component, ',') && index < 3) {
         color[index++] = ParseFloat(component, color[index]);
     }
-    return we::math::Vec3(std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f, 1.0f));
+    return we::math::Vec3(std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f,
+        1.0f));
 }
 
 std::string BoolToString(bool value) { return value ? "1" : "0"; }
@@ -106,7 +107,8 @@ we::math::Vec4 ResolveGridColorRGBA(
         return ParseColorRGBA(values.at(rgbaKey), fallback);
     }
     if (legacyRgbKey != nullptr && legacyRgbKey[0] != '\0' && values.contains(legacyRgbKey)) {
-        const we::math::Vec3 rgb = ParseColor(values.at(legacyRgbKey), we::math::Vec3(fallback.x, fallback.y, fallback.z));
+        const we::math::Vec3 rgb = ParseColor(values.at(legacyRgbKey), we::math::Vec3(fallback.x, fallback.y,
+            fallback.z));
         const float opacity = values.contains(legacyOpacityKey)
             ? std::clamp(ParseFloat(values.at(legacyOpacityKey), fallback.w), 0.0f, 1.0f)
             : fallback.w;
@@ -177,7 +179,8 @@ std::unordered_map<std::string, std::string> EditorFunctionConfig::BuildDefaultE
     return entries;
 }
 
-std::unordered_map<std::string, std::string> EditorFunctionConfig::LoadIniFile(const std::filesystem::path& path) const {
+std::unordered_map<std::string, std::string> EditorFunctionConfig::LoadIniFile(const std::filesystem::path& path)
+    const {
     std::unordered_map<std::string, std::string> values;
     std::ifstream file(path);
     if (!file.is_open()) {
@@ -297,7 +300,8 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
         return fallback;
     };
 
-    config.lineThicknessMinor = std::max(0.25f, thickness("EditorGrid.MinorThickness", "EditorGrid.LineThicknessMinor", config.lineThicknessMinor));
+    config.lineThicknessMinor = std::max(0.25f, thickness("EditorGrid.MinorThickness", "EditorGrid.LineThicknessMinor",
+        config.lineThicknessMinor));
     config.lineThicknessMajor = std::max(config.lineThicknessMinor,
         thickness("EditorGrid.MajorThickness", "EditorGrid.LineThicknessMajor", config.lineThicknessMajor));
     config.lineThicknessAxis = std::max(config.lineThicknessMinor,
@@ -309,13 +313,15 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
     config.baseOpacity = std::clamp(ParseFloat(get("EditorGrid.BaseOpacity"), config.baseOpacity), 0.0f, 1.0f);
 
     config.minorGridColor = ResolveGridColorRGBA(
-        values, "EditorGrid.MinorGridColor", "EditorGrid.MinorLineColor", "EditorGrid.MinorLineOpacity", config.minorGridColor);
+        values, "EditorGrid.MinorGridColor", "EditorGrid.MinorLineColor", "EditorGrid.MinorLineOpacity",
+            config.minorGridColor);
     config.mediumGridColor = ResolveGridColorRGBA(
         values, "EditorGrid.MediumGridColor", "", "", config.mediumGridColor);
     config.largeGridColor = ResolveGridColorRGBA(
         values, "EditorGrid.LargeGridColor", "", "", config.largeGridColor);
     config.majorGridColor = ResolveGridColorRGBA(
-        values, "EditorGrid.MajorGridColor", "EditorGrid.MajorLineColor", "EditorGrid.MajorLineOpacity", config.majorGridColor);
+        values, "EditorGrid.MajorGridColor", "EditorGrid.MajorLineColor", "EditorGrid.MajorLineOpacity",
+            config.majorGridColor);
 
     auto loadAxisColor = [&](const char* key, const we::math::Vec4& fallback) -> we::math::Vec4 {
         if (!values.contains(key)) {
@@ -337,9 +343,12 @@ void EditorFunctionConfig::ApplyValues(const std::unordered_map<std::string, std
     config.depthBiasConstant = ParseFloat(get("EditorGrid.DepthBiasConstant"), config.depthBiasConstant);
     config.depthBiasSlope = ParseFloat(get("EditorGrid.DepthBiasSlope"), config.depthBiasSlope);
     config.depthOffset = ParseFloat(get("EditorGrid.DepthOffset"), config.depthOffset);
-    config.radiusFadeStart = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeStart"), config.radiusFadeStart), 0.0f, 1.0f);
-    config.radiusFadeEnd = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeEnd"), config.radiusFadeEnd), config.radiusFadeStart, 1.0f);
-    config.distanceFadeStart = std::max(0.0f, ParseFloat(get("EditorGrid.DistanceFadeStart"), config.distanceFadeStart));
+    config.radiusFadeStart = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeStart"), config.radiusFadeStart), 0.0f,
+        1.0f);
+    config.radiusFadeEnd = std::clamp(ParseFloat(get("EditorGrid.RadiusFadeEnd"), config.radiusFadeEnd),
+        config.radiusFadeStart, 1.0f);
+    config.distanceFadeStart = std::max(0.0f, ParseFloat(get("EditorGrid.DistanceFadeStart"),
+        config.distanceFadeStart));
     config.distanceFadeEnd = std::max(config.distanceFadeStart + 1.0f,
         ParseFloat(get("EditorGrid.DistanceFadeEnd"), config.distanceFadeEnd));
     config.horizonGuardNdcMargin = std::max(0.0f,

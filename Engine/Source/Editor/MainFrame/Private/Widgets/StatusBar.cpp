@@ -195,7 +195,8 @@ void StatusBar::Paint(PaintContext& context) {
 
     // Crisp top border line separating status bar from workspace
     const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
-    context.DrawRect(Rect{ m_Geometry.x, std::floor(m_Geometry.y), m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
+    context.DrawRect(Rect{ m_Geometry.x, std::floor(m_Geometry.y), m_Geometry.width, borderThickness },
+        ThemeColor(ColorToken::Separator));
 
     Row::Paint(context);
     context.PopSurfaceOwner();

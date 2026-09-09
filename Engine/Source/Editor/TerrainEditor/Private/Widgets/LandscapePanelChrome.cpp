@@ -129,25 +129,30 @@ void PaintChip(
 
     Color borderColor = selected ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::BorderDefault);
     if (!selected && hoverAnim > 0.01f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f, 1.0f));
+        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f,
+            1.0f));
     }
     context.DrawRoundedRectOutline(bounds, borderColor, 1.0f * UiScale(), radius);
 
     float textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale();
     if (icon.IsValid()) {
         const float iconSize = 16.0f;
-        const Rect iconBand{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y, iconSize, bounds.height};
+        const Rect iconBand{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), bounds.y, iconSize,
+            bounds.height};
         we::runtime::kindui::IconPainter::Draw(
             context, icon, we::runtime::kindui::IconMetrics::PlaceGlyphCentered(iconBand, 16u));
-        textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale() + iconSize + ResolveMetric(MetricToken::Space2) * UiScale();
+        textX = bounds.x + ResolveMetric(MetricToken::Space2) * UiScale() + iconSize +
+            ResolveMetric(MetricToken::Space2) * UiScale();
     }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(label, Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
+    context.DrawText(label, Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
+        ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintPropertyLabel(PaintContext& context, const Rect& bounds, std::string_view label) {
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(label, Point{bounds.x, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextSecondary), fontSize, false);
+    context.DrawText(label, Point{bounds.x, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
+        ResolveColor(ColorToken::TextSecondary), fontSize, false);
 }
 
 void PaintField(
@@ -162,7 +167,8 @@ void PaintField(
     state.hoverAnim = hovered ? 1.0f : 0.0f;
     ControlChrome::PaintInputFrame(context, bounds, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(value, Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(), LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
+    context.DrawText(value, Point{bounds.x + ResolveMetric(MetricToken::Space2) * UiScale(),
+        LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintToggle(
@@ -190,7 +196,8 @@ void PaintToggle(
         ResolveColor(ColorToken::TextPrimary),
         knob * 0.5f);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
-    context.DrawText(label, Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
+    context.DrawText(label, Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
+        ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintPrimaryButton(
@@ -210,7 +217,8 @@ void PaintPrimaryButton(
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, true);
     const float fontSize = ResolveMetric(MetricToken::TextSizeBody) * UiScale();
     const float textW = context.GetTextWidth(label, fontSize, true);
-    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, true);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds,
+        fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, true);
 }
 
 void PaintSecondaryButton(
@@ -229,7 +237,8 @@ void PaintSecondaryButton(
     ControlChrome::PaintPanelButtonFace(context, bounds, bg, radius, hoverAnim, pressAnim, false);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     const float textW = context.GetTextWidth(label, fontSize, false);
-    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds,
+        fontSize)}, ResolveColor(ColorToken::TextPrimary), fontSize, false);
 }
 
 void PaintDangerButton(
@@ -246,7 +255,8 @@ void PaintDangerButton(
     ControlChrome::PaintDangerButton(context, bounds, base, state);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     const float textW = context.GetTextWidth(label, fontSize, true);
-    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds, fontSize)}, ResolveColor(ColorToken::TextOnAccent), fontSize, true);
+    context.DrawText(label, Point{bounds.x + (bounds.width - textW) * 0.5f, LayoutMetrics::AlignTextTopY(bounds,
+        fontSize)}, ResolveColor(ColorToken::TextOnAccent), fontSize, true);
 }
 
 void PaintInfoValue(
@@ -259,7 +269,8 @@ void PaintInfoValue(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(
         std::string(value),
-        Point{bounds.x + LabelColumnWidth() + PropertyPanelChrome::ValueColumnGap(), LayoutMetrics::AlignTextTopY(bounds, fontSize)},
+        Point{bounds.x + LabelColumnWidth() + PropertyPanelChrome::ValueColumnGap(),
+            LayoutMetrics::AlignTextTopY(bounds, fontSize)},
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         false);

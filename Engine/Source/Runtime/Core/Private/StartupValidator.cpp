@@ -26,7 +26,8 @@ std::vector<StartupCheckResult> StartupValidator::RunAll() {
     std::vector<StartupCheckResult> results;
     results.reserve(m_Checks.size());
 
-    WE_LOG_INFO(LogCategory::Startup.data(), "Running startup validation (" + std::to_string(m_Checks.size()) + " checks)...");
+    WE_LOG_INFO(LogCategory::Startup.data(), "Running startup validation (" + std::to_string(m_Checks.size()) +
+        " checks)...");
 
     for (const auto& [name, check] : m_Checks) {
         StartupCheckResult result{};
@@ -35,7 +36,8 @@ std::vector<StartupCheckResult> StartupValidator::RunAll() {
         results.push_back(result);
 
         if (result.success) {
-            WE_LOG_INFO(LogCategory::Startup.data(), "[PASS] " + name + (result.detail.empty() ? "" : " - " + result.detail));
+            WE_LOG_INFO(LogCategory::Startup.data(), "[PASS] " + name + (result.detail.empty() ? "" : " - " +
+                result.detail));
         } else {
             m_AllPassed = false;
             WE_LOG_ERROR(LogCategory::Startup.data(), "[FAIL] " + name + " - " + result.detail);

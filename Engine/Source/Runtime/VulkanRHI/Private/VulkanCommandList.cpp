@@ -313,7 +313,8 @@ void VulkanCommandList::PushConstants(
         data.data());
 }
 
-void VulkanCommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+void VulkanCommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
+    uint32_t firstInstance) {
     if (m_Cmd) {
         vkCmdDraw(m_Cmd, vertexCount, instanceCount, firstVertex, firstInstance);
     }
@@ -343,7 +344,8 @@ void VulkanCommandList::DrawIndirect(RHIBufferHandle buffer, uint64_t offset, ui
     vkCmdDrawIndirect(m_Cmd, buf->buffer, offset, drawCount, byteStride);
 }
 
-void VulkanCommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+void VulkanCommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount,
+    uint32_t stride) {
     if (!m_Cmd || !m_Device || drawCount == 0) {
         return;
     }
@@ -404,7 +406,8 @@ void VulkanCommandList::CopyTexture(RHITextureHandle src, RHITextureHandle dst, 
         return;
     }
     VkImageCopy copy{};
-    copy.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     copy.srcSubresource.mipLevel = region.src.mipLevel;
     copy.srcSubresource.baseArrayLayer = region.src.baseLayer;
     copy.srcSubresource.layerCount = region.src.layerCount;
@@ -412,7 +415,8 @@ void VulkanCommandList::CopyTexture(RHITextureHandle src, RHITextureHandle dst, 
         static_cast<int32_t>(region.srcOffsetX),
         static_cast<int32_t>(region.srcOffsetY),
         static_cast<int32_t>(region.srcOffsetZ)};
-    copy.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     copy.dstSubresource.mipLevel = region.dst.mipLevel;
     copy.dstSubresource.baseArrayLayer = region.dst.baseLayer;
     copy.dstSubresource.layerCount = region.dst.layerCount;
@@ -446,13 +450,15 @@ void VulkanCommandList::BlitTexture(
         return;
     }
     VkImageBlit blit{};
-    blit.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.srcSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     blit.srcSubresource.mipLevel = region.src.mipLevel;
     blit.srcSubresource.baseArrayLayer = region.src.baseLayer;
     blit.srcSubresource.layerCount = region.src.layerCount;
     blit.srcOffsets[0] = {region.srcOffset0X, region.srcOffset0Y, region.srcOffset0Z};
     blit.srcOffsets[1] = {region.srcOffset1X, region.srcOffset1Y, region.srcOffset1Z};
-    blit.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.dstSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     blit.dstSubresource.mipLevel = region.dst.mipLevel;
     blit.dstSubresource.baseArrayLayer = region.dst.baseLayer;
     blit.dstSubresource.layerCount = region.dst.layerCount;
@@ -469,7 +475,8 @@ void VulkanCommandList::BlitTexture(
         ToVkFilter(filter));
 }
 
-void VulkanCommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion& region) {
+void VulkanCommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion&
+    region) {
     if (!m_Cmd || !m_Device) {
         return;
     }
@@ -482,7 +489,8 @@ void VulkanCommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandl
     copy.bufferOffset = region.bufferOffset;
     copy.bufferRowLength = region.bufferRowLength;
     copy.bufferImageHeight = region.bufferImageHeight;
-    copy.imageSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.aspectMask = IsDepthFormat(d->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     copy.imageSubresource.mipLevel = region.image.mipLevel;
     copy.imageSubresource.baseArrayLayer = region.image.baseLayer;
     copy.imageSubresource.layerCount = region.image.layerCount;
@@ -494,7 +502,8 @@ void VulkanCommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandl
     vkCmdCopyBufferToImage(m_Cmd, s->buffer, d->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 }
 
-void VulkanCommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) {
+void VulkanCommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion&
+    region) {
     if (!m_Cmd || !m_Device) {
         return;
     }
@@ -507,7 +516,8 @@ void VulkanCommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandl
     copy.bufferOffset = region.bufferOffset;
     copy.bufferRowLength = region.bufferRowLength;
     copy.bufferImageHeight = region.bufferImageHeight;
-    copy.imageSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.aspectMask = IsDepthFormat(s->desc.format) ? VK_IMAGE_ASPECT_DEPTH_BIT :
+        VK_IMAGE_ASPECT_COLOR_BIT;
     copy.imageSubresource.mipLevel = region.image.mipLevel;
     copy.imageSubresource.baseArrayLayer = region.image.baseLayer;
     copy.imageSubresource.layerCount = region.image.layerCount;

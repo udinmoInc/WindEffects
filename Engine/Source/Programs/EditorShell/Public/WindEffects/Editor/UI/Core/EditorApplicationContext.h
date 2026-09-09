@@ -55,7 +55,8 @@ public:
     // Rebind context services after ThemeManager::SetTheme.
     EDITORSHELL_API void SyncThemeFromManager();
 
-    [[nodiscard]] IServiceProvider& GetServices() const override { return *const_cast<EditorApplicationContext*>(this); }
+    [[nodiscard]] IServiceProvider& GetServices() const override {
+        return *const_cast<EditorApplicationContext*>(this); }
     [[nodiscard]] IKindUITheme& GetTheme() const override { return *m_ThemeProvider; }
     [[nodiscard]] IStyleResolver& GetStyleResolver() const override { return *m_StyleResolver; }
     [[nodiscard]] IResourceRegistry& GetResourceRegistry() const override { return *m_ResourceRegistry; }

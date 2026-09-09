@@ -304,7 +304,8 @@ public sealed class SqliteBuildDatabase : IDisposable
         var updates = string.Join(", ", cols.Select(c => $"{c.col}=${c.col}"));
 
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = $"INSERT INTO {table} ({colNames}) VALUES ({paramNames}) ON CONFLICT({keyCol}) DO UPDATE SET {updates}";
+        cmd.CommandText =
+            $"INSERT INTO {table} ({colNames}) VALUES ({paramNames}) ON CONFLICT({keyCol}) DO UPDATE SET {updates}";
         cmd.Parameters.AddWithValue("$key", keyVal);
         foreach (var (col, val) in cols)
             cmd.Parameters.AddWithValue("$" + col, val);

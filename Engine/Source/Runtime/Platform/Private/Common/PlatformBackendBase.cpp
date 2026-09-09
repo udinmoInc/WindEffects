@@ -223,7 +223,8 @@ Result<WindowId> PlatformBackendBase::CreateWindow(const WindowDesc&) {
     if (!RequireService(PlatformService::Windowing, "CreateWindow")) {
         return MakeError(PlatformErrorCode::ServiceDisabled, "Windowing service disabled.", "CreateWindow");
     }
-    return MakeError(PlatformErrorCode::NotSupported, "CreateWindow not implemented on this platform backend.", "CreateWindow");
+    return MakeError(PlatformErrorCode::NotSupported, "CreateWindow not implemented on this platform backend.",
+        "CreateWindow");
 }
 
 Result<void> PlatformBackendBase::DestroyWindow(WindowId) {

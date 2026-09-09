@@ -65,7 +65,8 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
         // Use standard C file IO to avoid needing <fstream> include at the top
         FILE* f = fopen(m_CommandLine.projectPath->string().c_str(), "w");
         if (f) {
-            std::string content = "{ \"projectVersion\": 1, \"projectName\": \"TempProject\", \"engineVersion\": \"" + we::projects::EngineContext::Get().EngineVersion() + "\" }";
+            std::string content = "{ \"projectVersion\": 1, \"projectName\": \"TempProject\", \"engineVersion\": \"" +
+                we::projects::EngineContext::Get().EngineVersion() + "\" }";
             fwrite(content.data(), 1, content.size(), f);
             fclose(f);
         }

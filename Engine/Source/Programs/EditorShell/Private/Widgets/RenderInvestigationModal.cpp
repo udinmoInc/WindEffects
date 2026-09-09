@@ -73,7 +73,8 @@ void RenderInvestigationModal::CycleViewMode(int /*delta*/) {}
 bool RenderInvestigationModal::PassMatchesSearch(const std::string& /*name*/) const { return true; }
 bool RenderInvestigationModal::TargetMatchesSearch(const std::string& /*name*/) const { return true; }
 const we::runtime::renderer::GpuPassValidation* RenderInvestigationModal::GetSelectedPass() const { return nullptr; }
-const we::runtime::renderer::GpuRenderTargetInfo* RenderInvestigationModal::GetSelectedTarget() const { return nullptr; }
+const we::runtime::renderer::GpuRenderTargetInfo* RenderInvestigationModal::GetSelectedTarget() const {
+    return nullptr; }
 
 void RenderInvestigationModalHost::Show() {
     if (!g_Modal) {
@@ -103,7 +104,8 @@ bool RenderInvestigationModalHost::IsVisible() {
     return g_Modal && g_Modal->IsVisible();
 }
 
-void RenderInvestigationModalHost::UpdateFromSnapshot(const we::runtime::renderer::RenderDebuggerFrameSnapshot& snapshot) {
+void RenderInvestigationModalHost::UpdateFromSnapshot(const we::runtime::renderer::RenderDebuggerFrameSnapshot&
+    snapshot) {
     if (g_Modal) {
         g_Modal->UpdateFromSnapshot(snapshot);
     }

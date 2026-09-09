@@ -87,7 +87,8 @@ private:
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsGeneral(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsEngine(const std::string& queryLower);
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsStorage(const std::string& queryLower);
-    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsFileAssociations(const std::string& queryLower);
+    [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsFileAssociations(const std::string&
+        queryLower);
     [[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> BuildSettingsAbout(const std::string& queryLower);
     void RebuildCreateWizard();
     void CommitCreateProject();

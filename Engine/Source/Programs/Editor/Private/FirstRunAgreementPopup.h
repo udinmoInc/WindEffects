@@ -108,11 +108,13 @@ private:
     // Layout engine
     void ComputeLayout(we::runtime::kindui::PaintContext& context);
     float MeasureNode(we::runtime::kindui::PaintContext& context, DocumentNode& node, float maxWidth);
-    std::vector<std::string> WrapWords(we::runtime::kindui::PaintContext& context, const std::string& text, float fontSize, float maxWidth);
+    std::vector<std::string> WrapWords(we::runtime::kindui::PaintContext& context, const std::string& text,
+        float fontSize, float maxWidth);
 
     // Rendering
     void RenderNode(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
-    void RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth);
+    void RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>& runs, float x, float&
+        y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth);
     void RenderCodeBlock(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
     void RenderBlockquote(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);
     void RenderList(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y);

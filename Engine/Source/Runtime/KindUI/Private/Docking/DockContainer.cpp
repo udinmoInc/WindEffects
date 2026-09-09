@@ -583,7 +583,8 @@ void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
     }
     const auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
     if (m_OnOptionsMenuRequested) {
-        m_OnOptionsMenuRequested(activePanel, Point{ m_OptionsMenuRect.x, m_OptionsMenuRect.y + m_OptionsMenuRect.height + 2.0f });
+        m_OnOptionsMenuRequested(activePanel, Point{ m_OptionsMenuRect.x, m_OptionsMenuRect.y +
+            m_OptionsMenuRect.height + 2.0f });
     }
 }
 

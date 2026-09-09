@@ -95,40 +95,50 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool GetBool(TypeId ownerTypeId, const void* instance, std::string_view name, bool& out) const override {
+    [[nodiscard]] bool GetBool(TypeId ownerTypeId, const void* instance, std::string_view name, bool& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
     [[nodiscard]] bool SetBool(TypeId ownerTypeId, void* instance, std::string_view name, bool value) const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
-    [[nodiscard]] bool GetInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::int32_t& out) const override {
+    [[nodiscard]] bool GetInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::int32_t& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
-    [[nodiscard]] bool SetInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::int32_t value) const override {
+    [[nodiscard]] bool SetInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::int32_t value)
+        const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
-    [[nodiscard]] bool GetUInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::uint32_t& out) const override {
+    [[nodiscard]] bool GetUInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::uint32_t& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
-    [[nodiscard]] bool SetUInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::uint32_t value) const override {
+    [[nodiscard]] bool SetUInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::uint32_t value)
+        const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
-    [[nodiscard]] bool GetInt64(TypeId ownerTypeId, const void* instance, std::string_view name, std::int64_t& out) const override {
+    [[nodiscard]] bool GetInt64(TypeId ownerTypeId, const void* instance, std::string_view name, std::int64_t& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
-    [[nodiscard]] bool SetInt64(TypeId ownerTypeId, void* instance, std::string_view name, std::int64_t value) const override {
+    [[nodiscard]] bool SetInt64(TypeId ownerTypeId, void* instance, std::string_view name, std::int64_t value)
+        const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
-    [[nodiscard]] bool GetFloat(TypeId ownerTypeId, const void* instance, std::string_view name, float& out) const override {
+    [[nodiscard]] bool GetFloat(TypeId ownerTypeId, const void* instance, std::string_view name, float& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
     [[nodiscard]] bool SetFloat(TypeId ownerTypeId, void* instance, std::string_view name, float value) const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
-    [[nodiscard]] bool GetDouble(TypeId ownerTypeId, const void* instance, std::string_view name, double& out) const override {
+    [[nodiscard]] bool GetDouble(TypeId ownerTypeId, const void* instance, std::string_view name, double& out)
+        const override {
         return GetRaw(ownerTypeId, instance, name, &out, sizeof(out));
     }
-    [[nodiscard]] bool SetDouble(TypeId ownerTypeId, void* instance, std::string_view name, double value) const override {
+    [[nodiscard]] bool SetDouble(TypeId ownerTypeId, void* instance, std::string_view name, double value)
+        const override {
         return SetRaw(ownerTypeId, instance, name, &value, sizeof(value));
     }
 

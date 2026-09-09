@@ -32,6 +32,7 @@ public:
         const ITransactionCommand& newer) const = 0;
 };
 
-[[nodiscard]] UNDO_API std::shared_ptr<IMergePolicy> CreateMergePolicy(MergePolicyKind kind, std::uint32_t windowMs = 500);
+[[nodiscard]] UNDO_API std::shared_ptr<IMergePolicy> CreateMergePolicy(MergePolicyKind kind, std::uint32_t windowMs =
+    500);
 
 } // namespace we::editor::undo

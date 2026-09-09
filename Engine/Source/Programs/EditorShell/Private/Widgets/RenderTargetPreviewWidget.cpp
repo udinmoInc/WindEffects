@@ -83,8 +83,10 @@ void RenderTargetPreviewWidget::Arrange(const Rect& allottedRect) {
 void RenderTargetPreviewWidget::Paint(PaintContext& context) {
     const float padding = PreviewPadding();
     context.DrawRect(m_Geometry, ThemeColor(ColorToken::PanelBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
-    context.DrawText(m_Title, Point{ m_Geometry.x + padding, m_Geometry.y + ThemeMetric(MetricToken::Space2) }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeProperty));
-    context.DrawRect(m_CloseRect, ThemeColor(ColorToken::AccentPrimary), ThemeMetric(MetricToken::CornerRadiusSmall) * 0.5f);
+    context.DrawText(m_Title, Point{ m_Geometry.x + padding, m_Geometry.y + ThemeMetric(MetricToken::Space2) },
+        ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeProperty));
+    context.DrawRect(m_CloseRect, ThemeColor(ColorToken::AccentPrimary), ThemeMetric(MetricToken::CornerRadiusSmall) *
+        0.5f);
 
     if (m_Rgba.empty() || m_Width == 0 || m_Height == 0) {
         context.DrawText("No preview data (enable GPU readback)", Point{ m_PreviewRect.x, m_PreviewRect.y },

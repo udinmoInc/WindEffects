@@ -200,7 +200,8 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
         m_Device.Reset();
     }
     if (FAILED(hrDevice) || !m_Device) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "D3D12CreateDevice failed (11_0+).", "CreateDeviceAndQueue", hrDevice);
+        return RHIError::Make(RHIErrorCode::BackendFailure, "D3D12CreateDevice failed (11_0+).",
+            "CreateDeviceAndQueue", hrDevice);
     }
 
     D3D12_COMMAND_QUEUE_DESC queueDesc{};
@@ -215,7 +216,8 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
 
     for (uint32_t i = 0; i < m_FramesInFlight; ++i) {
         if (FAILED(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_Allocators[i])))) {
-            return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandAllocator failed.", "CreateDeviceAndQueue");
+            return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandAllocator failed.",
+                "CreateDeviceAndQueue");
         }
         if (FAILED(m_Device->CreateCommandList(
                 0,
@@ -241,7 +243,8 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
     rtvHeapDesc.NumDescriptors = kRtvHeapCapacity;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     if (FAILED(m_Device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_RtvHeap)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(RTV) failed.", "CreateDeviceAndQueue");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(RTV) failed.",
+            "CreateDeviceAndQueue");
     }
     m_RtvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
@@ -250,7 +253,8 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
     dsvHeapDesc.NumDescriptors = kDsvHeapCapacity;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     if (FAILED(m_Device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DsvHeap)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(DSV) failed.", "CreateDeviceAndQueue");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(DSV) failed.",
+            "CreateDeviceAndQueue");
     }
     m_DsvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
@@ -277,19 +281,22 @@ RHIResult<void> DX12Device::CreateIndirectSignatures() {
     arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
     sigDesc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
     if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DrawIndirectSig)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Draw) failed.", "CreateIndirectSignatures");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Draw) failed.",
+            "CreateIndirectSignatures");
     }
 
     arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
     sigDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
     if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DrawIndexedIndirectSig)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(DrawIndexed) failed.", "CreateIndirectSignatures");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(DrawIndexed) failed.",
+            "CreateIndirectSignatures");
     }
 
     arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
     sigDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
     if (FAILED(m_Device->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(&m_DispatchIndirectSig)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Dispatch) failed.", "CreateIndirectSignatures");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandSignature(Dispatch) failed.",
+            "CreateIndirectSignatures");
     }
     return RHIResult<void>::Success();
 }
@@ -300,7 +307,8 @@ RHIResult<void> DX12Device::CreateShaderVisibleHeaps() {
     srvHeapDesc.NumDescriptors = kSrvHeapCapacity;
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     if (FAILED(m_Device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_SrvHeap)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(SRV) failed.", "CreateShaderVisibleHeaps");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(SRV) failed.",
+            "CreateShaderVisibleHeaps");
     }
     m_SrvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -309,7 +317,8 @@ RHIResult<void> DX12Device::CreateShaderVisibleHeaps() {
     samplerHeapDesc.NumDescriptors = kSamplerHeapCapacity;
     samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     if (FAILED(m_Device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_SamplerHeap)))) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(Sampler) failed.", "CreateShaderVisibleHeaps");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "CreateDescriptorHeap(Sampler) failed.",
+            "CreateShaderVisibleHeaps");
     }
     m_SamplerDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
     m_SrvCursor = 0;

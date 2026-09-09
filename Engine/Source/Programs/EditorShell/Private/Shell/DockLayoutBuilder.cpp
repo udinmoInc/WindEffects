@@ -49,7 +49,8 @@ void ApplyPanelDescriptor(const std::shared_ptr<Panel>& panel, const DockPanelDe
     panel->SetTabIcon(ResolvePanelTabIcon(descriptor.id));
 }
 
-void WireSplitterSlot(const std::shared_ptr<we::runtime::kindui::Splitter>& splitter, const DockLayoutNode& node, DockLayoutBuildResult& result) {
+void WireSplitterSlot(const std::shared_ptr<we::runtime::kindui::Splitter>& splitter, const DockLayoutNode& node,
+    DockLayoutBuildResult& result) {
     if (!splitter) {
         return;
     }
@@ -123,7 +124,8 @@ std::shared_ptr<we::runtime::kindui::Widget> DockLayoutBuilder::BuildNode(
         return dock;
     }
     case DockNodeType::Split: {
-        auto splitter = std::make_shared<we::runtime::kindui::Splitter>(ToOrientation(node.orientation), node.splitRatio);
+        auto splitter = std::make_shared<we::runtime::kindui::Splitter>(ToOrientation(node.orientation),
+            node.splitRatio);
         splitter->SetSlotId(node.slotId);
         splitter->SetPanelGapEnabled(true);
         splitter->SetMinPaneSizes(node.minFirstLogical * dpiScale, node.minSecondLogical * dpiScale);

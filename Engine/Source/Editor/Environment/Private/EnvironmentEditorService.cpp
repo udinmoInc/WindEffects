@@ -115,10 +115,12 @@ int EnvironmentActorSortKey(const Entity& entity) {
     if (entity.Name == kSkyLightActorName || entity.Name == "Sky Light" || entity.Type == EntityType::SkyLight) {
         return 1;
     }
-    if (entity.Name == kSkyAtmosphereActorName || entity.Name == "Sky Atmosphere" || entity.Type == EntityType::SkyAtmosphere) {
+    if (entity.Name == kSkyAtmosphereActorName || entity.Name == "Sky Atmosphere" || entity.Type ==
+        EntityType::SkyAtmosphere) {
         return 2;
     }
-    if (entity.Name == kHeightFogActorName || entity.Name == "Exponential Height Fog" || entity.Type == EntityType::HeightFog) {
+    if (entity.Name == kHeightFogActorName || entity.Name == "Exponential Height Fog" || entity.Type ==
+        EntityType::HeightFog) {
         return 3;
     }
     if (entity.Name == kVolumetricCloudsActorName || entity.Type == EntityType::VolumetricClouds) {
@@ -131,9 +133,12 @@ int EnvironmentActorSortKey(const Entity& entity) {
 }
 
 void SortTreeChildren(std::vector<std::shared_ptr<::we::editor::contentbrowser::TreeNode>>& children, Scene& scene) {
-    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& a, const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& b) {
-        const Entity* entityA = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(a->id.c_str(), nullptr, 10)));
-        const Entity* entityB = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(b->id.c_str(), nullptr, 10)));
+    std::sort(children.begin(), children.end(), [&](const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& a,
+        const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& b) {
+        const Entity* entityA = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(a->id.c_str(), nullptr,
+            10)));
+        const Entity* entityB = scene.FindEntityById(static_cast<std::uint64_t>(std::strtoull(b->id.c_str(), nullptr,
+            10)));
         if (!entityA || !entityB) {
             return a->label < b->label;
         }
@@ -198,7 +203,8 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildNodeForEntity(const
     node->label = entity.Name;
     node->icon = IconForEntity(entity);
     node->userData = reinterpret_cast<void*>(entity.Id);
-    if (entity.Type == EntityType::EmptyActor && entity.Name == we::runtime::world::environment::kEnvironmentFolderName) {
+    if (entity.Type == EntityType::EmptyActor && entity.Name ==
+        we::runtime::world::environment::kEnvironmentFolderName) {
         node->expanded = true;
     }
     return node;

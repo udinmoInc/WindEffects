@@ -13,7 +13,8 @@ namespace IgniteBT.Distributed;
 /// </summary>
 public interface IRemoteExecutor
 {
-    Task<RemoteExecutionResult> ExecuteAsync(RemoteExecutionRequest request, CancellationToken cancellationToken = default);
+    Task<RemoteExecutionResult> ExecuteAsync(RemoteExecutionRequest request, CancellationToken cancellationToken =
+        default);
     bool IsEnabled { get; }
 }
 

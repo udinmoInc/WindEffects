@@ -24,8 +24,10 @@ public sealed class BuildDb : IDisposable
     public bool TryGetModuleHash(string module, out string hash) => _sqlite.TryGetModuleHash(module, out hash!);
     public void SetObjectHash(string sourceFile, string hash) => _sqlite.SetObjectHash(sourceFile, hash);
     public bool TryGetObjectHash(string sourceFile, out string hash) => _sqlite.TryGetObjectHash(sourceFile, out hash!);
-    public void SetIncludeGraph(string sourceFile, List<string> headers) => _sqlite.SetIncludeGraph(sourceFile, headers);
-    public bool TryGetIncludeGraph(string sourceFile, out List<string> headers) => _sqlite.TryGetIncludeGraph(sourceFile, out headers!);
+    public void SetIncludeGraph(string sourceFile, List<string> headers) => _sqlite.SetIncludeGraph(sourceFile,
+        headers);
+    public bool TryGetIncludeGraph(string sourceFile, out List<string> headers) =>
+        _sqlite.TryGetIncludeGraph(sourceFile, out headers!);
     public void SetCommandHash(string key, string hash) => _sqlite.SetCommandHash(key, hash);
     public void RecordCompileTime(string sourcePath, string moduleName, long compileTimeMs) =>
         _sqlite.RecordCompileTime(sourcePath, moduleName, compileTimeMs);

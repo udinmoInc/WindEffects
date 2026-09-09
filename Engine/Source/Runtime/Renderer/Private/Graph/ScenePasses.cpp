@@ -54,7 +54,8 @@ ClearPass::ClearPass(we::rhi::RHITextureHandle target, we::rhi::Color4f color, w
 }
 
 void ClearPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Target, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::Write});
+    textures.push_back({kInvalidGraphResourceId, m_Target, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::Write});
 }
 
 void ClearPass::Execute(const GraphPassContext& ctx) {
@@ -93,9 +94,11 @@ SkyPass::SkyPass(
 }
 
 void SkyPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::Write});
+    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::Write});
     if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
-        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite, GraphResourceAccess::Write});
+        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite,
+            GraphResourceAccess::Write});
     }
 }
 
@@ -122,9 +125,11 @@ GridPass::GridPass(
 }
 
 void GridPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::ReadWrite});
+    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::ReadWrite});
     if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
-        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite, GraphResourceAccess::ReadWrite});
+        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite,
+            GraphResourceAccess::ReadWrite});
     }
 }
 
@@ -162,9 +167,11 @@ TerrainPass::TerrainPass(
 }
 
 void TerrainPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::ReadWrite});
+    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::ReadWrite});
     if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
-        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite, GraphResourceAccess::ReadWrite});
+        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::DepthWrite,
+            GraphResourceAccess::ReadWrite});
     }
 }
 
@@ -198,9 +205,11 @@ TonemapPass::TonemapPass(we::rhi::RHITextureHandle hdrColor, we::rhi::RHITexture
 
 void TonemapPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
     if (m_Hdr != we::rhi::RHITextureHandle::Invalid) {
-        textures.push_back({kInvalidGraphResourceId, m_Hdr, we::rhi::ResourceState::ShaderResource, GraphResourceAccess::Read});
+        textures.push_back({kInvalidGraphResourceId, m_Hdr, we::rhi::ResourceState::ShaderResource,
+            GraphResourceAccess::Read});
     }
-    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::ReadWrite});
+    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::ReadWrite});
 }
 
 void TonemapPass::Execute(const GraphPassContext&) {
@@ -216,7 +225,8 @@ UiOverlayPass::UiOverlayPass(we::rhi::RHITextureHandle swapchainImage, OverlayRe
 }
 
 void UiOverlayPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::RenderTarget, GraphResourceAccess::ReadWrite});
+    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::ReadWrite});
 }
 
 void UiOverlayPass::Execute(const GraphPassContext& ctx) {
@@ -232,7 +242,8 @@ PresentPass::PresentPass(we::rhi::RHITextureHandle swapchainImage)
 }
 
 void PresentPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
-    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::Present, GraphResourceAccess::Read});
+    textures.push_back({kInvalidGraphResourceId, m_Swapchain, we::rhi::ResourceState::Present,
+        GraphResourceAccess::Read});
 }
 
 void PresentPass::Execute(const GraphPassContext&) {

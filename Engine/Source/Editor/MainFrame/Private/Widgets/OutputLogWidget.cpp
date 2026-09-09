@@ -132,7 +132,8 @@ void OutputLogWidget::RebuildVisibleLinesUnlocked() {
     m_TotalCount = m_Records.size();
 
     for (const auto& record : m_Records) {
-        if (record.level == we::Logger::Level::Info || record.level == we::Logger::Level::Debug || record.level == we::Logger::Level::Trace) {
+        if (record.level == we::Logger::Level::Info || record.level == we::Logger::Level::Debug || record.level ==
+            we::Logger::Level::Trace) {
             m_InfoCount++;
         } else if (record.level == we::Logger::Level::Warning) {
             m_WarningCount++;
@@ -145,7 +146,8 @@ void OutputLogWidget::RebuildVisibleLinesUnlocked() {
         m_VisibleLevels.push_back(record.level);
     }
     if (m_AutoScroll) {
-        const float contentHeight = static_cast<float>(m_VisibleLines.size()) * ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
+        const float contentHeight = static_cast<float>(m_VisibleLines.size()) *
+            ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
         m_ScrollOffset = std::max(0.0f, contentHeight - m_Geometry.height);
     }
 }
@@ -189,7 +191,8 @@ void OutputLogWidget::Paint(PaintContext& context) {
 
         context.DrawText(
             visibleLines[i],
-            Point{ geometry.x + ::we::runtime::kindui::panels::PanelChrome::PanelPaddingH(), y + (lineHeight - ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
+            Point{ geometry.x + ::we::runtime::kindui::panels::PanelChrome::PanelPaddingH(), y + (lineHeight -
+                ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
             LevelColor(visibleLevels[i]),
             ThemeMetric(MetricToken::TextSizeCaption));
         y += lineHeight;

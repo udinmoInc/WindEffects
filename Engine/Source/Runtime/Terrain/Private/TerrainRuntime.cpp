@@ -616,7 +616,8 @@ public:
         const int budget = maxChunks < 0 ? 1000000 : maxChunks;
 
         if (maxChunks < 0) {
-            std::for_each(std::execution::par, chunks.Chunks().begin(), chunks.Chunks().end(), [&](TerrainChunk& chunk) {
+            std::for_each(std::execution::par, chunks.Chunks().begin(), chunks.Chunks().end(), [&](TerrainChunk&
+                chunk) {
                 if (!chunk.meshDirty) return;
                 ++dirty;
                 TerrainMeshCPU mesh;

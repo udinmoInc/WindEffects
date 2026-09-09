@@ -130,7 +130,8 @@ public:
 
 private:
     void ShowMenu() {
-        auto makeItem = [](const std::string& label, std::function<void()> onClick, bool checked = false, bool enabled = true) {
+        auto makeItem = [](const std::string& label, std::function<void()> onClick, bool checked = false,
+            bool enabled = true) {
             auto item = std::make_shared<::we::editor::menus::MenuItem>();
             item->label = label;
             item->onClick = std::move(onClick);
@@ -155,25 +156,44 @@ private:
             env.SetVolumetricCloudsEnabled(!env.IsVolumetricCloudsEnabled());
         }, system.IsVolumetricCloudsEnabled()));
         items.push_back(makeItem("", []() {}, false, false));
-        items.push_back(makeItem("Cloud: Clear Sky", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ClearSky); }));
-        items.push_back(makeItem("Cloud: Few Clouds", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::FewClouds); }));
-        items.push_back(makeItem("Cloud: Scattered", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ScatteredClouds); }));
-        items.push_back(makeItem("Cloud: Broken", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::BrokenClouds); }));
-        items.push_back(makeItem("Cloud: Overcast", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Overcast); }));
-        items.push_back(makeItem("Cloud: Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Storm); }));
-        items.push_back(makeItem("Cloud: Heavy Storm", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HeavyStorm); }));
-        items.push_back(makeItem("Cloud: Sunset", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunsetClouds); }));
-        items.push_back(makeItem("Cloud: Sunrise", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunriseClouds); }));
-        items.push_back(makeItem("Cloud: High Cirrus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HighCirrus); }));
-        items.push_back(makeItem("Cloud: Cumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Cumulus); }));
-        items.push_back(makeItem("Cloud: Stratocumulus", []() { EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Stratocumulus); }));
+        items.push_back(makeItem("Cloud: Clear Sky", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ClearSky); }));
+        items.push_back(makeItem("Cloud: Few Clouds", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::FewClouds); }));
+        items.push_back(makeItem("Cloud: Scattered", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::ScatteredClouds);
+            }));
+        items.push_back(makeItem("Cloud: Broken", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::BrokenClouds); }));
+        items.push_back(makeItem("Cloud: Overcast", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Overcast); }));
+        items.push_back(makeItem("Cloud: Storm", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Storm); }));
+        items.push_back(makeItem("Cloud: Heavy Storm", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HeavyStorm); }));
+        items.push_back(makeItem("Cloud: Sunset", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunsetClouds); }));
+        items.push_back(makeItem("Cloud: Sunrise", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::SunriseClouds); }));
+        items.push_back(makeItem("Cloud: High Cirrus", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::HighCirrus); }));
+        items.push_back(makeItem("Cloud: Cumulus", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Cumulus); }));
+        items.push_back(makeItem("Cloud: Stratocumulus", []() {
+            EnvironmentSystem::Get().ApplyCloudPreset(we::runtime::world::environment::CloudPreset::Stratocumulus); }));
         items.push_back(makeItem("", []() {}, false, false));
-        items.push_back(makeItem("Preset: Sunny", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunny); }));
-        items.push_back(makeItem("Preset: Sunset", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunset); }));
-        items.push_back(makeItem("Preset: Night", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Night); }));
-        items.push_back(makeItem("Preset: Overcast", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Overcast); }));
-        items.push_back(makeItem("Preset: Foggy", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Foggy); }));
-        items.push_back(makeItem("Preset: Studio", []() { EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Studio); }));
+        items.push_back(makeItem("Preset: Sunny", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunny); }));
+        items.push_back(makeItem("Preset: Sunset", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Sunset); }));
+        items.push_back(makeItem("Preset: Night", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Night); }));
+        items.push_back(makeItem("Preset: Overcast", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Overcast); }));
+        items.push_back(makeItem("Preset: Foggy", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Foggy); }));
+        items.push_back(makeItem("Preset: Studio", []() {
+            EnvironmentSystem::Get().ApplyPreset(EnvironmentPreset::Studio); }));
 
         auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
         auto* overlay = we::programs::editor::GetEditorPopupHost();

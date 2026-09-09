@@ -77,13 +77,15 @@ void ProjectsViewModel::RecomputeVisibleProjects() {
 
     switch (SortMode.Get()) {
     case ProjectSortMode::Name:
-        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState& b) {
+        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState&
+            b) {
             return ToLowerCopy(a.summary.descriptor.displayName)
                 < ToLowerCopy(b.summary.descriptor.displayName);
         });
         break;
     case ProjectSortMode::Engine:
-        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState& b) {
+        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState&
+            b) {
             if (a.summary.descriptor.engineVersion != b.summary.descriptor.engineVersion) {
                 return a.summary.descriptor.engineVersion < b.summary.descriptor.engineVersion;
             }
@@ -93,7 +95,8 @@ void ProjectsViewModel::RecomputeVisibleProjects() {
         break;
     case ProjectSortMode::Recent:
     default:
-        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState& b) {
+        std::stable_sort(visible.begin(), visible.end(), [](const ProjectItemViewState& a, const ProjectItemViewState&
+            b) {
             return a.summary.descriptor.lastOpenedUtc > b.summary.descriptor.lastOpenedUtc;
         });
         break;

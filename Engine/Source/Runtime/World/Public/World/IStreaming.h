@@ -41,8 +41,10 @@ class WORLD_API IWorldStreamer {
 public:
     virtual ~IWorldStreamer() = default;
 
-    [[nodiscard]] virtual std::future<bool> LoadLevelAsync(const StreamRequest& request, StreamProgressCallback onProgress = {}) = 0;
-    [[nodiscard]] virtual std::future<bool> UnloadLevelAsync(LevelHandle level, StreamProgressCallback onProgress = {}) = 0;
+    [[nodiscard]] virtual std::future<bool> LoadLevelAsync(const StreamRequest& request,
+        StreamProgressCallback onProgress = {}) = 0;
+    [[nodiscard]] virtual std::future<bool> UnloadLevelAsync(LevelHandle level, StreamProgressCallback onProgress = {})
+        = 0;
 
     [[nodiscard]] virtual bool LoadLevel(const StreamRequest& request) = 0;
     [[nodiscard]] virtual bool UnloadLevel(LevelHandle level) = 0;

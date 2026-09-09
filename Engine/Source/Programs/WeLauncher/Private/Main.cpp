@@ -91,7 +91,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     } catch (...) {
         HE_ERROR("[WeLauncher] Unknown exception.");
 #if defined(_WIN32)
-        MessageBoxA(nullptr, "Unknown exception during launcher startup.", "WindEffects Launcher", MB_OK | MB_ICONERROR);
+        MessageBoxA(nullptr, "Unknown exception during launcher startup.", "WindEffects Launcher", MB_OK |
+            MB_ICONERROR);
 #endif
     }
 

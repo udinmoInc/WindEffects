@@ -42,7 +42,8 @@ public:
         if (lower == ".wav" || lower == ".mp3" || lower == ".ogg" || lower == ".flac") return AssetType::Audio;
         if (lower == ".ttf" || lower == ".otf" || lower == ".woff" || lower == ".woff2"
             || lower == ".wefont") return AssetType::Font;
-        if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts") return AssetType::Script;
+        if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts")
+            return AssetType::Script;
         if (lower == ".mp4" || lower == ".avi" || lower == ".mov" || lower == ".webm") return AssetType::Video;
         if (lower == ".wetex" || lower == ".weasset") {
             // Cooked packages — treat generic .weasset as Unknown until metadata is read.

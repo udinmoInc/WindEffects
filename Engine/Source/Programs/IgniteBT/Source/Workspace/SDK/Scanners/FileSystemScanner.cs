@@ -99,7 +99,8 @@ public class FileSystemScanner
                 paths.AddRange(new[]
                 {
                     Path.Combine(localAppData, "Android", "Sdk"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Android", "Sdk"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local",
+                        "Android", "Sdk"),
                     "/usr/local/android-sdk",
                     "/opt/android-sdk"
                 });

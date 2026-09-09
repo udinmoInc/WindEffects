@@ -378,7 +378,8 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
 
     layout.panels.emplace("Tools", MakePanelDesc("Tools", "Creation Palette", "tools-panel", DockZone::Left, true, 0));
     layout.panels.emplace("Viewport", MakePanelDesc("Viewport", "Viewport", "viewport", DockZone::Center, true, 1));
-    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Scene Explorer", "outliner", DockZone::Right, true, 2));
+    layout.panels.emplace("WorldOutliner", MakePanelDesc("WorldOutliner", "Scene Explorer", "outliner",
+        DockZone::Right, true, 2));
     layout.panels.emplace("Details", MakePanelDesc("Details", "Inspector", "details", DockZone::Right, true, 3));
     layout.panels.emplace(
         "ContentBrowser",

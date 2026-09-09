@@ -46,7 +46,8 @@ public:
     ToolbarBuilder& RightInset(float inset);
     ToolbarBuilder& EdgePadding(float padding);
 
-    ToolbarBuilder& AddWidget(const std::shared_ptr<Widget>& widget, ToolbarAlignment alignment = ToolbarAlignment::Left);
+    ToolbarBuilder& AddWidget(const std::shared_ptr<Widget>& widget, ToolbarAlignment alignment =
+        ToolbarAlignment::Left);
     ToolbarBuilder& Group(
         ToolbarAlignment alignment,
         ToolbarGroupStyle style,

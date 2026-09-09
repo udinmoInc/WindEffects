@@ -17,7 +17,8 @@ public sealed class DirectoryCache
 {
     private readonly ConcurrentDictionary<string, CachedDirectory> _cache = new(StringComparer.OrdinalIgnoreCase);
 
-    public IReadOnlyList<string> GetFiles(string directory, string pattern, SearchOption option = SearchOption.TopDirectoryOnly)
+    public IReadOnlyList<string> GetFiles(string directory, string pattern, SearchOption option =
+        SearchOption.TopDirectoryOnly)
     {
         var key = $"{directory}|{pattern}|{option}";
         return _cache.AddOrUpdate(

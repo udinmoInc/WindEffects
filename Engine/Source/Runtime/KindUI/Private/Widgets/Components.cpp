@@ -52,7 +52,8 @@ Size StatusBadge::Measure(const Size& availableSize) {
     const float padH = ThemeMetric(MetricToken::Space2);
     m_DesiredSize = ClampDesiredSize({
         std::max(ThemeMetric(MetricToken::IconButtonSize) * 2.0f,
-            static_cast<float>(m_Text.size()) * ThemeMetric(MetricToken::TextCharWidthRatio) * ThemeMetric(MetricToken::TextSizeSmall) + padH * 2.0f),
+            static_cast<float>(m_Text.size()) * ThemeMetric(MetricToken::TextCharWidthRatio) *
+                ThemeMetric(MetricToken::TextSizeSmall) + padH * 2.0f),
         minH
     });
     return m_DesiredSize;
@@ -96,7 +97,8 @@ ToolbarBar::ToolbarBar() {
 }
 
 SkeletonBlock::SkeletonBlock() {
-    SetMinSize({ ThemeMetric(MetricToken::IconButtonSize) + ThemeMetric(MetricToken::Space2), ThemeMetric(MetricToken::ControlHeightCompact) * 0.75f });
+    SetMinSize({ ThemeMetric(MetricToken::IconButtonSize) + ThemeMetric(MetricToken::Space2),
+        ThemeMetric(MetricToken::ControlHeightCompact) * 0.75f });
     SetFlexGrow(1.0f);
 }
 

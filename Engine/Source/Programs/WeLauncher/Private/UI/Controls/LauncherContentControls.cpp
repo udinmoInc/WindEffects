@@ -259,7 +259,8 @@ void EmptyStatePanel::Paint(PaintContext& context) {
         y += subSize;
     }
 
-    auto paintButton = [&](const Rect& r, const std::string& label, WindIconRef icon, bool primary, bool hovered, bool pressed) {
+    auto paintButton = [&](const Rect& r, const std::string& label, WindIconRef icon, bool primary, bool hovered,
+        bool pressed) {
         if (r.width <= 0.0f) {
             return;
         }

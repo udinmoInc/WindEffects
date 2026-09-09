@@ -102,8 +102,10 @@ bool TerrainCollision::Raycast(const we::math::Vec3& origin, const we::math::Vec
             if (d0 >= 0.0f && d1 <= 0.0f) {
                 const float denom = (d0 - d1);
                 const float alpha = (std::abs(denom) > 1e-6f) ? (d0 / denom) : 0.0f;
-                outHit = we::math::FromGlm(glm::mix(we::math::ToGlm(origin) + dir * (t - step), p, std::clamp(alpha, 0.0f, 1.0f)));
-                outNormal = we::math::FromGlm(glm::normalize(glm::mix(we::math::ToGlm(prevN), we::math::ToGlm(n), std::clamp(alpha, 0.0f, 1.0f))));
+                outHit = we::math::FromGlm(glm::mix(we::math::ToGlm(origin) + dir * (t - step), p, std::clamp(alpha,
+                    0.0f, 1.0f)));
+                outNormal = we::math::FromGlm(glm::normalize(glm::mix(we::math::ToGlm(prevN), we::math::ToGlm(n),
+                    std::clamp(alpha, 0.0f, 1.0f))));
                 return true;
             }
         }

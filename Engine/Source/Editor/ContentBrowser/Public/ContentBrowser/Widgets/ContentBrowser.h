@@ -65,7 +65,8 @@ public:
     void Clear();
 
     bool IsSelected(const std::string& id) const;
-    const std::vector<std::string>& GetSelectedIds() const { return m_Model ? m_Model->selectedIds : m_EmptySelectedIds; }
+    const std::vector<std::string>& GetSelectedIds() const { return m_Model ? m_Model->selectedIds :
+        m_EmptySelectedIds; }
     void ClearSelection() { if (m_Controller) m_Controller->ClearSelection(); }
 
     ContentViewMode GetViewMode() const { return m_Model ? m_Model->viewMode : ContentViewMode::LargeIcons; }
@@ -77,8 +78,10 @@ public:
     void SetOnItemDoubleClicked(OnItemDoubleClicked callback) { m_OnItemDoubleClicked = callback; }
     void SetOnItemSelected(OnItemSelected callback) { m_OnItemSelected = callback; }
     void SetOnItemRightClicked(OnItemRightClicked callback) { m_OnItemRightClicked = callback; }
-    void SetOnItemNeedsThumbnail(std::function<void(const std::string&)> callback) { m_OnItemNeedsThumbnail = callback; }
-    void SetOnBackgroundRightClicked(std::function<void(const Point&)> callback) { m_OnBackgroundRightClicked = callback; }
+    void SetOnItemNeedsThumbnail(std::function<void(const std::string&)> callback) { m_OnItemNeedsThumbnail =
+        callback; }
+    void SetOnBackgroundRightClicked(std::function<void(const Point&)> callback) { m_OnBackgroundRightClicked =
+        callback; }
     void SetOnVisibleItemsChanged(std::function<void(const std::unordered_set<std::string>&)> callback) {
         m_OnVisibleItemsChanged = callback;
     }
@@ -127,9 +130,12 @@ private:
     void PaintGridItem(PaintContext& context, const RenderItem& renderItem);
     void PaintListItem(PaintContext& context, const RenderItem& renderItem);
     void PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha);
-    void PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect, const ContentItem& item, bool selected, bool hovered);
-    void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth, int maxLines = 2);
-    std::vector<std::string> WrapLabelText(PaintContext& context, const std::string& text, float maxWidth, float fontSize, int maxLines) const;
+    void PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect, const ContentItem& item, bool selected,
+        bool hovered);
+    void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth,
+        int maxLines = 2);
+    std::vector<std::string> WrapLabelText(PaintContext& context, const std::string& text, float maxWidth,
+        float fontSize, int maxLines) const;
 
     std::shared_ptr<ContentBrowserModel> m_Model;
     std::shared_ptr<ContentBrowserController> m_Controller;

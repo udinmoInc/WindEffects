@@ -105,7 +105,8 @@ public static class BuildEnvironment
     /// <summary>
     /// Copies F:-drive path overrides into a child process environment (e.g. build daemon).
     /// </summary>
-    public static void ApplyToProcessEnvironment(System.Diagnostics.ProcessStartInfo startInfo, string? projectRoot = null)
+    public static void ApplyToProcessEnvironment(System.Diagnostics.ProcessStartInfo startInfo, string? projectRoot =
+        null)
     {
         Configure(projectRoot);
         if (string.IsNullOrWhiteSpace(ProjectRoot))

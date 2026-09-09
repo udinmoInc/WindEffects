@@ -177,7 +177,8 @@ namespace {
 
 }
 
-TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet, std::shared_ptr<::we::editor::menus::MenuBar> menuBar)
+TitleBar::TitleBar(we::platform::WindowId window, const std::string& title, we::rhi::RHIDescriptorSetHandle logoSet,
+    std::shared_ptr<::we::editor::menus::MenuBar> menuBar)
     : m_Window(window), m_Title(title), m_LogoSet(logoSet), m_MenuBar(menuBar)
 {
     Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
@@ -204,7 +205,8 @@ void TitleBar::Construct() {
     m_CenterContainer->Gap(0.0f);
     m_CenterContainer->Align(we::runtime::kindui::AlignItems::Center);
     if (!m_Title.empty()) {
-        auto titleLabel = std::make_shared<::we::runtime::kindui::Label>(m_Title, we::runtime::kindui::TypographyToken::Caption);
+        auto titleLabel = std::make_shared<::we::runtime::kindui::Label>(m_Title,
+            we::runtime::kindui::TypographyToken::Caption);
         m_CenterContainer->AddChild(titleLabel);
     }
 
@@ -287,7 +289,8 @@ Size TitleBar::Measure(const Size& availableSize) {
     if (m_CenterContainer) m_CenterContainer->Measure(availableSize);
     if (m_RightContainer) m_RightContainer->Measure(availableSize);
 
-    m_DesiredSize = Size{ availableSize.width, we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) * uiScale };
+    m_DesiredSize = Size{ availableSize.width, we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight) *
+        uiScale };
     return m_DesiredSize;
 }
 

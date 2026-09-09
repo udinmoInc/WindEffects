@@ -90,7 +90,8 @@ public:
                     const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                     context.DrawText(
                         "—",
-                        Point{ m_Geometry.x + ResolveMetric(MetricToken::Space1), LayoutMetrics::AlignTextTopY(m_Geometry, fontSize) },
+                        Point{ m_Geometry.x + ResolveMetric(MetricToken::Space1),
+                            LayoutMetrics::AlignTextTopY(m_Geometry, fontSize) },
                         ThemeColor(ColorToken::TextSecondary),
                         fontSize);
                 }
@@ -376,7 +377,8 @@ public:
                 if (m_Mode == Mode::Color) {
                     Color c{ m_Values[0], m_Values[1], m_Values[2], m_Values[3] };
                     const float swatch = ResolveMetric(MetricToken::CheckboxGlyphSize);
-                    Rect swatchRect{ frame.x + ResolveMetric(MetricToken::Space2), frame.y + (frame.height - swatch) * 0.5f, swatch, swatch };
+                    Rect swatchRect{ frame.x + ResolveMetric(MetricToken::Space2), frame.y + (frame.height - swatch) *
+                        0.5f, swatch, swatch };
                     context.DrawRoundedRect(swatchRect, c, ResolveMetric(MetricToken::CornerRadiusSmall));
                 }
                 char buf[128]{};
@@ -398,7 +400,8 @@ public:
                 }
                 const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                 const float pad = ResolveMetric(MetricToken::Space2);
-                const float swatchPad = m_Mode == Mode::Color ? ResolveMetric(MetricToken::CheckboxGlyphSize) + pad : 0.0f;
+                const float swatchPad = m_Mode == Mode::Color ? ResolveMetric(MetricToken::CheckboxGlyphSize) + pad :
+                    0.0f;
                 context.DrawText(
                     buf,
                     Point{ frame.x + pad + swatchPad, LayoutMetrics::AlignTextTopY(frame, fontSize) },
@@ -440,7 +443,8 @@ public:
                 const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                 context.DrawText(
                     "{...}",
-                    Point{ m_Geometry.x + ResolveMetric(MetricToken::Space2), LayoutMetrics::AlignTextTopY(m_Geometry, fontSize) },
+                    Point{ m_Geometry.x + ResolveMetric(MetricToken::Space2), LayoutMetrics::AlignTextTopY(m_Geometry,
+                        fontSize) },
                     ThemeColor(ColorToken::TextSecondary),
                     fontSize);
             }

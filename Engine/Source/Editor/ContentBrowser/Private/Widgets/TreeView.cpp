@@ -246,7 +246,8 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
     const float contentSlotX = layout.indentX + expanderWidth + 4.0f * uiScale;
 
     const float iconSize = ThemeMetric(MetricToken::IconSizeTree);
-    const bool hasIcon = item.node->icon.IsValid() || item.node->iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;
+    const bool hasIcon = item.node->icon.IsValid() || item.node->iconTexture !=
+        we::rhi::RHIDescriptorSetHandle::Invalid;
     layout.hasIcon = hasIcon;
     if (hasIcon) {
         layout.iconBounds = Rect{ contentSlotX, centerY - iconSize * 0.5f, iconSize, iconSize };
@@ -346,7 +347,8 @@ void TreeView::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
-    if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height > 0.0f) {
+    if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height >
+        0.0f) {
         PanelChrome::PaintNavigationRegion(context, m_ScrollMetrics.viewport);
     }
 
@@ -392,7 +394,8 @@ void TreeView::Paint(PaintContext& context) {
         // Left Controls (ExplorerStyle)
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
-                const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled);
+                const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) :
+                    ThemeColor(ColorToken::TextDisabled);
                 const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
                 IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u), eyeColor);
             }
@@ -401,8 +404,10 @@ void TreeView::Paint(PaintContext& context) {
         // Expander Triangle
         if (layout.hasExpander) {
             const WindIconRef triangleIcon = node->expanded ? WindIcons::TriangleDown16 : WindIcons::TriangleRight16;
-            const Color expanderColor = hovered ? ThemeColor(ColorToken::TextPrimary) : ThemeColor(ColorToken::TextSecondary);
-            IconPainter::Draw(context, triangleIcon, IconMetrics::PlaceGlyphCentered(layout.expanderBounds, 16u), expanderColor);
+            const Color expanderColor = hovered ? ThemeColor(ColorToken::TextPrimary) :
+                ThemeColor(ColorToken::TextSecondary);
+            IconPainter::Draw(context, triangleIcon, IconMetrics::PlaceGlyphCentered(layout.expanderBounds, 16u),
+                expanderColor);
         }
 
         // Node Icon
@@ -419,10 +424,12 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         if (node->id == m_RenamingId) {
-            Rect editBg{ layout.textX - 4.0f, layout.rowBounds.y + 2.0f, (std::max)(40.0f, layout.maxTextWidth), rowHeight - 4.0f };
+            Rect editBg{ layout.textX - 4.0f, layout.rowBounds.y + 2.0f, (std::max)(40.0f, layout.maxTextWidth),
+                rowHeight - 4.0f };
             context.DrawRoundedRect(editBg, ThemeColor(ColorToken::InputBackground), 3.0f);
             context.DrawRoundedRectOutline(editBg, ThemeColor(ColorToken::AccentPrimary), 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ layout.textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
+            context.DrawText(m_RenameBuffer, Point{ layout.textX, textY }, ThemeColor(ColorToken::TextPrimary),
+                fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
                 const float cursorX = layout.textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
                 context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ColorToken::TextPrimary));
@@ -464,7 +471,8 @@ void TreeView::Paint(PaintContext& context) {
                     const float matchWidth = context.GetTextWidth(matchText, fontSize);
                     Rect highlightRect{ currentX, textY, matchWidth, fontSize };
                     context.DrawRoundedRect(highlightRect, ThemeColor(ColorToken::SelectionHighlight), 2.0f);
-                    context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary), fontSize);
+                    context.DrawText(matchText, Point{ currentX, textY }, ThemeColor(ColorToken::AccentPrimary),
+                        fontSize);
                     currentX += matchWidth;
                     const std::string_view afterMatch = labelView.substr(matchEnd);
                     if (!afterMatch.empty()) {
@@ -486,7 +494,8 @@ void TreeView::Paint(PaintContext& context) {
             const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
             const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - typeColumnReserve;
             const float typeY = layout.rowBounds.y + (rowHeight - typeFontSize) * 0.5f;
-            context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY }, ThemeColor(ColorToken::TextSecondary), typeFontSize);
+            context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY },
+                ThemeColor(ColorToken::TextSecondary), typeFontSize);
         }
 
         // Trailing Row Controls (Non-ExplorerStyle)

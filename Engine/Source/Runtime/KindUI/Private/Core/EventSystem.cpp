@@ -285,7 +285,8 @@ void EventSystem::ProcessKeyEvent(const KeyEvent& event) {
     }
 }
 
-void EventSystem::CollectFocusable(const std::shared_ptr<Widget>& node, std::vector<std::shared_ptr<Widget>>& out) const {
+void EventSystem::CollectFocusable(const std::shared_ptr<Widget>& node, std::vector<std::shared_ptr<Widget>>& out)
+    const {
     if (!node || !node->IsVisible() || !node->IsActive() || !node->IsFocusable()) return;
     out.push_back(node);
     for (const auto& child : node->GetChildren()) {

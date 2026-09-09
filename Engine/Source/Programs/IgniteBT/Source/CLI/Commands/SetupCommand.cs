@@ -142,6 +142,7 @@ public static class SetupCommand
             return;
         }
 
-        Log.Warning("Could not find shell profile at {RcFile}. Add this line manually: {ExportLine}", rcFile, exportLine);
+        Log.Warning("Could not find shell profile at {RcFile}. Add this line manually: {ExportLine}", rcFile,
+            exportLine);
     }
 }

@@ -40,7 +40,8 @@ public:
     PanelBuilder& Collapsible(bool collapsible);
     PanelBuilder& WithCloseButton(std::function<void()> onClose = {});
     PanelBuilder& WithHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick);
-    PanelBuilder& AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) { return WithHeaderAction(icon, std::move(onClick)); }
+    PanelBuilder& AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {
+        return WithHeaderAction(icon, std::move(onClick)); }
     PanelBuilder& Toolbar(std::shared_ptr<Widget> toolbar);
     PanelBuilder& ToolbarBox(std::function<void(Row&)> build);
     PanelBuilder& ModeTabs(std::shared_ptr<Widget> modeTabs);

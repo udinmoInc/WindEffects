@@ -135,21 +135,27 @@ void RegisterBuiltinCompilers(ICompilerRegistry& registry, const CompilationDepe
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
         "OpenGL", CompilerKind::OpenGL, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::Glsl}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "Compute", CompilerKind::Compute, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::SpirV, CompileTargetFormat::Dxil}));
+        "Compute", CompilerKind::Compute, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::SpirV,
+            CompileTargetFormat::Dxil}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
         "Material", CompilerKind::Material, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::ReflectionMeta}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "MaterialGraph", CompilerKind::MaterialGraph, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::ReflectionMeta}));
+        "MaterialGraph", CompilerKind::MaterialGraph, 1,
+            std::vector<CompileTargetFormat>{CompileTargetFormat::ReflectionMeta}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "AnimationGraph", CompilerKind::AnimationGraph, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
+        "AnimationGraph", CompilerKind::AnimationGraph, 1,
+            std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "VisualScriptGraph", CompilerKind::VisualScriptGraph, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
+        "VisualScriptGraph", CompilerKind::VisualScriptGraph, 1,
+            std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "UiShader", CompilerKind::UiShader, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::SpirV, CompileTargetFormat::Dxil}));
+        "UiShader", CompilerKind::UiShader, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::SpirV,
+            CompileTargetFormat::Dxil}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
         "TerrainShader", CompilerKind::TerrainShader, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::SpirV}));
     (void)registry.Register(std::make_shared<DeterministicCompilerBase>(
-        "MeshProcess", CompilerKind::MeshProcess, 1, std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
+        "MeshProcess", CompilerKind::MeshProcess, 1,
+            std::vector<CompileTargetFormat>{CompileTargetFormat::BinaryBlob}));
 }
 
 } // namespace detail

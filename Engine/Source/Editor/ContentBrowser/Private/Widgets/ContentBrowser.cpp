@@ -274,7 +274,8 @@ void ContentBrowser::RequestVisibleThumbnails() {
     for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)].item;
         visibleIds.insert(item.id);
-        if (item.iconTexture == we::rhi::RHIDescriptorSetHandle::Invalid && !item.thumbnailRequested && !item.isFolder) {
+        if (item.iconTexture == we::rhi::RHIDescriptorSetHandle::Invalid && !item.thumbnailRequested &&
+            !item.isFolder) {
             m_OnItemNeedsThumbnail(item.id);
             if (m_Model) {
                 for (auto& orig : m_Model->items) {
@@ -401,7 +402,8 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
     return lines;
 }
 
-void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth, int maxLines) {
+void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth,
+    int maxLines) {
     const GridMetrics metrics = GetGridMetrics();
     const float fontSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float lineH = metrics.labelLineHeight;
@@ -436,7 +438,8 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
         const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
         const float typeLineH = ThemeMetric(MetricToken::TextSizeCaption) + ThemeMetric(MetricToken::Space2);
         const float y = renderItem.geometry.y + renderItem.geometry.height - typeLineH;
-        context.DrawText(item.type, Point{ x, y }, ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeCaption));
+        context.DrawText(item.type, Point{ x, y }, ThemeColor(ColorToken::TextSecondary),
+            ThemeMetric(MetricToken::TextSizeCaption));
     }
 }
 
@@ -464,23 +467,29 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
     }
 
     const float nameX = iconX + iconSize + ThemeMetric(MetricToken::Space2);
-    const float nameY = renderItem.geometry.y + (renderItem.geometry.height - ThemeMetric(MetricToken::TextSizeBody)) * 0.5f;
+    const float nameY = renderItem.geometry.y + (renderItem.geometry.height - ThemeMetric(MetricToken::TextSizeBody)) *
+        0.5f;
     const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeBody));
-    const float maxNameWidth = renderItem.geometry.width - (nameX - renderItem.geometry.x) - typeW - PanelChrome::PanelPaddingH() * 2.0f;
+    const float maxNameWidth = renderItem.geometry.width - (nameX - renderItem.geometry.x) - typeW -
+        PanelChrome::PanelPaddingH() * 2.0f;
     const std::string_view displayName = item.name;
     if (context.GetTextWidth(displayName, ThemeMetric(MetricToken::TextSizeBody)) <= maxNameWidth) {
-        context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody), false);
+        context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary),
+            ThemeMetric(MetricToken::TextSizeBody), false);
     } else {
         std::string truncated(displayName);
         std::string truncatedEllipsis = truncated + "...";
-        while (truncated.length() > 1 && context.GetTextWidth(truncatedEllipsis, ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
+        while (truncated.length() > 1 && context.GetTextWidth(truncatedEllipsis,
+            ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
             truncated.pop_back();
             truncatedEllipsis.pop_back();
         }
         truncated += "...";
-        context.DrawText(truncated, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeBody), false);
+        context.DrawText(truncated, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary),
+            ThemeMetric(MetricToken::TextSizeBody), false);
     }
-    context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW - PanelChrome::PanelPaddingH(), nameY },
+    context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW -
+        PanelChrome::PanelPaddingH(), nameY },
         ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeBody));
 }
 
@@ -516,7 +525,8 @@ void ContentBrowser::Paint(PaintContext& context) {
         const float statusHeight = std::floor(24.0f * uiScale);
         const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
         const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
-        context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness }, ThemeColor(ColorToken::Separator));
+        context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness },
+            ThemeColor(ColorToken::Separator));
 
         const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
         const float padX = std::floor(12.0f * uiScale);
@@ -544,8 +554,10 @@ void ContentBrowser::Paint(PaintContext& context) {
             const float ghostSize = ThemeMetric(MetricToken::ContentBrowserThumbSmall);
             const float ghostHalf = ghostSize * 0.5f;
             Rect ghostRect{ m_MousePos.x - ghostHalf, m_MousePos.y - ghostHalf, ghostSize, ghostSize };
-            context.DrawRoundedRect(ghostRect, ThemeColor(ColorToken::DragGhostBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
-            context.DrawRoundedRectOutline(ghostRect, ThemeColor(ColorToken::AccentPrimary), ThemeMetric(MetricToken::BorderWidth), ThemeMetric(MetricToken::CornerRadiusSmall));
+            context.DrawRoundedRect(ghostRect, ThemeColor(ColorToken::DragGhostBackground),
+                ThemeMetric(MetricToken::CornerRadiusSmall));
+            context.DrawRoundedRectOutline(ghostRect, ThemeColor(ColorToken::AccentPrimary),
+                ThemeMetric(MetricToken::BorderWidth), ThemeMetric(MetricToken::CornerRadiusSmall));
             if (renderItem.item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
                 const float iconInset = ThemeMetric(MetricToken::Space3);
                 const float iconSize = ghostSize - iconInset * 2.0f;
@@ -556,9 +568,13 @@ void ContentBrowser::Paint(PaintContext& context) {
                 const std::string countStr = std::to_string(m_Model->selectedIds.size());
                 const float badgeW = ThemeMetric(MetricToken::IconButtonSize) + ThemeMetric(MetricToken::Space2);
                 const float badgeH = ThemeMetric(MetricToken::ButtonHeight) - ThemeMetric(MetricToken::Space1);
-                Rect badgeRect{ ghostRect.x + ghostRect.width - badgeW + ThemeMetric(MetricToken::Space1), ghostRect.y - ThemeMetric(MetricToken::Space2), badgeW, badgeH };
-                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::ErrorForeground), ThemeMetric(MetricToken::CornerRadiusMedium));
-                context.DrawText(countStr, Point{ badgeRect.x + ThemeMetric(MetricToken::Space2), badgeRect.y + ThemeMetric(MetricToken::Space1) - 2.0f }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeSmall));
+                Rect badgeRect{ ghostRect.x + ghostRect.width - badgeW + ThemeMetric(MetricToken::Space1),
+                    ghostRect.y - ThemeMetric(MetricToken::Space2), badgeW, badgeH };
+                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::ErrorForeground),
+                    ThemeMetric(MetricToken::CornerRadiusMedium));
+                context.DrawText(countStr, Point{ badgeRect.x + ThemeMetric(MetricToken::Space2), badgeRect.y +
+                    ThemeMetric(MetricToken::Space1) - 2.0f }, ThemeColor(ColorToken::TextPrimary),
+                    ThemeMetric(MetricToken::TextSizeSmall));
             }
             break;
         }
@@ -634,7 +650,8 @@ void ContentBrowser::OnMouseDown(const MouseEvent& event) {
                     ClearSelection();
                     const int minIdx = std::min(startIdx, endIdx);
                     const int maxIdx = std::max(startIdx, endIdx);
-                    for (int i = minIdx; i <= maxIdx; ++i) m_Controller->AddToSelection(m_RenderList[static_cast<size_t>(i)].item.id);
+                    for (int i = minIdx; i <= maxIdx; ++i)
+                        m_Controller->AddToSelection(m_RenderList[static_cast<size_t>(i)].item.id);
                     m_LastSelectedId = renderItem->item.id;
                 } else {
                     m_Controller->SetSelectedId(renderItem->item.id);
@@ -770,7 +787,8 @@ void ContentBrowser::OnKeyDown(const KeyEvent& event) {
     }
     if (current < 0) current = 0;
 
-    if (event.key == we::platform::KeyCode::Down) current = std::min(current + 1, static_cast<int>(m_RenderList.size()) - 1);
+    if (event.key == we::platform::KeyCode::Down) current = std::min(current + 1, static_cast<int>(m_RenderList.size())
+        - 1);
     else if (event.key == we::platform::KeyCode::Up) current = std::max(current - 1, 0);
     else return;
 
@@ -941,7 +959,8 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
         }
     }
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
-    context.DrawText(m_CachedText, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+    context.DrawText(m_CachedText, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY },
+        ThemeColor(ColorToken::TextSecondary), textSize);
 }
 
 Breadcrumb::Breadcrumb() = default;

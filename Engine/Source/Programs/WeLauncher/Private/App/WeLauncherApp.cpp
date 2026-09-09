@@ -150,7 +150,8 @@ void WeLauncherApp::UpdateUiScaleFromWindow() {
             if (auto root = PathUtils::FindEngineRoot(PathUtils::GetExecutableDirectory())) {
                 engineRoot = *root;
             }
-            m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18, logoPx)));
+            m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18,
+                logoPx)));
             m_UI->SetLogoTexture(m_LogoSet);
         }
         we::runtime::kindui::UIRepaintGate::Request();
@@ -252,11 +253,14 @@ void WeLauncherApp::MainLoop() {
                 mouseEvent.type = button->pressed
                     ? we::runtime::kindui::MouseEventType::MouseDown
                     : we::runtime::kindui::MouseEventType::MouseUp;
-                mouseEvent.position = { static_cast<float>(button->position.x), static_cast<float>(button->position.y) };
+                mouseEvent.position = { static_cast<float>(button->position.x),
+                    static_cast<float>(button->position.y) };
                 switch (button->button) {
                 case we::platform::MouseButton::Left: mouseEvent.button = we::runtime::kindui::MouseButton::Left; break;
-                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right; break;
-                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle; break;
+                case we::platform::MouseButton::Right: mouseEvent.button = we::runtime::kindui::MouseButton::Right;
+                    break;
+                case we::platform::MouseButton::Middle: mouseEvent.button = we::runtime::kindui::MouseButton::Middle;
+                    break;
                 default: break;
                 }
                 mouseEvent.altDown = we::platform::HasFlag(button->modifiers, we::platform::KeyModifier::Alt);

@@ -229,7 +229,8 @@ void ArchetypeManager::BuildLayout(ArchetypeLayout& layout) {
         }
         if (layout.columnEnableable[i] && layout.columnEnableOffsets[i] != 0) {
             const std::uint32_t enableEnd =
-                layout.columnEnableOffsets[i] + static_cast<std::uint32_t>(sizeof(std::uint8_t)) * layout.entitiesPerChunk;
+                layout.columnEnableOffsets[i] + static_cast<std::uint32_t>(sizeof(std::uint8_t)) *
+                    layout.entitiesPerChunk;
             if (enableEnd > layout.chunkDataSize) {
                 layout.chunkDataSize = enableEnd;
             }

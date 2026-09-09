@@ -65,7 +65,8 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
     const float radius = ActorsPanelLayout::RowRadius();
 
     if (selected) {
-        context.DrawRoundedRect(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::SelectHoverBackground), radius);
+        context.DrawRoundedRect(cardBounds, we::runtime::kindui::ResolveColor(ColorToken::SelectHoverBackground),
+            radius);
     } else if (hoverAnim > 0.01f || pressAnim > 0.01f) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
             context,
@@ -92,8 +93,10 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
     const float textWidth = context.GetTextWidth(label, labelFontSize);
     const float textX = cardBounds.x + std::max(2.0f, (cardBounds.width - textWidth) * 0.5f);
     const float textY = previewBounds.y + previewBounds.height
-        + std::max(2.0f, (cardBounds.y + cardBounds.height - (previewBounds.y + previewBounds.height) - labelFontSize) * 0.5f);
-    context.DrawText(label, Point{ textX, textY }, we::runtime::kindui::ResolveColor(ColorToken::TextPrimary), labelFontSize);
+        + std::max(2.0f, (cardBounds.y + cardBounds.height - (previewBounds.y + previewBounds.height) - labelFontSize)
+            * 0.5f);
+    context.DrawText(label, Point{ textX, textY }, we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
+        labelFontSize);
 
     if (favorite || hoverAnim > 0.01f) {
         const Rect starRect = FavoriteStarRect(cardBounds);

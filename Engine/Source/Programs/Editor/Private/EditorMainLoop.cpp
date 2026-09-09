@@ -164,7 +164,8 @@ void Editor::MainLoop() {
                 }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseMove;
-                mouseEvent.position = UI::Point{ static_cast<float>(move->position.x), static_cast<float>(move->position.y) };
+                mouseEvent.position = UI::Point{ static_cast<float>(move->position.x),
+                    static_cast<float>(move->position.y) };
                 mouseEvent.deltaX = move->delta.x;
                 mouseEvent.deltaY = move->delta.y;
                 const auto mods = platform.GetKeyModifiers();
@@ -177,7 +178,8 @@ void Editor::MainLoop() {
                 // Do not force a full UI rebuild on every move — hover/press
                 // widgets already InvalidatePaint when their state actually changes.
             } else if (const auto* raw = std::get_if<we::platform::RawMouseEvent>(&event)) {
-                if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget); vp && vp->IsFlyLookActive()) {
+                if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(m_ViewportWidget); vp &&
+                    vp->IsFlyLookActive()) {
                     UI::MouseEvent mouseEvent{};
                     mouseEvent.type = UI::MouseEventType::MouseMove;
                     const auto pos = platform.GetMousePosition(m_Window);
@@ -198,7 +200,8 @@ void Editor::MainLoop() {
                 }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = button->pressed ? UI::MouseEventType::MouseDown : UI::MouseEventType::MouseUp;
-                mouseEvent.position = UI::Point{ static_cast<float>(button->position.x), static_cast<float>(button->position.y) };
+                mouseEvent.position = UI::Point{ static_cast<float>(button->position.x),
+                    static_cast<float>(button->position.y) };
                 switch (button->button) {
                 case we::platform::MouseButton::Left: mouseEvent.button = MouseButton::Left; break;
                 case we::platform::MouseButton::Right: mouseEvent.button = MouseButton::Right; break;
@@ -217,7 +220,8 @@ void Editor::MainLoop() {
                 }
                 UI::MouseEvent mouseEvent{};
                 mouseEvent.type = UI::MouseEventType::MouseWheel;
-                mouseEvent.position = UI::Point{ static_cast<float>(wheel->position.x), static_cast<float>(wheel->position.y) };
+                mouseEvent.position = UI::Point{ static_cast<float>(wheel->position.x),
+                    static_cast<float>(wheel->position.y) };
                 mouseEvent.wheelDeltaX = wheel->delta.x;
                 mouseEvent.wheelDeltaY = wheel->delta.y;
                 const auto mods = platform.GetKeyModifiers();

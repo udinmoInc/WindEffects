@@ -26,23 +26,40 @@ static BuiltinModeBootstrap g_BuiltinModeBootstrap;
 } // namespace
 
 // ===== Editor Modes (extensible via REGISTER_EDITOR_TOOL_MODE in plugins) =====
-REGISTER_EDITOR_TOOL_MODE_COMPACT_WITH_TOOLTIP(Select,      "Select",      WindIcons::ToolbarHand16, 10,  "Select, move, rotate, and scale scene objects (Q, W, E, R)")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Actors,      "Actors",      WindIcons::Cube2516,      20,  "Place geometry, lights, cameras, shapes, and actor classes")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Landscape,   "Landscape",   WindIcons::Grid16,       30,  "Sculpt terrain heightmaps and paint landscape materials")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Foliage,     "Foliage",     WindIcons::Cloud16,     40,  "Paint trees, plants, grass, and instanced static meshes")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Terrain,     "Terrain",     WindIcons::Earth16,      50,  "Generate procedural landscapes or import heightmaps")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Spline,      "Spline",      WindIcons::RedoAlt16,       60,  "Draw gameplay splines, paths, and control point curves")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Modeling,    "Modeling",    WindIcons::BoxSolid16,       70,  "Extrude, inset, bevel, and perform 3D mesh modeling")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Paint,       "Paint",       WindIcons::Brush16,      80,  "Paint vertex colors, textures, and material blend weights")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Animation,   "Animation",   WindIcons::Clapperboard16,   90,  "Record keyframes, scrub timeline, and edit skeletal clips")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Physics,     "Physics",     WindIcons::Box16,       100, "Simulate rigid bodies, collision meshes, and force fields")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Navigation,  "Navigation",  WindIcons::FolderSearch16,    110, "Bake AI navmesh geometry and edit pathfinding bounds")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(FX,          "FX",          WindIcons::Bulb16,       120, "Spawn particle systems, Niagara emitters, and visual effects")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(AI,          "AI",          WindIcons::CircleHelp16,       130, "Author behavior trees, blackboards, and AI agent logic")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Audio,       "Audio",       WindIcons::Speaker16,       140, "Place spatialized sound actors and ambient audio probes")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(UI,          "UI",          WindIcons::Window16,       150, "Author in-game UI widgets, HUD layouts, and interactive canvas")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Lighting,    "Lighting",    WindIcons::Sun16,      160, "Place directional, point, spot lights and bake scene lighting")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Cinematics,  "Cinematics",  WindIcons::ToolbarVideocamera16,     170, "Add cinematic cameras and edit camera tracks in Sequencer")
+REGISTER_EDITOR_TOOL_MODE_COMPACT_WITH_TOOLTIP(Select,      "Select",      WindIcons::ToolbarHand16, 10,
+    "Select, move, rotate, and scale scene objects (Q, W, E, R)")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Actors,      "Actors",      WindIcons::Cube2516,      20,
+    "Place geometry, lights, cameras, shapes, and actor classes")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Landscape,   "Landscape",   WindIcons::Grid16,       30,
+    "Sculpt terrain heightmaps and paint landscape materials")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Foliage,     "Foliage",     WindIcons::Cloud16,     40,
+    "Paint trees, plants, grass, and instanced static meshes")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Terrain,     "Terrain",     WindIcons::Earth16,      50,
+    "Generate procedural landscapes or import heightmaps")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Spline,      "Spline",      WindIcons::RedoAlt16,       60,
+    "Draw gameplay splines, paths, and control point curves")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Modeling,    "Modeling",    WindIcons::BoxSolid16,       70,
+    "Extrude, inset, bevel, and perform 3D mesh modeling")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Paint,       "Paint",       WindIcons::Brush16,      80,
+    "Paint vertex colors, textures, and material blend weights")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Animation,   "Animation",   WindIcons::Clapperboard16,   90,
+    "Record keyframes, scrub timeline, and edit skeletal clips")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Physics,     "Physics",     WindIcons::Box16,       100,
+    "Simulate rigid bodies, collision meshes, and force fields")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Navigation,  "Navigation",  WindIcons::FolderSearch16,    110,
+    "Bake AI navmesh geometry and edit pathfinding bounds")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(FX,          "FX",          WindIcons::Bulb16,       120,
+    "Spawn particle systems, Niagara emitters, and visual effects")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(AI,          "AI",          WindIcons::CircleHelp16,       130,
+    "Author behavior trees, blackboards, and AI agent logic")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Audio,       "Audio",       WindIcons::Speaker16,       140,
+    "Place spatialized sound actors and ambient audio probes")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(UI,          "UI",          WindIcons::Window16,       150,
+    "Author in-game UI widgets, HUD layouts, and interactive canvas")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Lighting,    "Lighting",    WindIcons::Sun16,      160,
+    "Place directional, point, spot lights and bake scene lighting")
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Cinematics,  "Cinematics",  WindIcons::ToolbarVideocamera16,     170,
+    "Add cinematic cameras and edit camera tracks in Sequencer")
 
 // ===== Select mode =====
 REGISTER_EDITOR_TOOL_CATEGORY(Select, SelectEssentials, "Essentials", kWindIconNone, 10)

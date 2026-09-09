@@ -98,7 +98,8 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     tree->SetRoot(root);
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
+void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string&
+    virtualPath) {
     if (!breadcrumb) return;
     std::vector<std::string> crumbs;
     crumbs.push_back("All");
@@ -185,7 +186,8 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb, searchBox](const ::we::editor::contentbrowser::ContentItem& item) {
+    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb,
+        searchBox](const ::we::editor::contentbrowser::ContentItem& item) {
         if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, searchBox);
     });
     service.SetOnThumbnailReady([browser](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
@@ -255,7 +257,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     searchRow->Align(AlignItems::Center);
     searchRow->SetFlexShrink(0.0f);
 
-    auto filterBtn = std::make_shared<::we::editor::contentbrowser::ToolbarIconToggle>(WindIcons::ListFilter16, "Filter");
+    auto filterBtn = std::make_shared<::we::editor::contentbrowser::ToolbarIconToggle>(WindIcons::ListFilter16,
+        "Filter");
     filterBtn->SetFrameless(true);
     filterBtn->SetFlexShrink(0.0f);
 
@@ -278,7 +281,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     // search).
     const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
-    auto contentSplitter = std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
+    auto contentSplitter =
+        std::make_shared<we::runtime::kindui::Splitter>(we::runtime::kindui::Orientation::Horizontal, treePaneWidth);
     contentSplitter->SetFirstChild(folderTree);
     contentSplitter->SetSecondChild(rightPane);
     contentSplitter->SetResizeMode(we::runtime::kindui::Splitter::ResizeMode::FixedFirst);
@@ -315,7 +319,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     };
 
     auto pushHistory = [history, historyIndex](const std::string& path) {
-        if (*historyIndex >= 0 && *historyIndex < static_cast<int>(history->size()) && (*history)[*historyIndex] == path) {
+        if (*historyIndex >= 0 && *historyIndex < static_cast<int>(history->size()) && (*history)[*historyIndex] ==
+            path) {
             return;
         }
         if (*historyIndex + 1 < static_cast<int>(history->size())) {
@@ -325,7 +330,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
         *historyIndex = static_cast<int>(history->size()) - 1;
     };
 
-    auto doNavigate = [contentBrowser, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path, bool recordHistory = true) {
+    auto doNavigate = [contentBrowser, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path,
+        bool recordHistory = true) {
         NavigateToFolder(path, contentBrowser, breadcrumb, searchBox);
         if (recordHistory) {
             pushHistory(path);

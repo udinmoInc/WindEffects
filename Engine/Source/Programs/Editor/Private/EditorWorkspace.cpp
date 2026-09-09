@@ -422,7 +422,8 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
         shellDeps.onViewportCreated = [this](std::shared_ptr<we::runtime::kindui::Widget>& viewportWidget) {
             m_ViewportWidget = viewportWidget;
             if (auto vp = std::dynamic_pointer_cast<ViewportWidget>(viewportWidget)) {
-                vp->SetEditInputHandler([this, vp](const we::runtime::kindui::MouseEvent& event, float localX, float localY) {
+                vp->SetEditInputHandler([this, vp](const we::runtime::kindui::MouseEvent& event, float localX,
+                    float localY) {
                     if (!m_ViewportEdit) {
                         return false;
                     }

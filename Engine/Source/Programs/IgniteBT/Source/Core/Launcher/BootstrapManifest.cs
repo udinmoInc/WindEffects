@@ -132,7 +132,8 @@ public static class BootstrapManifest
             return;
         }
 
-        foreach (var projectPath in Directory.EnumerateFiles(descriptor.ProgramsRoot, "*.csproj", SearchOption.AllDirectories))
+        foreach (var projectPath in Directory.EnumerateFiles(descriptor.ProgramsRoot, "*.csproj",
+            SearchOption.AllDirectories))
         {
             var toolName = Path.GetFileNameWithoutExtension(projectPath);
             if (string.IsNullOrWhiteSpace(toolName))

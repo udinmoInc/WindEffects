@@ -63,7 +63,9 @@ public:
     bool ShowsPointerCursor(const Point& position) const override;
 
     // Tool management
-    std::shared_ptr<ToolButton> AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label, std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false, ToolbarAlignment align = ToolbarAlignment::Left);
+    std::shared_ptr<ToolButton> AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label,
+        std::function<void()> onClick, const std::string& tooltip = "", bool isPlayButton = false,
+        ToolbarAlignment align = ToolbarAlignment::Left);
     void AddSeparator(ToolbarAlignment align = ToolbarAlignment::Left);
     void AddWidget(std::shared_ptr<Widget> widget, ToolbarAlignment align = ToolbarAlignment::Left);
     void AddGroup(std::shared_ptr<Widget> group, ToolbarAlignment align = ToolbarAlignment::Left);

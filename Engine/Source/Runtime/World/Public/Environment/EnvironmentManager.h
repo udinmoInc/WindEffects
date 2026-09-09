@@ -30,12 +30,16 @@ public:
 
     we::math::Vec3 GetWorldOrigin(const we::math::Vec3& cameraPosition) const;
     float ComputeExposureEV(const EnvironmentDirectionalLight& sun) const;
-    float ComputeHdrSkyLuminance(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
+    float ComputeHdrSkyLuminance(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere)
+        const;
 
 private:
-    we::math::Vec3 ComputeSkyLightUpper(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
-    we::math::Vec3 ComputeSkyLightLower(const EnvironmentDirectionalLight& sun, const EnvironmentHeightFog& fog, const EnvironmentSkyAtmosphere& atmosphere) const;
-    we::math::Vec3 ComputeFogColor(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere) const;
+    we::math::Vec3 ComputeSkyLightUpper(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere&
+        atmosphere) const;
+    we::math::Vec3 ComputeSkyLightLower(const EnvironmentDirectionalLight& sun, const EnvironmentHeightFog& fog,
+        const EnvironmentSkyAtmosphere& atmosphere) const;
+    we::math::Vec3 ComputeFogColor(const EnvironmentDirectionalLight& sun, const EnvironmentSkyAtmosphere& atmosphere)
+        const;
 };
 
 } // namespace we::runtime::world::environment
