@@ -17,7 +17,7 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     m_SearchBox->SetMargin(Margin{ 0.0f, 0.0f, ThemeMetric(MetricToken::Space1), 0.0f });
     m_SearchBox->SetFillWidth(false);
     m_SearchBox->SetWidth(ThemeMetric(MetricToken::InputWidthLarge) * uiScale);
-    m_SearchBox->SetFlexGrow(0.0f);
+    m_SearchBox->SetFlexGrow(1.0f);
     m_SearchBox->SetFlexShrink(1.0f);
     m_SearchBox->SetMinWidth(ThemeMetric(MetricToken::Space6) * 4.0f);
 }
@@ -46,6 +46,9 @@ void PanelToolbarRow::Finalize() {
 void PanelToolbarRow::EnsureBuilt() {
     if (m_Built) {
         return;
+    }
+    for (const auto& item : m_LeadingItems) {
+        AddChild(item);
     }
     AddChild(m_SearchBox);
     for (const auto& item : m_TrailingItems) {
@@ -79,6 +82,18 @@ void PanelToolbarRow::AddSeparator() {
     m_TrailingItems.push_back(divider);
     if (m_Built) {
         AddChild(divider);
+    }
+}
+
+void PanelToolbarRow::AddLeadingIconButton(WindIconRef icon, std::function<void()> onClicked) {
+    auto btn = std::make_shared<IconButton>(icon);
+    btn->SetBorderless(true);
+    btn->SetFlexShrink(0.0f);
+    btn->SetOnClicked(std::move(onClicked));
+    m_IconButtons.push_back(btn);
+    m_LeadingItems.push_back(btn);
+    if (m_Built) {
+        AddChild(btn);
     }
 }
 

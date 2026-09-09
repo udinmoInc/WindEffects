@@ -11,22 +11,25 @@ ExplorerPanelHeader::ExplorerPanelHeader()
     : PanelToolbarRow("Search...") {}
 
 void ExplorerPanelHeader::Initialize() {
+    AddLeadingIconButton(WindIcons::ListFilter16, [this]() {
+        if (m_OnFilterClicked) {
+            m_OnFilterClicked();
+        }
+    });
     AddIconButton(WindIcons::FolderCreate16, [this]() {
         if (m_OnNewFolder) {
             m_OnNewFolder();
         }
     });
     AddIconButton(WindIcons::Settings16, [this]() {
-        if (m_OnFilterClicked) {
-            m_OnFilterClicked();
-        }
+        // Normal Settings
     });
 
     Finalize();
 }
 
 Rect ExplorerPanelHeader::GetFilterButtonGeometry() const {
-    if (auto btn = GetIconButton(1)) {
+    if (auto btn = GetIconButton(0)) {
         return btn->GetGeometry();
     }
     return {};

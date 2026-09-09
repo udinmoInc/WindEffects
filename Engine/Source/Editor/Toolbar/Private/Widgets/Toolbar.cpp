@@ -103,7 +103,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
     auto buildLayoutItems = [&](const std::vector<ToolInfo*>& tools) {
         std::vector<ItemToPlace> items;
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-        const float groupGap = m_GroupSpacing > 0.0f ? m_GroupSpacing : (10.0f * uiScale);
+        const float sepGap = 4.0f * uiScale;
+        const float groupGap = m_GroupSpacing > 0.0f ? (m_GroupSpacing * 0.65f) : (5.0f * uiScale);
         float pendingSpacing = 0.0f;
         bool isFirst = true;
 
@@ -113,8 +114,8 @@ void Toolbar::Arrange(const Rect& allottedRect) {
             if (tool->isSeparator) {
                 if (!isFirst) {
                     const float sepW = tool->button->GetDesiredSize().width;
-                    items.push_back({ tool->button, sepW, groupGap, true });
-                    pendingSpacing = groupGap;
+                    items.push_back({ tool->button, sepW, sepGap, true });
+                    pendingSpacing = sepGap;
                 }
             } else {
                 const float w = tool->button->GetDesiredSize().width;

@@ -53,37 +53,39 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         .RightInset(rightInset)
         .EdgePadding(edgePadding);
 
-    // Left group: Editor Mode Selector & File actions (Save, Blueprint, Sequencer)
+    // Left group: Save (with dropdown) first in execution cluster, then Mode Selector & File actions (Blueprint, Sequencer)
     builder.Left([&](ToolbarBuilder& left) {
+        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
+            file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
+        });
         left.AddWidget(modeSelector);
         left.Separator();
         left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
-            file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {});
             file.IconItem(WindIcons::Blueprint16, "Open Blueprints", []() {});
             file.IconItem(WindIcons::Clapperboard16, "Cinematics & Sequencer", []() {});
         });
     });
 
-    // Center group: Transport controls (Play + Mode Dropdown + Play Settings) at true window center
+    // Center group: Transport controls (Play + Pause + Mode Dropdown) at true window center
     builder.Center([&](ToolbarBuilder& center) {
         center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
             transport.IconItem(WindIcons::Play16, "Play (PIE)", []() {}, [](const std::shared_ptr<ToolButton>& btn) {
                 btn->SetButtonStyle(ToolButtonStyle::PlayButton);
             });
+            transport.IconItem(WindIcons::Pause16, "Pause (PIE)", []() {});
             transport.DropdownItem(
                 we::runtime::kindui::kWindIconNone,
                 "Default (Debug)",
                 []() {},
                 "Play Mode Options");
-            transport.IconItem(WindIcons::Settings16, "Play Options", []() { ShowViewportNavigationPreferences(); });
         });
     });
 
-    // Right group: Build & Accessibility dropdown controls
+    // Right group: Build & Settings dropdown controls
     builder.Right([&](ToolbarBuilder& right) {
         right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& tools) {
-            tools.DropdownItem(WindIcons::Construct16, "", []() {}, "Build Options");
-            tools.DropdownItem(WindIcons::Accessibility16, "", []() {}, "Accessibility Options");
+            tools.DropdownItem(WindIcons::Construct16, "Build", []() {}, "Build Options");
+            tools.DropdownItem(WindIcons::Settings16, "Settings", []() {}, "Settings Options");
         });
     });
 

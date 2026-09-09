@@ -194,6 +194,11 @@ void TitleBar::Construct() {
 
     m_CenterContainer = std::make_shared<Row>();
     m_CenterContainer->Gap(0.0f);
+    m_CenterContainer->Align(we::runtime::kindui::AlignItems::Center);
+    if (!m_Title.empty()) {
+        auto titleLabel = std::make_shared<::we::runtime::kindui::Label>(m_Title, we::runtime::kindui::TypographyToken::Caption);
+        m_CenterContainer->AddChild(titleLabel);
+    }
 
     m_RightContainer = std::make_shared<Row>();
     m_RightContainer->Gap(0.0f);
@@ -253,6 +258,7 @@ void TitleBar::Construct() {
     UpdateMaximizeIcon();
 
     AddChild(m_LeftContainer);
+    AddChild(m_CenterContainer);
     AddChild(m_RightContainer);
 
     m_InteractableWidgets.push_back(bookBtn);
