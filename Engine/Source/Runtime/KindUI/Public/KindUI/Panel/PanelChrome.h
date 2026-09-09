@@ -52,6 +52,8 @@ KINDUI_API float TabTopRadius();
 KINDUI_API float HeaderButtonSize();
 
 KINDUI_API void PaintPanelSurface(PaintContext& context, const Rect& rect);
+/// Soft 1px raised frame (brighter top/left, darker bottom/right) around a panel chrome rect.
+KINDUI_API void PaintPanelFrameBevel(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintToolbarRegion(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintListLabelBand(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintHeaderRegion(PaintContext& context, const Rect& rect);

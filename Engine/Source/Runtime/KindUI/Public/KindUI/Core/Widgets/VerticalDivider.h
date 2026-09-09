@@ -5,7 +5,7 @@
 
 namespace we::runtime::kindui {
 
-/// Thin vertical separator for toolbars and panel chrome rows (UE-style divider).
+/// Thin vertical separator for toolbars and panel chrome rows.
 class KINDUI_API VerticalDivider : public Widget {
 public:
     VerticalDivider();

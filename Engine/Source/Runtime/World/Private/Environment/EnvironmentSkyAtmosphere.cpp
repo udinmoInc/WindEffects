@@ -15,7 +15,7 @@ void EnvironmentSkyAtmosphere::ApplyDefaults() {
 }
 
 we::math::Vec3 EnvironmentSkyAtmosphere::GetRayleighColor() const {
-    // Sea-level Rayleigh scattering coefficients (1/km), matching UE5 reference values.
+    // Sea-level Rayleigh scattering coefficients (1/km).
     constexpr float kRed = 0.005802f;
     constexpr float kGreen = 0.013558f;
     constexpr float kBlue = 0.033100f;

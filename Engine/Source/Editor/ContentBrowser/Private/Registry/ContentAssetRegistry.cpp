@@ -77,7 +77,7 @@ void ContentAssetRegistry::Refresh() {
         m_PathIndex.clear();
         m_FolderVersions.clear();
 
-        // Project Content/ mounts as virtual /Game (Unreal-style). Never hardcode a project path.
+        // Project Content/ mounts as virtual /Game. Never hardcode a project path.
         const fs::path contentRoot = fs::path(m_ContentRoot);
         if (!fs::exists(contentRoot)) {
             refreshedCallback = m_OnRegistryRefreshed;

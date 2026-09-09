@@ -11,7 +11,7 @@ namespace we::runtime::kindui {
 // Multiple tokens may share a palette entry when roles intentionally match.
 
 enum class ColorToken : uint32_t {
-    // ── Surfaces (UE5 Slate StyleColors dark defaults) ───────────────────────
+    // ── Surfaces (dark panel defaults) ───────────────────────
     WindowBackground,       // Title (#151515) — window frame
     WorkspaceBackground,    // Background (#151515) — workspace canvas / tab-strip backdrop
     DockChromeBackground,   // Background (#151515) — dock tab strip / splitter chrome

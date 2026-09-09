@@ -111,7 +111,6 @@ float3 WE_GetPlanetCenter(float3 cameraPos, float3 worldOrigin, float planetRadi
     return float3(relKm.x, relKm.y - planetRadiusKm, relKm.z);
 }
 
-// UE5-style transmittance LUT mapping (distance along view ray vs shell height).
 float2 WE_LutTransmittanceParamsToUv(float viewHeightKm, float viewZenithCosAngle, WE_AtmosphereParams params)
 {
     const float bottomR = params.planetRadius;

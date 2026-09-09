@@ -379,7 +379,7 @@ WorkspaceLayout CreateDefaultEditorWorkspaceLayout() {
         "OutputLog",
         MakePanelDesc("OutputLog", "Console Log", "output-log", DockZone::Floating, false, 5));
 
-    // UE layout: leftCenterCol (tools+viewport on top, content browser on bottom), rightSidebar (outliner + details) on
+    // Default layout: leftCenterCol (tools+viewport on top, content browser on bottom), rightSidebar (outliner + details) on
     // right.
     DockLayoutNode rightSidebar = MakeSplit(
         SplitOrientation::Vertical,
