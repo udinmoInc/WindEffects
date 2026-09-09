@@ -53,7 +53,8 @@ public static class EngineDescriptor
                 return true;
             }
 
-            var parent = Path.GetDirectoryName(candidate.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            var parent = Path.GetDirectoryName(candidate.TrimEnd(Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar));
             if (!string.IsNullOrWhiteSpace(parent) && File.Exists(Path.Combine(parent, FileName)))
             {
                 engineRoot = Path.GetFullPath(parent);

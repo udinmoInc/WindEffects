@@ -18,7 +18,8 @@ public static class BenchmarkCommand
     public static async Task<int> Execute(string[] args)
     {
         var projectRoot = Directory.GetCurrentDirectory();
-        var exe = Path.Combine(projectRoot, "Build", "Intermediate", "IgniteBT", "Development", "net8.0", "IgniteBT.exe");
+        var exe = Path.Combine(projectRoot, "Build", "Intermediate", "IgniteBT", "Development", "net8.0",
+            "IgniteBT.exe");
         if (!File.Exists(exe))
             exe = "dotnet";
 

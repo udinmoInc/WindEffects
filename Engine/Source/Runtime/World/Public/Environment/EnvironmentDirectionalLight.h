@@ -29,7 +29,8 @@ public:
     void ApplyDefaults();
     we::math::Vec3 GetLightDirection() const;
     we::math::Vec3 GetColorFromTemperature() const;
-    void SyncFromEntityTransform(const we::math::Vec3& position, const we::math::Vec3& rotation, const we::math::Vec4& color);
+    void SyncFromEntityTransform(const we::math::Vec3& position, const we::math::Vec3& rotation, const we::math::Vec4&
+        color);
     void ApplyToEntity(we::math::Vec3& position, we::math::Vec3& rotation, we::math::Vec4& color) const;
 };
 

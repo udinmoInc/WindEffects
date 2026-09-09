@@ -157,15 +157,18 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
 
     if (!m_TooltipText.empty() && m_TooltipRect.width > 0.0f) {
         we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_TooltipRect);
-        context.DrawRoundedRect(m_TooltipRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        context.DrawRoundedRect(m_TooltipRect, ThemeColor(ColorToken::PopupBackground),
+            ThemeMetric(MetricToken::CornerRadiusSmall));
         context.DrawText(m_TooltipText,
-            Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height - textSize) * 0.5f },
+            Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height -
+                textSize) * 0.5f },
             ThemeColor(ColorToken::TextSecondary), textSize);
     }
 
     if (m_FilterMenuOpen) {
         we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_FilterMenuRect);
-        context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        context.DrawRoundedRect(m_FilterMenuRect, ThemeColor(ColorToken::PopupBackground),
+            ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_FilterMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_FilterMenuHovered) {
                 context.DrawRect(
@@ -177,14 +180,16 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
                 ? ThemeColor(ColorToken::AccentPrimary)
                 : ThemeColor(ColorToken::TextPrimary);
             context.DrawText(m_FilterMenuItems[i].label,
-                Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },
+                Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(),
+                    m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },
                 textColor, textSize);
         }
     }
 
     if (m_ContextMenuOpen) {
         we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_ContextMenuRect);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground),
+            ThemeMetric(MetricToken::CornerRadiusSmall));
         const float rowH = ActorsPanelLayout::ActorRowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
@@ -194,7 +199,8 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
                         1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             context.DrawText(m_ContextMenuItems[i].label,
-                Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(), m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },
+                Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(),
+                    m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), textSize);
         }
     }
@@ -304,7 +310,8 @@ void PlaceActorsPanel::OpenContextMenu(const std::string& toolId, const Point& p
     addItem("Place in Level", [this, toolId]() { SpawnItem(toolId); });
     addItem("Drag to Viewport", [toolId]() { PlaceActorsPlacement::Get().BeginDragPlacement(toolId); });
     addItem("Toggle Favorite", [this, toolId]() { ToggleFavorite(toolId); });
-    m_ContextMenuRect = Rect{ position.x, position.y, menuWidth, itemHeight * static_cast<float>(m_ContextMenuItems.size()) };
+    m_ContextMenuRect = Rect{ position.x, position.y, menuWidth, itemHeight *
+        static_cast<float>(m_ContextMenuItems.size()) };
 }
 
 void PlaceActorsPanel::CloseContextMenu() {
@@ -600,7 +607,8 @@ void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    if (event.key == we::platform::KeyCode::Enter && m_FocusedIndex >= 0 && m_FocusedIndex < static_cast<int>(m_Layout.size())) {
+    if (event.key == we::platform::KeyCode::Enter && m_FocusedIndex >= 0 && m_FocusedIndex <
+        static_cast<int>(m_Layout.size())) {
         const auto& entry = m_Layout[static_cast<size_t>(m_FocusedIndex)];
         if (entry.type == LayoutEntry::Type::Item) {
             SpawnItem(entry.toolId);

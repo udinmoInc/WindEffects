@@ -199,7 +199,8 @@ std::shared_ptr<Widget> ProjectManagerView::Build(
     auto actions = std::make_shared<Row>();
     actions->Gap(ResolveMetric(MetricToken::Space2));
     actions->Padding(Margin{
-        ResolveMetric(MetricToken::Space6), 0.0f, ResolveMetric(MetricToken::Space6), ResolveMetric(MetricToken::Space3) });
+        ResolveMetric(MetricToken::Space6), 0.0f, ResolveMetric(MetricToken::Space6),
+            ResolveMetric(MetricToken::Space3) });
 
     auto bodyHost = std::make_shared<Column>();
     bodyHost->Gap(ResolveMetric(MetricToken::Space2));

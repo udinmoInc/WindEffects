@@ -83,7 +83,8 @@ public:
 
     /// Semantic surface fill — resolves color from SurfaceRole (preferred for backgrounds).
     void DrawSurface(const Rect& rect, SurfaceRole role, float borderRadius = 0.0f, const char* widgetName = nullptr);
-    void DrawSurfaceOutline(const Rect& rect, SurfaceRole role, float thickness, float radius, const char* widgetName = nullptr);
+    void DrawSurfaceOutline(const Rect& rect, SurfaceRole role, float thickness, float radius, const char* widgetName =
+        nullptr);
 
     void DrawRect(const Rect& rect, const Color& color, float borderRadius = 0.0f);
     void DrawRoundedRect(const Rect& rect, const Color& color, float radius);
@@ -94,9 +95,12 @@ public:
     void DrawGradient(const Rect& rect, const Color& topColor, const Color& bottomColor, float radius = 0.0f);
     void DrawShadow(const Rect& rect, const Color& color, float radius, float blur);
 
-    void DrawText(const char* text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
-    void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
-    void DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false, bool italic = false);
+    void DrawText(const char* text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold = false,
+        bool italic = false);
+    void DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold =
+        false, bool italic = false);
+    void DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize = 14.0f, bool bold =
+        false, bool italic = false);
     void DrawText(
         const char* text,
         const Point& pos,
@@ -122,8 +126,10 @@ public:
     /// Draw a WindIcon with an explicit mono tint (alpha coverage × tint RGB).
     void DrawWindIcon(WindIconRef icon, const Rect& rect, const Color& tint);
     void DrawLine(const Point& start, const Point& end, const Color& color, float thickness = 1.0f);
-    void DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White(), const Color& tintBottom = Color::Transparent());
-    void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White());
+    void DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint = Color::White(),
+        const Color& tintBottom = Color::Transparent());
+    void DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint =
+        Color::White());
 
     float GetTextWidth(const char* text, float fontSize, bool bold = false, bool italic = false) const;
     float GetTextWidth(const std::string& text, float fontSize, bool bold = false, bool italic = false) const;

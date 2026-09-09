@@ -153,11 +153,13 @@ bool ProjectService::ValidateCompatibility(const WeProjectDescriptor& descriptor
     return true;
 }
 
-bool ProjectService::WriteDescriptor(const std::filesystem::path& weprojPath, const WeProjectDescriptor& descriptor) const {
+bool ProjectService::WriteDescriptor(const std::filesystem::path& weprojPath, const WeProjectDescriptor& descriptor)
+    const {
     return we::projects::ProjectLifecycle::WriteDescriptor(weprojPath, descriptor);
 }
 
-bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoot, const std::string& projectName) const {
+bool ProjectService::EnsureProjectLayout(const std::filesystem::path& projectRoot, const std::string& projectName)
+    const {
     return we::projects::ProjectLifecycle::EnsureProjectLayout(projectRoot, projectName);
 }
 
@@ -197,7 +199,8 @@ void ProjectService::CopyTemplateTree(
 
         std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
         const auto ext = PathUtils::ToUtf8(entry.path().extension());
-        if (ext == ".ini" || ext == ".json" || ext == ".cpp" || ext == ".h" || ext == ".cs" || ext == ".md" || ext.empty()) {
+        if (ext == ".ini" || ext == ".json" || ext == ".cpp" || ext == ".h" || ext == ".cs" || ext == ".md" ||
+            ext.empty()) {
             contents = PathUtils::ReplaceTokens(contents, projectName);
         }
         out.write(contents.data(), static_cast<std::streamsize>(contents.size()));
@@ -351,7 +354,8 @@ ProjectOperationResult ProjectService::OpenProject(const std::filesystem::path& 
     return result;
 }
 
-ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path& sourceWeproj, const std::string& newDisplayName) {
+ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path& sourceWeproj, const std::string&
+    newDisplayName) {
     ProjectOperationResult result{};
     auto summary = LoadSummary(sourceWeproj);
     if (!summary) {
@@ -376,7 +380,8 @@ ProjectOperationResult ProjectService::CloneProject(const std::filesystem::path&
     return result;
 }
 
-ProjectOperationResult ProjectService::RenameProject(const std::filesystem::path& weprojPath, const std::string& newDisplayName) {
+ProjectOperationResult ProjectService::RenameProject(const std::filesystem::path& weprojPath, const std::string&
+    newDisplayName) {
     ProjectOperationResult result{};
     auto summary = LoadSummary(weprojPath);
     if (!summary) {

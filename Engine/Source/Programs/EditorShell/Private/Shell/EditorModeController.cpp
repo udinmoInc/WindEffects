@@ -38,7 +38,8 @@ void EditorModeController::InitializeFromRegistry() {
     const bool hadSavedState = std::filesystem::exists(GetStatePath());
     LoadState();
     if (m_DrawerWidth <= 0.0f) {
-        m_DrawerWidth = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f;
+        m_DrawerWidth = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth)
+            * 2.0f;
     }
 
     if (!EditorToolsRegistry::Get().FindMode(m_ActiveModeId)) {
@@ -100,7 +101,8 @@ void EditorModeController::SetDrawerPinned(bool pinned) {
 }
 
 void EditorModeController::SetDrawerWidth(float width) {
-    const float labelCol = we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth);
+    const float labelCol =
+        we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth);
     m_DrawerWidth = std::clamp(width, labelCol * 1.86f, labelCol * 2.14f);
     SaveState();
     NotifyModeChanged();

@@ -807,7 +807,8 @@ DockTabLayout PaintDockTab(
     bool flatCorners)
 {
     DockTabLayout layout = LayoutDockTabGeometries(context, tab, headerRect, x, isActive, showClose);
-    PaintDockTab(context, tab, layout, headerRect, isActive, hoverAnim, showClose, closeHovered, flushLeft, flatCorners);
+    PaintDockTab(context, tab, layout, headerRect, isActive, hoverAnim, showClose, closeHovered, flushLeft,
+        flatCorners);
     return layout;
 }
 

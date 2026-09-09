@@ -43,7 +43,8 @@ public:
     void BindComputePipeline(RHIComputePipelineHandle) override {}
     void BindVertexBuffer(uint32_t, RHIBufferHandle, uint64_t) override {}
     void BindIndexBuffer(RHIBufferHandle, uint64_t, IndexType) override {}
-    void BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t, std::span<const RHIDescriptorSetHandle>) override {}
+    void BindDescriptorSets(PipelineBindPoint, RHIPipelineLayoutHandle, uint32_t,
+        std::span<const RHIDescriptorSetHandle>) override {}
     void PushConstants(RHIPipelineLayoutHandle, ShaderStageFlags, uint32_t, std::span<const uint8_t>) override {}
     void Draw(uint32_t, uint32_t, uint32_t, uint32_t) override {}
     void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t, uint32_t) override {}
@@ -284,11 +285,13 @@ public:
 
     RHIResult<void> DestroyShader(RHIShaderHandle) override { return RHIResult<void>::Success(); }
 
-    [[nodiscard]] RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc&) override {
+    [[nodiscard]] RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc&)
+        override {
         return static_cast<RHIDescriptorSetLayoutHandle>(AllocHandle());
     }
 
-    RHIResult<void> DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle) override { return RHIResult<void>::Success(); }
+    RHIResult<void> DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle) override {
+        return RHIResult<void>::Success(); }
 
     [[nodiscard]] RHIResult<RHIDescriptorPoolHandle> CreateDescriptorPool(const DescriptorPoolDesc&) override {
         const auto handle = static_cast<RHIDescriptorPoolHandle>(AllocHandle());
@@ -308,7 +311,8 @@ public:
         return RHIResult<void>::Success();
     }
 
-    [[nodiscard]] RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc) override {
+    [[nodiscard]] RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc)
+        override {
         if (m_Pools.find(static_cast<uint64_t>(desc.pool)) == m_Pools.end()) {
             return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor pool.", "AllocateDescriptorSet");
         }

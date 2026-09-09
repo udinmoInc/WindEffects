@@ -62,37 +62,44 @@ void ViewportOverlay::Paint(PaintContext& context) {
         // Draw stats text
         char fpsText[32];
         snprintf(fpsText, sizeof(fpsText), "FPS: %.1f", m_Stats.fps);
-        context.DrawText(fpsText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextPrimary), 12.0f);
+        context.DrawText(fpsText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextPrimary),
+            12.0f);
         y += lineHeight;
         
         char gpuText[32];
         snprintf(gpuText, sizeof(gpuText), "GPU: %.2f ms", m_Stats.gpuTime);
-        context.DrawText(gpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(gpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
         
         char cpuText[32];
         snprintf(cpuText, sizeof(cpuText), "CPU: %.2f ms", m_Stats.cpuTime);
-        context.DrawText(cpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(cpuText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
         
         char triText[32];
         snprintf(triText, sizeof(triText), "Tris: %u", m_Stats.triangles);
-        context.DrawText(triText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(triText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
         
         char drawText[32];
         snprintf(drawText, sizeof(drawText), "Draws: %u", m_Stats.drawCalls);
-        context.DrawText(drawText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(drawText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
         
         char objText[32];
         snprintf(objText, sizeof(objText), "Objects: %u", m_Stats.objects);
-        context.DrawText(objText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(objText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
         
         char resText[32];
         snprintf(resText, sizeof(resText), "%ux%u", m_Stats.resolutionX, m_Stats.resolutionY);
-        context.DrawText(resText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary), 12.0f);
+        context.DrawText(resText, Point{ m_StatsRect.x + m_StatsPadding, y }, ThemeColor(ColorToken::TextSecondary),
+            12.0f);
         y += lineHeight;
 
         if (!m_Stats.atmosphereStatus.empty()) {
@@ -117,16 +124,22 @@ void ViewportOverlay::Paint(PaintContext& context) {
         float axisLength = 25.0f;
         
         // X axis (red)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ColorToken::GizmoAxisX), 2.0f);
-        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, ThemeColor(ColorToken::GizmoAxisX), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY },
+            ThemeColor(ColorToken::GizmoAxisX), 2.0f);
+        context.DrawText("X", Point{ centerX + axisLength + 2.0f, centerY - 6.0f }, ThemeColor(ColorToken::GizmoAxisX),
+            10.0f);
         
         // Y axis (green)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ColorToken::GizmoAxisY), 2.0f);
-        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, ThemeColor(ColorToken::GizmoAxisY), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength },
+            ThemeColor(ColorToken::GizmoAxisY), 2.0f);
+        context.DrawText("Y", Point{ centerX - 3.0f, centerY - axisLength - 8.0f }, ThemeColor(ColorToken::GizmoAxisY),
+            10.0f);
         
         // Z axis (blue)
-        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
-        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f }, ThemeColor(ColorToken::GizmoAxisZ), 10.0f);
+        context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f },
+            ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
+        context.DrawText("Z", Point{ centerX - axisLength * 0.5f - 8.0f, centerY + axisLength * 0.5f + 2.0f },
+            ThemeColor(ColorToken::GizmoAxisZ), 10.0f);
     }
     
     // Draw navigation controls (bottom-right)
@@ -230,13 +243,16 @@ void AxisGizmo::Paint(PaintContext& context) {
     
     // Draw axes with orientation
     // X axis (red)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY }, ThemeColor(ColorToken::GizmoAxisX), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX + axisLength, centerY },
+        ThemeColor(ColorToken::GizmoAxisX), 2.0f);
     
     // Y axis (green)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength }, ThemeColor(ColorToken::GizmoAxisY), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX, centerY - axisLength },
+        ThemeColor(ColorToken::GizmoAxisY), 2.0f);
     
     // Z axis (blue)
-    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f }, ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
+    context.DrawLine(Point{ centerX, centerY }, Point{ centerX - axisLength * 0.5f, centerY + axisLength * 0.5f },
+        ThemeColor(ColorToken::GizmoAxisZ), 2.0f);
 }
 
 void AxisGizmo::SetOrientation(float pitch, float yaw, float roll) {

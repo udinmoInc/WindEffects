@@ -109,7 +109,8 @@ void DefaultSceneSettingsLoader::EnsureLoaded() {
     m_Loaded = true;
 }
 
-void DefaultSceneSettingsLoader::EnsureConfigHasDefaults(const std::filesystem::path& path, const DefaultSceneSettings& defaults) const {
+void DefaultSceneSettingsLoader::EnsureConfigHasDefaults(const std::filesystem::path& path, const DefaultSceneSettings&
+    defaults) const {
     const auto defaultValues = BuildDefaultsMap(defaults);
 
     std::vector<std::string> lines;

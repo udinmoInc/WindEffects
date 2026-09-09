@@ -139,7 +139,8 @@ void EditorModeSelector::Paint(PaintContext& context) {
         const Color textColor = we::runtime::kindui::ResolveTextForState(m_HoverAnim > 0.01f, false);
         context.DrawText(
             m_Label,
-            we::runtime::kindui::Point{ currentX, we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
+            we::runtime::kindui::Point{ currentX, we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY,
+                textSize) },
             textColor,
             textSize,
             we::runtime::text::layout::FontWeight::Regular);

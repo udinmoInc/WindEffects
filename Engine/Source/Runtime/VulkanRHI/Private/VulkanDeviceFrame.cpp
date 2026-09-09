@@ -124,7 +124,8 @@ RHIResult<void> VulkanDevice::SubmitOneTime(std::function<void(VkCommandBuffer)>
     allocInfo.commandBufferCount = 1;
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     if (vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate one-time command buffer.", "SubmitOneTime");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate one-time command buffer.",
+            "SubmitOneTime");
     }
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -190,7 +191,8 @@ RHIResult<void> VulkanDevice::UpdateTexture(RHITextureHandle handle, const Textu
         const ResourceState old = tex->state;
         list.TransitionTexture(handle, old, ResourceState::CopyDst);
         list.CopyBufferToTexture(*staging, handle, region);
-        list.TransitionTexture(handle, ResourceState::CopyDst, old == ResourceState::Undefined ? ResourceState::ShaderResource : old);
+        list.TransitionTexture(handle, ResourceState::CopyDst, old ==
+            ResourceState::Undefined ? ResourceState::ShaderResource : old);
         list.End();
     });
 

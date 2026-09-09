@@ -42,7 +42,8 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
     out.Clear();
 
     // Opaque meshes
-    const_cast<World&>(world).QueryAll<TransformComponent, StaticMeshComponent, MaterialComponent, VisibilityComponent>()
+    const_cast<World&>(world).QueryAll<TransformComponent, StaticMeshComponent, MaterialComponent,
+        VisibilityComponent>()
         .Each([&](Entity e,
                   TransformComponent& t,
                   StaticMeshComponent& mesh,

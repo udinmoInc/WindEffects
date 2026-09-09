@@ -269,11 +269,13 @@ void EnvironmentSystem::DiscoverExistingActors() {
             m_SkyLight.SyncFromEntity(entity.Color);
             continue;
         }
-        if (entity.Type == EntityType::SkyAtmosphere || entity.Name == kSkyAtmosphereActorName || entity.Name == "Sky Atmosphere") {
+        if (entity.Type == EntityType::SkyAtmosphere || entity.Name == kSkyAtmosphereActorName || entity.Name ==
+            "Sky Atmosphere") {
             m_SkyAtmosphere.EntityId = entity.Id;
             continue;
         }
-        if (entity.Type == EntityType::HeightFog || entity.Name == kHeightFogActorName || entity.Name == "Exponential Height Fog") {
+        if (entity.Type == EntityType::HeightFog || entity.Name == kHeightFogActorName || entity.Name ==
+            "Exponential Height Fog") {
             m_HeightFog.EntityId = entity.Id;
             m_HeightFog.SyncFromEntity(entity.Color, entity.Scale);
             continue;
@@ -370,7 +372,8 @@ void EnvironmentSystem::CreateEnvironment() {
     const std::uint64_t folderId = EnsureFolder();
 
     if (m_EnvironmentManagerEntityId == 0) {
-        m_EnvironmentManagerEntityId = SpawnActor(kEnvironmentManagerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
+        m_EnvironmentManagerEntityId = SpawnActor(kEnvironmentManagerActorName, EntityType::EmptyActor, folderId,
+            [&](Entity& entity) {
             entity.Position = we::math::Vec3(0.0f);
             entity.Scale = we::math::Vec3(0.35f);
         });
@@ -392,7 +395,8 @@ void EnvironmentSystem::CreateEnvironment() {
     }
 
     if (settings.createSkyAtmosphere && m_SkyAtmosphere.EntityId == 0) {
-        m_SkyAtmosphere.EntityId = SpawnActor(kSkyAtmosphereActorName, EntityType::SkyAtmosphere, folderId, [&](Entity& entity) {
+        m_SkyAtmosphere.EntityId = SpawnActor(kSkyAtmosphereActorName, EntityType::SkyAtmosphere, folderId, [&](Entity&
+            entity) {
             entity.Scale = we::math::Vec3(2.0f);
             entity.Color = we::math::Vec4(m_SkyAtmosphere.GetRayleighColor(), 1.0f);
         });
@@ -408,7 +412,8 @@ void EnvironmentSystem::CreateEnvironment() {
     if ((settings.createVolumetricClouds || m_VolumetricClouds.Enabled) && m_VolumetricClouds.EntityId == 0) {
         m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
         if (m_VolumetricClouds.Enabled) {
-            m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId, [&](Entity& entity) {
+            m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds,
+                folderId, [&](Entity& entity) {
                 entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
                 entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
                 entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
@@ -417,7 +422,8 @@ void EnvironmentSystem::CreateEnvironment() {
     }
 
     if (m_ExposureController.EntityId == 0) {
-        m_ExposureController.EntityId = SpawnActor(kExposureControllerActorName, EntityType::EmptyActor, folderId, [&](Entity& entity) {
+        m_ExposureController.EntityId = SpawnActor(kExposureControllerActorName, EntityType::EmptyActor, folderId,
+            [&](Entity& entity) {
             entity.Position = we::math::Vec3(0.0f);
             entity.Scale = we::math::Vec3(0.3f);
         });
@@ -488,7 +494,8 @@ void EnvironmentSystem::SetVolumetricCloudsEnabled(bool enabled) {
     m_VolumetricClouds.Enabled = enabled;
     if (enabled && m_VolumetricClouds.EntityId == 0) {
         const std::uint64_t folderId = EnsureFolder();
-        m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId, [&](Entity& entity) {
+        m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId,
+            [&](Entity& entity) {
             entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
             entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
             entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);

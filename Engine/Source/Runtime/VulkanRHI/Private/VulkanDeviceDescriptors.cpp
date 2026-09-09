@@ -43,7 +43,8 @@ RHIResult<RHIDescriptorSetLayoutHandle> VulkanDevice::CreateDescriptorSetLayout(
     info.bindingCount = static_cast<uint32_t>(bindings.size());
     info.pBindings = bindings.empty() ? nullptr : bindings.data();
     if (vkCreateDescriptorSetLayout(m_Device, &info, nullptr, &layout.layout) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateDescriptorSetLayout failed.", "CreateDescriptorSetLayout");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateDescriptorSetLayout failed.",
+            "CreateDescriptorSetLayout");
     }
     const auto handle = static_cast<RHIDescriptorSetLayoutHandle>(AllocHandle());
     m_DescriptorSetLayouts.emplace(static_cast<uint64_t>(handle), std::move(layout));
@@ -53,7 +54,8 @@ RHIResult<RHIDescriptorSetLayoutHandle> VulkanDevice::CreateDescriptorSetLayout(
 
 RHIResult<void> VulkanDevice::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) {
     if (m_DescriptorSetLayouts.find(static_cast<uint64_t>(handle)) == m_DescriptorSetLayouts.end()) {
-        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "DestroyDescriptorSetLayout");
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.",
+            "DestroyDescriptorSetLayout");
     }
     EnqueueDeferred(DeferredKind::DescriptorSetLayout, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
@@ -129,7 +131,8 @@ RHIResult<RHIDescriptorSetHandle> VulkanDevice::AllocateDescriptorSet(const Desc
     info.descriptorSetCount = 1;
     info.pSetLayouts = &layoutIt->second.layout;
     if (vkAllocateDescriptorSets(m_Device, &info, &set.set) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAllocateDescriptorSets failed.", "AllocateDescriptorSet");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAllocateDescriptorSets failed.",
+            "AllocateDescriptorSet");
     }
     const auto handle = static_cast<RHIDescriptorSetHandle>(AllocHandle());
     m_DescriptorSets.emplace(static_cast<uint64_t>(handle), set);
@@ -223,7 +226,8 @@ RHIResult<RHIPipelineLayoutHandle> VulkanDevice::CreatePipelineLayout(const Pipe
     for (auto h : desc.setLayouts) {
         auto it = m_DescriptorSetLayouts.find(static_cast<uint64_t>(h));
         if (it == m_DescriptorSetLayouts.end()) {
-            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "CreatePipelineLayout");
+            return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.",
+                "CreatePipelineLayout");
         }
         setLayouts.push_back(it->second.layout);
     }
@@ -382,7 +386,8 @@ RHIResult<RHIGraphicsPipelineHandle> VulkanDevice::CreateGraphicsPipeline(const 
         if (blend.writeMask & 0x8) att.colorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
         if (att.colorWriteMask == 0) {
             att.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                    VK_COLOR_COMPONENT_A_BIT;
         }
         att.blendEnable = blend.enable ? VK_TRUE : VK_FALSE;
         att.srcColorBlendFactor = ToVkBlendFactor(blend.srcColor);
@@ -437,8 +442,10 @@ RHIResult<RHIGraphicsPipelineHandle> VulkanDevice::CreateGraphicsPipeline(const 
     VulkanGraphicsPipeline pipeline{};
     pipeline.desc = desc;
     pipeline.layout = layout->layout;
-    if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateGraphicsPipelines failed.", "CreateGraphicsPipeline");
+    if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) !=
+        VK_SUCCESS) {
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateGraphicsPipelines failed.",
+            "CreateGraphicsPipeline");
     }
     const auto handle = static_cast<RHIGraphicsPipelineHandle>(AllocHandle());
     m_GraphicsPipelines.emplace(static_cast<uint64_t>(handle), pipeline);
@@ -458,7 +465,8 @@ RHIResult<RHIComputePipelineHandle> VulkanDevice::CreateComputePipeline(const Co
     auto* shader = FindShader(desc.computeShader);
     auto* layout = FindPipelineLayout(desc.layout);
     if (!shader || !layout || !shader->module || !layout->layout) {
-        return RHIError::Make(RHIErrorCode::InvalidArgument, "Missing compute shader or layout.", "CreateComputePipeline");
+        return RHIError::Make(RHIErrorCode::InvalidArgument, "Missing compute shader or layout.",
+            "CreateComputePipeline");
     }
 
     VkPipelineShaderStageCreateInfo stage{};
@@ -476,7 +484,8 @@ RHIResult<RHIComputePipelineHandle> VulkanDevice::CreateComputePipeline(const Co
     pipeline.desc = desc;
     pipeline.layout = layout->layout;
     if (vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline.pipeline) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateComputePipelines failed.", "CreateComputePipeline");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateComputePipelines failed.",
+            "CreateComputePipeline");
     }
     const auto handle = static_cast<RHIComputePipelineHandle>(AllocHandle());
     m_ComputePipelines.emplace(static_cast<uint64_t>(handle), pipeline);

@@ -46,7 +46,8 @@ public static class BuildBenchmark
         public Dictionary<string, long> BaselineComparison { get; set; } = new();
     }
 
-    public static async Task<BenchmarkReport> RunAllAsync(string weExecutable, string projectRoot, int[]? jobCounts = null)
+    public static async Task<BenchmarkReport> RunAllAsync(string weExecutable, string projectRoot, int[]? jobCounts =
+        null)
     {
         jobCounts ??= [Environment.ProcessorCount];
         var report = new BenchmarkReport
@@ -98,7 +99,8 @@ public static class BuildBenchmark
                 Timestamp = DateTimeOffset.UtcNow
             };
             report.Results.Add(result);
-            Log.Information("Benchmark {Category}/{Scenario}: {Ms}ms (exit {Exit})", category, name, sw.ElapsedMilliseconds, exit);
+            Log.Information("Benchmark {Category}/{Scenario}: {Ms}ms (exit {Exit})", category, name,
+                sw.ElapsedMilliseconds, exit);
         }
 
         report.CompletedAt = DateTimeOffset.UtcNow;
@@ -118,7 +120,8 @@ public static class BuildBenchmark
         var baseName = $"benchmark_{stamp}";
 
         var jsonPath = Path.Combine(outputDirectory, $"{baseName}.json");
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented =
+            true }));
 
         var csvPath = Path.Combine(outputDirectory, $"{baseName}.csv");
         var csv = new StringBuilder();
@@ -192,7 +195,8 @@ public static class BuildBenchmark
     {
         for (var i = 0; i < args.Length - 1; i++)
         {
-            if (args[i] == "--jobs" && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var jobs))
+            if (args[i] == "--jobs" && int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var jobs))
                 return jobs;
         }
         return Environment.ProcessorCount;

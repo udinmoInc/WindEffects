@@ -246,7 +246,8 @@ void CrashReporterUI::Paint(PaintContext& context) {
 }
 
 void CrashReporterUI::OnExportZip() {
-    std::string cmd = "powershell.exe -c \"Compress-Archive -Path '" + m_CrashDir + "/All*' -DestinationPath 'CrashReport.zip' -Force\"";
+    std::string cmd = "powershell.exe -c \"Compress-Archive -Path '" + m_CrashDir +
+        "/All*' -DestinationPath 'CrashReport.zip' -Force\"";
     system(cmd.c_str());
 }
 
@@ -255,7 +256,8 @@ void CrashReporterUI::OnRestartEditor() {
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
     std::string editorPath = "WindEffectsEditor.exe";
-    CreateProcessA(nullptr, (LPSTR)editorPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+    CreateProcessA(nullptr, (LPSTR)editorPath.c_str(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr,
+        &si, &pi);
     if (pi.hProcess) {
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);

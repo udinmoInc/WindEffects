@@ -42,7 +42,8 @@ void EnvironmentDirectionalLight::SyncFromEntityTransform(
     Color = we::math::Vec3(color.x, color.y, color.z);
 }
 
-void EnvironmentDirectionalLight::ApplyToEntity(we::math::Vec3& position, we::math::Vec3& rotation, we::math::Vec4& color) const {
+void EnvironmentDirectionalLight::ApplyToEntity(we::math::Vec3& position, we::math::Vec3& rotation, we::math::Vec4&
+    color) const {
     position = we::math::Vec3(0.0f, 24.0f, 0.0f);
     rotation = Rotation;
     const we::math::Vec3 c = GetColorFromTemperature();

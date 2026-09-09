@@ -59,14 +59,16 @@ public static class DoctorCommand
 
         var cas = new ObjectCasStore(layout.CacheDirectory);
         var casStats = cas.GetStats();
-        Log.Information("Object CAS: {Count} entries, {Size:F1} MB", casStats.EntryCount, casStats.TotalSizeBytes / (1024.0 * 1024.0));
+        Log.Information("Object CAS: {Count} entries, {Size:F1} MB", casStats.EntryCount, casStats.TotalSizeBytes /
+            (1024.0 * 1024.0));
 
         Log.Information("--- Database Health ---");
         using (var db = new BuildDb(layout.DatabaseDirectory))
         {
             var health = db.GetHealth();
             Log.Information("SQLite Build.db: {Size:F2} MB | Modules: {Modules} | Objects: {Objects} | Include edges: {Deps} | History: {History}",
-                health.DatabaseSizeBytes / (1024.0 * 1024.0), health.ModuleCount, health.ObjectCount, health.HeaderDepCount, health.CompileHistoryCount);
+                health.DatabaseSizeBytes / (1024.0 * 1024.0), health.ModuleCount, health.ObjectCount,
+                    health.HeaderDepCount, health.CompileHistoryCount);
         }
 
         Log.Information("--- Compiler Workers ---");
@@ -75,7 +77,8 @@ public static class DoctorCommand
         {
             using var pool = new CompilerWorkerPool(compiler.Path, 2, compiler.VcVarsAllPath, compiler.Type);
             var poolHealth = pool.GetHealth();
-            Log.Information("Pool: {Alive}/{Max} alive, env cached: {Env}", poolHealth.AliveWorkers, poolHealth.MaxWorkers, poolHealth.EnvironmentCached);
+            Log.Information("Pool: {Alive}/{Max} alive, env cached: {Env}", poolHealth.AliveWorkers,
+                poolHealth.MaxWorkers, poolHealth.EnvironmentCached);
         }
         else
         {

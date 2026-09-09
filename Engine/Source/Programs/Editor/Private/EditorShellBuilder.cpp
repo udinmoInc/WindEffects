@@ -147,10 +147,14 @@ EditorShellResult EditorShellBuilder::Build(
     }
     fileItems.push_back(projectManagerItem);
 
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Open Scene"; i->shortcut = "Ctrl+O"; return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save"; i->shortcut = "Ctrl+S"; return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save As..."; i->shortcut = "Ctrl+Shift+S"; return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Exit"; i->shortcut = "Alt+F4"; return i; }());
+    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Open Scene"; i->shortcut = "Ctrl+O";
+        return i; }());
+    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save"; i->shortcut = "Ctrl+S";
+        return i; }());
+    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save As..."; i->shortcut =
+        "Ctrl+Shift+S"; return i; }());
+    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Exit"; i->shortcut = "Alt+F4";
+        return i; }());
     menuBar->AddMenu("File", fileItems);
 
     std::vector<std::shared_ptr<MenuItem>> editItems;
@@ -171,9 +175,12 @@ EditorShellResult EditorShellBuilder::Build(
         }
         editItems.push_back(redoItem);
     }
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cut"; i->shortcut = "Ctrl+X"; return i; }());
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Copy"; i->shortcut = "Ctrl+C"; return i; }());
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Paste"; i->shortcut = "Ctrl+V"; return i; }());
+    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cut"; i->shortcut = "Ctrl+X";
+        return i; }());
+    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Copy"; i->shortcut = "Ctrl+C";
+        return i; }());
+    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Paste"; i->shortcut = "Ctrl+V";
+        return i; }());
     menuBar->AddMenu("Edit", editItems);
 
     auto& workspace = we::programs::editor::EditorWorkspaceController::Get();
@@ -294,7 +301,8 @@ EditorShellResult EditorShellBuilder::Build(
         toolbarEdgePadding);
 
     DockLayoutBuilder layoutBuilder;
-    shellResult.layout = layoutBuilder.Build(context.GetDockManager().GetLayout(), context.GetExtensionRegistry(), uiScale);
+    shellResult.layout = layoutBuilder.Build(context.GetDockManager().GetLayout(), context.GetExtensionRegistry(),
+        uiScale);
     if (shellResult.layout.root) {
         shellResult.layout.root->SetContext(widgetContext);
     }
@@ -361,7 +369,8 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     if (shellResult.layout.contentBrowserDock) {
-        shellResult.layout.contentBrowserDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+        shellResult.layout.contentBrowserDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point&
+            pos) {
             we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
         });
         shellResult.layout.contentBrowserDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
@@ -393,7 +402,8 @@ EditorShellResult EditorShellBuilder::Build(
 
     auto statusBar = std::make_shared<StatusBar>();
     statusBar->Construct();
-    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale);
+    statusBar->SetHeight(statusStyle.height > 0.0f ? statusStyle.height :
+        we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale);
     statusBar->SetOnFooterTabChanged([](int index) {
         we::programs::editor::EditorWorkspaceController::Get().SetBottomPanelIndex(index);
     });
@@ -431,7 +441,8 @@ EditorShellResult EditorShellBuilder::Build(
     toolbar->SetMinSize(Size{ 0.0f, toolbarHeight });
     toolbar->SetMaxSize(Size{ 1.0e9f, toolbarHeight });
     statusBar->SetFlexShrink(0.0f);
-    const float statusHeight = statusStyle.height > 0.0f ? statusStyle.height : we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale;
+    const float statusHeight = statusStyle.height > 0.0f ? statusStyle.height :
+        we::runtime::kindui::ResolveMetric(MetricToken::StatusBarHeight) * uiScale;
     statusBar->SetMinSize(Size{ 0.0f, statusHeight });
     statusBar->SetMaxSize(Size{ 1.0e9f, statusHeight });
 

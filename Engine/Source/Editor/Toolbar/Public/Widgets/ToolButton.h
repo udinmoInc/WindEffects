@@ -43,7 +43,8 @@ enum class ToolButtonStyle {
 // Icon and text button for toolbar use
 class TOOLBAR_API ToolButton : public Widget {
 public:
-    ToolButton(we::runtime::kindui::WindIconRef icon, const std::string& label = "", std::function<void()> onClicked = nullptr, const std::string& tooltip = "");
+    ToolButton(we::runtime::kindui::WindIconRef icon, const std::string& label = "", std::function<void()> onClicked =
+        nullptr, const std::string& tooltip = "");
     ~ToolButton() override;
 
     Size Measure(const Size& availableSize) override;

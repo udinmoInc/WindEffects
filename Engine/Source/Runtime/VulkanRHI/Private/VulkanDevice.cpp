@@ -336,7 +336,8 @@ RHIResult<void> VulkanDevice::CreateFrameSync() {
         if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailable[i]) != VK_SUCCESS
             || vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinished[i]) != VK_SUCCESS
             || vkCreateFence(m_Device, &fenceInfo, nullptr, &m_InFlight[i]) != VK_SUCCESS) {
-            return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to create frame sync objects.", "CreateFrameSync");
+            return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to create frame sync objects.",
+                "CreateFrameSync");
         }
     }
     return RHIResult<void>::Success();
@@ -358,7 +359,8 @@ RHIResult<void> VulkanDevice::CreateFrameCommandPool() {
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = m_FramesInFlight;
     if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate command buffers.", "CreateFrameCommandPool");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to allocate command buffers.",
+            "CreateFrameCommandPool");
     }
     return RHIResult<void>::Success();
 }

@@ -36,7 +36,8 @@ PlaceActorsGridLayout PlaceActorsResponsiveGrid::Compute(
     cardWidth = std::clamp(cardWidth, metrics.minCardWidth, metrics.maxCardWidth);
 
     while (columns > 1) {
-        const float fitted = (available - metrics.cardGap * static_cast<float>(columns - 1)) / static_cast<float>(columns);
+        const float fitted = (available - metrics.cardGap * static_cast<float>(columns - 1)) /
+            static_cast<float>(columns);
         if (fitted >= metrics.minCardWidth * 0.95f) {
             cardWidth = std::min(fitted, metrics.maxCardWidth);
             break;

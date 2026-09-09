@@ -63,14 +63,17 @@ void FirstRunAgreementPopup::ComputeLayout(we::runtime::kindui::PaintContext& co
     m_ScrollOffset = std::clamp(m_ScrollOffset, 0.0f, maxScroll);
 }
 
-float FirstRunAgreementPopup::MeasureNode(we::runtime::kindui::PaintContext& context, DocumentNode& node, float maxWidth) {
+float FirstRunAgreementPopup::MeasureNode(we::runtime::kindui::PaintContext& context, DocumentNode& node,
+    float maxWidth) {
     const float fontSize = GetFontSize(node.type) * m_DpiScale;
     const float lineHeight = GetLineHeight(node.type);
     
     switch (node.type) {
         case NodeType::CodeBlock: {
-            node.wrappedLines = WrapWords(context, node.rawText, fontSize, maxWidth - kCodeBlockPadding * 2.0f * m_DpiScale);
-            return static_cast<float>(node.wrappedLines.size()) * fontSize * lineHeight + kCodeBlockPadding * 2.0f * m_DpiScale;
+            node.wrappedLines = WrapWords(context, node.rawText, fontSize, maxWidth - kCodeBlockPadding * 2.0f *
+                m_DpiScale);
+            return static_cast<float>(node.wrappedLines.size()) * fontSize * lineHeight + kCodeBlockPadding * 2.0f *
+                m_DpiScale;
         }
         case NodeType::HorizontalRule:
             return 4.0f * m_DpiScale;
@@ -87,7 +90,8 @@ float FirstRunAgreementPopup::MeasureNode(we::runtime::kindui::PaintContext& con
     }
 }
 
-std::vector<std::string> FirstRunAgreementPopup::WrapWords(we::runtime::kindui::PaintContext& context, const std::string& text, float fontSize, float maxWidth) {
+std::vector<std::string> FirstRunAgreementPopup::WrapWords(we::runtime::kindui::PaintContext& context,
+    const std::string& text, float fontSize, float maxWidth) {
     if (text.empty() || maxWidth <= 0.0f) return {};
     
     std::vector<std::string> lines;
@@ -157,7 +161,8 @@ const float margin = kContentMargin * m_DpiScale;
     }
 }
 
-void FirstRunAgreementPopup::RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>& runs, float x, float& y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth) {
+void FirstRunAgreementPopup::RenderTextRuns(we::runtime::kindui::PaintContext& context, const std::vector<TextRun>&
+    runs, float x, float& y, float fontSize, const we::runtime::kindui::Color& baseColor, float maxWidth) {
 const float lineHeight = fontSize * kBaseLineHeight;
     
     // Combine all runs for wrapping
@@ -223,7 +228,8 @@ const float lineHeight = fontSize * kBaseLineHeight;
     }
 }
 
-void FirstRunAgreementPopup::RenderCodeBlock(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderCodeBlock(we::runtime::kindui::PaintContext& context, const DocumentNode& node,
+    float y) {
 const float padding = kCodeBlockPadding * m_DpiScale;
     const float fontSize = kCodeFontSize * m_DpiScale;
     const float lineHeight = fontSize * kCodeLineHeight;
@@ -248,7 +254,8 @@ const float padding = kCodeBlockPadding * m_DpiScale;
     }
 }
 
-void FirstRunAgreementPopup::RenderBlockquote(we::runtime::kindui::PaintContext& context, const DocumentNode& node, float y) {
+void FirstRunAgreementPopup::RenderBlockquote(we::runtime::kindui::PaintContext& context, const DocumentNode& node,
+    float y) {
 const float padding = kBlockquotePadding * m_DpiScale;
     const float fontSize = kBlockquoteFontSize * m_DpiScale;
     const float margin = kContentMargin * m_DpiScale;
@@ -273,10 +280,12 @@ const float fontSize = kBaseFontSize * m_DpiScale;
     const float bulletX = m_ContentRect.x + margin + indent * 0.5f;
     
     if (node.type == NodeType::UnorderedList) {
-        context.DrawText("ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢", we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
+        context.DrawText("ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢", we::runtime::kindui::Point{ bulletX, textY },
+            ThemeColor(ColorToken::TextPrimary), fontSize, true);
     } else {
         std::string numStr = std::to_string(node.listNumber) + ".";
-        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize, true);
+        context.DrawText(numStr, we::runtime::kindui::Point{ bulletX, textY }, ThemeColor(ColorToken::TextPrimary),
+            fontSize, true);
     }
     
     RenderTextRuns(context, node.runs, bulletX + indent, textY, fontSize, ThemeColor(ColorToken::TextPrimary),
@@ -328,7 +337,8 @@ void FirstRunAgreementPopup::UpdateScrollbarGeometry() {
         const float scrollRatio = m_ContentRect.height / m_TotalDocumentHeight;
         const float thumbHeight = std::max(kScrollbarMinThumbSize * m_DpiScale, m_ContentRect.height * scrollRatio);
         const float scrollRange = std::max(1.0f, m_TotalDocumentHeight - m_ContentRect.height);
-        const float thumbY = m_Scrollbar.track.y + (m_Scrollbar.track.height - thumbHeight) * (m_ScrollOffset / scrollRange);
+        const float thumbY = m_Scrollbar.track.y + (m_Scrollbar.track.height - thumbHeight) * (m_ScrollOffset /
+            scrollRange);
         
         m_Scrollbar.thumb = we::runtime::kindui::Rect{
             scrollbarX + 2.0f * m_DpiScale,

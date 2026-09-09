@@ -176,17 +176,20 @@ static int parse_build_args(int argc, char** argv, build_args_t* args) {
         else if (strncmp(argv[i], "--config=", 9) == 0) snprintf(args->config, sizeof(args->config), "%s", argv[i] + 9);
         else if (strcmp(argv[i], "--config") == 0 || strcmp(argv[i], "-c") == 0) {
             if (i + 1 < argc) snprintf(args->config, sizeof(args->config), "%s", argv[++i]);
-        } else if (strncmp(argv[i], "--platform=", 11) == 0) normalize_platform(argv[i] + 11, args->platform, sizeof(args->platform));
+        } else if (strncmp(argv[i], "--platform=", 11) == 0) normalize_platform(argv[i] + 11, args->platform,
+            sizeof(args->platform));
         else if (strcmp(argv[i], "--platform") == 0 || strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) normalize_platform(argv[++i], args->platform, sizeof(args->platform));
-        } else if (strncmp(argv[i], "--target=", 9) == 0) snprintf(args->target, sizeof(args->target), "%s", argv[i] + 9);
+        } else if (strncmp(argv[i], "--target=", 9) == 0) snprintf(args->target, sizeof(args->target), "%s", argv[i] +
+            9);
         else if (strcmp(argv[i], "--target") == 0 || strcmp(argv[i], "-t") == 0) {
             if (i + 1 < argc) snprintf(args->target, sizeof(args->target), "%s", argv[++i]);
         } else if (strncmp(argv[i], "--jobs=", 7) == 0) args->jobs = atoi(argv[i] + 7);
         else if (strcmp(argv[i], "--jobs") == 0 || strcmp(argv[i], "-j") == 0) {
             if (i + 1 < argc) args->jobs = atoi(argv[++i]);
         } else if (strncmp(argv[i], "--unity-size=", 13) == 0) args->unity_size = atoi(argv[i] + 13);
-        else if (strncmp(argv[i], "--unity-disable=", 16) == 0) snprintf(args->unity_disabled, sizeof(args->unity_disabled), "%s", argv[i] + 16);
+        else if (strncmp(argv[i], "--unity-disable=", 16) == 0) snprintf(args->unity_disabled,
+            sizeof(args->unity_disabled), "%s", argv[i] + 16);
         else if (argv[i][0] != '-' && args->target[0] == 'D' && strcmp(args->target, "Default") == 0)
             snprintf(args->target, sizeof(args->target), "%s", argv[i]);
     }
@@ -245,7 +248,8 @@ static int load_snapshot(const char* path, snapshot_t** out_snap) {
         snap->unity_size = usize;
         if (read_string(f, snap->unity_disabled, sizeof(snap->unity_disabled)) != 0) goto fail;
     }
-    if (read_i32(f, &snap->build_cs_count) != 0 || snap->build_cs_count < 0 || snap->build_cs_count > MAX_BUILDCS) goto fail;
+    if (read_i32(f, &snap->build_cs_count) != 0 || snap->build_cs_count < 0 || snap->build_cs_count > MAX_BUILDCS)
+        goto fail;
     snap->build_cs_paths = (char (*)[MAX_PATH_LEN])calloc((size_t)snap->build_cs_count, MAX_PATH_LEN);
     if (!snap->build_cs_paths) goto fail;
     for (int i = 0; i < snap->build_cs_count; i++)

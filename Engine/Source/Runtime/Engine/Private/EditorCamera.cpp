@@ -92,7 +92,8 @@ void EditorCamera::Focus(const we::math::Vec3& target, float distance) {
     m_FreeLook = false;
     if (m_FlyMode) {
         EnterFlyMode();
-        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(target) - we::math::ToGlm(ComputeForwardFromAngles()) * m_TargetDistance);
+        m_TargetPosition = we::math::FromGlm(we::math::ToGlm(target) - we::math::ToGlm(ComputeForwardFromAngles()) *
+            m_TargetDistance);
     } else {
         UpdateOrbitPositionFromAngles();
     }
@@ -167,7 +168,8 @@ void EditorCamera::SyncOrbitStateFromCameraPosition() {
 }
 
 void EditorCamera::UpdateLookAtFromFlyOrientation() {
-    m_TargetLookAt = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + we::math::ToGlm(ComputeForwardFromAngles()) * std::max(1.0f, m_TargetDistance));
+    m_TargetLookAt = we::math::FromGlm(we::math::ToGlm(m_TargetPosition) + we::math::ToGlm(ComputeForwardFromAngles())
+        * std::max(1.0f, m_TargetDistance));
 }
 
 void EditorCamera::EnterFlyMode() {

@@ -26,10 +26,12 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
     if (panelId == "viewport" || panelId == "Viewport") {
         return WindIcons::Viewport16;
     }
-    if (panelId == "outliner" || panelId == "WorldOutliner" || panelId == "world-outliner" || panelId == "explorer" || panelId == "Explorer") {
+    if (panelId == "outliner" || panelId == "WorldOutliner" || panelId == "world-outliner" || panelId == "explorer" ||
+        panelId == "Explorer") {
         return WindIcons::Outliner16;
     }
-    if (panelId == "details" || panelId == "Details" || panelId == "property-editor" || panelId == "PropertyEditor" || panelId == "paper-pencile" || panelId == "PaperPencile") {
+    if (panelId == "details" || panelId == "Details" || panelId == "property-editor" || panelId == "PropertyEditor" ||
+        panelId == "paper-pencile" || panelId == "PaperPencile") {
         return WindIcons::PaperPencile16;
     }
     if (panelId == "tools-panel" || panelId == "Tools" || panelId == "ToolsPanel") {

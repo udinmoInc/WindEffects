@@ -52,7 +52,8 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() && m_Geometry.Contains(position); }
+    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() &&
+        m_Geometry.Contains(position); }
 
     void SetSelected(bool selected) { m_Selected = selected; }
     bool IsSelected() const { return m_Selected; }
@@ -77,7 +78,8 @@ class ToolbarLabeledButton : public Widget {
 public:
     enum class Variant { Standard, Primary, AddAction };
 
-    ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone,
+    ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon =
+        we::runtime::kindui::kWindIconNone,
         bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 8.0f);
 
     Size Measure(const Size& availableSize) override;
@@ -87,7 +89,8 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() && m_Geometry.Contains(position); }
+    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() &&
+        m_Geometry.Contains(position); }
 
     void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
     void SetFrameless(bool frameless) { m_Frameless = frameless; }

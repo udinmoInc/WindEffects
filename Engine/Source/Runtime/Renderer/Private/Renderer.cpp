@@ -368,7 +368,8 @@ void Renderer::RenderScene() {
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
         "WaterPass", waterId, we::rhi::ResourceState::RenderTarget, depthId, we::rhi::ResourceState::DepthRead));
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "DecalsPass", decalsId, we::rhi::ResourceState::RenderTarget, gbufferId, we::rhi::ResourceState::ShaderResource));
+        "DecalsPass", decalsId, we::rhi::ResourceState::RenderTarget, gbufferId,
+            we::rhi::ResourceState::ShaderResource));
     m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
         "TransparencyPass",
         transparencyId,

@@ -37,7 +37,8 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
-    Grid& Columns(std::vector<GridTrackSize> tracks) { m_Columns = std::move(tracks); InvalidateLayout(); return *this; }
+    Grid& Columns(std::vector<GridTrackSize> tracks) { m_Columns = std::move(tracks); InvalidateLayout();
+        return *this; }
     Grid& Rows(std::vector<GridTrackSize> tracks) { m_Rows = std::move(tracks); InvalidateLayout(); return *this; }
     Grid& Gap(float columnGap, float rowGap) {
         m_ColumnGap = columnGap;

@@ -76,7 +76,8 @@ void Editor::EnsureVisibleSwapchain() {
     const int width = static_cast<int>(pixelSize.x);
     const int height = static_cast<int>(pixelSize.y);
 
-    HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" + std::to_string(height) + ")...");
+    HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
+        std::to_string(height) + ")...");
     if (width > 0 && height > 0) {
         if (width != static_cast<int>(m_Renderer->GetSwapchainWidth()) ||
             height != static_cast<int>(m_Renderer->GetSwapchainHeight())) {

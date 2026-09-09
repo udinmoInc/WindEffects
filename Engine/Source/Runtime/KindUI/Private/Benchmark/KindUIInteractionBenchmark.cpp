@@ -197,7 +197,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     });
     report.idleBaseline.rootCause = "gate consume only";
 
-    auto splitter = RunScenario("splitter_drag", dragSteps, [dragSteps](EditorLikeShell& shell, float, float, uint32_t step) {
+    auto splitter = RunScenario("splitter_drag", dragSteps, [dragSteps](EditorLikeShell& shell, float, float,
+        uint32_t step) {
         auto split = shell.toolsViewportSplit;
         const float t = static_cast<float>(step + 1) / static_cast<float>(dragSteps);
         MouseEvent event{};
@@ -224,7 +225,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     splitter.rootCause = "Splitter drag now uses local Arrange+InvalidatePaint (no root relayout)";
     report.scenarios.push_back(splitter);
 
-    auto windowResize = RunScenario("window_resize", dragSteps, [](EditorLikeShell& shell, float, float, uint32_t step) {
+    auto windowResize = RunScenario("window_resize", dragSteps, [](EditorLikeShell& shell, float, float,
+        uint32_t step) {
         const float w = 1100.0f + static_cast<float>(step) * 8.0f;
         const float h = 680.0f + static_cast<float>(step) * 4.0f;
         UIRepaintGate::RequestLayout();
@@ -241,7 +243,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     panelResize.rootCause = "SetFixedFirstWidth + full relayout";
     report.scenarios.push_back(panelResize);
 
-    auto popupOpen = RunScenario("popup_open", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float, uint32_t) {
+    auto popupOpen = RunScenario("popup_open", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float,
+        uint32_t) {
         auto menu = BuildDropdownMenu();
         shell.host->ShowPopup(menu, Point{420.0f, 180.0f});
         UIRepaintGate::RequestPaint();
@@ -250,7 +253,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     popupOpen.rootCause = "OverlayHost::ShowPopup uses AttachOverlayChild (paint-only invalidation)";
     report.scenarios.push_back(popupOpen);
 
-    auto popupClose = RunScenario("dropdown_close", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float, uint32_t) {
+    auto popupClose = RunScenario("dropdown_close", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float,
+        uint32_t) {
         if (!shell.host->HasOpenPopups()) {
             shell.host->ShowPopup(BuildDropdownMenu(), Point{420.0f, 180.0f});
         }
@@ -260,7 +264,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     popupClose.rootCause = "DetachOverlayChild avoids layout cascade on close";
     report.scenarios.push_back(popupClose);
 
-    auto dropdown = RunScenario("dropdown", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float, uint32_t) {
+    auto dropdown = RunScenario("dropdown", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float,
+        uint32_t) {
         auto menu = BuildDropdownMenu();
         shell.host->ShowPopup(menu, Point{300.0f, 120.0f});
         FullUiFrame(shell, 1280.0f, 720.0f);
@@ -282,7 +287,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     popupScroll.rootCause = "scroll InvalidatePaint only (no relayout)";
     report.scenarios.push_back(popupScroll);
 
-    auto popupMouseMove = RunScenario("popup_mouse_move", dragSteps, [](EditorLikeShell& shell, float, float, uint32_t step) {
+    auto popupMouseMove = RunScenario("popup_mouse_move", dragSteps, [](EditorLikeShell& shell, float, float,
+        uint32_t step) {
         static std::shared_ptr<Column> menu;
         if (step == 0) {
             menu = BuildDropdownMenu();
@@ -308,7 +314,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     docking.rootCause = "InvalidateLayout deduped, no recursive parent propagation";
     report.scenarios.push_back(docking);
 
-    auto undocking = RunScenario("undocking", std::min(6u, dragSteps), [](EditorLikeShell& shell, float, float, uint32_t) {
+    auto undocking = RunScenario("undocking", std::min(6u, dragSteps), [](EditorLikeShell& shell, float, float,
+        uint32_t) {
         auto panel = std::make_shared<Column>();
         panel->AddChild(std::make_shared<Label>("Floated panel"));
         shell.explorerSplit->SetSecondChild(panel);
@@ -321,7 +328,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     report.scenarios.push_back(undocking);
 
     // Baseline (pre-Phase-3) simulations for before/after comparison.
-    auto splitterBaseline = RunScenario("splitter_drag_baseline", dragSteps, [dragSteps](EditorLikeShell& shell, float, float, uint32_t step) {
+    auto splitterBaseline = RunScenario("splitter_drag_baseline", dragSteps, [dragSteps](EditorLikeShell& shell, float,
+        float, uint32_t step) {
         auto split = shell.toolsViewportSplit;
         const float t = static_cast<float>(step + 1) / static_cast<float>(dragSteps);
         MouseEvent event{};
@@ -342,7 +350,8 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     splitterBaseline.rootCause = "OLD: InvalidateLayout per drag frame + full root relayout";
     report.scenarios.push_back(splitterBaseline);
 
-    auto popupBaseline = RunScenario("popup_open_baseline", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float, uint32_t) {
+    auto popupBaseline = RunScenario("popup_open_baseline", std::min(8u, dragSteps), [](EditorLikeShell& shell, float,
+        float, uint32_t) {
         auto menu = BuildDropdownMenu();
         shell.host->AddChild(menu);
         UIRepaintGate::Request();
@@ -410,7 +419,8 @@ UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(const uint32_t steps) {
     UiLatencyBenchmarkReport report{};
     (void)steps;
 
-    auto hover = RunLatencyScenario("hover", UiInteractionKind::Hover, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+    auto hover = RunLatencyScenario("hover", UiInteractionKind::Hover, [](EditorLikeShell& shell,
+        const std::shared_ptr<EventSystem>& es) {
         MouseEvent move{};
         move.type = MouseEventType::MouseMove;
         move.position = Point{420.0f, 180.0f};
@@ -420,7 +430,8 @@ UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(const uint32_t steps) {
     hover.rootCause = "EventSystem hover + paint-only invalidation";
     report.scenarios.push_back(hover);
 
-    auto click = RunLatencyScenario("click", UiInteractionKind::Click, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+    auto click = RunLatencyScenario("click", UiInteractionKind::Click, [](EditorLikeShell& shell,
+        const std::shared_ptr<EventSystem>& es) {
         MouseEvent down{};
         down.type = MouseEventType::MouseDown;
         down.position = Point{300.0f, 120.0f};
@@ -431,7 +442,8 @@ UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(const uint32_t steps) {
     click.rootCause = "click dispatch + paint";
     report.scenarios.push_back(click);
 
-    auto splitter = RunLatencyScenario("splitter_drag", UiInteractionKind::SplitterDrag, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+    auto splitter = RunLatencyScenario("splitter_drag", UiInteractionKind::SplitterDrag, [](EditorLikeShell& shell,
+        const std::shared_ptr<EventSystem>& es) {
         (void)es;
         auto split = shell.toolsViewportSplit;
         MouseEvent down{};
@@ -447,13 +459,15 @@ UiLatencyBenchmarkReport RunUiInputLatencyBenchmark(const uint32_t steps) {
     splitter.rootCause = "local splitter arrange + paint";
     report.scenarios.push_back(splitter);
 
-    auto popup = RunLatencyScenario("popup_open", UiInteractionKind::PopupOpen, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>&) {
+    auto popup = RunLatencyScenario("popup_open", UiInteractionKind::PopupOpen, [](EditorLikeShell& shell,
+        const std::shared_ptr<EventSystem>&) {
         shell.host->ShowPopup(BuildDropdownMenu(), Point{420.0f, 180.0f});
     });
     popup.rootCause = "AttachOverlayChild paint-only attach";
     report.scenarios.push_back(popup);
 
-    auto scroll = RunLatencyScenario("scroll", UiInteractionKind::Scroll, [](EditorLikeShell& shell, const std::shared_ptr<EventSystem>& es) {
+    auto scroll = RunLatencyScenario("scroll", UiInteractionKind::Scroll, [](EditorLikeShell& shell,
+        const std::shared_ptr<EventSystem>& es) {
         auto menu = BuildDropdownMenu();
         shell.host->ShowPopup(menu, Point{360.0f, 140.0f});
         MouseEvent wheel{};

@@ -301,7 +301,8 @@ void DX12CommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_
     m_List->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void DX12CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
+void DX12CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
+    int32_t vertexOffset, uint32_t firstInstance) {
     if (!m_List) {
         return;
     }
@@ -322,7 +323,8 @@ void DX12CommandList::DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint
     (void)byteStride;
 }
 
-void DX12CommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) {
+void DX12CommandList::DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount,
+    uint32_t stride) {
     if (!m_List || !m_Device || drawCount == 0) {
         return;
     }
@@ -354,7 +356,8 @@ void DX12CommandList::DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) 
     m_List->ExecuteIndirect(sig, 1, buf->resource.Get(), offset, nullptr, 0);
 }
 
-void DX12CommandList::CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset, uint64_t dstOffset) {
+void DX12CommandList::CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset,
+    uint64_t dstOffset) {
     if (!m_List || !m_Device) {
         return;
     }
@@ -413,7 +416,8 @@ void DX12CommandList::BlitTexture(RHITextureHandle src, RHITextureHandle dst, co
     CopyTexture(src, dst, copy);
 }
 
-void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion& region) {
+void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion&
+    region) {
     if (!m_List || !m_Device) {
         return;
     }
@@ -444,7 +448,8 @@ void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle 
     m_List->CopyTextureRegion(&dstLoc, region.imageOffsetX, region.imageOffsetY, region.imageOffsetZ, &srcLoc, nullptr);
 }
 
-void DX12CommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) {
+void DX12CommandList::CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion&
+    region) {
     if (!m_List || !m_Device) {
         return;
     }

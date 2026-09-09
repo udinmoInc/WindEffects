@@ -180,7 +180,8 @@ Size SettingsRow::Measure(const Size& availableSize) {
         : (labelSpec.lineHeightPx + hintSpec.lineHeightPx + LMetric(MetricToken::LabelHintGap)) * s;
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 440.0f * s,
-        std::max(LMetric(MetricToken::FormRowHeight) * s, std::max(labelBlock, controlH) + LMetric(MetricToken::FormRowGap) * s)
+        std::max(LMetric(MetricToken::FormRowHeight) * s, std::max(labelBlock, controlH) +
+            LMetric(MetricToken::FormRowGap) * s)
     };
     (void)controlW;
     return m_DesiredSize;

@@ -161,7 +161,8 @@ public sealed class DaemonServer : IDisposable
             {
                 "ping" => new DaemonResponse { ExitCode = 0, Output = "pong", ElapsedMs = sw.ElapsedMilliseconds },
                 "build" => ExecuteBuild(request.Args, sw),
-                _ => new DaemonResponse { ExitCode = 1, Error = $"Unknown command: {request.Command}", ElapsedMs = sw.ElapsedMilliseconds }
+                _ => new DaemonResponse { ExitCode = 1, Error = $"Unknown command: {request.Command}", ElapsedMs =
+                    sw.ElapsedMilliseconds }
             };
         }
         finally

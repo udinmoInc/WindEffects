@@ -181,7 +181,8 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
         extent.height = capabilities.currentExtent.height;
     } else {
         extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        extent.height = std::clamp(extent.height, capabilities.minImageExtent.height,
+            capabilities.maxImageExtent.height);
     }
 
     if (extent.width == 0 || extent.height == 0) {
@@ -286,7 +287,8 @@ RHIResult<uint32_t> VulkanSwapchain::AcquireNextImageForSlot(uint32_t frameSlot)
         return RHIError::Make(RHIErrorCode::OutOfDate, "Swapchain out of date.", "AcquireNextImage");
     }
     if (result != VK_SUCCESS) {
-        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAcquireNextImageKHR failed.", "AcquireNextImage", result);
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAcquireNextImageKHR failed.", "AcquireNextImage",
+            result);
     }
     m_CurrentIndex = imageIndex;
     m_FrameSlot = slot;

@@ -58,18 +58,24 @@ public:
         uint32_t offset,
         std::span<const uint8_t> data) = 0;
 
-    virtual void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) = 0;
-    virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0) = 0;
+    virtual void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0,
+        uint32_t firstInstance = 0) = 0;
+    virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0,
+        int32_t vertexOffset = 0, uint32_t firstInstance = 0) = 0;
     virtual void DrawIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void DrawIndexedIndirect(RHIBufferHandle buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
     virtual void DispatchIndirect(RHIBufferHandle buffer, uint64_t offset) = 0;
 
-    virtual void CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset = 0, uint64_t dstOffset = 0) = 0;
+    virtual void CopyBuffer(RHIBufferHandle src, RHIBufferHandle dst, uint64_t size, uint64_t srcOffset = 0,
+        uint64_t dstOffset = 0) = 0;
     virtual void CopyTexture(RHITextureHandle src, RHITextureHandle dst, const TextureCopyRegion& region) = 0;
-    virtual void BlitTexture(RHITextureHandle src, RHITextureHandle dst, const TextureBlitRegion& region, Filter filter = Filter::Linear) = 0;
-    virtual void CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion& region) = 0;
-    virtual void CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) = 0;
+    virtual void BlitTexture(RHITextureHandle src, RHITextureHandle dst, const TextureBlitRegion& region,
+        Filter filter = Filter::Linear) = 0;
+    virtual void CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst, const BufferImageCopyRegion& region) =
+        0;
+    virtual void CopyTextureToBuffer(RHITextureHandle src, RHIBufferHandle dst, const BufferImageCopyRegion& region) =
+        0;
 
     virtual void TransitionTexture(RHITextureHandle texture, ResourceState before, ResourceState after) = 0;
     virtual void ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) = 0;
@@ -125,7 +131,8 @@ public:
     virtual RHIResult<void> DestroyBuffer(RHIBufferHandle handle) = 0;
     [[nodiscard]] virtual void* MapBuffer(RHIBufferHandle handle) = 0;
     virtual void UnmapBuffer(RHIBufferHandle handle) = 0;
-    virtual RHIResult<void> UpdateBuffer(RHIBufferHandle handle, std::span<const uint8_t> data, uint64_t offset = 0) = 0;
+    virtual RHIResult<void> UpdateBuffer(RHIBufferHandle handle, std::span<const uint8_t> data, uint64_t offset = 0) =
+        0;
 
     [[nodiscard]] virtual RHIResult<RHITextureHandle> CreateTexture(const TextureDesc& desc) = 0;
     virtual RHIResult<void> DestroyTexture(RHITextureHandle handle) = 0;
@@ -139,23 +146,28 @@ public:
     [[nodiscard]] virtual RHIResult<RHIShaderHandle> CreateShader(const ShaderDesc& desc) = 0;
     virtual RHIResult<void> DestroyShader(RHIShaderHandle handle) = 0;
 
-    [[nodiscard]] virtual RHIResult<RHIDescriptorSetLayoutHandle> CreateDescriptorSetLayout(const DescriptorSetLayoutDesc& desc) = 0;
+    [[nodiscard]] virtual RHIResult<RHIDescriptorSetLayoutHandle>
+        CreateDescriptorSetLayout(const DescriptorSetLayoutDesc& desc) = 0;
     virtual RHIResult<void> DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) = 0;
 
     [[nodiscard]] virtual RHIResult<RHIDescriptorPoolHandle> CreateDescriptorPool(const DescriptorPoolDesc& desc) = 0;
     virtual RHIResult<void> DestroyDescriptorPool(RHIDescriptorPoolHandle handle) = 0;
     virtual RHIResult<void> ResetDescriptorPool(RHIDescriptorPoolHandle handle) = 0;
 
-    [[nodiscard]] virtual RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc& desc) = 0;
+    [[nodiscard]] virtual RHIResult<RHIDescriptorSetHandle> AllocateDescriptorSet(const DescriptorSetAllocateDesc&
+        desc) = 0;
     virtual void UpdateDescriptorSets(std::span<const WriteDescriptorSet> writes) = 0;
 
-    [[nodiscard]] virtual RHIResult<RHIPipelineLayoutHandle> CreatePipelineLayout(const PipelineLayoutDesc& desc = {}) = 0;
+    [[nodiscard]] virtual RHIResult<RHIPipelineLayoutHandle> CreatePipelineLayout(const PipelineLayoutDesc& desc = {})
+        = 0;
     virtual RHIResult<void> DestroyPipelineLayout(RHIPipelineLayoutHandle handle) = 0;
 
-    [[nodiscard]] virtual RHIResult<RHIGraphicsPipelineHandle> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
+    [[nodiscard]] virtual RHIResult<RHIGraphicsPipelineHandle> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
+        = 0;
     virtual RHIResult<void> DestroyGraphicsPipeline(RHIGraphicsPipelineHandle handle) = 0;
 
-    [[nodiscard]] virtual RHIResult<RHIComputePipelineHandle> CreateComputePipeline(const ComputePipelineDesc& desc) = 0;
+    [[nodiscard]] virtual RHIResult<RHIComputePipelineHandle> CreateComputePipeline(const ComputePipelineDesc& desc) =
+        0;
     virtual RHIResult<void> DestroyComputePipeline(RHIComputePipelineHandle handle) = 0;
 
     [[nodiscard]] virtual RHIResult<RHIFenceHandle> CreateFence(const FenceDesc& desc = {}) = 0;

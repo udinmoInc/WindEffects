@@ -33,7 +33,8 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void Tick(float deltaTime) override;
-    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() && m_Geometry.Contains(position); }
+    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() &&
+        m_Geometry.Contains(position); }
 
 private:
     WindIconRef m_Icon = kWindIconNone;

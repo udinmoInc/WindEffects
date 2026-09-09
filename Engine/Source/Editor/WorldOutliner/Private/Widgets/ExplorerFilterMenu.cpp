@@ -135,7 +135,8 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
         if (item.isSeparator) {
             const float sepY = item.geometry.y + rowH * 0.5f;
             context.DrawSurface(
-                Rect{ item.geometry.x + menuPad, sepY, item.geometry.width - menuPad * 2.0f, ThemeMetric(MetricToken::BorderWidth) },
+                Rect{ item.geometry.x + menuPad, sepY, item.geometry.width - menuPad * 2.0f,
+                    ThemeMetric(MetricToken::BorderWidth) },
                 we::runtime::kindui::SurfaceRole::Separator,
                 0.0f,
                 "ExplorerFilterMenuSeparator");
@@ -167,7 +168,8 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
         
         const float textX = item.geometry.x + we::runtime::kindui::UiMetrics::MenuTextIndent();
         const float textY = item.geometry.y + (rowH - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
-        context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeNormal));
+        context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary),
+            ThemeMetric(MetricToken::TextSizeNormal));
     }
 }
 

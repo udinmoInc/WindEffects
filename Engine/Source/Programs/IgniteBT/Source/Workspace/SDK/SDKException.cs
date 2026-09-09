@@ -57,7 +57,8 @@ public class SDKValidationException : SDKException
 public class SDKNotFoundException : SDKException
 {
     public SDKNotFoundException(string sdkName, List<string> searchLocations) 
-        : base(sdkName, $"SDK '{sdkName}' not found. Searched in: {string.Join(", ", searchLocations)}", searchLocations)
+        : base(sdkName, $"SDK '{sdkName}' not found. Searched in: {string.Join(", ", searchLocations)}",
+            searchLocations)
     {
     }
 }

@@ -75,8 +75,10 @@ inline bool PassesSearch(std::string_view name, std::string_view category, std::
         }
         std::string h(hay);
         std::string n(needle);
-        std::transform(h.begin(), h.end(), h.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        std::transform(n.begin(), n.end(), n.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        std::transform(h.begin(), h.end(), h.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c)); });
+        std::transform(n.begin(), n.end(), n.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c)); });
         return h.find(n) != std::string::npos;
     };
     return contains(name, search) || contains(category, search);

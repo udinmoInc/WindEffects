@@ -222,15 +222,18 @@ void PaintContext::DrawControlOutline(const Rect& rect, const Color& color, floa
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawText(const char* text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+void PaintContext::DrawText(const char* text, const Point& pos, const Color& color, float fontSize, bool bold,
+    bool italic) {
     DrawText(std::string_view(text ? text : ""), pos, color, fontSize, bold, italic);
 }
 
-void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+void PaintContext::DrawText(const std::string& text, const Point& pos, const Color& color, float fontSize, bool bold,
+    bool italic) {
     DrawText(std::string_view(text), pos, color, fontSize, bold, italic);
 }
 
-void PaintContext::DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize, bool bold, bool italic) {
+void PaintContext::DrawText(std::string_view text, const Point& pos, const Color& color, float fontSize, bool bold,
+    bool italic) {
     DrawText(
         text,
         pos,
@@ -309,11 +312,13 @@ float PaintContext::GetTextWidth(const char* text, const float fontSize, const b
     return GetTextWidth(std::string_view(text ? text : ""), fontSize, bold, italic);
 }
 
-float PaintContext::GetTextWidth(const std::string& text, const float fontSize, const bool bold, const bool italic) const {
+float PaintContext::GetTextWidth(const std::string& text, const float fontSize, const bool bold, const bool italic)
+    const {
     return GetTextWidth(std::string_view(text), fontSize, bold, italic);
 }
 
-float PaintContext::GetTextWidth(std::string_view text, const float fontSize, const bool bold, const bool italic) const {
+float PaintContext::GetTextWidth(std::string_view text, const float fontSize, const bool bold, const bool italic)
+    const {
     return GetTextWidth(
         text,
         fontSize,
@@ -364,7 +369,8 @@ void PaintContext::DrawLine(const Point& start, const Point& end, const Color& c
     m_Commands.push_back(cmd);
 }
 
-void PaintContext::DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint, const Color& tintBottom) {
+void PaintContext::DrawTexture(const Rect& rect, we::rhi::RHIDescriptorSetHandle textureId, const Color& tint,
+    const Color& tintBottom) {
     DrawCommand cmd{};
     cmd.type = DrawCommandType::Texture;
     cmd.rect = rect;

@@ -40,7 +40,8 @@ void PluginManager::ScanAndLoadPlugins(const std::string& pluginDirectory) {
                     if (init) {
                         init();
                     } else {
-                        WE_LOG_WARN(we::LogCategory::Plugin.data(), "InitializePlugin not found in " + entry.path().filename().string());
+                        WE_LOG_WARN(we::LogCategory::Plugin.data(), "InitializePlugin not found in " +
+                            entry.path().filename().string());
                     }
                 } else {
                     WE_LOG_ERROR(we::LogCategory::Plugin.data(), "Failed to load plugin: " + pathStr);

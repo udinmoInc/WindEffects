@@ -151,7 +151,8 @@ void Logger::Log(Level level, const std::string& message) {
     Log(level, LogCategory::General, message);
 }
 
-void Logger::Log(Level level, std::string_view category, const std::string& message, const char* file, int line, const char* function) {
+void Logger::Log(Level level, std::string_view category, const std::string& message, const char* file, int line,
+    const char* function) {
     if (static_cast<int>(level) < static_cast<int>(s_MinimumLevel.load())) {
         return;
     }
@@ -412,7 +413,8 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     (void)we::core::PathService::EnsureDirectory(crashDirPath);
 
     const auto dumpPath = crashDirPath / "WindEffects.dmp";
-    HANDLE hFile = CreateFileW(dumpPath.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    HANDLE hFile = CreateFileW(dumpPath.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hFile != INVALID_HANDLE_VALUE) {
         MINIDUMP_EXCEPTION_INFORMATION mdei{};
         mdei.ThreadId = GetCurrentThreadId();
@@ -452,7 +454,8 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
     pSymbol->MaxNameLen = MAX_SYM_NAME;
 
     for (int frameNum = 0; frameNum < 64; ++frameNum) {
-        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stackFrame, exceptionInfo->ContextRecord, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) break;
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stackFrame, exceptionInfo->ContextRecord, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) break;
         if (stackFrame.AddrPC.Offset == 0) break;
         DWORD64 displacement = 0;
         if (SymFromAddr(process, stackFrame.AddrPC.Offset, &displacement, pSymbol)) {

@@ -34,7 +34,8 @@ struct Margin {
     float right = 0.0f;
     float bottom = 0.0f;
 
-    bool operator==(const Margin& o) const { return left == o.left && top == o.top && right == o.right && bottom == o.bottom; }
+    bool operator==(const Margin& o) const { return left == o.left && top == o.top && right == o.right && bottom ==
+        o.bottom; }
     bool operator!=(const Margin& o) const { return !(*this == o); }
 };
 

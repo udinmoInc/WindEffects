@@ -293,7 +293,8 @@ void PaintCategoryTab(
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
 
     if (active) {
-        context.DrawSurface(rect, SurfaceRole::Selected, ResolveMetric(MetricToken::CornerRadiusSmall) * scale, "CategoryTabActive");
+        context.DrawSurface(rect, SurfaceRole::Selected, ResolveMetric(MetricToken::CornerRadiusSmall) * scale,
+            "CategoryTabActive");
     } else if (hovered) {
         ControlChrome::PaintInteractiveFill(
             context,

@@ -129,7 +129,8 @@ public:
         bool showFavorites = false;
         int sortOrder = 0; // 0: A-Z, 1: Z-A, 2: Modified Recently
     };
-    void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; MarkRenderListDirty(); BuildRenderList(); }
+    void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; MarkRenderListDirty();
+        BuildRenderList(); }
     FilterOptions GetFilterOptions() const { return m_FilterOptions; }
 
 private:

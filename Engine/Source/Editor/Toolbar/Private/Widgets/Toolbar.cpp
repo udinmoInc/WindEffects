@@ -37,7 +37,8 @@ namespace {
         return we::runtime::kindui::ResolveMetric(token) * (std::max)(1.0f, DPIContext::GetScale());
     }
 
-    void VisitToolbarWidgets(const std::shared_ptr<Widget>& widget, const std::function<void(const std::shared_ptr<Widget>&)>& visitor) {
+    void VisitToolbarWidgets(const std::shared_ptr<Widget>& widget,
+        const std::function<void(const std::shared_ptr<Widget>&)>& visitor) {
         if (!widget) return;
         visitor(widget);
         for (const auto& child : widget->GetChildren()) {
@@ -209,7 +210,8 @@ void Toolbar::Paint(PaintContext& context) {
     }
 }
 
-std::shared_ptr<ToolButton> Toolbar::AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label, std::function<void()> onClick, const std::string& tooltip, bool isPlayButton, ToolbarAlignment align) {
+std::shared_ptr<ToolButton> Toolbar::AddTool(we::runtime::kindui::WindIconRef icon, const std::string& label,
+    std::function<void()> onClick, const std::string& tooltip, bool isPlayButton, ToolbarAlignment align) {
     ToolInfo tool;
     tool.icon = icon;
     tool.isSeparator = false;
@@ -436,7 +438,8 @@ void ToolbarGroup::Paint(PaintContext& context) {
         if (item && item->IsVisible()) {
             item->Paint(context);
 
-            if (m_Style == ToolbarGroupStyle::ExecutionCluster && i + 1 < m_Items.size() && m_Items[i + 1]->IsVisible()) {
+            if (m_Style == ToolbarGroupStyle::ExecutionCluster && i + 1 < m_Items.size() && m_Items[i +
+                1]->IsVisible()) {
                 const Rect itemGeo = item->GetGeometry();
                 const float sepX = std::floor(itemGeo.x + itemGeo.width + 0.5f);
                 const float insetY = 4.0f * uiScale;

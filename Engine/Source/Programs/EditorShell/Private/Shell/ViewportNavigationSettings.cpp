@@ -171,17 +171,25 @@ void ViewportNavigationSettingsStore::Load() {
         const std::string value = Trim(line.substr(equals + 1));
 
         if (key == "NavigationPreset") m_Settings.preset = PresetFromString(value);
-        else if (key == "MouseSensitivity") m_Settings.mouseSensitivity = std::max(0.01f, ParseFloat(value, defaults.mouseSensitivity));
-        else if (key == "CameraAcceleration") m_Settings.cameraAcceleration = std::max(0.1f, ParseFloat(value, defaults.cameraAcceleration));
-        else if (key == "CameraSmoothing") m_Settings.cameraSmoothing = std::max(0.0f, ParseFloat(value, defaults.cameraSmoothing));
+        else if (key == "MouseSensitivity") m_Settings.mouseSensitivity = std::max(0.01f, ParseFloat(value,
+            defaults.mouseSensitivity));
+        else if (key == "CameraAcceleration") m_Settings.cameraAcceleration = std::max(0.1f, ParseFloat(value,
+            defaults.cameraAcceleration));
+        else if (key == "CameraSmoothing") m_Settings.cameraSmoothing = std::max(0.0f, ParseFloat(value,
+            defaults.cameraSmoothing));
         else if (key == "InvertX") m_Settings.invertX = ParseBool(value, defaults.invertX);
         else if (key == "InvertY") m_Settings.invertY = ParseBool(value, defaults.invertY);
-        else if (key == "DefaultCameraSpeed") m_Settings.defaultCameraSpeed = ParseFloat(value, defaults.defaultCameraSpeed);
-        else if (key == "MaxBoostMultiplier") m_Settings.maxBoostMultiplier = std::max(1.0f, ParseFloat(value, defaults.maxBoostMultiplier));
-        else if (key == "SlowMultiplier") m_Settings.slowMultiplier = std::clamp(ParseFloat(value, defaults.slowMultiplier), 0.01f, 1.0f);
-        else if (key == "OrbitAroundSelection") m_Settings.orbitAroundSelection = ParseBool(value, defaults.orbitAroundSelection);
+        else if (key == "DefaultCameraSpeed") m_Settings.defaultCameraSpeed = ParseFloat(value,
+            defaults.defaultCameraSpeed);
+        else if (key == "MaxBoostMultiplier") m_Settings.maxBoostMultiplier = std::max(1.0f, ParseFloat(value,
+            defaults.maxBoostMultiplier));
+        else if (key == "SlowMultiplier") m_Settings.slowMultiplier = std::clamp(ParseFloat(value,
+            defaults.slowMultiplier), 0.01f, 1.0f);
+        else if (key == "OrbitAroundSelection") m_Settings.orbitAroundSelection = ParseBool(value,
+            defaults.orbitAroundSelection);
         else if (key == "FocusOnSelection") m_Settings.focusOnSelection = ParseBool(value, defaults.focusOnSelection);
-        else if (key == "ScrollWheelSpeedMultiplier") m_Settings.scrollWheelSpeedMultiplier = std::max(0.1f, ParseFloat(value, defaults.scrollWheelSpeedMultiplier));
+        else if (key == "ScrollWheelSpeedMultiplier") m_Settings.scrollWheelSpeedMultiplier = std::max(0.1f,
+            ParseFloat(value, defaults.scrollWheelSpeedMultiplier));
         else if (key == "CameraSpeed") m_Settings.defaultCameraSpeed = ParseFloat(value, defaults.defaultCameraSpeed);
     }
 }

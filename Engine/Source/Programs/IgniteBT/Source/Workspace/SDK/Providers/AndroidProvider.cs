@@ -42,7 +42,8 @@ public class AndroidProvider : BaseSDKProvider
     protected override List<string> DefaultPaths => new()
     {
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android", "Sdk"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Android", "Sdk"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Android",
+            "Sdk"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Android", "Sdk"),
         "/usr/local/android-sdk",
         "/opt/android-sdk",

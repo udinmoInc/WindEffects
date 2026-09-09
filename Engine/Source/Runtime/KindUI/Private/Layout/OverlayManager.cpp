@@ -64,7 +64,8 @@ void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& p
     const float margin = ResolveMetric(MetricToken::Space1);
     const float screenMargin = ResolveMetric(MetricToken::Space4);
     const float maxW = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenW - screenMargin);
-    const float availBelowY = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenH - position.y - margin);
+    const float availBelowY = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenH - position.y -
+        margin);
 
     Size size = popup->Measure(Size{ maxW, availBelowY });
     size = popup->ClampDesiredSize(size);
@@ -346,7 +347,8 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
             const bool needsRemeasure =
                 popup->NeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
             if (needsRemeasure) {
-                const float availH = (std::max)(minPopupDim, allottedRect.height - geom.y - ResolveMetric(MetricToken::Space2));
+                const float availH = (std::max)(minPopupDim, allottedRect.height - geom.y -
+                    ResolveMetric(MetricToken::Space2));
                 size = popup->Measure(Size{maxW, availH});
                 size = popup->ClampDesiredSize(size);
                 if (i < m_PopupCachedSizes.size()) {

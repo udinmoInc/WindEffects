@@ -171,19 +171,23 @@ void EnvironmentSettingsLoader::EnsureLoaded() {
         return it != entries.end() ? it->second : "";
     };
 
-    m_Settings.autoCreateOnNewLevel = ParseBool(get("AutoCreateOnNewLevel"), ParseBool(get("EnableDefaultScene"), m_Settings.autoCreateOnNewLevel));
+    m_Settings.autoCreateOnNewLevel = ParseBool(get("AutoCreateOnNewLevel"), ParseBool(get("EnableDefaultScene"),
+        m_Settings.autoCreateOnNewLevel));
     m_Settings.createDirectionalLight = ParseBool(get("CreateDirectionalLight"), m_Settings.createDirectionalLight);
     m_Settings.createSkyLight = ParseBool(get("CreateSkyLight"), m_Settings.createSkyLight);
     m_Settings.createSkyAtmosphere = ParseBool(get("CreateSkyAtmosphere"), m_Settings.createSkyAtmosphere);
-    m_Settings.createHeightFog = ParseBool(get("CreateFog"), ParseBool(get("CreateHeightFog"), m_Settings.createHeightFog));
+    m_Settings.createHeightFog = ParseBool(get("CreateFog"), ParseBool(get("CreateHeightFog"),
+        m_Settings.createHeightFog));
     m_Settings.createVolumetricClouds = ParseBool(get("CreateVolumetricClouds"), m_Settings.createVolumetricClouds);
     m_Settings.enableVolumetricFog = ParseBool(get("EnableVolumetricFog"), m_Settings.enableVolumetricFog);
     m_Settings.sunIntensity = std::max(0.0f, ParseFloat(get("SunIntensity"), m_Settings.sunIntensity));
     m_Settings.sunTemperature = std::max(1000, ParseInt(get("SunTemperature"), m_Settings.sunTemperature));
     m_Settings.sunRotationPitch = ParseFloat(get("SunRotationPitch"), m_Settings.sunRotationPitch);
     m_Settings.sunRotationYaw = ParseFloat(get("SunRotationYaw"), m_Settings.sunRotationYaw);
-    m_Settings.skyLightIntensity = std::max(0.0f, ParseFloat(get("SkyIntensity"), ParseFloat(get("SkyLightIntensity"), m_Settings.skyLightIntensity)));
-    m_Settings.skyLightRealTimeCapture = ParseBool(get("SkyRealTimeCapture"), ParseBool(get("SkyLightRealTimeCapture"), m_Settings.skyLightRealTimeCapture));
+    m_Settings.skyLightIntensity = std::max(0.0f, ParseFloat(get("SkyIntensity"), ParseFloat(get("SkyLightIntensity"),
+        m_Settings.skyLightIntensity)));
+    m_Settings.skyLightRealTimeCapture = ParseBool(get("SkyRealTimeCapture"), ParseBool(get("SkyLightRealTimeCapture"),
+        m_Settings.skyLightRealTimeCapture));
     m_Settings.fogDensity = std::max(0.0f, ParseFloat(get("FogDensity"), m_Settings.fogDensity));
     m_Settings.fogHeightFalloff = std::max(0.0f, ParseFloat(get("FogHeightFalloff"), m_Settings.fogHeightFalloff));
     m_Settings.cloudCoverage = std::clamp(ParseFloat(get("CloudCoverage"), m_Settings.cloudCoverage), 0.0f, 1.0f);

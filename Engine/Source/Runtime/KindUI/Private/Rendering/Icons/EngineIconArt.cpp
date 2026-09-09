@@ -65,7 +65,8 @@ void RenderSphere(IconBitmap& bmp, const Shade& s) {
 void RenderCapsule(IconBitmap& bmp, const Shade& s) {
     const int cx = static_cast<int>(bmp.width) / 2;
     const int w = std::max(8, static_cast<int>(bmp.width) / 2 - 10);
-    bmp.FillRoundedRectVerticalGradient(cx - w / 2, 10, w, static_cast<int>(bmp.height) - 20, w / 2, s.highlight, s.shadow);
+    bmp.FillRoundedRectVerticalGradient(cx - w / 2, 10, w, static_cast<int>(bmp.height) - 20, w / 2, s.highlight,
+        s.shadow);
     bmp.DrawLine(cx - w / 2, 12, cx - w / 2, static_cast<int>(bmp.height) - 12, s.edge[0], s.edge[1], s.edge[2]);
     bmp.DrawLine(cx + w / 2, 12, cx + w / 2, static_cast<int>(bmp.height) - 12, s.edge[0], s.edge[1], s.edge[2]);
 }
@@ -80,8 +81,10 @@ void RenderCylinder(IconBitmap& bmp, const Shade& s) {
 
 void RenderCone(IconBitmap& bmp, const Shade& s) {
     const int cx = static_cast<int>(bmp.width) / 2;
-    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10, s.base[0], s.base[1], s.base[2]);
-    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx, static_cast<int>(bmp.height) - 10, s.shadow[0], s.shadow[1], s.shadow[2]);
+    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10,
+        s.base[0], s.base[1], s.base[2]);
+    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx, static_cast<int>(bmp.height) - 10,
+        s.shadow[0], s.shadow[1], s.shadow[2]);
     bmp.FillCircle(cx, static_cast<int>(bmp.height) - 10, 14, s.shadow[0], s.shadow[1], s.shadow[2]);
 }
 
@@ -111,8 +114,10 @@ void RenderPointLight(IconBitmap& bmp, const Shade& s) {
 void RenderSpotLight(IconBitmap& bmp, const Shade& s) {
     const int cx = static_cast<int>(bmp.width) / 2;
     bmp.FillCircle(cx, 12, 5, s.highlight[0], s.highlight[1], s.highlight[2]);
-    bmp.FillTriangle(cx - 14, static_cast<int>(bmp.height) - 8, cx + 14, static_cast<int>(bmp.height) - 8, cx, 18, s.base[0], s.base[1], s.base[2], 120);
-    bmp.DrawLine(cx - 14, static_cast<int>(bmp.height) - 8, cx + 14, static_cast<int>(bmp.height) - 8, s.edge[0], s.edge[1], s.edge[2]);
+    bmp.FillTriangle(cx - 14, static_cast<int>(bmp.height) - 8, cx + 14, static_cast<int>(bmp.height) - 8, cx, 18,
+        s.base[0], s.base[1], s.base[2], 120);
+    bmp.DrawLine(cx - 14, static_cast<int>(bmp.height) - 8, cx + 14, static_cast<int>(bmp.height) - 8, s.edge[0],
+        s.edge[1], s.edge[2]);
 }
 
 void RenderDirectionalLight(IconBitmap& bmp, const Shade& s) {
@@ -241,8 +246,10 @@ void RenderSettings(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderFilter(IconBitmap& bmp, const Shade& s) {
-    bmp.FillTriangle(10, 10, static_cast<int>(bmp.width) - 10, 10, static_cast<int>(bmp.width) / 2, 22, s.base[0], s.base[1], s.base[2]);
-    bmp.FillRect(static_cast<int>(bmp.width) / 2 - 2, 22, 4, static_cast<int>(bmp.height) - 18, s.base[0], s.base[1], s.base[2]);
+    bmp.FillTriangle(10, 10, static_cast<int>(bmp.width) - 10, 10, static_cast<int>(bmp.width) / 2, 22, s.base[0],
+        s.base[1], s.base[2]);
+    bmp.FillRect(static_cast<int>(bmp.width) / 2 - 2, 22, 4, static_cast<int>(bmp.height) - 18, s.base[0], s.base[1],
+        s.base[2]);
 }
 
 void RenderStar(IconBitmap& bmp, const Shade& s) {
@@ -260,13 +267,15 @@ void RenderStar(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderNote(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(10, 8, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 16, 4, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(10, 8, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 16, 4, s.base[0],
+        s.base[1], s.base[2]);
     bmp.DrawLine(14, 16, static_cast<int>(bmp.width) - 14, 16, s.highlight[0], s.highlight[1], s.highlight[2]);
     bmp.DrawLine(14, 22, static_cast<int>(bmp.width) - 20, 22, s.shadow[0], s.shadow[1], s.shadow[2]);
 }
 
 void RenderWidget(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(8, 12, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 24, 4, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(8, 12, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 24, 4, s.base[0],
+        s.base[1], s.base[2]);
     bmp.FillRect(12, 16, static_cast<int>(bmp.width) - 24, 4, s.highlight[0], s.highlight[1], s.highlight[2]);
 }
 
@@ -284,7 +293,8 @@ void RenderPause(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderStop(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(10, 10, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 20, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(10, 10, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 20, 3, s.base[0],
+        s.base[1], s.base[2]);
 }
 
 void RenderRefresh(IconBitmap& bmp, const Shade& s) {
@@ -300,9 +310,11 @@ void RenderRefresh(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderSave(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(10, 8, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 12, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(10, 8, static_cast<int>(bmp.width) - 20, static_cast<int>(bmp.height) - 12, 3, s.base[0],
+        s.base[1], s.base[2]);
     bmp.FillRect(14, 8, static_cast<int>(bmp.width) - 28, 8, s.shadow[0], s.shadow[1], s.shadow[2]);
-    bmp.FillRoundedRect(14, 20, static_cast<int>(bmp.width) - 28, static_cast<int>(bmp.height) - 32, 2, s.highlight[0], s.highlight[1], s.highlight[2]);
+    bmp.FillRoundedRect(14, 20, static_cast<int>(bmp.width) - 28, static_cast<int>(bmp.height) - 32, 2, s.highlight[0],
+        s.highlight[1], s.highlight[2]);
 }
 
 void RenderUndo(IconBitmap& bmp, const Shade& s) {
@@ -330,26 +342,34 @@ void RenderRedo(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderDelete(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(12, 14, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 22, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(12, 14, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 22, 3, s.base[0],
+        s.base[1], s.base[2]);
     bmp.DrawLine(10, 12, static_cast<int>(bmp.width) - 10, 12, s.shadow[0], s.shadow[1], s.shadow[2], 255, 2);
-    bmp.DrawLine(static_cast<int>(bmp.width) / 2 - 4, 18, static_cast<int>(bmp.width) / 2 - 4, static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2]);
-    bmp.DrawLine(static_cast<int>(bmp.width) / 2 + 4, 18, static_cast<int>(bmp.width) / 2 + 4, static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2]);
+    bmp.DrawLine(static_cast<int>(bmp.width) / 2 - 4, 18, static_cast<int>(bmp.width) / 2 - 4,
+        static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2]);
+    bmp.DrawLine(static_cast<int>(bmp.width) / 2 + 4, 18, static_cast<int>(bmp.width) / 2 + 4,
+        static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2]);
 }
 
 void RenderDuplicate(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(16, 10, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 24, 3, s.shadow[0], s.shadow[1], s.shadow[2]);
-    bmp.FillRoundedRect(8, 16, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 24, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(16, 10, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 24, 3, s.shadow[0],
+        s.shadow[1], s.shadow[2]);
+    bmp.FillRoundedRect(8, 16, static_cast<int>(bmp.width) - 24, static_cast<int>(bmp.height) - 24, 3, s.base[0],
+        s.base[1], s.base[2]);
 }
 
 void RenderRename(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(8, 12, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 24, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(8, 12, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 24, 3, s.base[0],
+        s.base[1], s.base[2]);
     bmp.DrawLine(12, 20, static_cast<int>(bmp.width) - 12, 20, s.highlight[0], s.highlight[1], s.highlight[2]);
-    bmp.DrawLine(static_cast<int>(bmp.width) - 14, static_cast<int>(bmp.height) - 16, static_cast<int>(bmp.width) - 8, static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2], 255, 2);
+    bmp.DrawLine(static_cast<int>(bmp.width) - 14, static_cast<int>(bmp.height) - 16, static_cast<int>(bmp.width) - 8,
+        static_cast<int>(bmp.height) - 10, s.highlight[0], s.highlight[1], s.highlight[2], 255, 2);
 }
 
 void RenderImport(IconBitmap& bmp, const Shade& s) {
     const int cx = static_cast<int>(bmp.width) / 2;
-    bmp.FillTriangle(cx, static_cast<int>(bmp.height) - 10, cx - 10, static_cast<int>(bmp.height) - 24, cx + 10, static_cast<int>(bmp.height) - 24, s.base[0], s.base[1], s.base[2]);
+    bmp.FillTriangle(cx, static_cast<int>(bmp.height) - 10, cx - 10, static_cast<int>(bmp.height) - 24, cx + 10,
+        static_cast<int>(bmp.height) - 24, s.base[0], s.base[1], s.base[2]);
     bmp.DrawLine(cx, 10, cx, static_cast<int>(bmp.height) - 22, s.base[0], s.base[1], s.base[2], 255, 2);
 }
 
@@ -360,7 +380,8 @@ void RenderExport(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderFolder(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRoundedRect(8, 16, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 22, 3, s.base[0], s.base[1], s.base[2]);
+    bmp.FillRoundedRect(8, 16, static_cast<int>(bmp.width) - 16, static_cast<int>(bmp.height) - 22, 3, s.base[0],
+        s.base[1], s.base[2]);
     bmp.FillRoundedRect(8, 12, 14, 8, 2, s.highlight[0], s.highlight[1], s.highlight[2]);
 }
 
@@ -370,14 +391,18 @@ void RenderScene(IconBitmap& bmp, const Shade& s) {
 }
 
 void RenderLevel(IconBitmap& bmp, const Shade& s) {
-    bmp.FillRect(8, static_cast<int>(bmp.height) - 12, static_cast<int>(bmp.width) - 16, 4, s.base[0], s.base[1], s.base[2]);
-    bmp.FillTriangle(8, static_cast<int>(bmp.height) - 12, static_cast<int>(bmp.width) / 2, 10, static_cast<int>(bmp.width) - 8, static_cast<int>(bmp.height) - 12, s.highlight[0], s.highlight[1], s.highlight[2]);
+    bmp.FillRect(8, static_cast<int>(bmp.height) - 12, static_cast<int>(bmp.width) - 16, 4, s.base[0], s.base[1],
+        s.base[2]);
+    bmp.FillTriangle(8, static_cast<int>(bmp.height) - 12, static_cast<int>(bmp.width) / 2, 10,
+        static_cast<int>(bmp.width) - 8, static_cast<int>(bmp.height) - 12, s.highlight[0], s.highlight[1],
+        s.highlight[2]);
 }
 
 void RenderFont(IconBitmap& bmp, const Shade& s) {
     bmp.DrawLine(14, 12, 14, static_cast<int>(bmp.height) - 10, s.base[0], s.base[1], s.base[2], 255, 3);
     bmp.DrawLine(14, 12, static_cast<int>(bmp.width) - 12, 12, s.base[0], s.base[1], s.base[2], 255, 2);
-    bmp.DrawLine(static_cast<int>(bmp.width) - 12, 12, static_cast<int>(bmp.width) - 12, static_cast<int>(bmp.height) - 10, s.base[0], s.base[1], s.base[2], 255, 2);
+    bmp.DrawLine(static_cast<int>(bmp.width) - 12, 12, static_cast<int>(bmp.width) - 12, static_cast<int>(bmp.height) -
+        10, s.base[0], s.base[1], s.base[2], 255, 2);
 }
 
 void RenderTorus(IconBitmap& bmp, const Shade& s) {
@@ -397,8 +422,10 @@ void RenderTorus(IconBitmap& bmp, const Shade& s) {
 
 void RenderPyramid(IconBitmap& bmp, const Shade& s) {
     const int cx = static_cast<int>(bmp.width) / 2;
-    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10, s.base[0], s.base[1], s.base[2]);
-    bmp.FillTriangle(cx, 8, cx, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10, s.shadow[0], s.shadow[1], s.shadow[2]);
+    bmp.FillTriangle(cx, 8, cx + 14, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10,
+        s.base[0], s.base[1], s.base[2]);
+    bmp.FillTriangle(cx, 8, cx, static_cast<int>(bmp.height) - 10, cx - 14, static_cast<int>(bmp.height) - 10,
+        s.shadow[0], s.shadow[1], s.shadow[2]);
 }
 
 IconBitmap RenderIconBitmap(std::string_view iconName, uint32_t targetSizePx, float hoverAnim, float activeAnim) {
@@ -514,7 +541,8 @@ bool EngineIconArt::IsEngineIcon(std::string_view iconName) const {
     return EngineIcons::IsEngineIcon(iconName);
 }
 
-we::rhi::RHIDescriptorSetHandle EngineIconArt::GetTexture(std::string_view iconName, uint32_t displaySizePx, float hoverAnim, float activeAnim) const {
+we::rhi::RHIDescriptorSetHandle EngineIconArt::GetTexture(std::string_view iconName, uint32_t displaySizePx,
+    float hoverAnim, float activeAnim) const {
     (void)iconName;
     (void)displaySizePx;
     (void)hoverAnim;

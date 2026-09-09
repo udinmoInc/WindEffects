@@ -55,20 +55,33 @@ public:
         std::size_t valueSize) const = 0;
 
     /// Typed helpers for common primitives.
-    [[nodiscard]] virtual bool GetBool(TypeId ownerTypeId, const void* instance, std::string_view name, bool& out) const = 0;
+    [[nodiscard]] virtual bool GetBool(TypeId ownerTypeId, const void* instance, std::string_view name, bool& out)
+        const = 0;
     [[nodiscard]] virtual bool SetBool(TypeId ownerTypeId, void* instance, std::string_view name, bool value) const = 0;
-    [[nodiscard]] virtual bool GetInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::int32_t& out) const = 0;
-    [[nodiscard]] virtual bool SetInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::int32_t value) const = 0;
-    [[nodiscard]] virtual bool GetUInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::uint32_t& out) const = 0;
-    [[nodiscard]] virtual bool SetUInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::uint32_t value) const = 0;
-    [[nodiscard]] virtual bool GetInt64(TypeId ownerTypeId, const void* instance, std::string_view name, std::int64_t& out) const = 0;
-    [[nodiscard]] virtual bool SetInt64(TypeId ownerTypeId, void* instance, std::string_view name, std::int64_t value) const = 0;
-    [[nodiscard]] virtual bool GetFloat(TypeId ownerTypeId, const void* instance, std::string_view name, float& out) const = 0;
-    [[nodiscard]] virtual bool SetFloat(TypeId ownerTypeId, void* instance, std::string_view name, float value) const = 0;
-    [[nodiscard]] virtual bool GetDouble(TypeId ownerTypeId, const void* instance, std::string_view name, double& out) const = 0;
-    [[nodiscard]] virtual bool SetDouble(TypeId ownerTypeId, void* instance, std::string_view name, double value) const = 0;
-    [[nodiscard]] virtual bool GetString(TypeId ownerTypeId, const void* instance, std::string_view name, std::string& out) const = 0;
-    [[nodiscard]] virtual bool SetString(TypeId ownerTypeId, void* instance, std::string_view name, std::string_view value) const = 0;
+    [[nodiscard]] virtual bool GetInt32(TypeId ownerTypeId, const void* instance, std::string_view name, std::int32_t&
+        out) const = 0;
+    [[nodiscard]] virtual bool SetInt32(TypeId ownerTypeId, void* instance, std::string_view name, std::int32_t value)
+        const = 0;
+    [[nodiscard]] virtual bool GetUInt32(TypeId ownerTypeId, const void* instance, std::string_view name,
+        std::uint32_t& out) const = 0;
+    [[nodiscard]] virtual bool SetUInt32(TypeId ownerTypeId, void* instance, std::string_view name,
+        std::uint32_t value) const = 0;
+    [[nodiscard]] virtual bool GetInt64(TypeId ownerTypeId, const void* instance, std::string_view name, std::int64_t&
+        out) const = 0;
+    [[nodiscard]] virtual bool SetInt64(TypeId ownerTypeId, void* instance, std::string_view name, std::int64_t value)
+        const = 0;
+    [[nodiscard]] virtual bool GetFloat(TypeId ownerTypeId, const void* instance, std::string_view name, float& out)
+        const = 0;
+    [[nodiscard]] virtual bool SetFloat(TypeId ownerTypeId, void* instance, std::string_view name, float value) const =
+        0;
+    [[nodiscard]] virtual bool GetDouble(TypeId ownerTypeId, const void* instance, std::string_view name, double& out)
+        const = 0;
+    [[nodiscard]] virtual bool SetDouble(TypeId ownerTypeId, void* instance, std::string_view name, double value)
+        const = 0;
+    [[nodiscard]] virtual bool GetString(TypeId ownerTypeId, const void* instance, std::string_view name, std::string&
+        out) const = 0;
+    [[nodiscard]] virtual bool SetString(TypeId ownerTypeId, void* instance, std::string_view name,
+        std::string_view value) const = 0;
 };
 
 struct REFLECTION_API PropertyAccessorDependencies {

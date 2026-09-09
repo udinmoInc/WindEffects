@@ -80,7 +80,8 @@ std::string BuildShortcutFromKeyEvent(const KeyEvent& event) {
     if (event.key >= we::platform::KeyCode::A && event.key <= we::platform::KeyCode::Z) {
         shortcut += static_cast<char>('A' + (static_cast<int>(event.key) - static_cast<int>(we::platform::KeyCode::A)));
     } else if (event.key >= we::platform::KeyCode::Num0 && event.key <= we::platform::KeyCode::Num9) {
-        shortcut += static_cast<char>('0' + (static_cast<int>(event.key) - static_cast<int>(we::platform::KeyCode::Num0)));
+        shortcut += static_cast<char>('0' + (static_cast<int>(event.key) -
+            static_cast<int>(we::platform::KeyCode::Num0)));
     } else {
         return {};
     }
@@ -373,7 +374,8 @@ void ToolsPanel::SyncBodyRegions() {
     if (useCustomContent) {
         RebuildModeContent();
         if (m_ModeContentWidget
-            && m_BodyLayout->GetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content) != m_ModeContentWidget) {
+            && m_BodyLayout->GetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content) !=
+                m_ModeContentWidget) {
             m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ModeContentWidget);
         }
         return;
@@ -530,17 +532,20 @@ void ToolsPanel::Paint(PaintContext& context) {
 
             const float rowIconX = toolHit.geometry.x + padH + iconSize + chevronGap;
             const float iconY = toolHit.geometry.y + (toolHit.geometry.height - iconSize) * 0.5f;
-            we::runtime::kindui::IconPainter::Draw(context, toolHit.tool->icon, Rect{ rowIconX, iconY, iconSize, iconSize });
+            we::runtime::kindui::IconPainter::Draw(context, toolHit.tool->icon, Rect{ rowIconX, iconY, iconSize,
+                iconSize });
 
             context.DrawText(toolHit.tool->label,
-                Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize) * 0.5f },
+                Point{ rowIconX + iconSize + chevronGap, toolHit.geometry.y + (toolHit.geometry.height - labelFontSize)
+                    * 0.5f },
                 ThemeColor(ColorToken::TextPrimary), labelFontSize);
 
             if (!toolHit.tool->shortcut.empty()) {
                 const float shortcutWidth = context.GetTextWidth(toolHit.tool->shortcut, shortcutFontSize);
                 const float starReserve = iconSize + padH * 2.0f;
                 context.DrawText(toolHit.tool->shortcut,
-                    Point{ toolHit.geometry.x + toolHit.geometry.width - starReserve - shortcutWidth, toolHit.geometry.y + (toolHit.geometry.height - shortcutFontSize) * 0.5f },
+                    Point{ toolHit.geometry.x + toolHit.geometry.width - starReserve - shortcutWidth,
+                        toolHit.geometry.y + (toolHit.geometry.height - shortcutFontSize) * 0.5f },
                     ThemeColor(ColorToken::TextDisabled), shortcutFontSize);
             }
 
@@ -555,7 +560,8 @@ void ToolsPanel::Paint(PaintContext& context) {
         const float labelFontSize = ThemeMetric(MetricToken::TextSizeBody) * uiScale;
         const float rowH = PanelChrome::ListRowHeight();
         we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_ContextMenuRect);
-        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground), ThemeMetric(MetricToken::CornerRadiusSmall));
+        context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground),
+            ThemeMetric(MetricToken::CornerRadiusSmall));
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             const auto& item = m_ContextMenuItems[i];
             if (static_cast<int>(i) == m_ContextMenuHovered) {
@@ -565,7 +571,8 @@ void ToolsPanel::Paint(PaintContext& context) {
                         1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             context.DrawText(item.label,
-                Point{ item.geometry.x + PanelChrome::PanelPaddingH(), item.geometry.y + (rowH - labelFontSize) * 0.5f },
+                Point{ item.geometry.x + PanelChrome::PanelPaddingH(), item.geometry.y + (rowH - labelFontSize) *
+                    0.5f },
                 ThemeColor(ColorToken::TextPrimary), labelFontSize);
         }
     }

@@ -172,7 +172,8 @@ std::vector<FirstRunAgreementPopup::TextRun> FirstRunAgreementPopup::ParseInline
             if (!current.empty()) {
                 TextRun run;
                 run.text = current;
-                run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic : TextStyle::Normal));
+                run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic :
+                    TextStyle::Normal));
                 runs.push_back(run);
                 current.clear();
             }
@@ -199,7 +200,8 @@ std::vector<FirstRunAgreementPopup::TextRun> FirstRunAgreementPopup::ParseInline
             if (!current.empty()) {
                 TextRun run;
                 run.text = current;
-                run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic : TextStyle::Normal));
+                run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic :
+                    TextStyle::Normal));
                 runs.push_back(run);
                 current.clear();
             }
@@ -239,7 +241,8 @@ std::vector<FirstRunAgreementPopup::TextRun> FirstRunAgreementPopup::ParseInline
     if (!current.empty()) {
         TextRun run;
         run.text = current;
-        run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic : TextStyle::Normal));
+        run.style = inCode ? TextStyle::Code : (inBold ? TextStyle::Bold : (inItalic ? TextStyle::Italic :
+            TextStyle::Normal));
         runs.push_back(run);
     }
     

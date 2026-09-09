@@ -61,7 +61,8 @@ RHIResult<RHIDescriptorSetLayoutHandle> DX12Device::CreateDescriptorSetLayout(co
 
 RHIResult<void> DX12Device::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle) {
     if (m_SetLayouts.find(static_cast<uint64_t>(handle)) == m_SetLayouts.end()) {
-        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.", "DestroyDescriptorSetLayout");
+        return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown descriptor set layout.",
+            "DestroyDescriptorSetLayout");
     }
     EnqueueDeferred(DeferredKind::DescriptorSetLayout, static_cast<uint64_t>(handle));
     return RHIResult<void>::Success();
@@ -466,7 +467,8 @@ RHIResult<RHIGraphicsPipelineHandle> DX12Device::CreateGraphicsPipeline(const Gr
         : 0.0f;
 
     psoDesc.DepthStencilState.DepthEnable = desc.depthTest ? TRUE : FALSE;
-    psoDesc.DepthStencilState.DepthWriteMask = desc.depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+    psoDesc.DepthStencilState.DepthWriteMask = desc.depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL :
+        D3D12_DEPTH_WRITE_MASK_ZERO;
     psoDesc.DepthStencilState.DepthFunc = ToCompare(desc.depthCompare);
     psoDesc.DepthStencilState.StencilEnable = desc.depthStencil.stencilTest ? TRUE : FALSE;
     if (desc.depthStencil.stencilTest) {

@@ -63,7 +63,8 @@ Size DesignButton::Measure(const Size& availableSize) {
     const float pad = ResolveMetric(MetricToken::Space2);
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
     const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
-    m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height : ResolveMetric(MetricToken::ButtonHeight) };
+    m_DesiredSize = Size{ textW + iconW + pad * 2.0f, style.height > 0.0f ? style.height :
+        ResolveMetric(MetricToken::ButtonHeight) };
     return m_DesiredSize;
 }
 
@@ -290,7 +291,8 @@ Size SectionHeader::Measure(const Size& availableSize) {
     // Report content-intrinsic width. Parent Flex Stretch expands on the cross axis;
     // claiming availableSize.width made every Column inside a Row overflow and shrink
     // all siblings to 0x0.
-    m_DesiredSize = Size{ std::max(w, ResolveMetric(MetricToken::IconButtonSize) + ResolveMetric(MetricToken::Space2)), h };
+    m_DesiredSize = Size{ std::max(w, ResolveMetric(MetricToken::IconButtonSize) + ResolveMetric(MetricToken::Space2)),
+        h };
     return m_DesiredSize;
 }
 

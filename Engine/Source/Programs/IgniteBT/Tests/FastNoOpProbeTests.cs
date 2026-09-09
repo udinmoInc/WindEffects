@@ -31,7 +31,8 @@ public class FastNoOpProbeTests : IDisposable
         File.WriteAllText(buildCs, "// build");
         File.WriteAllText(cpp, "int main(){}");
 
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64",
+            IgniteBT.Build.Compiler.BuildConfiguration.Development);
         Directory.CreateDirectory(layout.ManifestDirectory);
         Directory.CreateDirectory(layout.DatabaseDirectory);
 
@@ -68,7 +69,8 @@ public class FastNoOpProbeTests : IDisposable
     [Fact]
     public void FastProbe_ReturnsNoOp_WhenSnapshotMatches()
     {
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64",
+            IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
         var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags,
             Environment.ProcessorCount, false, 0, "");
@@ -82,7 +84,8 @@ public class FastNoOpProbeTests : IDisposable
         var cpp = Path.Combine(_engineRoot, "Source", "Test", "Test.cpp");
         File.AppendAllText(cpp, "\n// change");
 
-        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64", IgniteBT.Build.Compiler.BuildConfiguration.Development);
+        var layout = IgniteBT.Build.Layout.BuildLayout.Resolve(_projectRoot, "Win64",
+            IgniteBT.Build.Compiler.BuildConfiguration.Development);
         var flags = BuildFlagsHasher.Compute(null, false, 0, [], Environment.ProcessorCount);
         var result = FastNoOpProbe.TryProbe(_engineRoot, layout, "Development", "Win64", null, flags,
             Environment.ProcessorCount, false, 0, "");

@@ -113,7 +113,8 @@ we::runtime::kindui::Element BuildEnginePage(const EnginePageModel& model) {
         auto onOpenProjects = model.onOpenProjects;
         auto onRefresh = model.onRefresh;
         auto onClearSearch = model.onClearSearch;
-        tableChildren.push_back(UI::Fill(UI::Host([emptyTitle, emptySubtitle, onOpenProjects, onRefresh, onClearSearch]() {
+        tableChildren.push_back(UI::Fill(UI::Host([emptyTitle, emptySubtitle, onOpenProjects, onRefresh,
+            onClearSearch]() {
             auto empty = std::make_shared<EmptyStatePanel>(
                 emptyTitle,
                 emptySubtitle,

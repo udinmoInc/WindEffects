@@ -137,7 +137,8 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsGeneral(const std::string& q
         EnsurePageBuilt(LauncherPage::Settings);
         ShowPage(LauncherPage::Settings);
     });
-    AppendSettingsRow(*body, queryLower, "Default Projects Folder", "Where New Project creates projects", folder, "path browse");
+    AppendSettingsRow(*body, queryLower, "Default Projects Folder", "Where New Project creates projects", folder,
+        "path browse");
 
     std::vector<std::string> engineLabels;
     std::vector<std::string> engineRoots;
@@ -166,7 +167,8 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsGeneral(const std::string& q
                 ? "Default engine: Auto-detect"
                 : "Default engine updated");
     });
-    AppendSettingsRow(*body, queryLower, "Default Engine Version", "Preferred install for new and recent projects", engineDrop);
+    AppendSettingsRow(*body, queryLower, "Default Engine Version", "Preferred install for new and recent projects",
+        engineDrop);
 
     static const int kLimits[] = { 10, 20, 50, 0 };
     static const char* kLimitLabels[] = { "10", "20", "50", "Unlimited" };
@@ -187,14 +189,16 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsGeneral(const std::string& q
         m_Context->Settings().Settings().recentProjectsLimit = kLimits[index];
         PersistLauncherSettings("Recent projects limit updated");
     });
-    AppendSettingsRow(*body, queryLower, "Recent Projects Limit", "How many projects stay in the recent list", limitDrop);
+    AppendSettingsRow(*body, queryLower, "Recent Projects Limit", "How many projects stay in the recent list",
+        limitDrop);
 
     auto openLast = std::make_shared<ToggleSwitch>(settings.openLastProjectOnStart);
     openLast->SetOnChanged([this](bool on) {
         m_Context->Settings().Settings().openLastProjectOnStart = on;
         PersistLauncherSettings(on ? "Open last project on start enabled" : "Open last project on start disabled");
     });
-    AppendSettingsRow(*body, queryLower, "Open Last Project on Launcher Start", "Launch the most recent project when the launcher opens", openLast);
+    AppendSettingsRow(*body, queryLower, "Open Last Project on Launcher Start",
+        "Launch the most recent project when the launcher opens", openLast);
 
     if (auto group = WrapSettingsGroup("General", "Projects folder, default engine, and startup", body, queryLower)) {
         root->AddChild(group);
@@ -224,7 +228,8 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsEngine(const std::string& qu
         EnsurePageBuilt(LauncherPage::Settings);
         ShowPage(LauncherPage::Settings);
     });
-    AppendSettingsRow(*body, queryLower, "Engine Installation Directory", "Root used when scanning for WindEffects installs", folder, "path browse");
+    AppendSettingsRow(*body, queryLower, "Engine Installation Directory",
+        "Root used when scanning for WindEffects installs", folder, "path browse");
 
     auto scan = MakeSecondaryAction("Scan for Installed Engines", WindIcons::Refresh16);
     scan->SetOnClicked([this] {
@@ -338,7 +343,8 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsFileAssociations(const std::
     });
     AppendSettingsRow(*body, queryLower, "Associate .weproject files", "Alternate project extension", weproject);
 
-    if (auto group = WrapSettingsGroup("File Associations", "Register project file types with Windows", body, queryLower)) {
+    if (auto group = WrapSettingsGroup("File Associations", "Register project file types with Windows", body,
+        queryLower)) {
         root->AddChild(group);
     }
     return root;
@@ -397,7 +403,8 @@ std::shared_ptr<Widget> LauncherShell::BuildSettingsAbout(const std::string& que
         EnsurePageBuilt(LauncherPage::Settings);
         ShowPage(LauncherPage::Settings);
     });
-    AppendSettingsRow(*body, queryLower, "Reset Launcher Settings", "Restore defaults without deleting projects", reset);
+    AppendSettingsRow(*body, queryLower, "Reset Launcher Settings", "Restore defaults without deleting projects",
+        reset);
 
     if (auto group = WrapSettingsGroup("About", "Version, folders, and maintenance", body, queryLower)) {
         root->AddChild(group);
@@ -462,7 +469,8 @@ void LauncherShell::RebuildSettingsPage() {
     addSection(SettingsCategory::General, [this](const std::string& q) { return BuildSettingsGeneral(q); });
     addSection(SettingsCategory::Engine, [this](const std::string& q) { return BuildSettingsEngine(q); });
     addSection(SettingsCategory::Storage, [this](const std::string& q) { return BuildSettingsStorage(q); });
-    addSection(SettingsCategory::FileAssociations, [this](const std::string& q) { return BuildSettingsFileAssociations(q); });
+    addSection(SettingsCategory::FileAssociations, [this](const std::string& q) {
+        return BuildSettingsFileAssociations(q); });
     addSection(SettingsCategory::About, [this](const std::string& q) { return BuildSettingsAbout(q); });
 
     if (!queryLower.empty() && content->GetChildren().size() <= 2) {

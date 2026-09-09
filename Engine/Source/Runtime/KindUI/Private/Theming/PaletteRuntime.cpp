@@ -380,7 +380,8 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& outColo
     ApplyAliasFallbacks(nextColors);
     outColors = nextColors;
     outMetrics = nextMetrics;
-    HE_INFO("[Palette] Loaded " + std::to_string(applied) + " theme values from " + we::core::PathService::ToUtf8(path));
+    HE_INFO("[Palette] Loaded " + std::to_string(applied) + " theme values from " +
+        we::core::PathService::ToUtf8(path));
     return true;
 }
 

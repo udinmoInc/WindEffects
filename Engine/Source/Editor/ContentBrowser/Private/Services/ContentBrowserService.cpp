@@ -27,7 +27,8 @@ ContentBrowserService& ContentBrowserService::Get() {
     return instance;
 }
 
-void ContentBrowserService::Initialize(we::runtime::kindui::IconRenderer* iconRenderer, const std::string& contentRoot) {
+void ContentBrowserService::Initialize(we::runtime::kindui::IconRenderer* iconRenderer, const std::string&
+    contentRoot) {
     if (m_Initialized) return;
 
     m_IconRenderer = iconRenderer;
@@ -67,7 +68,8 @@ void ContentBrowserService::SetCurrentFolder(const std::string& virtualPath) {
     }
 }
 
-void ContentBrowserService::RefreshBrowserModel(const std::shared_ptr<::we::editor::contentbrowser::ContentBrowserModel>& model) {
+void ContentBrowserService::RefreshBrowserModel(const
+    std::shared_ptr<::we::editor::contentbrowser::ContentBrowserModel>& model) {
     if (!model) return;
     m_Model = model;
     model->items.clear();

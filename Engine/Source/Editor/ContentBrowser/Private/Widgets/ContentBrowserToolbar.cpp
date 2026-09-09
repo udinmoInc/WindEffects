@@ -392,15 +392,18 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         }
     };
 
-    m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false, ToolbarLabeledButton::Variant::AddAction);
+    m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false,
+        ToolbarLabeledButton::Variant::AddAction);
     m_CreateBtn->SetFrameless(false);
     m_CreateBtn->SetFlexShrink(0.0f);
 
-    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::Import16, false, ToolbarLabeledButton::Variant::Standard);
+    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::Import16, false,
+        ToolbarLabeledButton::Variant::Standard);
     m_ImportBtn->SetFrameless(true);
     m_ImportBtn->SetFlexShrink(0.0f);
 
-    m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false, ToolbarLabeledButton::Variant::Standard);
+    m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false,
+        ToolbarLabeledButton::Variant::Standard);
     m_SaveBtn->SetFrameless(true);
     m_SaveBtn->SetFlexShrink(0.0f);
 
@@ -533,7 +536,8 @@ void ContentBrowserToolbarControls::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float thickness = ThemeMetric(MetricToken::PanelDividerWidth) * uiScale;
     const Rect bottomBorder{ m_Geometry.x, m_Geometry.y + m_Geometry.height - thickness, m_Geometry.width, thickness };
-    context.DrawSurface(bottomBorder, we::runtime::kindui::SurfaceRole::Separator, 0.0f, "ContentBrowserToolbarSeparator");
+    context.DrawSurface(bottomBorder, we::runtime::kindui::SurfaceRole::Separator, 0.0f,
+        "ContentBrowserToolbarSeparator");
 
     if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
         we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(

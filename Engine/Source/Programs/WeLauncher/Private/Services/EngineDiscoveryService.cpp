@@ -60,11 +60,16 @@ bool EngineDiscoveryService::TryLoadDescriptor(const std::filesystem::path& engi
     out.engineRoot = engineRoot;
     out.schema = values.count("schema") ? values.at("schema") : "1";
     out.engineVersion = values.count("engine.version") ? values.at("engine.version") : "0.0.0";
-    out.programsRoot = PathUtils::ResolveRelative(engineRoot, values.count("ProgramsRoot") ? values.at("ProgramsRoot") : "Engine/Source/Programs");
-    out.buildRoot = PathUtils::ResolveRelative(engineRoot, values.count("BuildRoot") ? values.at("BuildRoot") : "Build");
-    out.assetsRoot = PathUtils::ResolveRelative(engineRoot, values.count("AssetsRoot") ? values.at("AssetsRoot") : "Assets");
-    out.projectsRoot = PathUtils::ResolveRelative(engineRoot, values.count("ProjectsRoot") ? values.at("ProjectsRoot") : "Projects");
-    out.templatesRoot = PathUtils::ResolveRelative(engineRoot, values.count("TemplatesRoot") ? values.at("TemplatesRoot") : "Engine/Templates/Projects");
+    out.programsRoot = PathUtils::ResolveRelative(engineRoot, values.count("ProgramsRoot") ? values.at("ProgramsRoot")
+        : "Engine/Source/Programs");
+    out.buildRoot = PathUtils::ResolveRelative(engineRoot, values.count("BuildRoot") ? values.at("BuildRoot") :
+        "Build");
+    out.assetsRoot = PathUtils::ResolveRelative(engineRoot, values.count("AssetsRoot") ? values.at("AssetsRoot") :
+        "Assets");
+    out.projectsRoot = PathUtils::ResolveRelative(engineRoot, values.count("ProjectsRoot") ? values.at("ProjectsRoot")
+        : "Projects");
+    out.templatesRoot = PathUtils::ResolveRelative(engineRoot, values.count("TemplatesRoot")
+        ? values.at("TemplatesRoot") : "Engine/Templates/Projects");
     return true;
 }
 

@@ -70,7 +70,8 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_MOVE:
         if (window) {
-            PushEvent(WindowMoveEvent{window->id, {static_cast<int32_t>(LOWORD(lParam)), static_cast<int32_t>(HIWORD(lParam))}});
+            PushEvent(WindowMoveEvent{window->id, {static_cast<int32_t>(LOWORD(lParam)),
+                static_cast<int32_t>(HIWORD(lParam))}});
         }
         return 0;
 
@@ -263,7 +264,8 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             break;
         }
         std::vector<uint8_t> buffer(size);
-        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, buffer.data(), &size, sizeof(RAWINPUTHEADER)) == static_cast<UINT>(-1)) {
+        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, buffer.data(), &size,
+            sizeof(RAWINPUTHEADER)) == static_cast<UINT>(-1)) {
             break;
         }
         const auto* raw = reinterpret_cast<RAWINPUT*>(buffer.data());
@@ -582,7 +584,8 @@ Result<void> WindowsPlatform::SetWindowIcon(WindowId id, int32_t resourceId, con
                 module, MAKEINTRESOURCEW(resourceId), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
         }
     } else {
-        return MakeError(PlatformErrorCode::InvalidArgument, "No icon resource or file path provided.", "SetWindowIcon");
+        return MakeError(PlatformErrorCode::InvalidArgument, "No icon resource or file path provided.",
+            "SetWindowIcon");
     }
 
     if (!big && !smallIcon) {

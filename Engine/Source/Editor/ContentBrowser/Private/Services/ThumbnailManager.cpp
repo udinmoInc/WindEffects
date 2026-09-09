@@ -32,7 +32,8 @@ ThumbnailManager::~ThumbnailManager() {
 
 std::string ThumbnailManager::MakeCacheKey(const ThumbnailRequest& request) const {
     std::hash<std::string> hasher;
-    const auto hash = hasher(request.id + std::to_string(request.sourceVersion) + std::to_string(kThumbnailCacheSchema));
+    const auto hash = hasher(request.id + std::to_string(request.sourceVersion) +
+        std::to_string(kThumbnailCacheSchema));
     return std::to_string(hash);
 }
 

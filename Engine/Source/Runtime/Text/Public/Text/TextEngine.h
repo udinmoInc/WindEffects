@@ -85,7 +85,8 @@ public:
 };
 
 struct TextEngineConfig {
-    std::filesystem::path fontStackConfig = std::filesystem::path("Engine") / "Config" / "Fonts" / "DefaultFontStack.json";
+    std::filesystem::path fontStackConfig = std::filesystem::path("Engine") / "Config" / "Fonts" /
+        "DefaultFontStack.json";
     GraphicsApi graphicsApi = GraphicsApi::Unknown;
 };
 

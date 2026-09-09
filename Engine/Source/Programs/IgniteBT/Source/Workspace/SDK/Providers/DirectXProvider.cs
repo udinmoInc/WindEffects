@@ -38,7 +38,8 @@ public class DirectXProvider : BaseSDKProvider
     
     protected override List<string> DefaultPaths => new()
     {
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft DirectX SDK (June 2010)"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            "Microsoft DirectX SDK (June 2010)"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft DirectX SDK"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft DirectX SDK"),
         @"C:\DXSDK"
