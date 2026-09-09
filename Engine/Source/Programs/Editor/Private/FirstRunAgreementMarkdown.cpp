@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — Editor — FirstRunAgreementMarkdown
+// Internal implementation for the Editor module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "Platform/Platform.h"
 #include "FirstRunAgreementPopup.h"
 #include "FirstRunAgreementInternal.h"
@@ -78,7 +86,6 @@ void FirstRunAgreementPopup::ParseDocument() {
             continue;
         }
         
-        // Empty lines
         if (trimmed.empty()) {
             DocumentNode node;
             node.type = NodeType::Spacer;

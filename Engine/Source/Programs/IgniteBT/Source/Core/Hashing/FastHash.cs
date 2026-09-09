@@ -1,4 +1,12 @@
-﻿using System.Buffers.Binary;
+﻿// ==============================================================================
+// WindEffects — IgniteBT — FastHash
+// Source file for the IgniteBT module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
+using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Text;
 using IgniteBT.Core.Filesystem;

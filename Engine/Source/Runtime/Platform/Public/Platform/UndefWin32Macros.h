@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — Platform — UndefWin32Macros
+// Public API surface for the Platform module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 // Include this AFTER any Windows SDK headers (`windows.h`, etc.).
 // Win32 A/W macros collide with Platform API names.
 

@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — ViewportEdit — ViewportEditTests
+// Automated tests for the ViewportEdit module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "ViewportEdit/ViewportEditTests.h"
 #include "ViewportEdit/ViewportEdit.h"
 #include "Undo/Undo.h"
@@ -75,7 +83,6 @@ ViewportEditTestReport RunViewportEditRuntimeTests() {
     (void)undoRuntime->Manager().Undo();
     AddCase(report, "Undo restores", std::abs(entities[0].Position.x - beforeX) < 1e-3f, "restored");
 
-    // Snap
     SnapSettings snapSettings;
     snapSettings.gridEnabled = true;
     snapSettings.gridSize = 1.f;

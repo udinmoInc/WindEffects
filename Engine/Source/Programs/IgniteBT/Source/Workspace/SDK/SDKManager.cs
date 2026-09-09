@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — IgniteBT — SDKManager
+// Source file for the IgniteBT module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 using Serilog;
 using System.Collections.Concurrent;
 
@@ -40,7 +48,6 @@ public class SDKManager
             
             Log.Information("Initializing SDK Manager...");
             
-            // Load configuration
             _configuration.Load();
             
             // Register providers in priority order
@@ -279,7 +286,6 @@ public class SDKManager
             info.ToolPaths = toolsResult.Value ?? new List<string>();
         }
         
-        // Validate
         var validationResult = await _validator.ValidateAsync(provider, info);
         info.IsValid = validationResult.Success;
         info.ValidationErrors = validationResult.ValidationErrors;

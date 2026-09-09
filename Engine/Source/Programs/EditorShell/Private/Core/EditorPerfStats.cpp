@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — EditorShell — EditorPerfStats
+// Internal implementation for the EditorShell module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "Core/Logger.h"

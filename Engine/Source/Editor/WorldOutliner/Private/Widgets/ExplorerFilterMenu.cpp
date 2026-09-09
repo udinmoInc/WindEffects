@@ -1,3 +1,11 @@
+// ==============================================================================
+// WindEffects — WorldOutliner — ExplorerFilterMenu
+// UI widget used by the WorldOutliner module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 #include "Widgets/ExplorerFilterMenu.h"
 
 #include "KindUI/Core/UiMetrics.h"
@@ -157,7 +165,6 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
             }
         }
         
-        // Draw label
         const float textX = item.geometry.x + we::runtime::kindui::UiMetrics::MenuTextIndent();
         const float textY = item.geometry.y + (rowH - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
         context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), ThemeMetric(MetricToken::TextSizeNormal));

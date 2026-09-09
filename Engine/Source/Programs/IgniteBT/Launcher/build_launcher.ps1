@@ -1,3 +1,11 @@
+# ==============================================================================
+# WindEffects — IgniteBT — build_launcher
+# Source file for the IgniteBT module.
+#
+# Copyright (c) 2026 WindEffects. All rights reserved.
+# This file is part of WindEffects Engine and is governed by the
+# WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+# ==============================================================================
 $ErrorActionPreference = "Stop"
 $src = Join-Path $PSScriptRoot "we_probe.c"
 $outDir = Join-Path $PSScriptRoot "..\..\..\..\..\Build\Intermediate\IgniteBT\Launcher"
