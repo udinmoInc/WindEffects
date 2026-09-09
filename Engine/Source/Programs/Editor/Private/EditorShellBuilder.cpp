@@ -287,6 +287,9 @@ EditorShellResult EditorShellBuilder::Build(
 
     DockLayoutBuilder layoutBuilder;
     shellResult.layout = layoutBuilder.Build(context.GetDockManager().GetLayout(), context.GetExtensionRegistry(), uiScale);
+    if (shellResult.layout.root) {
+        shellResult.layout.root->SetContext(widgetContext);
+    }
 
     const auto& panelDescriptors = context.GetDockManager().GetLayout().panels;
     for (auto& [panelId, panel] : shellResult.layout.panels) {

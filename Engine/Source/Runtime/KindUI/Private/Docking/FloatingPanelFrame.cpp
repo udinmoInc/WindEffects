@@ -328,6 +328,7 @@ void FloatingPanelFrame::OnMouseDown(const ::we::runtime::kindui::MouseEvent& ev
     if (m_MinimizeRect.Contains(event.position)) {
         m_Dragging = false;
         m_Resizing = false;
+        m_ActiveEdge = ResizeEdge::None;
         if (m_Minimized) {
             m_Minimized = false;
             Rect bounds = m_RestoreBounds;
@@ -427,14 +428,12 @@ void FloatingPanelFrame::OnMouseMove(const ::we::runtime::kindui::MouseEvent& ev
         return;
     }
 
-    if (m_CloseRect.Contains(event.position)) {
-        m_HoveredControl = 2;
-    } else if (m_MaximizeRect.Contains(event.position)) {
-        m_HoveredControl = 1;
-    } else if (m_MinimizeRect.Contains(event.position)) {
-        m_HoveredControl = 0;
-    } else {
-        m_HoveredControl = -1;
+    const int newControl = m_CloseRect.Contains(event.position) ? 2 :
+                           m_MaximizeRect.Contains(event.position) ? 1 :
+                           m_MinimizeRect.Contains(event.position) ? 0 : -1;
+    if (m_HoveredControl != newControl) {
+        m_HoveredControl = newControl;
+        InvalidatePaint();
     }
 
     if (m_Dock && !m_Minimized) {

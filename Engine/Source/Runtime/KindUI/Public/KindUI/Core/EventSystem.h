@@ -60,6 +60,7 @@ private:
     std::weak_ptr<Widget> m_CapturedWidget;
 #pragma warning(pop)
     OverlayHost* m_PopupHost = nullptr;
+    Point m_LastMousePos{ -1.0f, -1.0f };
     bool m_UsingPointerCursor = false;
     bool m_SuppressSystemCursor = false;
 };

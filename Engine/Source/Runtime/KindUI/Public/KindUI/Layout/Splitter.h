@@ -28,9 +28,9 @@ public:
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
+    void OnHoverLost() override;
     [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
     [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
-    [[nodiscard]] bool IsVisible() const override;
 
     void SetFirstChild(const std::shared_ptr<Widget>& child);
     void SetSecondChild(const std::shared_ptr<Widget>& child);

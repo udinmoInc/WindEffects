@@ -468,16 +468,9 @@ void PlaceActorsPanel::OnMouseMove(const MouseEvent& event) {
     bool anyHoverChanged = false;
     for (auto& entry : m_Layout) {
         const bool hovered = entry.geometry.Contains(event.position);
-        if (PlaceActorsConfig::Get().enableAnimations) {
-            const float prev = entry.hoverAnim;
-            entry.hoverAnim = we::runtime::kindui::Animator::Damp(entry.hoverAnim, hovered ? 1.0f : 0.0f, 14.0f);
-            if (std::abs(entry.hoverAnim - prev) > 0.001f) anyHoverChanged = true;
-        } else {
-            const float target = hovered ? 1.0f : 0.0f;
-            if (entry.hoverAnim != target) {
-                entry.hoverAnim = target;
-                anyHoverChanged = true;
-            }
+        const float target = hovered ? 1.0f : 0.0f;
+        if (entry.hoverAnim != target) {
+            anyHoverChanged = true;
         }
         if (hovered && entry.type == LayoutEntry::Type::Item) {
             if (const PlaceActorsItemData* item = PlaceActorsCatalog::Get().FindItem(entry.toolId)) {

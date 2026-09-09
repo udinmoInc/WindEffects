@@ -157,6 +157,7 @@ void Editor::InitializeEngine() {
     }
 
     m_UIEventSystem = std::make_shared<UI::EventSystem>();
+    ::we::programs::editor::EditorWorkspaceController::Get().SetEventSystem(m_UIEventSystem.get());
 
     if (const char* vsyncEnv = std::getenv("WE_VSYNC"); vsyncEnv != nullptr) {
         we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(vsyncEnv[0] != '\0' && vsyncEnv[0] != '0');
