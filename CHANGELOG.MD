@@ -1,45 +1,45 @@
-> All notable changes to this project are documented in this file. This changelog serves as a comprehensive record of the evolution of the project, documenting new features, improvements, bug fixes, and other changes that have been made over time. The changelog is maintained to help users understand what has changed between versions, to assist with upgrading between versions, and to provide transparency about the development process. Each entry includes detailed information about the changes made, the rationale behind those changes, and any migration considerations that users should be aware of.
+# Changelog
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), which provides a standardized structure for changelogs that makes them easy to read and parse both by humans and by automated tools. This format organizes changes into categories such as Added, Changed, Deprecated, Removed, Fixed, and Security, making it easy to find specific types of changes. The changelog follows semantic versioning principles, with version numbers indicating the significance of changes: major versions for incompatible changes, minor versions for backwards-compatible additions, and patch versions for backwards-compatible bug fixes.
+All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and follows semantic versioning.
 
 ---
 
-## [1.0.0] - 2026-07-05 🎉
+## [1.0.0] - 2026-07-05
 
-### ✨ Development Milestone
+### Development Milestone
 
 This entry documents the state of the project as of 2026-07-05. WindEffects Engine is still under active development and has no official or public releases yet.
 
-### ➕ Added
+### Added
 
 | Feature | Description |
 |---------|-------------|
-| 🚀 **Benchmark Command** | Comprehensive benchmark command has been added to provide performance measurement and analysis capabilities. This command supports automated testing across multiple scenarios including cold builds (where no cache exists), warm builds (where cache is available), no-op builds (where no changes exist), target-specific builds, unity builds, and parallelism variations. The benchmark command provides detailed insights into performance characteristics, helping identify bottlenecks and optimization opportunities. The automated scenario testing ensures consistent and reproducible performance measurements across different configurations and environments. |
-| 📊 **Multi-Format Reports** | Multi-format benchmark reports have been added to support different analysis workflows and integration with various tools. The benchmark system now generates reports in multiple formats including JSON for programmatic analysis, CSV for spreadsheet import, Markdown for documentation, and HTML for web presentation. These reports provide comprehensive data about performance including timing information, resource utilization, and cache effectiveness. The variety of output formats ensures that benchmark data can be easily integrated into existing analysis pipelines and workflows. |
-| 🔍 **Consolidated Diagnostics** | Consolidated diagnostics command has been added to provide comprehensive health checking across all major subsystems of the system. The diagnostics command now performs health checks for cache integrity and effectiveness, database consistency and performance, compiler pool health and utilization, SDK availability and configuration, and daemon operational status. This consolidation provides a single point of entry for system health assessment, making it easier to identify and resolve issues before they cause failures. The diagnostics are designed to be actionable, providing clear guidance on how to resolve any detected issues. |
+| **Benchmark Command** | Performance measurement and analysis across scenarios: cold builds, warm builds, no-op builds, target-specific builds, unity builds, and parallelism variations. Automated scenario testing for consistent, reproducible measurements. |
+| **Multi-Format Reports** | Benchmark reports in JSON (programmatic analysis), CSV (spreadsheet import), Markdown (documentation), and HTML (web presentation). Includes timing, resource utilization, and cache effectiveness data. |
+| **Consolidated Diagnostics** | Health checks for cache integrity/effectiveness, database consistency/performance, compiler pool health/utilization, SDK availability/configuration, and daemon operational status. Single entry point for system health assessment with actionable guidance. |
 
-### 🔄 Changed
+### Changed
 
 | Change | Description |
 |--------|-------------|
-| 🏷️ **Version Alignment** | The version has been aligned to **1.0.0** across the assembly, CLI, and documentation to establish a consistent version identity for the production release. This alignment ensures that all components of the system report the same version number, reducing confusion and making it easier to track which version is in use. The version alignment applies to the assembly version in the compiled binaries, the version reported by the CLI, and the version referenced in all documentation. This consistency is important for production systems where version tracking and compatibility are critical. |
-| 🗑️ **Dependency Removal** | The unused external command-line parsing dependency has been removed, with the hand-rolled CLI parser retained as the primary command-line parsing implementation. This removal reduces external dependencies and eliminates potential compatibility issues with external libraries. The hand-rolled parser provides all necessary functionality for command-line parsing and argument handling, and its retention ensures that the system remains self-contained and does not rely on external components that may introduce version conflicts or other dependency management issues. This change simplifies the dependency graph and reduces the surface area for potential bugs. |
-| 📈 **Performance Tracking** | The benchmark suite now writes `latest.md` for trend comparison across runs, enabling performance tracking over time. This feature automatically generates a summary of the most recent benchmark run and stores it in a standardized markdown format that can be easily compared with previous runs. The trend comparison capability helps identify performance regressions or improvements over time, providing valuable feedback for optimization efforts and ensuring that performance characteristics remain within acceptable ranges as the codebase evolves. |
+| **Version Alignment** | Version aligned to 1.0.0 across assembly, CLI, and documentation for consistent version identity. Applies to compiled binaries, CLI version, and all documentation. |
+| **Dependency Removal** | Removed unused external command-line parsing dependency; retained hand-rolled CLI parser. Reduces external dependencies and compatibility issues. |
+| **Performance Tracking** | Benchmark suite writes `latest.md` for trend comparison across runs, enabling regression/improvement detection over time. |
 
-### ➖ Removed
+### Removed
 
 | Removed Component | Reason |
 |-------------------|--------|
-| 🔀 **Duplicate Distributed Interfaces** | Duplicate distributed build interfaces have been removed, with canonical stubs remaining in the appropriate directory. This cleanup eliminates redundant code that was causing confusion and maintenance burden. The canonical stubs are retained to preserve the interface contracts for distributed builds, ensuring that future distributed build implementations can integrate cleanly with the existing architecture. This removal simplifies the codebase and reduces the potential for bugs caused by inconsistent implementations of similar functionality. |
-| ⚙️ **Duplicate Build Tuning** | Duplicate build tuning components have been removed, with the scheduler implementation retained. The duplicate tuning component was a redundant implementation of scheduler tuning logic that was not being used in the active code path. The scheduler implementation that remains in use provides all necessary functionality for build scheduling and optimization. This removal eliminates dead code and reduces maintenance burden without affecting functionality. |
-| 🤖 **Compiler Daemon Stack** | The unused compiler daemon stack has been removed as it was not being used in the production build pipeline. The compiler daemon was an experimental feature for distributed compilation that was superseded by other approaches. Removing this unused code simplifies the codebase and eliminates potential confusion about which compilation coordination mechanisms are in use. The removal does not affect any currently used functionality. |
-| 🗄️ **Legacy Components** | Legacy JSON database, polling task scheduler, and toolchain SDK detector have been removed as they represented outdated approaches that have been replaced with more modern and efficient implementations. The JSON database has been replaced with a SQLite-based database that provides better performance and reliability. The polling task scheduler has been replaced with an event-driven scheduler that provides more efficient task coordination. The toolchain SDK detector has been replaced with a more robust SDK detection system that provides better coverage and accuracy. These removals eliminate legacy code and ensure that the system uses only current, well-maintained implementations. |
-| 🛠️ **Unused Helpers** | Unused helper classes including compiler include parser, unity file generator, link optimizer, and memory-mapped hasher have been removed. These helpers were implemented for specific optimization strategies that were either not used in the final implementation or were superseded by better approaches. Removing these unused helpers reduces code complexity and maintenance burden without affecting any currently used functionality. The removal also eliminates potential bugs that could be introduced by maintaining unused code. |
-| 💾 **Memory Utilities** | Unused memory utilities including arena allocator, object pool, string intern pool, and async log sink have been removed. These utilities were implemented for memory optimization strategies that were not ultimately used in the production code path. While these utilities could be useful in certain scenarios, they were not providing value in the current implementation and their removal simplifies the codebase. The memory management approach used in the production system provides adequate performance without the complexity of these additional utilities. |
-| 🔗 **Dead Orchestrator Wiring** | Dead orchestrator wiring including persistent graph cache and header impact analyzer has been removed as these components were not consumed on the hot path of the system. The persistent graph cache was intended to cache dependency graphs between builds, but the current caching strategy at the artifact level provides better performance. The header impact analyzer was intended to analyze header inclusion patterns to optimize precompiled header usage, but this analysis is not currently used in the build process. Removing these components eliminates code that was not providing value and simplifies the orchestrator logic. |
+| **Duplicate Distributed Interfaces** | Canonical stubs retained for distributed build interface contracts; redundant implementations removed. |
+| **Duplicate Build Tuning** | Scheduler implementation retained; duplicate tuning component removed. |
+| **Compiler Daemon Stack** | Unused experimental distributed compilation feature removed. |
+| **Legacy Components** | JSON database replaced with SQLite; polling scheduler replaced with event-driven scheduler; legacy SDK detector replaced with robust detection system. |
+| **Unused Helpers** | Compiler include parser, unity file generator, link optimizer, memory-mapped hasher removed (unused or superseded). |
+| **Memory Utilities** | Arena allocator, object pool, string intern pool, async log sink removed (not used in production code path). |
+| **Dead Orchestrator Wiring** | Persistent graph cache and header impact analyzer removed (not consumed on hot path; artifact-level caching and current PCH strategy are more effective). |
 
-### 🐛 Fixed
+### Fixed
 
 | Fix | Description |
 |-----|-------------|
-| 🔧 **Diagnostics Compile Error** | The diagnostics command compile error caused by undefined diagnostic layout has been fixed. This error prevented the diagnostics command from compiling, which blocked users from running diagnostics. The fix ensures that the diagnostic layout is properly defined and accessible to the diagnostics command, restoring full diagnostic functionality. Additionally, duplicate diagnostic sections have been removed to ensure that the diagnostics command produces clean, non-redundant output. These fixes improve the reliability and usability of the diagnostic system. |
+| **Diagnostics Compile Error** | Fixed undefined diagnostic layout preventing diagnostics command compilation. Removed duplicate diagnostic sections for clean output. |

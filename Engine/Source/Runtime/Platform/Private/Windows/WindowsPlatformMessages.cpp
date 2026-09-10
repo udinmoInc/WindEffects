@@ -51,11 +51,27 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         return 0;
 
     case WM_KILLFOCUS:
-    case WM_CAPTURECHANGED:
-    case WM_CANCELMODE:
+        // Only real focus loss — do NOT treat WM_CAPTURECHANGED as unfocus.
+        // Capture changes on every click/drag and was clearing UI input mid-click,
+        // then after alt-tab the editor looked permanently dead.
         if (window) {
             PushEvent(WindowFocusEvent{window->id, false});
         }
+        m_Keys.fill(false);
+        m_MouseButtons.fill(false);
+        if (GetCapture() == hwnd) {
+            ReleaseCapture();
+        }
+        ClipCursor(nullptr);
+        if (window && window->relativeMouse) {
+            window->relativeMouse = false;
+            SetCursorVisible(true);
+        }
+        return 0;
+
+    case WM_CAPTURECHANGED:
+    case WM_CANCELMODE:
+        // Drop transient pointer capture / keys without faking a focus change.
         m_Keys.fill(false);
         m_MouseButtons.fill(false);
         if (GetCapture() == hwnd) {

@@ -14,6 +14,7 @@
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "Platform/Platform.h"
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -85,6 +86,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     auto captured = m_CapturedWidget.lock();
     if (captured && !IsWidgetHierarchyValidForInput(captured)) {
+        captured->OnCaptureLost();
         m_CapturedWidget.reset();
         captured = nullptr;
     }
@@ -103,6 +105,9 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     m_LastMousePos = event.position;
 
     std::shared_ptr<Widget> hitWidget = HitTest(m_Root, event.position);
+    if (hitWidget && !IsWidgetHierarchyValidForInput(hitWidget)) {
+        hitWidget = nullptr;
+    }
     std::shared_ptr<Widget> oldHovered = m_HoveredWidget.lock();
 
     if (hitWidget != oldHovered) {
@@ -155,10 +160,15 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     }
 
     if (event.type == MouseEventType::MouseMove && !m_SuppressSystemCursor) {
-        UpdateCursorForWidget(hitWidget, event.position);
+        if (!hitWidget || IsWidgetHierarchyValidForInput(hitWidget)) {
+            UpdateCursorForWidget(hitWidget, event.position);
+        }
     }
 
     std::shared_ptr<Widget> targetWidget = captured ? captured : hitWidget;
+    if (targetWidget && !IsWidgetHierarchyValidForInput(targetWidget)) {
+        targetWidget = nullptr;
+    }
 
     UiInputDebug::OnMouseEvent(
         event,
@@ -170,7 +180,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
 
     if (targetWidget) {
         if (event.type == MouseEventType::MouseDown) {
-            m_CapturedWidget.reset();
+            ClearCapture();
             targetWidget = hitWidget;
 
             if (m_PopupHost) {
@@ -202,13 +212,13 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
         }
     } else {
         if (event.type == MouseEventType::MouseDown) {
-            m_CapturedWidget.reset();
+            ClearCapture();
             if (m_PopupHost) {
                 m_PopupHost->CloseTransientPopups();
             }
             SetFocusedWidget(nullptr);
         } else if (event.type == MouseEventType::MouseUp) {
-            m_CapturedWidget.reset();
+            ClearCapture();
         } else if (event.type == MouseEventType::MouseWheel) {
             DispatchMouseWheel(m_Root, event);
         }
@@ -263,6 +273,19 @@ void EventSystem::ClearHover() {
         we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
         m_UsingPointerCursor = false;
     }
+}
+
+void EventSystem::ClearCapture() {
+    if (auto captured = m_CapturedWidget.lock()) {
+        captured->OnCaptureLost();
+    }
+    m_CapturedWidget.reset();
+}
+
+void EventSystem::ClearAllInputState() {
+    ClearCapture();
+    SetFocusedWidget(nullptr);
+    ClearHover();
 }
 
 void EventSystem::ProcessKeyEvent(const KeyEvent& event) {

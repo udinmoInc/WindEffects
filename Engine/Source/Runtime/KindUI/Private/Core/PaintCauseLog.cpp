@@ -78,7 +78,15 @@ PaintCauseLog& PaintCauseLog::Get() {
 bool PaintCauseLog::IsEnabled() {
     PaintCauseLogState& s = State();
     if (!s.enabledChecked) {
-        s.enabled = !EnvOff("WE_PAINT_CAUSE");
+        // Default OFF — symbol resolve + ring drain under mutex can stall the UI
+        // when every hover/anim invalidation is recorded. Opt in with WE_PAINT_CAUSE=1,
+        // or automatically when WE_SCREEN_DEBUG is on for the live debugger.
+        const char* paint = std::getenv("WE_PAINT_CAUSE");
+        const char* screen = std::getenv("WE_SCREEN_DEBUG");
+        const bool paintOn = paint != nullptr && paint[0] == '1';
+        const bool paintExplicitOff = EnvOff("WE_PAINT_CAUSE");
+        const bool screenOn = screen != nullptr && screen[0] != '\0' && screen[0] != '0';
+        s.enabled = paintOn || (screenOn && !paintExplicitOff);
         s.enabledChecked = true;
     }
     return s.enabled;

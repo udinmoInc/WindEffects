@@ -66,7 +66,13 @@ void Editor::UpdateUiScaleFromWindow() {
 }
 
 void Editor::EnsureVisibleSwapchain() {
+    if (!m_Renderer) {
+        return;
+    }
     auto& platform = we::platform::Platform::Get();
+    if (platform.IsWindowMinimized(m_Window)) {
+        return;
+    }
     auto pixelSize = platform.GetWindowPixelSize(m_Window);
     if (pixelSize.x == 0 || pixelSize.y == 0) {
         const auto logical = platform.GetWindowSize(m_Window);
@@ -76,16 +82,27 @@ void Editor::EnsureVisibleSwapchain() {
     const int width = static_cast<int>(pixelSize.x);
     const int height = static_cast<int>(pixelSize.y);
 
-    HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
-        std::to_string(height) + ")...");
-    if (width > 0 && height > 0) {
-        if (width != static_cast<int>(m_Renderer->GetSwapchainWidth()) ||
-            height != static_cast<int>(m_Renderer->GetSwapchainHeight())) {
-            m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-            HE_INFO("[Render] Swapchain recreated for visible window.");
-        }
-    } else {
-        HE_ERROR("[Render] Window still reports zero size  UI layout will be empty until resized.");
+    if (width <= 0 || height <= 0) {
+        HE_ERROR("[Render] Window still reports zero size — UI layout empty until resized.");
+        return;
+    }
+
+    // Always recreate on restore: size may match the stale extent while the
+    // Vulkan swapchain is still out-of-date after minimize.
+    const bool sizeChanged =
+        width != static_cast<int>(m_Renderer->GetSwapchainWidth()) ||
+        height != static_cast<int>(m_Renderer->GetSwapchainHeight());
+    const bool force = m_ForceSwapchainRecreate;
+    m_ForceSwapchainRecreate = false;
+    if (sizeChanged || force) {
+        HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
+            std::to_string(height) + ")...");
+        m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        HE_INFO("[Render] Swapchain recreated for visible window.");
+        m_HasRenderedScene = false;
+        m_LastLayoutSwapchainW = 0;
+        m_LastLayoutSwapchainH = 0;
+        we::runtime::kindui::UIRepaintGate::Request();
     }
 }
 

@@ -202,12 +202,52 @@ RHIResult<void> VulkanDevice::UpdateTexture(RHITextureHandle handle, const Textu
 
 IRHICommandList* VulkanDevice::BeginFrame() {
     if (!m_Valid || m_FrameActive) {
+        if (m_FrameActive) {
+            WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                "VulkanDevice::BeginFrame skipped: previous frame still active (slot="
+                + std::to_string(m_FrameSlot) + ").");
+        }
         return nullptr;
     }
 
-    vkWaitForFences(m_Device, 1, &m_InFlight[m_FrameSlot], VK_TRUE, UINT64_MAX);
-    vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
+    // Finite wait so a GPU hang surfaces in the log instead of freezing forever with no errors.
+    constexpr uint64_t kFenceTimeoutNs = 2'000'000'000ull; // 2 seconds
+    VkResult waitResult = vkWaitForFences(
+        m_Device, 1, &m_InFlight[m_FrameSlot], VK_TRUE, kFenceTimeoutNs);
+    if (waitResult == VK_TIMEOUT) {
+        WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+            "vkWaitForFences timed out after 2s (slot=" + std::to_string(m_FrameSlot)
+            + "). Recovering with vkDeviceWaitIdle — UI may have looked stuck.");
+        // Never reset an unsignaled in-flight fence: that leaves the slot permanently
+        // unsignaled (no submit owns it), so every later BeginFrame times out forever.
+        vkDeviceWaitIdle(m_Device);
+        if (vkGetFenceStatus(m_Device, m_InFlight[m_FrameSlot]) != VK_SUCCESS) {
+            WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                "Fence still unsignaled after WaitIdle; recreating signaled fence for slot "
+                + std::to_string(m_FrameSlot) + ".");
+            vkDestroyFence(m_Device, m_InFlight[m_FrameSlot], nullptr);
+            m_InFlight[m_FrameSlot] = VK_NULL_HANDLE;
+            VkFenceCreateInfo fenceInfo{};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+            if (vkCreateFence(m_Device, &fenceInfo, nullptr, &m_InFlight[m_FrameSlot]) != VK_SUCCESS) {
+                WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                    "Failed to recreate in-flight fence; skipping frame.");
+                return nullptr;
+            }
+            if (m_Swapchain) {
+                m_Swapchain->SetFrameSync(m_ImageAvailable, m_RenderFinished, m_InFlight);
+            }
+        }
+    } else if (waitResult != VK_SUCCESS) {
+        WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+            "vkWaitForFences failed with VkResult=" + std::to_string(static_cast<int>(waitResult)));
+        return nullptr;
+    }
 
+    // Acquire BEFORE resetting the fence. If acquire fails (minimize / out-of-date),
+    // the fence must stay signaled — otherwise the next BeginFrame waits forever on
+    // an unsignaled fence with no submit to signal it (classic minimize→restore stuck).
     if (m_Swapchain) {
         m_Swapchain->SetFrameSlot(m_FrameSlot);
         auto acquire = m_Swapchain->AcquireNextImageForSlot(m_FrameSlot);
@@ -217,10 +257,14 @@ IRHICommandList* VulkanDevice::BeginFrame() {
                 acquire = m_Swapchain->AcquireNextImageForSlot(m_FrameSlot);
             }
             if (!acquire) {
+                WE_LOG_WARN(we::LogCategory::Vulkan.data(),
+                    "AcquireNextImage failed; skipping frame.");
                 return nullptr;
             }
         }
     }
+
+    vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
 
     VkCommandBuffer cmd = m_CommandBuffers[m_FrameSlot];
     vkResetCommandBuffer(cmd, 0);

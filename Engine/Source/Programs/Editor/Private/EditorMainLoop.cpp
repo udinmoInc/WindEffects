@@ -9,6 +9,8 @@
 #include "Editor.h"
 #include "Core/FrameCounter.h"
 #include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentSystem.h"
@@ -26,9 +28,16 @@
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "KindUI/Profiling/ScreenRecorder.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+
+#include <chrono>
+#include <sstream>
+#include <string>
+#include <variant>
 #include "WindEffects/Editor/UI/Widgets/RenderInvestigationModal.h"
 
+#include <chrono>
 #include <cstdlib>
+#include <sstream>
 #include <variant>
 
 #include "Platform/UndefWin32Macros.h"
@@ -136,8 +145,19 @@ void Editor::MainLoop() {
                     }
                 }
             } else if (const auto* minEv = std::get_if<we::platform::WindowMinimizeEvent>(&event)) {
-                if (minEv->window == m_Window && minEv->minimized) {
-                    m_UIEventSystem->ClearAllInputState();
+                if (minEv->window == m_Window) {
+                    if (minEv->minimized) {
+                        if (m_UIEventSystem) {
+                            m_UIEventSystem->ClearAllInputState();
+                        }
+                    } else {
+                        // Restore: force swapchain rebuild even if pixel size matches stale extent.
+                        m_ForceSwapchainRecreate = true;
+                        EnsureVisibleSwapchain();
+                        if (m_UIEventSystem) {
+                            m_UIEventSystem->ClearAllInputState();
+                        }
+                    }
                 }
                 requestUiLayout = true;
                 UpdateUiScaleFromWindow();
@@ -145,6 +165,9 @@ void Editor::MainLoop() {
             } else if (std::holds_alternative<we::platform::WindowResizeEvent>(event)
                 || std::holds_alternative<we::platform::WindowDpiEvent>(event)
                 || std::holds_alternative<we::platform::WindowMaximizeEvent>(event)) {
+                if (!platform.IsWindowMinimized(m_Window)) {
+                    EnsureVisibleSwapchain();
+                }
                 requestUiLayout = true;
                 UpdateUiScaleFromWindow();
                 SyncViewportFramebufferFromLayout();
@@ -154,9 +177,23 @@ void Editor::MainLoop() {
                     requestUiPaint = true;
                 }
             } else if (const auto* focus = std::get_if<we::platform::WindowFocusEvent>(&event)) {
-                // Alt-tab / focus steal: release hover, capture, and focus explicitly.
-                if (focus->window == m_Window && !focus->focused) {
-                    m_UIEventSystem->ClearAllInputState();
+                if (focus->window != m_Window) {
+                    // ignore other windows
+                } else if (!focus->focused) {
+                    // Alt-tab / other app: release hover/capture without killing render.
+                    if (m_UIEventSystem) {
+                        m_UIEventSystem->ClearAllInputState();
+                    }
+                    HE_INFO("[Loop] focus=lost");
+                } else {
+                    // Coming back from another app: rebuild swapchain + clear stale input.
+                    m_ForceSwapchainRecreate = true;
+                    EnsureVisibleSwapchain();
+                    if (m_UIEventSystem) {
+                        m_UIEventSystem->ClearAllInputState();
+                    }
+                    requestUiLayout = true;
+                    HE_INFO("[Loop] focus=gained — swapchain refresh");
                 }
             } else if (const auto* move = std::get_if<we::platform::MouseMoveEvent>(&event)) {
                 if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
@@ -314,9 +351,16 @@ void Editor::MainLoop() {
 
         const uint64_t cameraHash = HashCameraUniform(cameraUBO);
 
-
-
-        if (m_Renderer && m_Renderer->BeginFrame()) {
+        static uint32_t s_BeginFrameFailStreak = 0;
+        const bool windowMinimized = platform.IsWindowMinimized(m_Window);
+        bool beganFrame = false;
+        if (windowMinimized) {
+            // Skip GPU work while minimized — acquire/rebuild would fail on 0x0 and
+            // previously could leave the in-flight fence unsignaled.
+            s_BeginFrameFailStreak = 0;
+        } else if (m_Renderer && m_Renderer->BeginFrame()) {
+            beganFrame = true;
+            s_BeginFrameFailStreak = 0;
             m_Renderer->UploadCameraUniform(cameraUBO);
             {
                 auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
@@ -437,6 +481,14 @@ void Editor::MainLoop() {
             }
         } else if (!m_Renderer) {
             HE_ERROR("[Render] Renderer is null in main loop.");
+        } else {
+            ++s_BeginFrameFailStreak;
+            // Log first failure and every 60 thereafter so silent stalls are visible.
+            if (s_BeginFrameFailStreak == 1 || (s_BeginFrameFailStreak % 60) == 0) {
+                WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                    "[Render] BeginFrame failed (streak=" + std::to_string(s_BeginFrameFailStreak)
+                    + ") — frame skipped, UI may look stuck.");
+            }
         }
 
         {
@@ -452,14 +504,92 @@ void Editor::MainLoop() {
                 stats.alphaIndices);
             we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
             we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
-            ::we::runtime::kindui::ScreenRecorder::Get().RecordFrame();
+            {
+                const auto& perf = ::we::editor::services::EditorPerfStats::Get().Last();
+                we::runtime::kindui::ScreenRecorder::FrameMetrics metrics{};
+                metrics.frameMs = perf.frameMs;
+                metrics.tickMs = perf.tickMs;
+                metrics.layoutMs = perf.layoutMs;
+                metrics.uiMs = perf.uiBuildMs;
+                metrics.sceneMs = perf.sceneMs;
+                metrics.presentMs = perf.presentMs;
+                metrics.fps = ::we::editor::services::EditorPerfStats::Get().AverageFps();
+                metrics.uiVertices = perf.uiVertices;
+                metrics.uiBatches = perf.uiBatches;
+                metrics.uiIndices = perf.uiOpaqueIndices + perf.uiAlphaIndices;
+                ::we::runtime::kindui::ScreenRecorder::Get().RecordFrame(metrics);
+            }
+        }
+
+        // One root pulse for the whole frame — do not sprinkle loggers elsewhere.
+        // Logs every state change immediately, and a full dump ~1/sec otherwise.
+        {
+            const auto& perf = ::we::editor::services::EditorPerfStats::Get().Last();
+            const uint32_t sw = m_Renderer ? m_Renderer->GetSwapchainWidth() : 0;
+            const uint32_t sh = m_Renderer ? m_Renderer->GetSwapchainHeight() : 0;
+            const uint64_t paints = we::runtime::kindui::UIRepaintGate::PaintRebuildCount();
+            const uint64_t skips = we::runtime::kindui::UIRepaintGate::IdleSkipCount();
+            const size_t eventCount = frameEvents.size();
+
+            static bool s_PrevMin = false;
+            static bool s_PrevBegan = true;
+            static bool s_PrevFocused = true;
+            static uint32_t s_PrevFail = 0;
+            static double s_LastPulseMs = 0.0;
+            static uint64_t s_LastPaints = 0;
+            static uint64_t s_LastSkips = 0;
+            using clock = std::chrono::steady_clock;
+            const double nowMs = std::chrono::duration<double, std::milli>(
+                clock::now().time_since_epoch()).count();
+            const bool windowFocused = platform.IsWindowFocused(m_Window);
+
+            const bool changed =
+                windowMinimized != s_PrevMin
+                || beganFrame != s_PrevBegan
+                || windowFocused != s_PrevFocused
+                || s_BeginFrameFailStreak != s_PrevFail;
+            const bool due = (nowMs - s_LastPulseMs) >= 1000.0;
+            if (changed || due) {
+                const char* renderState = windowMinimized
+                    ? "minimized"
+                    : (beganFrame ? "presented" : (m_Renderer ? "beginFrame-FAIL" : "no-renderer"));
+                std::ostringstream line;
+                line << "[Loop] state=" << renderState
+                     << " min=" << (windowMinimized ? 1 : 0)
+                     << " focus=" << (windowFocused ? 1 : 0)
+                     << " begin=" << (beganFrame ? 1 : 0)
+                     << " failStreak=" << s_BeginFrameFailStreak
+                     << " events=" << eventCount
+                     << " swap=" << sw << "x" << sh
+                     << " fps=" << ::we::editor::services::EditorPerfStats::Get().AverageFps()
+                     << " frameMs=" << perf.frameMs
+                     << " tick=" << perf.tickMs
+                     << " layout=" << perf.layoutMs
+                     << " ui=" << perf.uiBuildMs
+                     << " scene=" << perf.sceneMs
+                     << " present=" << perf.presentMs
+                     << " verts=" << perf.uiVertices
+                     << " batches=" << perf.uiBatches
+                     << " paints+" << (paints - s_LastPaints)
+                     << " skips+" << (skips - s_LastSkips)
+                     << " log=" << we::runtime::core::Logger::GetActiveLogFilePath();
+                HE_INFO(line.str());
+                ::we::runtime::kindui::ScreenRecorder::Get().RecordEvent(line.str());
+                we::runtime::core::Logger::Flush();
+                s_PrevMin = windowMinimized;
+                s_PrevBegan = beganFrame;
+                s_PrevFocused = windowFocused;
+                s_PrevFail = s_BeginFrameFailStreak;
+                s_LastPulseMs = nowMs;
+                s_LastPaints = paints;
+                s_LastSkips = skips;
+            }
         }
 
         if (we::runtime::kindui::UiInputLatencyAudit::IsEnabled()) {
             ++m_LatencyAuditFrameCounter;
             if (m_LatencyAuditFrameCounter % 300 == 0) {
-    we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
-    ::we::runtime::kindui::ScreenRecorder::Get().Shutdown();
+                we::runtime::kindui::UiInputLatencyAudit::Get().FlushPendingReport();
             }
         }
     }

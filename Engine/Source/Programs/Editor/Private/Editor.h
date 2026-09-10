@@ -114,5 +114,6 @@ private:
 
     uint32_t m_LastLayoutSwapchainW = 0;
     uint32_t m_LastLayoutSwapchainH = 0;
+    bool m_ForceSwapchainRecreate = false;
 };
 } // namespace we::programs::editor

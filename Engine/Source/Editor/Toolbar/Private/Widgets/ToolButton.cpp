@@ -14,6 +14,7 @@
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Profiling/UiInputDebug.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Tokens/DesignSystem.h"
@@ -601,18 +602,27 @@ void ToolButton::Paint(PaintContext& context) {
 
 void ToolButton::OnMouseDown(const MouseEvent& event) {
     if (event.button == MouseButton::Left) {
-        m_Pressed = true;
+        SetPressed(true);
         m_PressAnim = 1.0f;
     }
 }
 
 void ToolButton::OnMouseUp(const MouseEvent& event) {
     if (event.button == MouseButton::Left && m_Pressed) {
-        m_Pressed = false;
+        SetPressed(false);
         if (m_Geometry.Contains(event.position) && m_OnClicked) {
+            std::string label = !m_Tooltip.empty() ? m_Tooltip
+                : (!m_Label.empty() ? m_Label
+                    : (!GetId().empty() ? GetId() : "ToolButton"));
+            we::runtime::kindui::UiInputDebug::OnClickInvoked("ToolButton", label);
             m_OnClicked();
         }
     }
+}
+
+void ToolButton::OnCaptureLost() {
+    SetPressed(false);
+    m_PressAnim = 0.0f;
 }
 
 void ToolButton::OnMouseWheel(const MouseEvent& event) {
