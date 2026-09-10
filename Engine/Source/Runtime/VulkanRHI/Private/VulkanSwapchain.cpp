@@ -115,15 +115,34 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
         return RHIError::Make(RHIErrorCode::NotInitialized, "Swapchain surface missing.", "Rebuild");
     }
 
-    vkDeviceWaitIdle(m_Device->GetVkDevice());
-    CleanupImages();
-    if (m_Swapchain) {
-        vkDestroySwapchainKHR(m_Device->GetVkDevice(), m_Swapchain, nullptr);
-        m_Swapchain = VK_NULL_HANDLE;
-    }
-
+    // Query extent BEFORE tearing down. Minimize is 0x0 — destroying first left
+    // m_Swapchain null with a stale non-zero m_Extent, so restore never recreated.
     VkSurfaceCapabilitiesKHR capabilities{};
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Device->GetVkPhysicalDevice(), m_Surface, &capabilities);
+
+    Extent2D extent{};
+    if (m_Desc.windowId != we::platform::WindowId::Invalid) {
+        const auto pixelSize = we::platform::Platform::Get().GetWindowPixelSize(m_Desc.windowId);
+        extent.width = pixelSize.x;
+        extent.height = pixelSize.y;
+    }
+    if (extent.width == 0 || extent.height == 0) {
+        extent.width = capabilities.currentExtent.width;
+        extent.height = capabilities.currentExtent.height;
+    }
+    if (capabilities.currentExtent.width != UINT32_MAX) {
+        extent.width = capabilities.currentExtent.width;
+        extent.height = capabilities.currentExtent.height;
+    } else {
+        extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        extent.height = std::clamp(extent.height, capabilities.minImageExtent.height,
+            capabilities.maxImageExtent.height);
+    }
+
+    if (extent.width == 0 || extent.height == 0) {
+        m_NeedsRebuild = true;
+        return RHIError::Make(RHIErrorCode::OutOfDate, "Swapchain extent is zero (minimized).", "Rebuild");
+    }
 
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_Device->GetVkPhysicalDevice(), m_Surface, &formatCount, nullptr);
@@ -166,27 +185,11 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
         }
     }
 
-    Extent2D extent{};
-    if (m_Desc.windowId != we::platform::WindowId::Invalid) {
-        const auto pixelSize = we::platform::Platform::Get().GetWindowPixelSize(m_Desc.windowId);
-        extent.width = pixelSize.x;
-        extent.height = pixelSize.y;
-    }
-    if (extent.width == 0 || extent.height == 0) {
-        extent.width = capabilities.currentExtent.width;
-        extent.height = capabilities.currentExtent.height;
-    }
-    if (capabilities.currentExtent.width != UINT32_MAX) {
-        extent.width = capabilities.currentExtent.width;
-        extent.height = capabilities.currentExtent.height;
-    } else {
-        extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        extent.height = std::clamp(extent.height, capabilities.minImageExtent.height,
-            capabilities.maxImageExtent.height);
-    }
-
-    if (extent.width == 0 || extent.height == 0) {
-        return RHIError::Make(RHIErrorCode::OutOfDate, "Swapchain extent is zero (minimized).", "Rebuild");
+    vkDeviceWaitIdle(m_Device->GetVkDevice());
+    CleanupImages();
+    if (m_Swapchain) {
+        vkDestroySwapchainKHR(m_Device->GetVkDevice(), m_Swapchain, nullptr);
+        m_Swapchain = VK_NULL_HANDLE;
     }
 
     uint32_t imageCount = capabilities.minImageCount + 1;
@@ -273,14 +276,20 @@ RHIResult<uint32_t> VulkanSwapchain::AcquireNextImageForSlot(uint32_t frameSlot)
 
     const uint32_t slot = frameSlot % static_cast<uint32_t>(m_ImageAvailable->size());
     uint32_t imageIndex = 0;
+    // Finite timeout: another fullscreen/app can starve the GPU; never block forever.
+    constexpr uint64_t kAcquireTimeoutNs = 1'000'000'000ull; // 1 second
     const VkResult result = vkAcquireNextImageKHR(
         m_Device->GetVkDevice(),
         m_Swapchain,
-        UINT64_MAX,
+        kAcquireTimeoutNs,
         (*m_ImageAvailable)[slot],
         VK_NULL_HANDLE,
         &imageIndex);
 
+    if (result == VK_TIMEOUT) {
+        m_NeedsRebuild = true;
+        return RHIError::Make(RHIErrorCode::BackendFailure, "vkAcquireNextImageKHR timed out.", "AcquireNextImage");
+    }
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         m_NeedsRebuild = true;
         (void)Rebuild();

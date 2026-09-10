@@ -279,6 +279,11 @@ std::shared_ptr<Toolbar> ToolbarBuilder::Build() {
         if (spec.configure) {
             spec.configure(button);
         }
+        if (!spec.tooltip.empty() && button->GetId().empty()) {
+            button->SetId(spec.tooltip);
+        } else if (!spec.label.empty() && button->GetId().empty()) {
+            button->SetId(spec.label);
+        }
         toolbar->AddWidget(button, spec.alignment);
     }
 

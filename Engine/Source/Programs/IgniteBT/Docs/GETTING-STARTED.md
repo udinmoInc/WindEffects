@@ -1,64 +1,52 @@
-# 🚀 Getting Started with IgniteBT
+# Getting Started with IgniteBT
 
-> This guide walks you through setting up the WindEffects Engine build environment using IgniteBT, the build system component of WindEffects Engine. IgniteBT is integrated into WindEffects Engine and requires no separate installation. The guide covers environment setup, SDK configuration, and performing your first build of WindEffects Engine. By following this guide, you will have a fully configured development environment and a working build of WindEffects Engine, ready for development work.
+This guide walks you through setting up the WindEffects Engine build environment using IgniteBT. IgniteBT is integrated into WindEffects Engine and requires no separate installation.
 
 ---
 
-## 📋 Prerequisites
-
-Before building WindEffects Engine with IgniteBT, ensure your development environment meets these requirements. Having the correct tools installed is essential for a smooth build process.
-
-### ✅ Required Software
+## Prerequisites
 
 | Software | Version | Purpose | Download |
 |----------|---------|---------|----------|
-| 🟦 **.NET SDK** | 8.0 | Build system runtime | [dotnet.microsoft.com](https://dotnet.microsoft.com) |
-| 🎨 **Visual Studio** | 2022 | C++ compiler and toolchain | [visualstudio.microsoft.com](https://visualstudio.microsoft.com) |
-|  **Git** | Latest | Version control | [git-scm.com](https://git-scm.com) |
+| .NET SDK | 8.0 | Build system runtime | [dotnet.microsoft.com](https://dotnet.microsoft.com) |
+| Visual Studio | 2022 | C++ compiler and toolchain | [visualstudio.microsoft.com](https://visualstudio.microsoft.com) |
+| Git | Latest | Version control | [git-scm.com](https://git-scm.com) |
 
-> **💡 Installation Tips:**
-> - Install Visual Studio 2022 with the "Desktop development with C++" workload
-> - Ensure the latest updates are installed for Visual Studio
-> - Add all tools to your system PATH during installation
-> - Verify installations with `dotnet --version`, `git --version`, etc.
+**Installation Tips:**
+- Install Visual Studio 2022 with "Desktop development with C++" workload
+- Ensure latest Visual Studio updates are installed
+- Add all tools to system PATH during installation
+- Verify with `dotnet --version`, `git --version`
 
 ---
 
-## 🛠️ Initial Setup
+## Initial Setup
 
-### 1️⃣ Clone the Repository
-
-The first step in setting up your development environment is to clone the WindEffects Engine repository to your local machine. This will give you access to all the source code, build configuration, and the IgniteBT build system.
+### 1. Clone the Repository
 
 ```powershell
 git clone https://github.com/udinmoInc/windeffects.git
 cd windeffects
 ```
 
-> **📁 Repository Contents:** The repository contains the WindEffects Engine source code and the integrated IgniteBT build system.
+### 2. Verify Environment
 
----
-
-### 2️⃣ Verify Environment
-
-After cloning the repository, verify that your development environment is correctly configured for building WindEffects Engine by running the diagnostic command.
+Run the diagnostic command:
 
 ```powershell
 we doctor
 ```
 
 The doctor command checks:
-- ✅ .NET SDK installation and version
-- ✅ Visual Studio installation and C++ toolchain
-- ✅ Other required tools and dependencies
+- .NET SDK installation and version
+- Visual Studio installation and C++ toolchain
+- Other required tools and dependencies
 
-> **⚠️ If Issues Are Detected:** The doctor command will provide clear guidance on resolving them, including information about missing tools, version incompatibilities, or configuration problems.
+If issues are detected, the command provides guidance on resolving them.
 
----
+### 3. Configure SDK Paths
 
-### 3️⃣ Configure SDK Paths
-
-If the doctor command reports missing SDKs or if you have SDKs installed in non-standard locations, configure the SDK paths in the `IgniteBT.SDKs.json` file for WindEffects Engine.
+If doctor reports missing SDKs or you have SDKs in non-standard locations, configure paths in `IgniteBT.SDKs.json`:
 
 ```json
 {
@@ -68,53 +56,45 @@ If the doctor command reports missing SDKs or if you have SDKs installed in non-
 }
 ```
 
-After updating the SDK configuration file, run the SDK detection and validation commands:
+Then run:
 
 ```powershell
 we sdk detect
 we sdk validate
 ```
 
----
-
-### 4️⃣ Install the `we` Command Globally (Optional)
-
-For convenient access from any directory when working with WindEffects Engine, you can install the `we` command globally on your system.
+### 4. Install `we` Command Globally (Optional)
 
 ```powershell
 we setup --global
 ```
 
-> **💡 Benefit:** Global installation adds the `we` command to your system PATH, making it available system-wide just like other command-line tools. You may need to restart your terminal for PATH changes to take effect.
+This adds `we` to your system PATH. Restart your terminal for changes to take effect.
 
 ---
 
-## 🔨 Your First Build
+## Your First Build
 
-### Building WindEffects Engine in Development Configuration
-
-The Development configuration provides optimized builds with debugging symbols, ideal for active WindEffects Engine development work.
+### Building in Development Configuration
 
 ```powershell
 we build --config Development
 ```
 
-#### What Happens During First Build?
+**First Build Steps:**
 
 | Step | Description | Time Impact |
 |------|-------------|-------------|
-| 🏗️ **Compile IgniteBT** | Build the build system itself | One-time setup |
-| 📦 **Dependencies** | Download and build third-party libraries | One-time setup |
-| 🔧 **Engine Modules** | Compile all engine components | Every build |
-| 🤖 **Generated Artifacts** | Generate export files and code | Every build |
+| Compile IgniteBT | Build the build system itself | One-time |
+| Dependencies | Download and build third-party libraries | One-time |
+| Engine Modules | Compile all engine components | Every build |
+| Generated Artifacts | Generate export files and code | Every build |
 
-> **⏱️ First Build Time:** The first build will take longer than subsequent builds due to one-time setup tasks. Subsequent builds will be significantly faster due to incremental building and caching.
-
----
+The first build takes longer due to one-time setup. Subsequent builds are significantly faster due to incremental building and caching.
 
 ### Build Output
 
-Build artifacts are organized in the `Build` directory, which is created automatically the first time you build.
+Build artifacts are organized in the `Build` directory:
 
 ```
 Build/
@@ -134,91 +114,66 @@ Build/
 
 | Directory | Contents | Purpose |
 |-----------|----------|---------|
-| 📦 **Output** | Final binaries and libraries | Primary build products |
-| 🔨 **Intermediate** | Object files and PDBs | Incremental build support |
-| 📋 **Logs** | Build and runtime logs | Troubleshooting and analysis |
-
----
+| Output | Final binaries and libraries | Primary build products |
+| Intermediate | Object files and PDBs | Incremental build support |
+| Logs | Build and runtime logs | Troubleshooting |
 
 ### Running the Editor
-
-After a successful build, you can launch the editor to begin working with the engine.
 
 ```powershell
 we run --target Editor --config Development
 ```
 
-> **🎯 Automatic Setup:** The run command automatically locates the built executable, sets up the required environment, and launches the program with correct settings.
+The run command locates the built executable, sets up the environment, and launches with correct settings.
 
 ---
 
-## ⚙️ Common Build Configurations
-
-IgniteBT supports three main configurations, each optimized for different scenarios and stages of development.
+## Build Configurations
 
 | Configuration | Optimizations | Debug Symbols | Use Case | Performance |
-|--------------|---------------|---------------|----------|-------------|
-| 🐛 **Debug** | None | Maximum | Debugging complex issues | Slowest |
-| ⚡ **Development** | Enabled | Included | Daily development work | Good |
-| 🚀 **Shipping** | Maximum | None | Final releases and distribution | Best |
+|---------------|---------------|---------------|----------|-------------|
+| Debug | None | Maximum | Complex debugging | Slowest |
+| Development | Enabled | Included | Daily development | Good |
+| Shipping | Maximum | None | Final releases | Best |
 
 ### Debug Configuration
-
-Full debugging information with no compiler optimizations.
 
 ```powershell
 we build --config Debug
 ```
 
-**Characteristics:**
-- 🔍 Maximum debugging information for comprehensive inspection
-- 🚫 No compiler optimizations for accurate debugging
-- 🐌 Slowest execution due to lack of optimizations
-- 📦 Largest binary size due to embedded symbols
+- Maximum debugging information
+- No compiler optimizations
+- Slowest execution, largest binary size
+- Use only when actively debugging difficult issues
 
-> **⚠️ Use Only When:** Actively debugging difficult issues. Performance penalty makes it impractical for regular development.
-
----
-
-### Development Configuration
-
-Optimized build with debugging symbols - recommended for daily development.
+### Development Configuration (Recommended)
 
 ```powershell
 we build --config Development
 ```
 
-**Characteristics:**
-- 🔍 Debugging symbols included for debugging when needed
-- ⚡ Compiler optimizations enabled for performance
-- 🎯 Good performance for interactive testing
-- 📦 Reasonable binary size balancing debug info and optimization
-
-> **✅ Recommended For:** Most development work. Best compromise between build time, runtime performance, and debugging capability.
-
----
+- Debugging symbols included
+- Compiler optimizations enabled
+- Good performance for interactive testing
+- Best compromise for daily development
 
 ### Shipping Configuration
-
-Fully optimized release build suitable for final distribution.
 
 ```powershell
 we build --config Shipping
 ```
 
-**Characteristics:**
-- 🚫 No debugging information to minimize binary size
-- ⚡ Maximum optimizations for best runtime performance
-- 🏆 Best performance among all configurations
-- 📦 Smallest binary size for efficient distribution
-
-> **🎯 Use For:** Final builds that will be distributed to users. Optimal combination of small size and fast execution.
+- No debugging information
+- Maximum optimizations
+- Best performance, smallest binary size
+- Use for final distribution builds
 
 ---
 
-## 🎯 Building Specific Modules
+## Building Specific Modules
 
-For faster iteration during development, you can build specific modules rather than the entire project.
+For faster iteration, build specific modules:
 
 ```powershell
 # Build only the core module
@@ -228,19 +183,16 @@ we build --target WECore --config Development
 we build --target WERenderer --config Development
 ```
 
-To see which modules are available in the project:
-
+List available modules:
 ```powershell
 we modules
 ```
 
-> **💡 Benefit:** Building specific modules significantly reduces build time by focusing compilation on only the parts you're actively working on. The build system automatically handles dependencies.
+Building specific modules reduces build time by focusing on active work. Dependencies are handled automatically.
 
 ---
 
-## 🧹 Cleaning Build Artifacts
-
-Cleaning build artifacts removes intermediate and output files, forcing a complete rebuild on the next build.
+## Cleaning Build Artifacts
 
 ```powershell
 # Clean specific configuration
@@ -253,13 +205,11 @@ we clean --target WECore --config Development
 we clean
 ```
 
-> **🔒 Safe Operation:** The clean command removes files from the build directory but does not affect source code or configuration files, making it safe to run at any time.
+Safe operation: removes build directory files only, not source or configuration.
 
 ---
 
-## 🔄 Rebuilding
-
-The rebuild command combines cleaning and building into a single operation.
+## Rebuilding
 
 ```powershell
 # Rebuild entire project
@@ -269,146 +219,116 @@ we rebuild --config Development
 we rebuild --target WECore --config Debug
 ```
 
-> **🎯 Use Case:** Particularly useful when troubleshooting build issues caused by stale artifacts or when configuration changes require a complete rebuild.
+Useful for troubleshooting stale artifacts or when configuration changes require a complete rebuild.
 
 ---
 
-## ⚡ Parallel Builds
-
-Controlling the number of parallel jobs allows you to tune the build process for your specific hardware.
+## Parallel Builds
 
 ```powershell
 # Use 8 parallel jobs
 we build --config Development --jobs 8
 
-# Use all available cores
+# Use all available cores (auto-detect)
 we build --config Development --jobs 0
 ```
 
-> **💡 Auto-Detection:** When you specify a job count of zero, IgniteBT automatically determines the optimal number based on your system's hardware capabilities.
-
 ---
 
-## 🔍 Verbose Output
-
-Enabling verbose output provides detailed information about the build process.
+## Verbose Output
 
 ```powershell
 we build --config Development --verbose
 ```
 
-**Verbose output shows:**
-- 📝 Exact compiler commands with all flags and parameters
-- 📄 File-by-file compilation progress
-- 🔗 Dependency resolution details
-- 🔨 Linker output and warnings
+Shows: exact compiler commands, file-by-file progress, dependency resolution, linker output.
 
-> **🔧 Best For:** Diagnosing build failures or understanding the impact of changes on the build process.
+Best for: diagnosing build failures or understanding change impact.
 
 ---
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Build Failures
 
-Build failures can occur for various reasons. Follow this systematic approach to diagnose and resolve issues.
-
 | Step | Command | Purpose |
 |------|---------|---------|
-| 1️⃣ | Check `Build/Logs/IgniteBT-[date].log` | Review detailed error messages |
-| 2️⃣ | `we doctor --verbose` | Run comprehensive diagnostics |
-| 3️⃣ | `we rebuild --config Debug --verbose` | Try clean rebuild with details |
-| 4️⃣ | `we sdk validate` | Verify SDK configuration |
-
----
+| 1 | Check `Build/Logs/IgniteBT-[date].log` | Detailed error messages |
+| 2 | `we doctor --verbose` | Comprehensive diagnostics |
+| 3 | `we rebuild --config Debug --verbose` | Clean rebuild with details |
+| 4 | `we sdk validate` | Verify SDK configuration |
 
 ### Missing Dependencies
 
-Missing dependencies can occur when third-party libraries fail to build or required tools are not installed.
-
-| Step | Action | Purpose |
-|------|--------|---------|
-| 1️⃣ | Check internet connectivity | Some dependencies are downloaded remotely |
-| 2️⃣ | Check `Build/Logs` | Review detailed error messages |
-| 3️⃣ | Clean `Build/Intermediate/ThirdParty` | Force rebuild of dependencies |
-
----
+| Step | Action |
+|------|--------|
+| 1 | Check internet connectivity (some deps downloaded remotely) |
+| 2 | Check `Build/Logs` for detailed errors |
+| 3 | Clean `Build/Intermediate/ThirdParty` to force rebuild |
 
 ### SDK Detection Issues
 
-SDK detection issues occur when the build system cannot locate required SDKs.
-
-| Step | Action | Purpose |
-|------|--------|---------|
-| 1️⃣ | Verify SDK installation paths | Confirm actual installation locations |
-| 2️⃣ | Update `IgniteBT.SDKs.json` | Explicitly specify SDK paths |
-| 3️⃣ | Run `we sdk detect` | Refresh detection process |
-| 4️⃣ | Run `we sdk validate` | Verify configuration is correct |
-
----
+| Step | Action |
+|------|--------|
+| 1 | Verify SDK installation paths |
+| 2 | Update `IgniteBT.SDKs.json` with explicit paths |
+| 3 | Run `we sdk detect` |
+| 4 | Run `we sdk validate` |
 
 ### Out-of-Memory Errors
 
-Out-of-memory errors can occur when building very large projects with high parallelism.
-
-| Solution | Command/Action | Effect |
-|----------|----------------|--------|
-| 🔽 Reduce parallel jobs | `--jobs 4` | Reduces peak memory usage |
-| 🗑️ Close applications | Close memory-intensive apps | Frees up memory |
-| 💾 Increase page file | System settings | More virtual memory |
-| 🖥️ Use 64-bit tools | Default | Addresses more memory |
+| Solution | Command/Action |
+|----------|----------------|
+| Reduce parallel jobs | `--jobs 4` |
+| Close memory-intensive apps | Frees up memory |
+| Increase page file | System settings |
+| Use 64-bit tools (default) | Addresses more memory |
 
 ---
 
-## 📚 Next Steps
+## Next Steps
 
-After completing your first build and verifying that everything works correctly, explore these resources to deepen your understanding of IgniteBT.
+After your first build:
 
-| Resource | Description | Link |
-|----------|-------------|------|
-| 📖 **Command Reference** | Detailed information about all commands | [COMMANDS.md](./COMMANDS.md) |
-| 🏗️ **Architecture Documentation** | System design and component organization | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| ⚙️ **Configuration Guide** | SDK configuration and advanced tuning | [CONFIGURATION.md](./CONFIGURATION.md) |
+| Resource | Description |
+|----------|-------------|
+| [Command Reference](./COMMANDS.md) | Detailed command information |
+| [Architecture Documentation](./ARCHITECTURE.md) | System design |
+| [Configuration Guide](./CONFIGURATION.md) | SDK configuration and advanced tuning |
 
 ---
 
-## ⚡ Performance Tips
+## Performance Tips
 
 ### Optimize Build Times
 
-Several strategies can significantly reduce build times.
+| Strategy | Implementation |
+|----------|----------------|
+| Use Development Config | `--config Development` |
+| Enable Parallel Builds | `--jobs <core_count>` |
+| Build Specific Modules | `--target <module>` |
+| Use Incremental Builds | Avoid `clean` unless necessary |
+| SSD Storage | Keep build directory on SSD |
 
-| Strategy | Impact | Implementation |
-|----------|--------|----------------|
-| ⚡ **Use Development Config** | Faster than Debug, more useful than Shipping | `--config Development` |
-| 🧵 **Enable Parallel Builds** | Utilize multiple CPU cores | `--jobs <core_count>` |
-| 🎯 **Build Specific Modules** | Focus on active work | `--target <module>` |
-| 🔄 **Use Incremental Builds** | Reuse work from previous builds | Avoid `clean` unless necessary |
-| 💾 **SSD Storage** | Faster I/O operations | Keep build directory on SSD |
-
-> **💡 Pro Tip:** The Development configuration is the optimal choice for most development work, providing the best balance of build time, runtime performance, and debugging capability.
-
----
+The Development configuration provides the best balance of build time, runtime performance, and debugging capability.
 
 ### Cache Management
-
-IgniteBT maintains a build cache to speed up incremental builds.
 
 ```powershell
 # Clear the cache
 we clean --cache
 ```
 
-> **🧹 When to Clear Cache:** If you experience cache-related issues such as incorrect artifacts being reused or cache corruption. Clearing forces a fresh rebuild but subsequent builds will benefit from a clean cache.
+Clear cache if you experience cache-related issues (incorrect artifacts reused, corruption). Subsequent builds will rebuild from a clean cache.
 
 ---
 
-## 🔄 Continuous Integration
+## Continuous Integration
 
-For CI/CD pipelines, use these recommended practices for reliable automated builds.
+Recommended CI/CD pipeline:
 
 ```powershell
-# CI build script example
+# CI build script
 we doctor
 we sdk validate
 we clean --config Shipping
@@ -418,36 +338,34 @@ we package --config Shipping
 
 | Step | Purpose |
 |------|---------|
-| 🔍 `we doctor` | Verify build environment is configured |
-| ✅ `we sdk validate` | Ensure all required dependencies are available |
-| 🧹 `we clean` | Fresh start for each CI build |
-| ⚡ `we build` | Build with maximum parallelism and verbose output |
-| 📦 `we package` | Prepare artifacts for distribution |
+| `we doctor` | Verify build environment |
+| `we sdk validate` | Ensure dependencies available |
+| `we clean` | Fresh start per CI build |
+| `we build` | Maximum parallelism with verbose output |
+| `we package` | Prepare artifacts for distribution |
 
 ---
 
-## ❓ Getting Help
-
-If you encounter issues not covered in this guide, use these resources.
+## Getting Help
 
 | Resource | How to Use |
 |----------|------------|
-| 📋 **Build Logs** | Check `Build/Logs/` for detailed error messages |
-| 🔍 **Diagnostics** | Run `we doctor --verbose` for comprehensive checks |
-| 📖 **Command Reference** | Review [COMMANDS.md](./COMMANDS.md) for detailed command info |
-| 📚 **Engine Documentation** | Consult main WindEffects Engine documentation |
+| Build Logs | Check `Build/Logs/` for detailed errors |
+| Diagnostics | Run `we doctor --verbose` |
+| Command Reference | Review [COMMANDS.md](./COMMANDS.md) |
+| Engine Documentation | Consult main WindEffects Engine docs |
 
 ---
 
-## 🌍 Environment Variables
+## Environment Variables
 
-Configure default behavior with environment variables to customize the build system without specifying options on every command.
+Configure defaults without specifying options on every command:
 
 ```powershell
-# Set default configuration
+# Default build configuration
 set IGNITEBT_CONFIG=Development
 
-# Set default parallel job count
+# Default parallel job count
 set IGNITEBT_JOBS=8
 
 # Enable verbose output globally
@@ -460,27 +378,21 @@ set IGNITEBT_VERBOSE=1
 | `IGNITEBT_JOBS` | Default parallel job count | `8` |
 | `IGNITEBT_VERBOSE` | Enable verbose output globally | `1` |
 
-> **💡 Use Case:** Environment variables are particularly useful for setting up consistent defaults across your development environment or for configuring CI/CD pipelines.
+Useful for consistent defaults across environments or CI/CD configuration.
 
 ---
 
-## 🗑️ Uninstalling
+## Uninstalling
 
-If you need to remove IgniteBT from your system, follow these steps.
-
-| Step | Command/Action | Purpose |
-|------|----------------|---------|
-| 1️⃣ | `Remove-Item -Recurse Build` | Delete build directory and artifacts |
-| 2️⃣ | Remove global `we` command | Remove from system PATH |
-| 3️⃣ | Delete environment variables | Clean up environment configuration |
+| Step | Action |
+|------|--------|
+| 1 | `Remove-Item -Recurse Build` |
+| 2 | Remove global `we` command from system PATH |
+| 3 | Delete environment variables |
 
 ---
 
-## 🎉 Congratulations!
-
-You've successfully set up IgniteBT and completed your first build. You're now ready to develop with WindEffects Engine.
-
-### Quick Reference
+## Quick Reference
 
 ```powershell
 # Build project
@@ -498,9 +410,9 @@ we doctor
 
 ---
 
-## 🔗 Related Documentation
+## Related Documentation
 
-- 📖 [Command Reference](./COMMANDS.md)
-- 🏗️ [Architecture Documentation](./ARCHITECTURE.md)
-- ⚙️ [Configuration Guide](./CONFIGURATION.md)
-- 📋 [Changelog](../../../../../CHANGELOG.md)
+- [Command Reference](./COMMANDS.md)
+- [Architecture Documentation](./ARCHITECTURE.md)
+- [Configuration Guide](./CONFIGURATION.md)
+- [Changelog](../../../../../CHANGELOG.md)

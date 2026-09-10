@@ -1,34 +1,31 @@
 # WindEffects Engine
 
-![C++23](https://img.shields.io/badge/C%2B%2B-23-blue?style=flat-square&logo=c%2B%2B)
-![Vulkan](https://img.shields.io/badge/Vulkan-1.3-5C2028?style=flat-square&logo=vulkan)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D7?style=flat-square&logo=windows)
-![Status](https://img.shields.io/badge/Status-In_Development-orange?style=flat-square)
-![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
+[![C++23](https://img.shields.io/badge/C%2B%2B-23-blue?style=flat-square&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/23)
+[![Vulkan](https://img.shields.io/badge/Vulkan-1.3-5C2028?style=flat-square&logo=vulkan)](https://www.vulkan.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D7?style=flat-square&logo=windows)](https://www.microsoft.com/windows)
+[![Status](https://img.shields.io/badge/Status-In_Development-orange?style=flat-square)](https://github.com/udinmoInc/WindEffects)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](Legal/EULA.md)
 
-> [!IMPORTANT]
 > **Under Active Development**: WindEffects Engine is currently in active development. There are no official or public releases available yet.
 
-**WindEffects Engine** is a next-generation game engine designed for professional game development, built from the ground up using modern C++23 and cutting-edge graphics technologies.
+WindEffects Engine is a game engine built for professional development using modern C++23 and Vulkan. It emphasizes modular architecture, data-oriented design, and an integrated editor workflow.
 
-## ✨ Why WindEffects?
+## Why WindEffects
 
-- **🚀 Modern C++23**: Leverages the latest C++ features for maximum performance and developer productivity
-- **🎮 Vulkan-Powered**: Built on Vulkan for cutting-edge graphics performance and modern GPU features
-- **🔧 Editor-First**: Comprehensive integrated editor with real-time preview and intuitive tools
-- **⚡ High Performance**: Data-oriented design, ECS architecture, and multi-threaded job system
-- **🧩 Modular Architecture**: Clean separation of concerns with independent, reusable modules
-- **🎨 PBR Rendering**: Physically-based rendering with HDR, deferred/forward+ paths, and more
+- **Modern C++23**: Uses the latest C++ standard for performance and developer productivity
+- **Vulkan-Powered**: Built on Vulkan 1.3 for low-overhead graphics and modern GPU features
+- **Editor-First**: Integrated editor with real-time preview and tooling
+- **High Performance**: Data-oriented design, ECS architecture, multi-threaded job system
+- **Modular Architecture**: Independent, reusable modules with clean interfaces
+- **PBR Rendering**: Physically-based rendering with HDR, deferred and forward+ paths
 
-## 📸 Screenshots
+## Screenshots
 
 ![In-Development First Look](Visuals/inDevFirstLook.png)
 
 <p align="center"><em>WindEffects Engine — in-development first look.</em></p>
 
-## 🚀 Quick Start
-
-Get up and running in minutes:
+## Quick Start
 
 ```powershell
 # Clone the repository
@@ -43,7 +40,7 @@ dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Debug
 .\we.ps1 run --target Editor --config Debug
 ```
 
-For detailed setup instructions, see the [Getting Started](#getting-started) section below.
+For detailed setup instructions, see [Getting Started](#getting-started).
 
 ## Table of Contents
 
@@ -62,139 +59,122 @@ For detailed setup instructions, see the [Getting Started](#getting-started) sec
 
 ## Introduction
 
-WindEffects Engine represents a modern approach to game engine design, leveraging the latest advancements in C++23, Vulkan graphics API, and contemporary software architecture patterns. The engine is designed to be modular, performant, and extensible, making it suitable for a wide range of game development projects from indie titles to AAA productions.
+WindEffects Engine is a modular, performant game engine built on C++23 and Vulkan. It is designed for professional game development with a focus on iteration speed, maintainability, and scalability from indie to AAA projects.
 
-The project began with the goal of creating a proprietary engine that could compete with established industry leaders while maintaining a clean, maintainable codebase. WindEffects focuses on providing developers with powerful tools through an integrated editor while keeping the underlying systems accessible and well-documented.
+The engine prioritizes an integrated editor experience while keeping underlying systems accessible and well-documented.
 
 ### Design Philosophy
 
-The engine follows several core design principles:
-
-- **Modularity**: Each system is designed as an independent module that can be developed, tested, and maintained in isolation
-- **Performance**: Critical paths are optimized for modern hardware architectures with multi-threading and GPU acceleration
+- **Modularity**: Systems are independent modules that can be developed, tested, and maintained in isolation
+- **Performance**: Critical paths optimized for modern hardware with multi-threading and GPU acceleration
 - **Modern C++**: Extensive use of C++23 features including concepts, modules, and improved standard library facilities
-- **Data-Oriented Design**: Memory layouts and data structures are optimized for cache efficiency and SIMD operations
-- **Editor-First**: The development experience centers around a powerful, intuitive editor interface
+- **Data-Oriented Design**: Memory layouts and data structures optimized for cache efficiency and SIMD operations
+- **Editor-First**: Development experience centers around a powerful, intuitive editor interface
 
 ## Architecture Overview
 
-WindEffects Engine is organized into several major subsystems, each responsible for specific aspects of game development. This modular architecture allows teams to work on different systems independently while maintaining clear interfaces between components.
+WindEffects Engine is organized into major subsystems with clear interfaces, allowing teams to work independently.
 
 ### Engine Core
 
-The core system provides foundational services that all other subsystems depend on. This includes memory management, threading primitives, reflection systems, and the entity-component-system (ECS) architecture. The core is designed to be lightweight and efficient, with minimal overhead for the systems built on top of it.
-
-The memory management system uses custom allocators optimized for different allocation patterns - small object allocations, large resource buffers, and GPU memory are each handled by specialized allocators that reduce fragmentation and improve allocation speed.
+The core system provides foundational services: memory management, threading primitives, reflection, and the ECS architecture. Custom allocators handle different allocation patterns (small objects, large buffers, GPU memory) to reduce fragmentation and improve allocation speed.
 
 ### Build System
 
-WindEffects uses IgniteBT, a custom build system written in C#, as its primary build tool. IgniteBT provides a unified command-line interface through the `we` command, handling dependency resolution, compilation, linking, and packaging. The build system is designed to keep all generated artifacts outside the source tree, maintaining a clean separation between source and build outputs.
-
-The `we` command serves as the primary interface for all build operations, from simple compilation to complex packaging and deployment scenarios. It automatically detects the development environment, manages dependencies, and provides helpful diagnostics through the `doctor` command.
+WindEffects uses IgniteBT, a custom build system written in C#. The `we` command provides a unified interface for dependency resolution, compilation, linking, and packaging. The build system keeps all generated artifacts outside the source tree and provides diagnostics through the `doctor` command.
 
 ## Core Features
 
 ### Entity Component System
 
-At the heart of WindEffects lies a modern Entity Component System (ECS) architecture. Unlike traditional object-oriented game object hierarchies, ECS separates data from behavior, enabling efficient data-oriented processing and cache-friendly memory layouts.
+A modern ECS architecture separates data from behavior for efficient data-oriented processing and cache-friendly memory layouts. Entities are unique identifiers, components hold pure data, and systems operate on component queries.
 
-Entities serve as unique identifiers, components hold pure data, and systems operate on components matching specific queries. This architecture enables:
 - Efficient parallel processing of game logic
 - Cache-friendly data access patterns
 - Flexible composition of game objects
-- Easy serialization and networking
+- Straightforward serialization and networking
 
-The ECS implementation supports archetype-based storage, where entities with the same component types are stored contiguously in memory, maximizing cache locality during system updates.
+Archetype-based storage stores entities with the same component types contiguously, maximizing cache locality during system updates.
 
 ### Job System
 
-The job system provides a framework for parallelizing work across multiple CPU cores. It supports task dependencies, work stealing, and affinity scheduling to maximize hardware utilization. Developers can submit jobs either as individual tasks or as parallel-for loops that automatically partition work across available threads.
-
-The job system integrates closely with the ECS, allowing systems to schedule parallel updates for entity queries. This enables massive entity counts to be processed efficiently by distributing the workload across all available CPU cores.
+Framework for parallelizing work across CPU cores with task dependencies, work stealing, and affinity scheduling. Integrates with ECS for parallel entity query updates.
 
 ### Asset Pipeline
 
-WindEffects includes a custom asset pipeline that handles importing, processing, and managing game assets. The pipeline supports various asset types including meshes, textures, materials, animations, and audio files. Assets are processed offline into optimized formats ready for runtime loading.
-
-The asset system includes hot-reloading capabilities during development, allowing artists and designers to see changes immediately without restarting the editor. Asset references use stable GUIDs, enabling safe refactoring and asset management without breaking existing content.
+Custom asset pipeline for importing, processing, and managing game assets (meshes, textures, materials, animations, audio). Offline processing into optimized runtime formats with hot-reloading during development. Stable GUIDs for asset references enable safe refactoring.
 
 ### Reflection System
 
-A comprehensive reflection system enables runtime type information, serialization, and editor integration. The reflection system is built at compile time using C++ attributes and code generation, providing zero runtime overhead while enabling powerful metaprogramming capabilities.
-
-This system powers the property inspector, serialization, and scripting interfaces, allowing the editor to inspect and modify any reflected type without manual binding code.
+Compile-time reflection built with C++ attributes and code generation enables runtime type information, serialization, and editor integration with zero runtime overhead. Powers the property inspector, serialization, and scripting interfaces.
 
 ## Rendering System
 
-The rendering system is built on Vulkan, providing low-level access to modern GPU capabilities while maintaining a higher-level abstraction for common rendering tasks. The renderer supports multiple rendering techniques and is designed to scale from integrated graphics to high-end GPUs.
+Built on Vulkan with low-level GPU access and higher-level abstractions. Scales from integrated graphics to high-end GPUs.
 
 ### Graphics Features
 
-- **Physically Based Rendering (PBR)**: Material system based on modern PBR workflows with support for metallic/roughness and specular/glossiness workflows
-- **Deferred and Forward+ Rendering**: Multiple rendering paths optimized for different scenarios - deferred for complex lighting, forward+ for transparency and performance
-- **HDR Rendering**: High dynamic range rendering with tone mapping and exposure control for realistic lighting
-- **Render Graph**: Frame graph system that automatically manages render pass dependencies and resource transitions
-- **GPU-Driven Rendering**: Compute-based culling and draw dispatch for handling massive scene complexity
-- **Bindless Resources**: Descriptor indexing for efficient resource access without descriptor set limits
-- **Ray Tracing**: Hardware-accelerated ray tracing for realistic reflections, shadows, and global illumination (planned)
-- **Path Tracing**: Full path tracing for cinematic-quality rendering (planned)
+- **PBR**: Metallic/roughness and specular/glossiness workflows
+- **Deferred and Forward+**: Multiple rendering paths optimized for different scenarios
+- **HDR Rendering**: Tone mapping and exposure control
+- **Render Graph**: Frame graph system for automatic render pass dependencies and resource transitions
+- **GPU-Driven Rendering**: Compute-based culling and draw dispatch
+- **Bindless Resources**: Descriptor indexing for efficient resource access
+- **Ray Tracing**: Hardware-accelerated ray tracing (planned)
+- **Path Tracing**: Full path tracing for cinematic rendering (planned)
 
 ### Shader Pipeline
 
-Shaders are written in HLSL and compiled to SPIR-V for Vulkan consumption. The shader pipeline includes a unified shader format that can target different APIs, making future DirectX 12 support straightforward. The system supports automatic shader permutation generation for different quality settings and feature combinations.
+HLSL shaders compiled to SPIR-V. Unified shader format targets multiple APIs. Automatic shader permutation generation for quality settings and feature combinations.
 
 ## Editor Interface
 
-The WindEffects Editor provides a comprehensive development environment for game creation. Built on a custom retained-mode UI framework, the editor offers a responsive and intuitive interface that can be customized to fit individual workflows.
+Built on a custom retained-mode UI framework. Fully dockable workspace with customizable layouts.
 
 ### Main Components
 
-**Scene Viewport**: The central workspace for viewing and interacting with your game world. The viewport supports real-time rendering with multiple camera modes, including perspective, orthographic, and custom camera views. Gizmos and manipulation tools enable precise object placement and transformation.
+**Scene Viewport**: Central workspace with real-time rendering, multiple camera modes, gizmos, and manipulation tools.
 
-**World Outliner**: A hierarchical view of all entities in the current scene. The outliner supports filtering, searching, and organizing entities into groups for complex scene management. Entity selection in the outliner syncs with the viewport and property inspector.
+**World Outliner**: Hierarchical view of scene entities with filtering, searching, and grouping. Selection syncs with viewport and inspector.
 
-**Property Inspector**: Displays and allows editing of all components attached to the selected entity. The inspector uses the reflection system to automatically generate appropriate UI controls for each property, supporting custom editors for complex types.
+**Property Inspector**: Reflection-driven editing of entity components with automatic UI generation and custom editor support.
 
-**Content Browser**: Asset management interface for browsing, importing, and organizing project assets. The browser supports previewing assets, filtering by type, and drag-and-drop operations for quick asset placement.
+**Content Browser**: Asset management with preview, filtering, and drag-and-drop placement.
 
-**Console**: Integrated command console for executing engine commands, viewing log output, and debugging. The console supports command auto-completion and custom command registration.
+**Console**: Integrated command console with auto-completion and custom command registration.
 
 ### Workspace Customization
 
-The editor features a fully dockable workspace layout. Panels can be rearranged, docked, undocked, or tabbed together to create custom layouts. Multiple workspace configurations can be saved and switched between depending on the current task.
+Panels can be rearranged, docked, undocked, or tabbed. Multiple workspace configurations can be saved and switched.
 
 ## Getting Started
 
 ### Prerequisites
 
-Before building WindEffects Engine, ensure your development environment meets the following requirements:
-
 - **Operating System**: Windows 10 or Windows 11 (64-bit)
 - **Compiler**: Visual Studio 2022 with C++ workload and latest updates
-- **.NET SDK**: .NET 8.0 SDK for building the IgniteBT build system
-- **Vulkan SDK**: Latest Vulkan SDK from Vulkan SDK for graphics development
-- **Git**: For version control operations
-- **CMake**: (Optional) Some third-party dependencies may use CMake
+- **.NET SDK**: .NET 8.0 SDK for building IgniteBT
+- **Vulkan SDK**: Latest Vulkan SDK for graphics development
+- **Git**: For version control
+- **CMake**: Optional; some third-party dependencies may use CMake
 
 ### Initial Setup
 
-1. Clone the repository to your local machine
-2. Ensure all prerequisites are installed and accessible from your command line
+1. Clone the repository
+2. Install all prerequisites and ensure they are accessible from command line
 3. Open a terminal in the repository root
 4. Run the setup command to configure the build environment
 
-The first build will take longer as it compiles the IgniteBT build system and downloads any required dependencies.
+The first build compiles IgniteBT and downloads dependencies, so it takes longer than subsequent builds.
 
 ## Building the Engine
 
-WindEffects uses the `we` command-line tool for all build operations. This tool is a thin wrapper around the IgniteBT build system and provides a consistent interface across different platforms and development environments.
+WindEffects uses the `we` command-line tool (wrapper around IgniteBT) for all build operations.
 
 ### Basic Build Commands
 
-From the repository root, the following commands are available:
-
 ```powershell
-# Build the engine in Debug configuration
+# Build in Debug configuration
 we build --config Debug
 
 # Build in Development configuration (optimized with debugging symbols)
@@ -215,8 +195,6 @@ we run --target Editor --config Debug
 
 ### Advanced Build Options
 
-The build system supports additional options for fine-grained control:
-
 ```powershell
 # Build specific modules or targets
 we build --target WECore --config Debug
@@ -233,8 +211,6 @@ we build --config Debug --verbose
 ```
 
 ### Diagnostic Commands
-
-Several diagnostic commands help troubleshoot build and environment issues:
 
 ```powershell
 # Check environment and dependencies
@@ -255,18 +231,16 @@ we project list
 
 ### Bootstrapping IgniteBT
 
-On first use, the `we` command may need to bootstrap the IgniteBT build system. If IgniteBT hasn't been built yet, the launcher will automatically fall back to using `dotnet run`:
+On first use, `we` may need to bootstrap the IgniteBT build system:
 
 ```powershell
 dotnet build Engine/Source/Programs/IgniteBT/Source/IgniteBT.csproj -c Debug
 we build --config Debug
 ```
 
-After the initial bootstrap, IgniteBT is compiled and cached, making subsequent builds faster.
+After initial bootstrap, IgniteBT is cached for faster subsequent builds.
 
 ## Project Structure
-
-Understanding the project structure is essential for navigating the codebase and knowing where to make changes:
 
 ```
 WindEffects/
@@ -275,7 +249,7 @@ WindEffects/
 │   │   ├── Runtime/         # Runtime engine systems
 │   │   ├── Editor/          # Editor-specific code
 │   │   └── Programs/        # Production apps + IgniteBT
-│   │       ├── Editor/      # WindeffectsEditor.exe
+│   │       ├── Editor/      # WindEffectsEditor.exe
 │   │       ├── WeLauncher/  # WeLauncher.exe
 │   │       ├── We/          # we.exe (native CLI)
 │   │       ├── CrashReporter/
@@ -303,61 +277,55 @@ WindEffects/
 
 ### Source Organization
 
-The `Engine/Source` directory is the heart of the codebase:
-
-- **Runtime**: Contains all engine systems that run in both editor and shipped games. This includes the core systems, renderer, physics, audio, and game framework code.
-- **Editor**: Contains editor-specific functionality including UI, tools, and editor-only systems. This code is not included in shipped games.
-- **Programs**: Production executables (`Editor`, `WeLauncher`, `We`, `CrashReporter`) plus IgniteBT (the build system) under `Programs/IgniteBT/` with its source, launcher, unit tests, and documentation colocated.
+- **Runtime**: Engine systems that run in both editor and shipped games (core, renderer, physics, audio, game framework)
+- **Editor**: Editor-specific functionality (UI, tools, editor-only systems). Not included in shipped games.
+- **Programs**: Production executables (`Editor`, `WeLauncher`, `We`, `CrashReporter`) plus IgniteBT under `Programs/IgniteBT/` with source, launcher, tests, and docs.
 
 ### Build Artifacts
 
-The `Build` directory contains all generated files and is excluded from version control:
+The `Build` directory is excluded from version control:
 
-- **Output**: Contains the final compiled binaries organized by configuration and platform. This is where you'll find the editor executable and engine DLLs.
-- **Intermediate**: Contains object files, PDB debug symbols, and incremental link data. This directory can be safely deleted to force a clean rebuild.
-- **Generated**: Contains files generated at build time, such as export definition files and generated reflection code.
-- **Cache**: Contains cached data to speed up subsequent builds.
-- **Database**: Contains the asset database used by the content browser and asset pipeline.
-- **Logs**: Contains build logs and runtime logs from the editor and engine.
-- **Manifest**: Contains build manifests used by the launcher and build system.
+- **Output**: Final compiled binaries by configuration and platform
+- **Intermediate**: Object files, PDB debug symbols, incremental link data (safe to delete for clean rebuild)
+- **Generated**: Build-time generated files (export definitions, reflection code)
+- **Cache**: Cached data for faster subsequent builds
+- **Database**: Asset database for content browser and asset pipeline
+- **Logs**: Build and runtime logs
+- **Manifest**: Build manifests for launcher and build system
 
 ## Development Workflow
 
 ### Typical Development Cycle
 
-A typical development session might follow this pattern:
-
-1. **Pull latest changes**: Ensure your local repository is up to date
-2. **Build the engine**: Run `we build --config Development` to compile changes
-3. **Launch the editor**: Run `we run --target Editor --config Development`
-4. **Work in the editor**: Create content, test features, iterate on gameplay
-5. **Make code changes**: Edit source files as needed
-6. **Rebuild**: Run `we build --config Development` to compile changes
-7. **Test**: Verify changes work as expected in the editor
-8. **Commit**: Commit changes with descriptive messages
+1. Pull latest changes
+2. Build the engine: `we build --config Development`
+3. Launch the editor: `we run --target Editor --config Development`
+4. Work in the editor (create content, test features, iterate)
+5. Make code changes
+6. Rebuild: `we build --config Development`
+7. Test changes in the editor
+8. Commit with descriptive messages
 
 ### Debugging
 
-For debugging engine code, use the Development configuration which includes debug symbols while maintaining reasonable performance. The Debug configuration includes full debugging but may be too slow for interactive work.
+Use Development configuration for debugging (debug symbols with reasonable performance). Debug configuration has full debugging but may be too slow for interactive work.
 
 To attach a debugger:
 1. Build in Development or Debug configuration
-2. Launch the editor through your debugger of choice
+2. Launch the editor through your debugger
 3. Set breakpoints in engine source code
-4. Interact with the editor to trigger the code paths you want to debug
+4. Interact with the editor to trigger target code paths
 
 ### Hot Reloading
 
-During development, many changes can be hot-reloaded without restarting the editor:
-- Shader changes are automatically recompiled and reloaded
-- Asset changes trigger automatic reimport
-- C++ code changes currently require a rebuild and editor restart (hot-reload is planned for future releases)
+- Shader changes: automatically recompiled and reloaded
+- Asset changes: automatic reimport
+- C++ code changes: currently require rebuild and editor restart (hot-reload planned)
 
 ## Roadmap
 
-WindEffects Engine is under active development with a planned roadmap of features:
-
 ### Phase 1: Foundation (Current)
+
 - Core engine systems and architecture
 - Window system and platform abstraction
 - Vulkan renderer with basic PBR
@@ -366,6 +334,7 @@ WindEffects Engine is under active development with a planned roadmap of feature
 - Editor foundation and basic UI
 
 ### Phase 2: Core Systems
+
 - Entity Component System implementation
 - Physics integration (planned)
 - Audio system (planned)
@@ -373,6 +342,7 @@ WindEffects Engine is under active development with a planned roadmap of feature
 - Material system and shader editor
 
 ### Phase 3: World Systems
+
 - Animation system and skeletal meshes
 - Terrain system with heightmaps and splatmaps
 - World streaming for large environments
@@ -380,6 +350,7 @@ WindEffects Engine is under active development with a planned roadmap of feature
 - AI framework with behavior trees
 
 ### Phase 4: Advanced Features
+
 - Networking and multiplayer support
 - Visual scripting system
 - Packaging and deployment tools
@@ -388,9 +359,9 @@ WindEffects Engine is under active development with a planned roadmap of feature
 
 ## Contributing
 
-WindEffects Engine is currently in early development and is not yet accepting external contributions. However, feedback, bug reports, and discussions are welcome as the project evolves.
+WindEffects Engine is currently in early development and not accepting external contributions. Feedback, bug reports, and discussions are welcome.
 
-When the project opens for contributions, guidelines will be provided covering:
+When contributions open, guidelines will cover:
 - Code style and formatting standards
 - Pull request process
 - Testing requirements
@@ -398,32 +369,28 @@ When the project opens for contributions, guidelines will be provided covering:
 
 ### Reporting Issues
 
-If you encounter issues while using WindEffects, please provide:
-- Steps to reproduce the problem
-- Expected behavior vs. actual behavior
+Provide:
+- Steps to reproduce
+- Expected vs. actual behavior
 - Environment information (OS, hardware, configuration)
 - Relevant log files or error messages
 - Screenshots or recordings if applicable
 
-## 🤝 Community & Support
+## Community & Support
 
-- **Discussions**: Join our [GitHub Discussions](https://github.com/udinmoInc/WindEffects/discussions) for questions and ideas
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/udinmoInc/WindEffects/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/udinmoInc/WindEffects/discussions)
+- **Issues**: [GitHub Issues](https://github.com/udinmoInc/WindEffects/issues)
 
-## 📄 License
+## License
 
-WindEffects Engine is currently under active development and is not yet publicly licensed. License information will be provided when the project reaches a stable public release.
+WindEffects Engine is under active development and not yet publicly licensed. License information will be provided at stable public release.
 
-For licensing inquiries or questions about using WindEffects Engine in commercial projects, please contact the development team.
+For licensing inquiries or commercial use questions, contact the development team.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-WindEffects Engine incorporates third-party software and assets. Each component is subject to its respective license terms. See the Legal/THIRD_PARTY_NOTICES.md file for detailed information about third-party components and their licenses.
-
-## Support
-
-For technical support, questions, or inquiries about WindEffects Engine, please contact the development team through the official channels provided in the project documentation.
+WindEffects Engine incorporates third-party software and assets. Each component is subject to its respective license terms. See [Legal/THIRD_PARTY_NOTICES.md](Legal/THIRD_PARTY_NOTICES.md) for details.
 
 ---
 
-WindEffects Engine is built with passion and dedication to advancing the state of game development technology. We hope it serves as a solid foundation for creating amazing games and experiences.
+For technical support or inquiries, contact the development team through official channels.

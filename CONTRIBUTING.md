@@ -1,6 +1,6 @@
 # Contributing to WindEffects Engine
 
-Thank you for your interest in contributing to WindEffects Engine! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to WindEffects Engine.
 
 ## Table of Contents
 
@@ -16,14 +16,12 @@ Thank you for your interest in contributing to WindEffects Engine! This document
 
 ### Prerequisites
 
-Before contributing, ensure you have:
-
 - Windows 10/11 (64-bit)
 - Visual Studio 2022 with C++ workload
 - .NET 8.0 SDK
 - Vulkan SDK
 - Git
-- A GitHub account
+- GitHub account
 
 ### Fork and Clone
 
@@ -42,7 +40,7 @@ Before contributing, ensure you have:
 
 ### Building the Engine
 
-Follow the build instructions in the main README.md to set up your development environment:
+Follow the build instructions in the main README.md:
 
 ```bash
 # Build in Development configuration
@@ -53,8 +51,6 @@ we run --target Editor --config Development
 ```
 
 ### Keeping Your Fork Updated
-
-Regularly sync your fork with the upstream repository:
 
 ```bash
 git fetch upstream
@@ -69,32 +65,32 @@ git merge upstream/develop
 - Use modern C++23 features where appropriate
 - Follow the existing code style in the codebase
 - Use meaningful variable and function names
-- Add comments for complex logic
+- Add comments for complex logic (explain *why*, not *what*)
 - Keep functions focused and concise
 - Prefer const correctness
 - Use RAII for resource management
 
 ### Formatting
 
-- Use 4 spaces for indentation
+- 4 spaces for indentation
 - Maximum line length: 120 characters
-- Place braces on new line for functions/classes
-- Place braces on same line for control structures
+- Braces on new line for functions/classes
+- Braces on same line for control structures
 
 ### Naming Conventions
 
-- **Classes**: PascalCase (e.g., `EntityManager`)
-- **Functions**: PascalCase (e.g., `UpdateEntity`)
-- **Variables**: camelCase (e.g., `entityCount`)
-- **Member variables**: m_camelCase (e.g., `m_entityCount`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_ENTITIES`)
-- **Files**: PascalCase matching the class name (e.g., `EntityManager.h`)
+| Element | Convention | Example |
+|---------|------------|---------|
+| Classes | PascalCase | `EntityManager` |
+| Functions | PascalCase | `UpdateEntity` |
+| Variables | camelCase | `entityCount` |
+| Member variables | m_camelCase | `m_entityCount` |
+| Constants | UPPER_SNAKE_CASE | `MAX_ENTITIES` |
+| Files | PascalCase matching class | `EntityManager.h` |
 
 ## Submitting Changes
 
 ### Creating a Branch
-
-Create a descriptive branch for your changes:
 
 ```bash
 git checkout -b feature/your-feature-name
@@ -104,14 +100,14 @@ git checkout -b fix/your-bug-fix
 
 ### Making Changes
 
-1. Make your changes following the code style guidelines
+1. Follow the code style guidelines
 2. Test your changes thoroughly
 3. Build the engine to ensure no compilation errors
 4. Run the editor to verify functionality
 
 ### Committing
 
-Write clear, descriptive commit messages:
+Use clear, descriptive commit messages:
 
 ```
 type(scope): subject
@@ -145,11 +141,11 @@ Closes #123
 
 ### Before Submitting
 
-1. Ensure your code follows the style guidelines
+1. Ensure code follows style guidelines
 2. Add tests for new functionality
 3. Update documentation if needed
 4. Ensure all tests pass
-5. Rebase your branch on the latest develop branch
+5. Rebase on the latest develop branch
 
 ### Submitting a PR
 
@@ -180,8 +176,7 @@ Closes #123
 
 ### Bug Report Template
 
-Use the bug report issue template when reporting issues. Include:
-
+Include:
 - Clear title describing the bug
 - Steps to reproduce
 - Expected behavior
@@ -201,10 +196,9 @@ Use the bug report issue template when reporting issues. Include:
 
 ### Feature Request Template
 
-Use the feature request issue template. Include:
-
+Include:
 - Clear title describing the feature
-- Detailed description of the feature
+- Detailed description
 - Use cases and benefits
 - Potential implementation approach
 - Alternative solutions considered
@@ -218,8 +212,6 @@ Use the feature request issue template. Include:
 
 ## Getting Help
 
-If you need help:
-
 - Check the documentation
 - Search existing issues and discussions
 - Ask questions in GitHub Discussions
@@ -228,5 +220,3 @@ If you need help:
 ## License
 
 By contributing to WindEffects Engine, you agree that your contributions will be licensed under the same license as the project.
-
-Thank you for contributing to WindEffects Engine!

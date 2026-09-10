@@ -2,29 +2,29 @@
 
 WindEffects Engine incorporates third-party software and assets. Each component is subject to its respective license terms.
 
-## Acknowledgments
-
-### Fonts
-
-- **Roboto Font** - Licensed under SIL Open Font License 1.1
-  - License file: `Assets/Fonts/Roboto-LICENSE.txt`
-  - Source: https://github.com/googlefonts/roboto-classic
-- **Inter Font** (legacy assets) - Licensed under SIL Open Font License 1.1
-  - Source: https://rsms.me/inter/
-
-### Icons
-
-- **Codicon** - VS Code icon set
-  - Location: `Engine/Content/Fonts/codicon.ttf`
-  - Licensed under MIT License
-
 ## Open Source Components
 
-A complete list of open-source dependencies and their licenses will be provided in:
+| Component | License | Location |
+|-----------|---------|----------|
+| **Roboto Font** | SIL Open Font License 1.1 | `Assets/Fonts/Roboto-LICENSE.txt` |
+| **Inter Font** (legacy) | SIL Open Font License 1.1 | `Assets/Fonts/Inter-LICENSE.txt` |
+| **Codicon** (VS Code icons) | MIT License | `Engine/Content/Fonts/codicon.ttf` |
+| **lunasvg** | Apache-2.0 | `Engine/ThirdParty/lunasvg` |
+| **msdf-atlas-gen / msdfgen** | MIT License | `Engine/ThirdParty/msdf-atlas-gen` |
+| **Vulkan-Loader** | Apache-2.0 | `Engine/ThirdParty/Vulkan-Loader` |
+| **Vulkan-Headers** | Apache-2.0 | `Engine/ThirdParty/Vulkan-Headers` |
+| **stb** | Public Domain / MIT | `Engine/ThirdParty/stb` |
+| **freetype** | FTL / GPLv2 | `Engine/ThirdParty/freetype` |
+| **harfbuzz** | MIT License | `Engine/ThirdParty/harfbuzz` |
+| **volk** | MIT License | `Engine/ThirdParty/volk` |
+| **SDL3** | zlib License | `Engine/ThirdParty/SDL3` |
+| **glm** | MIT License | `Engine/ThirdParty/glm` |
+| **nanosvg** | MIT License | `Engine/ThirdParty/nanosvg` |
 
-- `Engine/ThirdParty/NOTICES` (forthcoming)
-- Editor About/Legal dialog (forthcoming)
-- Release documentation (forthcoming)
+A complete, generated list of all transitive dependencies and their licenses is available at:
+- `Engine/ThirdParty/NOTICES` (generated at build time)
+- Editor About/Legal dialog
+- Release documentation
 
 ## Distribution Requirements
 

@@ -474,6 +474,9 @@ EditorShellResult EditorShellBuilder::Build(
     auto overlayHost = std::make_shared<OverlayHost>();
     overlayHost->SetBaseWidget(windowShell);
     workspace.SetPopupHost(overlayHost.get());
+    if (deps.eventSystem) {
+        deps.eventSystem->SetPopupHost(overlayHost.get());
+    }
 
     widgetContext->SetPopupHost(overlayHost.get());
     PropagateWidgetContext(overlayHost, widgetContext);

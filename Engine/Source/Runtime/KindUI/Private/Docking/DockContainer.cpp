@@ -422,8 +422,7 @@ void DockContainer::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    if (const auto activePanel = GetActivePanel()) {
         const auto toolbar = activePanel->GetToolbar();
         const auto content = activePanel->GetContent();
         PanelChrome::RoutePanelBodyPointer(
@@ -500,8 +499,7 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
         InvalidatePaint();
     }
 
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    if (const auto activePanel = GetActivePanel()) {
         const auto toolbar = activePanel->GetToolbar();
         const auto content = activePanel->GetContent();
         PanelChrome::RoutePanelBodyPointer(
@@ -518,8 +516,7 @@ void DockContainer::OnMouseUp(const MouseEvent& event) {
     m_TabDragCandidate = false;
     m_DragTabIndex = -1;
 
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    if (const auto activePanel = GetActivePanel()) {
         const auto toolbar = activePanel->GetToolbar();
         const auto content = activePanel->GetContent();
         PanelChrome::RoutePanelBodyPointer(
@@ -533,8 +530,7 @@ void DockContainer::OnMouseUp(const MouseEvent& event) {
 }
 
 void DockContainer::OnMouseWheel(const MouseEvent& event) {
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        auto activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    if (const auto activePanel = GetActivePanel()) {
         const auto toolbar = activePanel->GetToolbar();
         const auto content = activePanel->GetContent();
         PanelChrome::RoutePanelBodyPointer(
@@ -559,8 +555,7 @@ bool DockContainer::ShowsPointerCursor(const Point& position) const {
         }
     }
 
-    if (m_ActiveTabIndex >= 0 && m_ActiveTabIndex < static_cast<int>(m_Tabs.size())) {
-        const auto& activePanel = m_Tabs[static_cast<size_t>(m_ActiveTabIndex)].panel;
+    if (const auto activePanel = GetActivePanel()) {
         if (auto toolbar = activePanel->GetToolbar()) {
             if (toolbar->GetGeometry().Contains(position)) {
                 return toolbar->ShowsPointerCursor(position);

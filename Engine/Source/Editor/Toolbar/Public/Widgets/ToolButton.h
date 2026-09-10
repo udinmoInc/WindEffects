@@ -54,6 +54,7 @@ public:
 
     void OnMouseDown(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
+    void OnCaptureLost() override;
     void OnMouseWheel(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 

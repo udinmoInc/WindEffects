@@ -46,6 +46,8 @@ public:
     virtual void OnMouseDown(const MouseEvent&) {}
     virtual void OnMouseMove(const MouseEvent&) {}
     virtual void OnMouseUp(const MouseEvent&) {}
+    /// Fired when pointer capture is cleared without a matching MouseUp (focus loss, etc.).
+    virtual void OnCaptureLost() { SetPressed(false); }
     virtual void OnKeyDown(const KeyEvent&) {}
     virtual void OnKeyUp(const KeyEvent&) {}
     virtual void OnTextInput(const std::string& utf8) { (void)utf8; }
