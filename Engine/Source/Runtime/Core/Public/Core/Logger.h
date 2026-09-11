@@ -51,12 +51,10 @@ public:
 
     using LogListener = std::function<void(const LogRecord&)>;
 
-    /// Initialize logging under PathService::LogsRoot() (or an explicit override).
     CORE_API static void Init();
     CORE_API static void Init(const std::filesystem::path& logsRoot);
     CORE_API static void Shutdown();
 
-    /// Active logs / crashes roots (absolute). Empty before Init.
     CORE_API static const std::string& GetLogsRoot();
     CORE_API static const std::string& GetCrashesRoot();
 
@@ -76,6 +74,14 @@ public:
         int line = 0,
         const char* function = nullptr);
 
+    /// Log system diagnostic information (product metadata, platform, etc.)
+    CORE_API static void LogSystemInfo();
+
+#if defined(_WIN32)
+    /// Write current application metadata to crashes directory for crash reporter
+    CORE_API static void WriteCrashMetadata();
+#endif
+
     CORE_API static void Log(
         Level level,
         std::string_view category,
@@ -88,7 +94,6 @@ public:
 
     CORE_API static void ReportError(const std::string& title, const std::string& description, bool fatal = false);
 
-    // Optional host message-box bridge (registered by Platform; keeps Core free of OS UI APIs).
     using ErrorDialogHandler = void (*)(const char* title, const char* message, bool fatal, void* userData);
     CORE_API static void SetErrorDialogHandler(ErrorDialogHandler handler, void* userData = nullptr);
 

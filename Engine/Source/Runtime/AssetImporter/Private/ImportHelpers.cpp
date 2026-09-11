@@ -10,6 +10,8 @@
 
 #include "AssetImporter/AssetPackage.h"
 #include "AssetImporter/Types.h"
+#include "Core/ProductMetadata.h"
+#include "Core/Logger.h"
 
 #include <chrono>
 #include <fstream>
@@ -94,7 +96,17 @@ AssetMetadata BuildBaseMetadata(
     metadata.sourceHash = ComputeFileHashHex(request.sourcePath);
     metadata.importerId = std::string(importerId);
     metadata.importerVersion = "1.0.0";
-    metadata.engineVersion = std::string(engineVersion);
+
+    if (engineVersion.empty()) {
+        if (we::core::ProductMetadataService::Get().IsInitialized()) {
+            metadata.engineVersion = we::core::ProductMetadataService::Get().GetProduct().version;
+        } else {
+            metadata.engineVersion = "1.0.0";
+        }
+    } else {
+        metadata.engineVersion = std::string(engineVersion);
+    }
+
     metadata.createdUtc = NowUtc();
     metadata.modifiedUtc = metadata.createdUtc;
 #if WE_HAS_NLOHMANN_JSON

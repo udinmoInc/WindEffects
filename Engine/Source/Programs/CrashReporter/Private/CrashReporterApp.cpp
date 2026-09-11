@@ -14,16 +14,35 @@
 #include "KindUI/Core/EventSystem.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
+#include "Core/ProductMetadata.h"
 #include "Platform/PlatformSDK.h"
 #include <variant>
 
 namespace we::programs::crashreporter {
 
 CrashReporterApp::CrashReporterApp(we::platform::WindowId window) : m_Window(window) {
-    HE_INFO("[CrashReporterApp] Constructor started - SKIPPING ALL INITIALIZATION");
-    HE_INFO("[CrashReporterApp] Auto-exiting to prevent infinite loop");
-    m_Running = false;
-    // Skipping all initialization to prevent infinite loop
+    HE_INFO("[CrashReporterApp] Constructor started");
+
+    const we::core::ProductMetadata* crashedApp = we::core::ProductMetadataService::Get().GetCrashedApplicationMetadata();
+
+    if (crashedApp) {
+        HE_INFO("[CrashReporterApp] Running in crash mode - processing crashed application");
+        HE_INFO("[CrashReporterApp] Crashed Application: " + crashedApp->GetExecutableDisplayName());
+        HE_INFO("[CrashReporterApp] Crashed Role: " + std::to_string(static_cast<uint8_t>(crashedApp->executableRole)));
+        HE_INFO("[CrashReporterApp] Product: " + crashedApp->product.displayName);
+        HE_INFO("[CrashReporterApp] Version: " + crashedApp->product.version);
+        HE_INFO("[CrashReporterApp] Build: " + crashedApp->product.build);
+        HE_INFO("[CrashReporterApp] EngineId: " + crashedApp->engine.guid);
+        HE_INFO("[CrashReporterApp] BuildId: " + crashedApp->engine.buildId);
+        HE_INFO("[CrashReporterApp] BuildRevision: " + crashedApp->build.buildRevision);
+
+        HE_INFO("[CrashReporterApp] Metadata preservation verified - exiting");
+        m_Running = false;
+    } else {
+        HE_INFO("[CrashReporterApp] Running in standalone mode - no crash context");
+        HE_INFO("[CrashReporterApp] Auto-exiting (no crash to report)");
+        m_Running = false;
+    }
 }
 
 CrashReporterApp::~CrashReporterApp() {
@@ -40,7 +59,7 @@ void CrashReporterApp::MainLoop() {
     uint64_t lastTime = platform.GetHighResolutionCounter();
     const double frequency = static_cast<double>(platform.GetHighResolutionFrequency());
     int frameCount = 0;
-    const int maxFrames = 300; // Auto-close after 5 seconds at 60fps
+    const int maxFrames = 300;
 
     while (m_Running && frameCount < maxFrames) {
         if (!platform.PollEvents()) {
@@ -129,7 +148,6 @@ void CrashReporterApp::MainLoop() {
             m_Renderer->SubmitAndPresent();
         }
 
-        // Auto-close after 5 seconds to prevent infinite loop and file creation
         if (frameCount >= maxFrames) {
             HE_INFO("[CrashReporterApp] Auto-closing after timeout to prevent infinite loop");
             m_Running = false;

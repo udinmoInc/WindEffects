@@ -17,6 +17,7 @@
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
 #include "Core/LoopExecutionTrace.h"
+#include "Core/ProductMetadata.h"
 
 #include <commdlg.h>
 #include <dwmapi.h>

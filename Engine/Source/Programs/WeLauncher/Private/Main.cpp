@@ -9,6 +9,8 @@
 #include "Platform/PlatformSDK.h"
 #include "Core/Logger.h"
 #include "Core/BuildPaths.h"
+#include "Core/ProductMetadata.h"
+#include "Core/ExecutableMetadata.h"
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -31,8 +33,13 @@
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     we::runtime::core::Logger::Init();
 
+    we::core::ProductMetadataService::Get().Initialize();
+    we::core::ExecutableMetadata::ConfigureAsLauncher();
+
+    std::string appName = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
     auto& platform = we::platform::Platform::Initialize({
-        .appName = "WindEffects Launcher",
+        .appName = appName.c_str(),
         .highDpiAware = true,
         .enableDiagnostics = true,
     });
@@ -56,8 +63,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #endif
 #endif
 
+    std::string windowTitle = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
     const auto windowResult = platform.CreateWindow({
-        .title = "WindEffects Launcher",
+        .title = windowTitle.c_str(),
         .width = 1440,
         .height = 920,
         .resizable = true,

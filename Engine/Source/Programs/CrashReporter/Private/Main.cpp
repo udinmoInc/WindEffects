@@ -9,8 +9,11 @@
 #include "Platform/PlatformSDK.h"
 #include "Core/Logger.h"
 #include "Core/BuildPaths.h"
+#include "Core/ProductMetadata.h"
+#include "Core/ExecutableMetadata.h"
 #include "CrashReporterApp.h"
 #include <filesystem>
+#include <fstream>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -24,12 +27,62 @@
 #include "../../Windows/Resources/resource.h"
 #endif
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int) {
     HE_INFO("[CrashReporter] === Starting WeCrashReporter.exe ===");
 
     we::runtime::core::Logger::Init();
+
+    we::core::ProductMetadataService::Get().Initialize();
+    we::core::ExecutableMetadata::ConfigureAsCrashReporter();
+
+    std::string crashDumpPath;
+    std::string crashedAppMetadataPath;
+    std::string cmdLine(lpCmdLine ? lpCmdLine : "");
+
+    size_t dumpPos = cmdLine.find("--dump");
+    if (dumpPos != std::string::npos) {
+        size_t start = cmdLine.find_first_not_of(" \t", dumpPos + 6);
+        if (start != std::string::npos) {
+            size_t end = cmdLine.find_first_of(" \t", start);
+            if (end == std::string::npos) end = cmdLine.length();
+            crashDumpPath = cmdLine.substr(start, end - start);
+        }
+    }
+
+    size_t metaPos = cmdLine.find("--metadata");
+    if (metaPos != std::string::npos) {
+        size_t start = cmdLine.find_first_not_of(" \t", metaPos + 10);
+        if (start != std::string::npos) {
+            size_t end = cmdLine.find_first_of(" \t", start);
+            if (end == std::string::npos) end = cmdLine.length();
+            crashedAppMetadataPath = cmdLine.substr(start, end - start);
+        }
+    }
+
+    if (!crashedAppMetadataPath.empty()) {
+        HE_INFO("[CrashReporter] Loading crashed application metadata from: " + crashedAppMetadataPath);
+        std::ifstream metaFile(crashedAppMetadataPath);
+        if (metaFile.is_open()) {
+            std::string serialized((std::istreambuf_iterator<char>(metaFile)),
+                                  std::istreambuf_iterator<char>());
+            if (we::core::ProductMetadataService::Get().LoadFromSerialized(serialized)) {
+                HE_INFO("[CrashReporter] Successfully loaded crashed application metadata");
+                HE_INFO("[CrashReporter] Crashed app: " +
+                        we::core::ProductMetadataService::Get().GetCrashedApplicationMetadata()->GetExecutableDisplayName());
+            } else {
+                HE_ERROR("[CrashReporter] Failed to parse crashed application metadata");
+            }
+        } else {
+            HE_ERROR("[CrashReporter] Failed to open metadata file: " + crashedAppMetadataPath);
+        }
+    } else {
+        HE_INFO("[CrashReporter] No crashed application metadata provided - running standalone");
+    }
+
+    std::string appName = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
     auto& platform = we::platform::Platform::Initialize({
-        .appName = "WindEffects Crash Reporter",
+        .appName = appName.c_str(),
         .highDpiAware = true,
         .enableDiagnostics = true,
     });
@@ -42,8 +95,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     we::core::ConfigureModuleSearchPaths();
 
+    std::string windowTitle = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
     const auto windowResult = platform.CreateWindow({
-        .title = "WindEffects Crash Reporter",
+        .title = windowTitle.c_str(),
         .width = 1200,
         .height = 760,
         .resizable = true,
