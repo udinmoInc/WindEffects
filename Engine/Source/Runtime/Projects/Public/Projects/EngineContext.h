@@ -33,7 +33,11 @@ public:
     [[nodiscard]] const std::filesystem::path& EngineBinariesRoot() const { return m_EngineBinariesRoot; }
     [[nodiscard]] const std::filesystem::path& TemplatesRoot() const { return m_TemplatesRoot; }
     [[nodiscard]] const std::filesystem::path& ExecutableDirectory() const { return m_ExecutableDirectory; }
-    [[nodiscard]] const std::string& EngineVersion() const { return m_EngineVersion; }
+
+    [[nodiscard]] const std::string& EngineVersion() const;
+    [[nodiscard]] const std::string& ProductName() const;
+    [[nodiscard]] const std::string& CompanyName() const;
+    [[nodiscard]] const std::string& Copyright() const;
 
     /// Resolve engine root by walking parents for WindEffects.engine (via PathService).
     [[nodiscard]] static std::optional<std::filesystem::path> FindEngineRoot(

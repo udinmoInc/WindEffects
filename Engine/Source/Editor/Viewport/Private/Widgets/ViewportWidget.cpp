@@ -51,9 +51,6 @@ ViewportWidget::ViewportWidget(::we::runtime::renderer::ISceneViewportController
     m_Navigation.SetScene(scene);
     m_Navigation.ApplySettingsFromStore();
 
-    m_ViewportRenderTarget = std::make_unique<::we::editor::viewport::ViewportRenderTarget>();
-    m_ViewportRenderTarget->Init(m_Device, m_ViewportColorFormat);
-
 #if WE_DEBUG_UI
     m_GraphicsDebugger = std::make_shared<GraphicsDebuggerPopup>(nullptr, camera, scene);
 #endif
@@ -134,36 +131,8 @@ bool ViewportWidget::FlushPendingResize() {
     WE_LOG_INFO(we::LogCategory::Renderer.data(),
         "[Viewport] Resizing Viewport RT: " + std::to_string(m_PendingWidth) + "x" + std::to_string(m_PendingHeight));
 
-    if (m_Device) {
-        (void)m_Device->WaitIdle();
-    }
-
     if (m_ViewportController) {
-        if (m_ViewportRenderTarget) {
-            m_ViewportRenderTarget->Resize(m_PendingWidth, m_PendingHeight);
-            m_ViewportController->SetViewportRenderTargetColor(m_ViewportRenderTarget->GetColorTexture());
-            m_ViewportController->SetViewportDepthTarget(m_ViewportRenderTarget->GetDepthTexture());
-        }
         m_ViewportController->SetViewportRenderTargetSize(m_PendingWidth, m_PendingHeight);
-    }
-
-    if (m_uiRenderer && m_ViewportController) {
-        const auto view = m_ViewportController->GetViewportColorView();
-        const auto sampler = m_ViewportController->GetViewportColorSampler();
-        if (view != we::rhi::RHITextureViewHandle::Invalid
-            && sampler != we::rhi::RHISamplerHandle::Invalid) {
-            const bool bindingsChanged =
-                view != m_BoundViewportView || sampler != m_BoundViewportSampler;
-            if (m_ViewportTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
-                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
-                m_BoundViewportView = view;
-                m_BoundViewportSampler = sampler;
-            } else if (bindingsChanged) {
-                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
-                m_BoundViewportView = view;
-                m_BoundViewportSampler = sampler;
-            }
-        }
     }
 
     SyncRendererViewport();
@@ -194,8 +163,7 @@ void ViewportWidget::SyncRendererViewport() {
 }
 
 we::rhi::RHITextureHandle ViewportWidget::GetViewportColorTexture() const {
-    return m_ViewportRenderTarget ? m_ViewportRenderTarget->GetColorTexture()
-                                  : we::rhi::RHITextureHandle::Invalid;
+    return we::rhi::RHITextureHandle::Invalid;
 }
 
 bool ViewportWidget::HitTestGizmoReset(const Point& position) const {
@@ -229,7 +197,10 @@ void ViewportWidget::Paint(PaintContext& context) {
                 m_BoundViewportView = view;
                 m_BoundViewportSampler = sampler;
             } else if (bindingsChanged) {
-                m_uiRenderer->UpdateTexture(m_ViewportTextureSet, view, sampler);
+                if (m_ViewportTextureSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
+                    m_uiRenderer->UnregisterTexture(m_ViewportTextureSet);
+                }
+                m_ViewportTextureSet = m_uiRenderer->RegisterTexture(view, sampler);
                 m_BoundViewportView = view;
                 m_BoundViewportSampler = sampler;
             }

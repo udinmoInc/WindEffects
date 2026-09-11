@@ -9,6 +9,8 @@
 #include "WindEffects/Platform.h"
 #include "WindEffects/Runtime/CoreSDK.h"
 #include "Core/EngineWatchdog.h"
+#include "Core/ProductMetadata.h"
+#include "Core/ExecutableMetadata.h"
 #include "Platform/PlatformSDK.h"
 #include "Projects/EditorCommandLine.h"
 #include "Projects/EngineContext.h"
@@ -49,13 +51,19 @@ int main(int argc, char* argv[]) {
         we::platform::InitializeLogging();
         we::runtime::core::EngineWatchdog::Get().Initialize();
 
-        auto& platform = we::platform::Platform::Initialize({
-            .appName = "WindEffects Editor",
-            .highDpiAware = true,
-            .enableRawInput = true,
-            .enableGamepad = true,
-            .enableDiagnostics = true,
-        });
+        we::core::ProductMetadataService::Get().Initialize();
+        we::core::ExecutableMetadata::ConfigureAsEditor();
+
+        std::string appName = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
+        we::platform::PlatformDesc platformDesc;
+        platformDesc.appName = appName.c_str();
+        platformDesc.highDpiAware = true;
+        platformDesc.enableRawInput = true;
+        platformDesc.enableGamepad = true;
+        platformDesc.enableDiagnostics = true;
+
+        auto& platform = we::platform::Platform::Initialize(platformDesc);
 
         // Engine CWD stays at the executable — never chdir into a project.
         SetWorkingDirectoryToExecutable();
@@ -65,7 +73,12 @@ int main(int argc, char* argv[]) {
         we::projects::EngineContext::Get().Initialize(
             std::filesystem::path(platform.GetExecutableDirectory()));
 
-        HE_INFO("[Startup] === WindEffects Editor bootstrap begin ===");
+        std::string productDisplayName = "WindEffects";
+        if (we::core::ProductMetadataService::Get().IsInitialized()) {
+            productDisplayName = we::core::ProductMetadataService::Get().GetProduct().displayName;
+        }
+
+        HE_INFO("[Startup] === " + productDisplayName + " Editor bootstrap begin ===");
         HE_INFO(std::string("[Startup] Platform backend: ") + platform.GetName());
 
         // No project → hand off to WeLauncher.exe (never show an in-editor project UI).
@@ -132,17 +145,20 @@ int main(int argc, char* argv[]) {
 
         HE_INFO("[Startup] Engine successfully initialized and modules loaded.");
 
-        const auto windowResult = platform.CreateWindow({
-            .title = "WindEffects Editor",
-            .width = 1280,
-            .height = 720,
-            .resizable = true,
-            .maximized = true,
-            .borderless = true,
-            .visible = true,
-            .highDpi = true,
-            .acceptDropFiles = true,
-        });
+        std::string windowTitle = we::core::ProductMetadataService::Get().GetMetadata().GetExecutableDisplayName();
+
+        we::platform::WindowDesc windowDesc;
+        windowDesc.title = windowTitle.c_str();
+        windowDesc.width = 1280;
+        windowDesc.height = 720;
+        windowDesc.resizable = true;
+        windowDesc.maximized = true;
+        windowDesc.borderless = true;
+        windowDesc.visible = true;
+        windowDesc.highDpi = true;
+        windowDesc.acceptDropFiles = true;
+
+        const auto windowResult = platform.CreateWindow(windowDesc);
         if (!windowResult) {
             throw std::runtime_error(
                 std::string("Failed to create platform window: ") + windowResult.error.message);
@@ -169,7 +185,7 @@ int main(int argc, char* argv[]) {
         (void)platform.DestroyWindow(window);
         we::runtime::core::EngineWatchdog::Get().Shutdown();
         we::platform::Platform::Shutdown();
-        HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");
+        HE_INFO("[Startup] === " + productDisplayName + " Editor shutdown complete ===");
     } catch (const std::exception& e) {
         WE_LOG_CRITICAL(we::LogCategory::Crash.data(), std::string("Fatal exception: ") + e.what());
         we::runtime::core::Logger::ReportError("Fatal Exception", e.what(), true);

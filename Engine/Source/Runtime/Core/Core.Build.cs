@@ -25,7 +25,7 @@ public class Core : ModuleRules
         PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
         PlatformSettings.Windows.LinkerFlags.Add("dbghelp.lib");
 
-        // nlohmann/json is optional for Core - only needed for crash reporting
+        // nlohmann/json is optional for Core - needed for product metadata and crash reporting
         AddOptionalThirdParty("nlohmann_json");
         DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");
         DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");

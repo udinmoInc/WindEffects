@@ -10,6 +10,7 @@
 
 #include "Core/Logger.h"
 #include "Core/Paths.h"
+#include "Core/ProductMetadata.h"
 
 #include <cctype>
 #include <fstream>
@@ -96,6 +97,8 @@ void EngineContext::Initialize(const std::filesystem::path& executableDirectory)
             / we::core::layout::kTemplates / we::core::layout::kProjects;
     }
 
+    we::core::ProductMetadataService::Get().Initialize();
+
     m_EngineContentRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kContent;
     m_EngineConfigRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kConfig;
     m_EngineShadersRoot = m_EngineRoot / we::core::layout::kEngine / we::core::layout::kShaders;
@@ -133,7 +136,39 @@ void EngineContext::Shutdown() {
     m_EngineBinariesRoot.clear();
     m_TemplatesRoot.clear();
     m_EngineVersion = "0.0.0";
+    we::core::ProductMetadataService::Get().Shutdown();
     we::core::PathService::Get().Shutdown();
+}
+
+const std::string& EngineContext::EngineVersion() const {
+    if (we::core::ProductMetadataService::Get().IsInitialized()) {
+        return we::core::ProductMetadataService::Get().GetProduct().version;
+    }
+    return m_EngineVersion;
+}
+
+const std::string& EngineContext::ProductName() const {
+    if (we::core::ProductMetadataService::Get().IsInitialized()) {
+        return we::core::ProductMetadataService::Get().GetProduct().name;
+    }
+    static const std::string s_default = "WindEffects";
+    return s_default;
+}
+
+const std::string& EngineContext::CompanyName() const {
+    if (we::core::ProductMetadataService::Get().IsInitialized()) {
+        return we::core::ProductMetadataService::Get().GetCompany().name;
+    }
+    static const std::string s_default = "Udinmo, Inc.";
+    return s_default;
+}
+
+const std::string& EngineContext::Copyright() const {
+    if (we::core::ProductMetadataService::Get().IsInitialized()) {
+        return we::core::ProductMetadataService::Get().GetCompany().copyright;
+    }
+    static const std::string s_default = "© 2026 Udinmo, Inc. All rights reserved.";
+    return s_default;
 }
 
 } // namespace we::projects

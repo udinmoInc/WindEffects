@@ -10,6 +10,8 @@
 #include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 #include "Core/Paths.h"
+#include "Core/ProductMetadata.h"
+#include "Core/ExecutableMetadata.h"
 
 #if WE_HAS_NLOHMANN_JSON
 #include <nlohmann/json.h>
@@ -397,8 +399,34 @@ void Logger::SetupCrashHandler() {
     std::signal(SIGABRT, SignalHandler);
 #if defined(_WIN32)
     SetUnhandledExceptionFilter(EngineCrashHandler);
+    WriteCrashMetadata();
 #endif
 }
+
+#if defined(_WIN32)
+void Logger::WriteCrashMetadata() {
+    try {
+        if (!we::core::ProductMetadataService::Get().IsInitialized()) {
+            return;
+        }
+
+        const std::string metadata = we::core::ProductMetadataService::Get().Serialize();
+        if (metadata.empty() || metadata == "{}") {
+            return;
+        }
+
+        const auto crashesRoot = we::core::PathService::Get().CrashesRoot();
+        const auto metadataFile = std::filesystem::path(crashesRoot) / "crashed_app_metadata.json";
+
+        std::ofstream out(metadataFile);
+        if (out.is_open()) {
+            out << metadata;
+            out.close();
+        }
+    } catch (...) {
+    }
+}
+#endif
 
 #if defined(_WIN32)
 long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionInfo) {
@@ -521,6 +549,52 @@ void Logger::SignalHandler(int signal) {
     Log(Level::Critical, "Crash", "Fatal signal intercepted: " + sigName);
     Shutdown();
     std::exit(1);
+}
+
+void Logger::LogSystemInfo() {
+    Log(Level::Info, "System", "=== System Information ===");
+
+    if (we::core::ProductMetadataService::Get().IsInitialized()) {
+        const auto& metadata = we::core::ProductMetadataService::Get().GetMetadata();
+        Log(Level::Info, "System", "Product: " + metadata.product.displayName);
+        Log(Level::Info, "System", "Version: " + metadata.GetFullVersionString());
+        Log(Level::Info, "System", "Company: " + metadata.company.name);
+        Log(Level::Info, "System", "Engine GUID: " + metadata.engine.guid);
+        if (!metadata.engine.buildId.empty()) {
+            Log(Level::Info, "System", "Build ID: " + metadata.engine.buildId);
+        }
+        Log(Level::Info, "System", "Build Configuration: " + metadata.build.configuration);
+        Log(Level::Info, "System", "Build Timestamp: " + metadata.build.timestamp);
+
+        const auto& identity = metadata.executableIdentity;
+        if (!identity.fileDescription.empty()) {
+            Log(Level::Info, "System", "Executable: " + identity.fileDescription);
+            Log(Level::Info, "System", "Executable File: " + identity.originalFilename);
+        }
+    } else {
+        Log(Level::Warning, "System", "Product metadata not initialized");
+    }
+
+    // Platform information
+#if defined(_WIN32)
+    Log(Level::Info, "System", "Platform: Windows");
+    OSVERSIONINFOA osvi = { sizeof(OSVERSIONINFOA) };
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    if (GetVersionExA(&osvi)) {
+        Log(Level::Info, "System", "OS Version: " + std::to_string(osvi.dwMajorVersion) + "." +
+            std::to_string(osvi.dwMinorVersion) + " Build " + std::to_string(osvi.dwBuildNumber));
+    }
+#pragma warning(pop)
+#elif defined(__APPLE__)
+    Log(Level::Info, "System", "Platform: macOS");
+#elif defined(__linux__)
+    Log(Level::Info, "System", "Platform: Linux");
+#else
+    Log(Level::Info, "System", "Platform: Unknown");
+#endif
+
+    Log(Level::Info, "System", "=== End System Information ===");
 }
 
 } // namespace we::runtime::core

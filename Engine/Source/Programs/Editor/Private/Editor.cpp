@@ -9,6 +9,7 @@
 #include "Editor.h"
 #include "Framework/EditorApplicationFramework.h"
 #include "FirstRunAgreementPopup.h"
+#include "Core/ProductMetadata.h"
 #include "KindUI/Benchmark/KindUIBenchmark.h"
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
@@ -243,12 +244,16 @@ void Editor::SetRootWidget(const std::shared_ptr<we::runtime::kindui::Widget>& r
 
 void Editor::UpdateWindowTitle() {
     auto& platform = we::platform::Platform::Get();
+    const std::string editorTitle = we::core::ProductMetadataService::Get().IsInitialized()
+        ? we::core::ProductMetadataService::Get().GetProduct().displayName + " Editor"
+        : "WindEffects Editor";
+
     if (we::projects::ProjectContext::Get().IsLoaded()) {
         const auto& desc = we::projects::ProjectContext::Get().Descriptor();
         const std::string name = desc.displayName.empty() ? desc.projectName : desc.displayName;
-        platform.SetWindowTitle(m_Window, name + " - WindEffects Editor");
+        platform.SetWindowTitle(m_Window, name + " - " + editorTitle);
     } else {
-        platform.SetWindowTitle(m_Window, "WindEffects Editor");
+        platform.SetWindowTitle(m_Window, editorTitle);
     }
 }
 

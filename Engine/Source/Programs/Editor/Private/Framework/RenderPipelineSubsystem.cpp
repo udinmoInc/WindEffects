@@ -166,6 +166,15 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
         renderer->SetExtractedFrame(scene ? scene->GetExtractedFrame() : nullptr);
         ::we::editor::services::EditorPerfStats::Get().Mark("rhi");
 
+        if (auto vp = std::dynamic_pointer_cast<::we::editor::viewport::ViewportWidget>(
+                m_Host.GetHostViewportWidget())) {
+            if (vp->FlushPendingResize()) {
+                m_Host.HostHasRenderedScene() = false;
+                layoutOrResizeThisFrame = true;
+            }
+            vp->SyncRendererViewport();
+        }
+
         if (auto* overlay = m_Host.GetHostOverlayRenderer()) {
             const uint32_t imageIndex = renderer->GetCurrentImageIndex();
             const uint32_t frameSlot = renderer->GetRHIDevice()
@@ -175,15 +184,6 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
             overlay->SetTargetExtent(renderer->GetSwapchainWidth(), renderer->GetSwapchainHeight());
             overlay->RenderUI(m_Host.GetHostRootWidget(), frameSlot);
             ::we::editor::services::EditorPerfStats::Get().Mark("ui");
-
-            if (auto vp = std::dynamic_pointer_cast<::we::editor::viewport::ViewportWidget>(
-                    m_Host.GetHostViewportWidget())) {
-                if (vp->FlushPendingResize()) {
-                    m_Host.HostHasRenderedScene() = false;
-                    layoutOrResizeThisFrame = true;
-                }
-                vp->SyncRendererViewport();
-            }
 
             renderer->SetOverlayRecorder(
                 [this, renderer](const we::runtime::renderer::GraphPassContext& ctx,
