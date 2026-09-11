@@ -154,7 +154,7 @@ Panels can be rearranged, docked, undocked, or tabbed. Multiple workspace config
 - **Operating System**: Windows 10 or Windows 11 (64-bit)
 - **Compiler**: Visual Studio 2022 with C++ workload and latest updates
 - **.NET SDK**: .NET 8.0 SDK for building IgniteBT
-- **Vulkan SDK**: Latest Vulkan SDK for graphics development
+- **Vulkan SDK**: Latest Vulkan SDK for graphics development (optional - uses bundled headers by default)
 - **Git**: For version control
 - **CMake**: Optional; some third-party dependencies may use CMake
 
@@ -165,7 +165,23 @@ Panels can be rearranged, docked, undocked, or tabbed. Multiple workspace config
 3. Open a terminal in the repository root
 4. Run the setup command to configure the build environment
 
-The first build compiles IgniteBT and downloads dependencies, so it takes longer than subsequent builds.
+The first build compiles IgniteBT and discovers dependencies, so it takes longer than subsequent builds.
+
+### Optional Components
+
+The following components are optional and will be automatically disabled if their dependencies are unavailable:
+
+- **Crash Reporter**: Requires nlohmann/json library
+- **Asset Pipeline**: Requires nlohmann/json library
+- **Asset Importer**: Requires nlohmann/json library
+- **KindUI**: Requires nlohmann/json library
+- **GLM math library**: Optional for some runtime systems
+
+Missing optional dependencies will produce clear warning messages during build and the affected components will be disabled. The core engine will continue to build successfully.
+
+### SDK Configuration
+
+If you have SDKs in non-standard locations, configure paths by copying `IgniteBT.SDKs.json.example` to `IgniteBT.SDKs.json` and updating the paths. This file is gitignored to keep local configuration out of version control.
 
 ## Building the Engine
 
@@ -272,7 +288,8 @@ WindEffects/
 ├── we                       # Unix-style launcher script
 ├── we.bat                   # Windows batch launcher
 ├── we.ps1                   # PowerShell launcher
-└── IgniteBT.SDKs.json       # SDK configuration
+├── IgniteBT.SDKs.json.example # SDK configuration template
+└── IgniteBT.SDKs.json       # Local SDK configuration (gitignored)
 ```
 
 ### Source Organization
