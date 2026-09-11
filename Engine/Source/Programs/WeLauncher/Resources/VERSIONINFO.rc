@@ -1,4 +1,4 @@
-﻿// Auto-generated VERSIONINFO resource from ProductMetadata.json
+// Auto-generated VERSIONINFO resource from ProductMetadata.json
 // DO NOT EDIT - regenerate with Scripts/Generate-VersionInfo.ps1
 
 1 VERSIONINFO
@@ -22,7 +22,7 @@ BEGIN
             VALUE "FileDescription", "WindEffects Launcher"
             VALUE "FileVersion", "1.0.0.1001"
             VALUE "InternalName", "WeLauncher"
-            VALUE "LegalCopyright", "Â© 2026 Udinmo, Inc. All rights reserved."
+            VALUE "LegalCopyright", "© 2026 Udinmo, Inc. All rights reserved."
             VALUE "OriginalFilename", "WeLauncher.exe"
             VALUE "ProductName", "WindEffects Engine"
             VALUE "ProductVersion", "1.0.0.1001"

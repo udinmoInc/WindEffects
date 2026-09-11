@@ -6,7 +6,15 @@ param(
     [string]$ConfigPath = "Engine/Config/ProductMetadata.json"
 )
 
-$json = Get-Content $ConfigPath -Raw | ConvertFrom-Json
+$jsonBytes = [System.IO.File]::ReadAllBytes($ConfigPath)
+# Detect and remove BOM if present
+if ($jsonBytes.Length -ge 3 -and $jsonBytes[0] -eq 0xEF -and $jsonBytes[1] -eq 0xBB -and $jsonBytes[2] -eq 0xBF) {
+    $jsonBytes = $jsonBytes[3..$jsonBytes.Length]
+}
+$jsonContent = [System.Text.Encoding]::UTF8.GetString($jsonBytes)
+$json = $jsonContent | ConvertFrom-Json
+# Force copyright to correct value
+$json.company.copyright = "© 2026 Udinmo, Inc. All rights reserved."
 
 $productName = $json.product.name
 $productDisplayName = $json.product.displayName
@@ -56,7 +64,7 @@ BEGIN
             VALUE "FileDescription", "$FileDescription"
             VALUE "FileVersion", "$productVersion.$productBuild"
             VALUE "InternalName", "$InternalName"
-            VALUE "LegalCopyright", "$companyCopyright"
+            VALUE "LegalCopyright", "COPYRIGHT_PLACEHOLDER"
             VALUE "OriginalFilename", "$OriginalFilename"
             VALUE "ProductName", "$productDisplayName"
             VALUE "ProductVersion", "$productVersion.$productBuild"
@@ -96,8 +104,36 @@ foreach ($exe in $executables) {
         New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     }
     
-    $versionInfo | Out-File -FilePath $outputPath -Encoding UTF8
+    # Write with UTF-8 no BOM encoding
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($outputPath, $versionInfo, $utf8NoBom)
+    
+    # Post-process to replace copyright placeholder with correct UTF-8 bytes
+    $bytes = [System.IO.File]::ReadAllBytes($outputPath)
+    $placeholder = [System.Text.Encoding]::ASCII.GetBytes("COPYRIGHT_PLACEHOLDER")
+    $copyrightCorrect = [byte[]]@(0xC2, 0xA9, 0x20, 0x32, 0x30, 0x32, 0x36, 0x20, 0x55, 0x64, 0x69, 0x6e, 0x6d, 0x6f, 0x2c, 0x20, 0x49, 0x6e, 0x63, 0x2e, 0x20, 0x41, 0x6c, 0x6c, 0x20, 0x72, 0x69, 0x67, 0x68, 0x74, 0x73, 0x20, 0x72, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x64, 0x2e)
+    
+    for ($i = 0; $i -le $bytes.Length - $placeholder.Length; $i++) {
+        $match = $true
+        for ($j = 0; $j -lt $placeholder.Length; $j++) {
+            if ($bytes[$i + $j] -ne $placeholder[$j]) {
+                $match = $false
+                break
+            }
+        }
+        if ($match) {
+            $newBytes = [byte[]]::new($bytes.Length - $placeholder.Length + $copyrightCorrect.Length)
+            [Array]::Copy($bytes, 0, $newBytes, 0, $i)
+            [Array]::Copy($copyrightCorrect, 0, $newBytes, $i, $copyrightCorrect.Length)
+            [Array]::Copy($bytes, $i + $placeholder.Length, $newBytes, $i + $copyrightCorrect.Length, $bytes.Length - $i - $placeholder.Length)
+            [System.IO.File]::WriteAllBytes($outputPath, $newBytes)
+            break
+        }
+    }
+    
     Write-Host "Generated: $outputPath"
 }
+
+
 
 Write-Host "VERSIONINFO resources generated successfully."
