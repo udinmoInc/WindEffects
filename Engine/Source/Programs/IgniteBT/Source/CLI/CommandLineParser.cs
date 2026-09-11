@@ -330,7 +330,19 @@ public static class CommandSchemas
     public static readonly CommandSchema Run = new CommandSchema("run")
         .WithPositional("target")
         .WithOption("config", 'c', defaultValue: "Debug", description: "Build configuration")
-        .WithOption("target", 't', defaultValue: "Editor", description: "Executable target to run");
+        .WithOption("target", 't', defaultValue: "Editor", description: "Executable target to run")
+        .WithFlag("windbg", description: "Launch target under WinDbg native debugger")
+        .WithFlag("debug", 'd', description: "Launch target under WinDbg native debugger")
+        .WithFlag("cdb", description: "Use console debugger (cdb.exe)");
+
+    public static readonly CommandSchema Debug = new CommandSchema("debug")
+        .WithPositional("target")
+        .WithOption("config", 'c', defaultValue: "Debug", description: "Build configuration")
+        .WithOption("target", 't', defaultValue: "Editor", description: "Executable target to debug")
+        .WithOption("pid", description: "Process ID to attach WinDbg to")
+        .WithOption("dump", description: "Crash dump file (.dmp) to open in WinDbg")
+        .WithOption("args", description: "Arguments to pass to executable target")
+        .WithFlag("cdb", description: "Use console debugger (cdb.exe) instead of WinDbg GUI");
 
     public static readonly CommandSchema Package = new CommandSchema("package")
         .WithPositional("target")

@@ -134,9 +134,10 @@ void DesignButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void DesignButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && m_Pressed) {
+    if (event.button == MouseButton::Left) {
+        const bool wasPressed = m_Pressed;
         SetPressed(false);
-        if (IsEnabled() && m_OnClicked) {
+        if (IsEnabled() && (wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
             m_OnClicked();
         }
     }
@@ -144,8 +145,13 @@ void DesignButton::OnMouseUp(const MouseEvent& event) {
 
 void DesignButton::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && IsEnabled() ? 1.0f : 0.0f, ControlChrome::HoverDamping());
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, ControlChrome::PressDamping());
+    const float targetHover = m_Hovered && IsEnabled() ? 1.0f : 0.0f;
+    const float targetPress = m_Pressed ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    m_PressAnim = Animator::Damp(m_PressAnim, targetPress, ControlChrome::PressDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f || std::abs(m_PressAnim - targetPress) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -202,9 +208,10 @@ void IconButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void IconButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && m_Pressed) {
+    if (event.button == MouseButton::Left) {
+        const bool wasPressed = m_Pressed;
         SetPressed(false);
-        if (m_OnClicked) {
+        if ((wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
             m_OnClicked();
         }
     }
@@ -212,8 +219,13 @@ void IconButton::OnMouseUp(const MouseEvent& event) {
 
 void IconButton::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, ControlChrome::PressDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    const float targetPress = m_Pressed ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    m_PressAnim = Animator::Damp(m_PressAnim, targetPress, ControlChrome::PressDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f || std::abs(m_PressAnim - targetPress) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -267,7 +279,11 @@ void Card::Paint(PaintContext& context) {
 
 void Card::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -419,7 +435,11 @@ void SearchBoxControl::Paint(PaintContext& context) {
 
 void SearchBoxControl::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -521,7 +541,11 @@ void PanelTab::OnMouseUp(const MouseEvent& event) {
 }
 
 void PanelTab::Tick(float deltaTime) {
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -609,7 +633,11 @@ void SidebarItem::OnMouseUp(const MouseEvent& event) {
 
 void SidebarItem::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && !m_Active ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered && !m_Active ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 
@@ -669,7 +697,11 @@ void TableRowBase::Paint(PaintContext& context) {
 
 void TableRowBase::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered && !m_Selected ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered && !m_Selected ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
     Widget::Tick(deltaTime);
 }
 

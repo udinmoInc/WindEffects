@@ -91,6 +91,8 @@ public:
     std::shared_ptr<ContentBrowserModel> GetModel() { return m_Model; }
     std::shared_ptr<ContentBrowserController> GetController() { return m_Controller; }
 
+    void UpdateItemIcon(const std::string& id, we::rhi::RHIDescriptorSetHandle texture);
+
 private:
     struct RenderItem {
         ContentItem item;

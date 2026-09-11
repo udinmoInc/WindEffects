@@ -62,6 +62,7 @@ class Program
                 "rebuild" => await RebuildCommand.Execute(remainingArgs),
                 "package" => await PackageCommand.Execute(remainingArgs),
                 "run" => await RunCommand.Execute(remainingArgs),
+                "debug" or "windbg" => await DebugCommand.Execute(remainingArgs),
                 "project" => await ProjectCommand.Execute(remainingArgs),
                 "plugin" => await PluginCommand.Execute(remainingArgs),
                 "sdk" => await SdkCommand.Execute(remainingArgs),
@@ -118,7 +119,9 @@ class Program
         Console.WriteLine("  we clean [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac]");
         Console.WriteLine("  we rebuild [target] [--target NAME] [--config Debug|Development|Shipping] [--platform Win64|Windows|Linux|Mac] [--jobs N] [--unity]");
         Console.WriteLine("  we package [--target Editor] [--config Shipping] [--platform Win64] [--skip-build]");
-        Console.WriteLine("  we run [--target Editor] [--config Debug]");
+        Console.WriteLine("  we run [--target Editor] [--config Debug] [--windbg]");
+        Console.WriteLine("  we debug [target] [--target Editor] [--config Debug] [--pid PID] [--dump PATH] [--cdb]");
+        Console.WriteLine("  we windbg [target] [--config Debug] [--pid PID] [--dump PATH]");
         Console.WriteLine("  we sdk list|detect|validate");
         Console.WriteLine("  we setup");
         Console.WriteLine("  we doctor");

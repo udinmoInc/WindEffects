@@ -7,12 +7,14 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Editor.h"
+#include "Core/DiagnosticMacros.h"
 #include "Core/Logger.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Environment/EnvironmentSystem.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Theming/ThemeManager.h"
@@ -66,44 +68,65 @@ void Editor::UpdateUiScaleFromWindow() {
 }
 
 void Editor::EnsureVisibleSwapchain() {
+    // Nested focus/resize/command callbacks collapse into one pass.
+    if (m_EnsureSwapchainInProgress) {
+        m_EnsureSwapchainPending = true;
+        HE_DEBUG("[Render] EnsureVisibleSwapchain coalesced (in-progress)");
+        return;
+    }
+
     if (!m_Renderer) {
         return;
     }
-    auto& platform = we::platform::Platform::Get();
-    if (platform.IsWindowMinimized(m_Window)) {
-        return;
-    }
-    auto pixelSize = platform.GetWindowPixelSize(m_Window);
-    if (pixelSize.x == 0 || pixelSize.y == 0) {
-        const auto logical = platform.GetWindowSize(m_Window);
-        pixelSize = {logical.x, logical.y};
-    }
 
-    const int width = static_cast<int>(pixelSize.x);
-    const int height = static_cast<int>(pixelSize.y);
+    m_EnsureSwapchainInProgress = true;
+    do {
+        m_EnsureSwapchainPending = false;
 
-    if (width <= 0 || height <= 0) {
-        HE_ERROR("[Render] Window still reports zero size — UI layout empty until resized.");
-        return;
-    }
+        auto& platform = we::platform::Platform::Get();
+        if (platform.IsWindowMinimized(m_Window)) {
+            m_ForceSwapchainRecreate = false;
+            break;
+        }
+        auto pixelSize = platform.GetWindowPixelSize(m_Window);
+        if (pixelSize.x == 0 || pixelSize.y == 0) {
+            const auto logical = platform.GetWindowSize(m_Window);
+            pixelSize = {logical.x, logical.y};
+        }
 
-    // Always recreate on restore: size may match the stale extent while the
-    // Vulkan swapchain is still out-of-date after minimize.
-    const bool sizeChanged =
-        width != static_cast<int>(m_Renderer->GetSwapchainWidth()) ||
-        height != static_cast<int>(m_Renderer->GetSwapchainHeight());
-    const bool force = m_ForceSwapchainRecreate;
-    m_ForceSwapchainRecreate = false;
-    if (sizeChanged || force) {
-        HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
-            std::to_string(height) + ")...");
-        m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-        HE_INFO("[Render] Swapchain recreated for visible window.");
-        m_HasRenderedScene = false;
-        m_LastLayoutSwapchainW = 0;
-        m_LastLayoutSwapchainH = 0;
-        we::runtime::kindui::UIRepaintGate::Request();
-    }
+        const int width = static_cast<int>(pixelSize.x);
+        const int height = static_cast<int>(pixelSize.y);
+
+        if (width <= 0 || height <= 0) {
+            HE_ERROR("[Render] Window still reports zero size — UI layout empty until resized.");
+            m_ForceSwapchainRecreate = false;
+            break;
+        }
+
+        // Recreate swapchain when size changes or when force-requested (focus/restore).
+        const bool sizeChanged =
+            width != static_cast<int>(m_Renderer->GetSwapchainWidth()) ||
+            height != static_cast<int>(m_Renderer->GetSwapchainHeight());
+        const bool forceRecreate = m_ForceSwapchainRecreate;
+
+        if (sizeChanged || forceRecreate) {
+            HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
+                std::to_string(height) + ") force=" + std::to_string(forceRecreate ? 1 : 0) + "...");
+            m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+            HE_INFO("[Render] Swapchain recreated for visible window.");
+            m_HasRenderedScene = false;
+            m_LastLayoutSwapchainW = 0;
+            m_LastLayoutSwapchainH = 0;
+            m_ForceSwapchainRecreate = false;
+            we::runtime::kindui::UIRepaintGate::Request();
+        } else {
+            // Duplicate focus/tab activation with identical extent — skip recreate.
+            m_ForceSwapchainRecreate = false;
+        }
+    } while (m_EnsureSwapchainPending);
+
+    m_EnsureSwapchainInProgress = false;
+    m_EnsureSwapchainPending = false;
 }
 
 bool Editor::SyncViewportFramebufferFromLayout() {
@@ -162,14 +185,9 @@ void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, cons
     widget->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
 
     const Rect geom = widget->GetGeometry();
-    std::string indent(depth * 2, ' ');
-    HE_INFO("[UI] " + indent + name + " visible=" + (widget->IsVisible() ? "yes" : "no")
-        + " geometry=" + std::to_string(static_cast<int>(geom.x)) + ","
-        + std::to_string(static_cast<int>(geom.y)) + " "
-        + std::to_string(static_cast<int>(geom.width)) + "x"
-        + std::to_string(static_cast<int>(geom.height)));
 
     if (geom.width <= 0.0f || geom.height <= 0.0f) {
+        std::string indent(depth * 2, ' ');
         HE_ERROR("[UI] " + indent + name + " has ZERO size - will not paint visible content.");
     }
 
@@ -180,6 +198,7 @@ void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, cons
 
 void Editor::CreateNewLevel() {
     if (!m_Scene) {
+        HE_ERROR("[Editor] New Level failed — scene is null.");
         return;
     }
 
@@ -188,6 +207,12 @@ void Editor::CreateNewLevel() {
         we::runtime::world::environment::EnvironmentSystem::Get().EnsureDefaultEnvironment();
     }
     ::we::editor::environment::TickEditor();
+    m_HasRenderedScene = false;
+    we::runtime::kindui::UIRepaintGate::Request();
+    HE_INFO("[Editor] New Level — scene cleared.");
+    if (we::runtime::kindui::ScreenRecorder::IsRecordingEnabled()) {
+        we::runtime::kindui::ScreenRecorder::Get().RecordEvent("[Editor] New Level");
+    }
 }
 
 void Editor::ProcessLateInputMouse() {

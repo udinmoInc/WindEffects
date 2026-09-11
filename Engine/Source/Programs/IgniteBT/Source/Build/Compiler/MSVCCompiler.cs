@@ -354,7 +354,8 @@ exit /b %ERRORLEVEL%
             args.Add("/Zi");
             if (options.Configuration == BuildConfiguration.Debug)
             {
-                args.Add("/MDd");
+                args.Add("/MD");
+                args.Add("/D_ITERATOR_DEBUG_LEVEL=0");
             }
             else
             {

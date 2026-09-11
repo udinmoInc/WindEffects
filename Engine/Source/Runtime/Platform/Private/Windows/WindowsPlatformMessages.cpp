@@ -16,6 +16,7 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
+#include "Core/LoopExecutionTrace.h"
 
 #include <commdlg.h>
 #include <dwmapi.h>
@@ -26,6 +27,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 
 namespace we::platform {
 LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -46,15 +48,14 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_SETFOCUS:
         if (window) {
+            window->focused = true;
             PushEvent(WindowFocusEvent{window->id, true});
         }
         return 0;
 
     case WM_KILLFOCUS:
-        // Only real focus loss — do NOT treat WM_CAPTURECHANGED as unfocus.
-        // Capture changes on every click/drag and was clearing UI input mid-click,
-        // then after alt-tab the editor looked permanently dead.
         if (window) {
+            window->focused = false;
             PushEvent(WindowFocusEvent{window->id, false});
         }
         m_Keys.fill(false);
@@ -62,12 +63,26 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         if (GetCapture() == hwnd) {
             ReleaseCapture();
         }
-        ClipCursor(nullptr);
         if (window && window->relativeMouse) {
             window->relativeMouse = false;
             SetCursorVisible(true);
         }
         return 0;
+
+    case WM_ACTIVATE:
+        // Keep focused flag in sync even when SETFOCUS is delayed on borderless popups.
+        // Do not PushEvent here — SETFOCUS/KILLFOCUS already emit WindowFocusEvent.
+        // Do NOT call SetForegroundWindow here — it fights the shell and can re-enter
+        // activate/focus messages while another app is taking foreground.
+        if (window) {
+            window->focused = LOWORD(wParam) != WA_INACTIVE;
+        }
+        return 0;
+
+    case WM_MOUSEACTIVATE:
+        // Let DefWindowProc activate normally. Do not mark focused=true here —
+        // that bypassed KILLFOCUS and made Present() run while occluded (startup hang).
+        return MA_ACTIVATE;
 
     case WM_CAPTURECHANGED:
     case WM_CANCELMODE:
@@ -77,7 +92,6 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         if (GetCapture() == hwnd) {
             ReleaseCapture();
         }
-        ClipCursor(nullptr);
         if (window && window->relativeMouse) {
             window->relativeMouse = false;
             SetCursorVisible(true);
@@ -189,14 +203,10 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         default: break;
         }
         TrackMouseButton(button, pressed);
-        if (pressed) {
-            SetCapture(hwnd);
-        } else {
-            bool anyDown = false;
-            for (bool b : m_MouseButtons) {
-                if (b) { anyDown = true; break; }
-            }
-            if (!anyDown && GetCapture() == hwnd) {
+        if (window && window->relativeMouse) {
+            if (pressed) {
+                SetCapture(hwnd);
+            } else if (GetCapture() == hwnd) {
                 ReleaseCapture();
             }
         }
@@ -215,11 +225,10 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         if (window) {
             if (!m_CursorInWindow) {
                 m_CursorInWindow = true;
+                TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0 };
+                TrackMouseEvent(&tme);
                 PushEvent(CursorEnterEvent{window->id, true});
             }
-            // Arm WM_MOUSELEAVE so the editor can clear hover when the cursor leaves.
-            TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0 };
-            TrackMouseEvent(&tme);
             PushEvent(MouseMoveEvent{
                 window->id,
                 {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)},
@@ -229,28 +238,94 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         }
         return 0;
 
+    case WM_NCMOUSEMOVE:
+        if (window) {
+            POINT pt{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            ScreenToClient(hwnd, &pt);
+            if (!m_CursorInWindow) {
+                m_CursorInWindow = true;
+                TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE | TME_NONCLIENT, hwnd, 0 };
+                TrackMouseEvent(&tme);
+                PushEvent(CursorEnterEvent{window->id, true});
+            }
+            PushEvent(MouseMoveEvent{
+                window->id,
+                {pt.x, pt.y},
+                {},
+                false
+            });
+        }
+        break;
+
+    case WM_NCMOUSELEAVE:
     case WM_MOUSELEAVE:
         if (window) {
-            // Verify cursor is actually outside the window client area before firing leave.
-            // Windows can generate spurious WM_MOUSELEAVE when moving within the window.
-            POINT cursorPos;
-            GetCursorPos(&cursorPos);
-            RECT clientRect;
-            GetClientRect(hwnd, &clientRect);
-            POINT clientPt = cursorPos;
-            ScreenToClient(hwnd, &clientPt);
-            bool outside = clientPt.x < 0 || clientPt.y < 0 ||
-                           clientPt.x >= clientRect.right || clientPt.y >= clientRect.bottom;
-            if (outside) {
+            if (m_CursorInWindow) {
                 m_CursorInWindow = false;
                 PushEvent(CursorEnterEvent{window->id, false});
-            } else {
-                // Cursor still inside — re-arm leave tracking and keep m_CursorInWindow = true.
-                TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0 };
-                TrackMouseEvent(&tme);
             }
         }
         return 0;
+
+    case WM_NCLBUTTONDOWN:
+        if (window && wParam == HTCAPTION) {
+            POINT pt{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            ScreenToClient(hwnd, &pt);
+            PushEvent(MouseButtonEvent{
+                window->id,
+                MouseButton::Left,
+                QueryModifiers(),
+                true,
+                {pt.x, pt.y},
+                1
+            });
+        }
+        break;
+
+    case WM_NCLBUTTONUP:
+        if (window && wParam == HTCAPTION) {
+            POINT pt{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            ScreenToClient(hwnd, &pt);
+            PushEvent(MouseButtonEvent{
+                window->id,
+                MouseButton::Left,
+                QueryModifiers(),
+                false,
+                {pt.x, pt.y},
+                1
+            });
+        }
+        break;
+
+    case WM_NCRBUTTONDOWN:
+        if (window && wParam == HTCAPTION) {
+            POINT pt{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            ScreenToClient(hwnd, &pt);
+            PushEvent(MouseButtonEvent{
+                window->id,
+                MouseButton::Right,
+                QueryModifiers(),
+                true,
+                {pt.x, pt.y},
+                1
+            });
+        }
+        break;
+
+    case WM_NCRBUTTONUP:
+        if (window && wParam == HTCAPTION) {
+            POINT pt{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            ScreenToClient(hwnd, &pt);
+            PushEvent(MouseButtonEvent{
+                window->id,
+                MouseButton::Right,
+                QueryModifiers(),
+                false,
+                {pt.x, pt.y},
+                1
+            });
+        }
+        break;
 
     case WM_MOUSEWHEEL:
         if (window) {
@@ -349,14 +424,25 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 }
 
 bool WindowsPlatform::PollEvents() {
+    we::runtime::core::LoopExecutionTrace::Scoped scope("Windows.PollEvents.PeekMessage");
     MSG msg{};
-    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    // Process all pending messages to ensure focus restoration events are handled immediately
+    // This prevents the editor from becoming unresponsive when returning from unfocused-idle state
+    uint32_t dispatched = 0;
+    constexpr uint32_t kMaxMessagesPerPoll = 256;
+    while (dispatched < kMaxMessagesPerPoll && PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
+            we::runtime::core::LoopExecutionTrace::Event("Windows.WM_QUIT", "PostQuit()");
             PostQuit();
             break;
         }
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+        ++dispatched;
+    }
+    if (we::runtime::core::LoopExecutionTrace::IsEnabled() && dispatched > 0) {
+        we::runtime::core::LoopExecutionTrace::Event(
+            "Windows.PeekMessage", "dispatched=" + std::to_string(dispatched));
     }
     PollGamepads();
     PollDirectoryWatchers();

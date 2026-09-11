@@ -23,6 +23,7 @@ public class Core : ModuleRules
         Definitions.Add("CORE_EXPORTS");
         PlatformSettings.Windows ??= new WindowsSettings();
         PlatformSettings.Windows.LinkerFlags.Add("delayimp.lib");
+        PlatformSettings.Windows.LinkerFlags.Add("dbghelp.lib");
 
         // nlohmann/json is optional for Core - only needed for crash reporting
         AddOptionalThirdParty("nlohmann_json");

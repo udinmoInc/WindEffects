@@ -107,31 +107,65 @@ bool WindowsPlatform::Initialize(const PlatformDesc& desc) {
     if (m_Initialized) {
         return true;
     }
+
+    WE_LOG_INFO(we::LogCategory::Startup, "WindowsPlatform::Initialize started");
+
     m_Instance = GetModuleHandleW(nullptr);
+    if (!m_Instance) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "GetModuleHandleW failed");
+        return false;
+    }
+    WE_LOG_INFO(we::LogCategory::Startup, "GetModuleHandleW succeeded");
+
     QueryPerformanceFrequency(&m_QpcFrequency);
     QueryPerformanceCounter(&m_QpcStart);
+    WE_LOG_INFO(we::LogCategory::Startup, "Performance counters initialized");
 
     if (desc.highDpiAware) {
+        WE_LOG_INFO(we::LogCategory::Startup, "Enabling DPI awareness");
         EnableDpiAwareness();
     }
 
     // COM is required for modern file/folder dialogs and shell APIs.
+    WE_LOG_INFO(we::LogCategory::Startup, "Initializing COM");
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    WE_LOG_INFO(we::LogCategory::Startup, "COM initialized");
 
+    WE_LOG_INFO(we::LogCategory::Startup, "Calling PlatformBackendBase::Initialize");
     if (!PlatformBackendBase::Initialize(desc)) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "PlatformBackendBase::Initialize failed");
         return false;
     }
+    WE_LOG_INFO(we::LogCategory::Startup, "PlatformBackendBase::Initialize succeeded");
 
+    WE_LOG_INFO(we::LogCategory::Startup, "Populating capabilities");
     PopulateCapabilities();
+    WE_LOG_INFO(we::LogCategory::Startup, "Capabilities populated");
+
+    WE_LOG_INFO(we::LogCategory::Startup, "Registering window class");
     RegisterWindowClass();
+    WE_LOG_INFO(we::LogCategory::Startup, "Window class registered");
+
+    WE_LOG_INFO(we::LogCategory::Startup, "Loading default cursor");
     m_CurrentCursor = LoadCursorW(nullptr, IDC_ARROW);
+    if (!m_CurrentCursor) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "LoadCursorW failed");
+    } else {
+        WE_LOG_INFO(we::LogCategory::Startup, "Default cursor loaded");
+    }
+
     m_Keys.fill(false);
     m_MouseButtons.fill(false);
+    WE_LOG_INFO(we::LogCategory::Startup, "Input state initialized");
+
     if (!m_ClassRegistered) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "Failed to register Win32 window class.");
         MakeError(PlatformErrorCode::OsFailure, "Failed to register Win32 window class.", "Initialize",
             static_cast<int32_t>(::GetLastError()));
         return false;
     }
+
+    WE_LOG_INFO(we::LogCategory::Startup, "WindowsPlatform::Initialize completed successfully");
     ClearLastError();
     return true;
 }

@@ -36,6 +36,8 @@
 #include <memory>
 #include <sstream>
 
+#include <unordered_set>
+
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
@@ -64,41 +66,85 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> MakeSection(const std::s
     return node;
 }
 
-std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(const AssetRecord* folder) {
+void CollectExpandedNodes(const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& node, std::unordered_set<std::string>& outExpanded) {
+    if (!node) return;
+    if (node->expanded) {
+        outExpanded.insert(node->id);
+    }
+    for (const auto& child : node->children) {
+        CollectExpandedNodes(child, outExpanded);
+    }
+}
+
+std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(
+    const AssetRecord* folder,
+    const std::unordered_set<std::string>& expandedPaths,
+    const std::string& currentFolder)
+{
     auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
     node->id = folder->id;
     node->label = folder->name;
-    node->expanded = folder->virtualPath == "/Game";
+    const bool isCurrentFolderOrParent = (currentFolder == folder->virtualPath) ||
+        (currentFolder.rfind(folder->virtualPath + "/", 0) == 0);
+    const bool wasExpanded = expandedPaths.find(folder->virtualPath) != expandedPaths.end();
+    node->expanded = (folder->virtualPath == "/Game") || isCurrentFolderOrParent || wasExpanded;
     node->icon = node->expanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
-        if (child->isFolder) node->children.push_back(BuildFolderNode(child));
+        if (child->isFolder) node->children.push_back(BuildFolderNode(child, expandedPaths, currentFolder));
     }
     return node;
 }
 
-void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree) {
-    auto root = std::make_shared<::we::editor::contentbrowser::TreeNode>();
-    root->id = "root";
-    root->label = "Content";
-    root->expanded = true;
+void SyncFolderTreeSelection(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree, const std::string& virtualPath) {
+    if (!tree) return;
 
-    root->children.push_back(MakeSection("__favorites__", "Favorites", WindIcons::Star16));
-    root->children.push_back(MakeSection("__collections__", "Collections", WindIcons::Layers16));
-    root->children.push_back(MakeSection("__plugins__", "Plugins", WindIcons::Plugin16));
-    root->children.push_back(MakeSection("__engine__", "Engine Content", WindIcons::Globe16, false));
+    std::function<bool(const std::shared_ptr<::we::editor::contentbrowser::TreeNode>&)> expandPath =
+        [&](const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& node) -> bool {
+            if (!node) return false;
+            if (node->id == virtualPath) return true;
+            for (const auto& child : node->children) {
+                if (expandPath(child)) {
+                    node->expanded = true;
+                    node->icon = WindIcons::FolderOpenMask16;
+                    return true;
+                }
+            }
+            return false;
+        };
 
-    auto project = MakeSection("__project__", "Project Content", WindIcons::FolderMask16, true);
-    if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
-        project->children.push_back(BuildFolderNode(game));
+    if (auto root = tree->GetRoot()) {
+        expandPath(root);
     }
-    root->children.push_back(project);
-
-    tree->SetRoot(root);
+    tree->SetSelectedId(virtualPath);
+    tree->RefreshLayout();
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string&
-    virtualPath) {
+void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree) {
+    if (!tree) return;
+    std::unordered_set<std::string> expanded;
+    if (tree->GetRoot()) {
+        CollectExpandedNodes(tree->GetRoot(), expanded);
+    }
+    const std::string currentFolder = ContentBrowserService::Get().GetCurrentFolder();
+    if (const auto* game = ContentAssetRegistry::Get().FindByVirtualPath("/Game")) {
+        auto root = BuildFolderNode(game, expanded, currentFolder);
+        root->label = "Content";
+        root->expanded = true;
+        tree->SetRoot(root);
+    } else {
+        auto root = std::make_shared<::we::editor::contentbrowser::TreeNode>();
+        root->id = "/Game";
+        root->label = "Content";
+        root->expanded = true;
+        root->icon = WindIcons::FolderOpenMask16;
+        tree->SetRoot(root);
+    }
+    const std::string selectedId = (ContentAssetRegistry::Get().FindByVirtualPath(currentFolder) != nullptr) ? currentFolder : "/Game";
+    SyncFolderTreeSelection(tree, selectedId);
+}
+
+void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
     if (!breadcrumb) return;
     std::vector<std::string> crumbs;
     crumbs.push_back("All");
@@ -174,7 +220,8 @@ void NavigateToFolder(const std::string& virtualPath,
 void WireContentBrowser(
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
     const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox = nullptr)
+    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox,
+    std::function<void(const std::string&, bool)> onNavigateFolder)
 {
     auto& service = ContentBrowserService::Get();
     service.RefreshBrowserModel(browser->GetModel());
@@ -185,12 +232,11 @@ void WireContentBrowser(
     browser->SetOnVisibleItemsChanged([&service](const std::unordered_set<std::string>& ids) {
         service.SetVisibleItemIds(ids);
     });
-    browser->SetOnItemDoubleClicked([&service, browser, breadcrumb,
-        searchBox](const ::we::editor::contentbrowser::ContentItem& item) {
-        if (item.isFolder) NavigateToFolder(item.path, browser, breadcrumb, searchBox);
+    browser->SetOnItemDoubleClicked([onNavigateFolder](const ::we::editor::contentbrowser::ContentItem& item) {
+        if (item.isFolder && onNavigateFolder) onNavigateFolder(item.path, true);
     });
     service.SetOnThumbnailReady([browser](const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
-        if (browser->GetController()) browser->GetController()->UpdateItemIcon(id, texture);
+        if (browser) browser->UpdateItemIcon(id, texture);
     });
 }
 
@@ -294,9 +340,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     auto panel = PanelBuilder(title)
         .TabIcon(WindIcons::FolderSearch16)
         .WithCloseButton([]() {
-            if (EditorWorkspaceController::Get().IsContentBrowserExpanded()) {
-                EditorWorkspaceController::Get().ToggleContentBrowserExpanded();
-            }
+            EditorWorkspaceController::Get().SetPanelVisible("ContentBrowser", false);
         })
         .Content(mainColumn);
 
@@ -328,9 +372,10 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
         *historyIndex = static_cast<int>(history->size()) - 1;
     };
 
-    auto doNavigate = [contentBrowser, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path,
+    auto doNavigate = [contentBrowser, folderTree, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path,
         bool recordHistory = true) {
         NavigateToFolder(path, contentBrowser, breadcrumb, searchBox);
+        SyncFolderTreeSelection(folderTree, path);
         if (recordHistory) {
             pushHistory(path);
         }
@@ -338,7 +383,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     };
 
     RefreshFolderTree(folderTree);
-    WireContentBrowser(contentBrowser, breadcrumb, searchBox);
+    WireContentBrowser(contentBrowser, breadcrumb, searchBox, doNavigate);
     doNavigate(ContentBrowserService::Get().GetCurrentFolder(), true);
 
     // Wire up navigation buttons (Back, Forward, Folder, Breadcrumb)
@@ -400,23 +445,30 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     folderTree->SetOnSelectionChanged([doNavigate](const std::vector<std::string>& ids) {
         if (ids.empty()) return;
         const std::string& id = ids.front();
-        if (id == "__project__") {
+        if (id == "__project__" || id == "/Game") {
             doNavigate("/Game", true);
             return;
         }
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
-        if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        doNavigate(asset->virtualPath, true);
+        if (asset && asset->isFolder && asset->id.rfind("__", 0) != 0) {
+            doNavigate(asset->virtualPath, true);
+        } else if (!id.empty() && id.rfind("__", 0) != 0) {
+            doNavigate(id, true);
+        }
     });
 
     folderTree->SetOnItemDoubleClicked([doNavigate](const std::string& id) {
-        if (id == "__project__") {
+        if (id.empty()) return;
+        if (id == "__project__" || id == "/Game") {
             doNavigate("/Game", true);
             return;
         }
         const auto* asset = ContentAssetRegistry::Get().FindById(id);
-        if (!asset || !asset->isFolder || asset->id.rfind("__", 0) == 0) return;
-        doNavigate(asset->virtualPath, true);
+        if (asset && asset->isFolder && asset->id.rfind("__", 0) != 0) {
+            doNavigate(asset->virtualPath, true);
+        } else if (!id.empty() && id.rfind("__", 0) != 0) {
+            doNavigate(id, true);
+        }
     });
 
     ContentAssetRegistry::Get().SetOnRegistryRefreshed([folderTree, doNavigate]() {

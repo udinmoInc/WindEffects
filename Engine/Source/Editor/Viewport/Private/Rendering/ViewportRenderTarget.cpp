@@ -49,6 +49,9 @@ void ViewportRenderTarget::Recreate() {
     if (!m_Device || m_Width == 0 || m_Height == 0) {
         return;
     }
+    if (m_ColorTexture != we::rhi::RHITextureHandle::Invalid || m_DepthTexture != we::rhi::RHITextureHandle::Invalid) {
+        (void)m_Device->WaitIdle();
+    }
     if (m_ColorTexture != we::rhi::RHITextureHandle::Invalid) {
         (void)m_Device->DestroyTexture(m_ColorTexture);
         m_ColorTexture = we::rhi::RHITextureHandle::Invalid;

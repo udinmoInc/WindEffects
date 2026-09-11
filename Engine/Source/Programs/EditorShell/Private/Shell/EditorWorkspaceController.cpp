@@ -159,9 +159,30 @@ std::shared_ptr<::we::runtime::kindui::docking::DockContainer> EditorWorkspaceCo
 void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool visible) {
     const auto it = m_Panels.find(panelId);
     if (it == m_Panels.end() || !it->second.panel) {
+        WE_LOG_WARN(we::LogCategory::General.data(),
+            "[Workspace] SetPanelVisible failed: unknown panel '" + panelId + "'");
         return;
     }
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        "[Workspace] SetPanelVisible: panel=" + panelId + " visible=" + (visible ? "true" : "false"));
     we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
+
+    if (panelId == "ContentBrowser" && visible && !m_ContentBrowserExpanded) {
+        m_ContentBrowserExpanded = true;
+        if (m_Layout.rootVerticalSplitter) {
+            const float targetHeight = SanitizeContentBrowserHeight(m_ContentBrowserBottomHeight);
+            WE_LOG_INFO(we::LogCategory::General.data(),
+                "[Workspace] Expanding Content Browser via SetPanelVisible: targetHeight=" + std::to_string(targetHeight));
+            m_Layout.rootVerticalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
+            m_Layout.rootVerticalSplitter->SetFixedSecondWidth(targetHeight);
+        }
+    }
+
+    if (panelId == "Tools") {
+        if (::we::editor::shell::EditorModeController::Get().IsDrawerVisible() != visible) {
+            ::we::editor::shell::EditorModeController::Get().SetDrawerVisible(visible);
+        }
+    }
 
     if (it->second.floating && !visible) {
         DetachPanelFromFloatHost(it->second);
@@ -1001,20 +1022,31 @@ void EditorWorkspaceController::FocusViewportNavigationPanel() {
 
 void EditorWorkspaceController::ToggleContentBrowserExpanded() {
     if (!m_Layout.rootVerticalSplitter) {
+        WE_LOG_WARN(we::LogCategory::General.data(),
+            "[Workspace] ToggleContentBrowserExpanded failed: rootVerticalSplitter is null.");
         return;
     }
 
     auto splitter = m_Layout.rootVerticalSplitter;
-    m_ContentBrowserExpanded = !m_ContentBrowserExpanded;
+    const bool nextExpanded = !m_ContentBrowserExpanded;
+    const float prevHeight = splitter->GetFixedSecondWidth();
+    m_ContentBrowserExpanded = nextExpanded;
     if (m_ContentBrowserExpanded) {
+        const float targetHeight = m_ContentBrowserBottomHeight > 0.0f ? m_ContentBrowserBottomHeight : 240.0f;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[Workspace] Expanding Content Browser: targetHeight=" + std::to_string(targetHeight)
+            + " prevHeight=" + std::to_string(prevHeight));
         splitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
-        splitter->SetFixedSecondWidth(
-            m_ContentBrowserBottomHeight > 0.0f ? m_ContentBrowserBottomHeight : 240.0f);
+        splitter->SetFixedSecondWidth(targetHeight);
+        SetPanelVisible("ContentBrowser", true);
     } else {
         m_ContentBrowserBottomHeight = splitter->GetFixedSecondWidth();
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[Workspace] Collapsing Content Browser: savedHeight=" + std::to_string(m_ContentBrowserBottomHeight));
         splitter->SetFixedSecondWidth(0.0f);
     }
 
+    UpdateEmptyDockVisibility();
     we::runtime::kindui::UIRepaintGate::RequestLayout();
 }
 

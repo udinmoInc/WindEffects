@@ -9,7 +9,7 @@ IgniteBT provides a command-line interface through the `we` launcher for buildin
 | Category | Commands | Purpose |
 |----------|----------|---------|
 | Build Operations | `build`, `clean`, `rebuild`, `package` | Create and manage build artifacts |
-| Execution | `run`, `daemon` | Execute programs and background services |
+| Execution | `run`, `debug`, `windbg`, `daemon` | Execute programs, start native debugging sessions, and background services |
 | Project Management | `project`, `plugin`, `modules` | Project-level operations |
 | SDK Management | `sdk`, `setup` | SDK detection, validation, environment setup |
 | Diagnostics | `doctor`, `version`, `graph`, `benchmark` | Diagnose issues and analyze performance |
@@ -158,6 +158,8 @@ we run [options]
 |-----------|-------------|---------|
 | `--target <NAME>` | Target to run | Editor |
 | `--config <CONFIG>` | Build configuration to run | Development |
+| `--windbg` | Launch target binary under WinDbg native debugger | Disabled |
+| `--cdb` | Use console debugger (`cdb.exe`) instead of WinDbg GUI | Disabled |
 | `--args <ARGUMENTS>` | Command-line arguments for target | None |
 
 **Examples:**
@@ -165,8 +167,43 @@ we run [options]
 # Run editor in Development
 we run --target Editor --config Development
 
-# Run with custom arguments
-we run --target Editor --config Development --args "-project MyProject"
+# Launch Editor under WinDbg native debugger
+we run --target Editor --config Debug --windbg
+```
+
+---
+
+### debug / windbg
+
+Launches a native WinDbg / CDB debugging session for executable targets, running processes, or crash dump files (`.dmp`). Automatically configures symbol paths (`_NT_SYMBOL_PATH`) to point to build artifacts, PDB files, and Microsoft Symbol Server.
+
+```powershell
+we debug [options]
+we windbg [options]
+```
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--target <NAME>` | Executable target to debug | Editor |
+| `--config <CONFIG>` | Build configuration | Debug |
+| `--pid <PID>` | Attach WinDbg to existing process ID | None |
+| `--dump <PATH>` | Open crash dump file (`.dmp`) in WinDbg | None |
+| `--cdb` | Use console debugger (`cdb.exe`) instead of WinDbg GUI | Disabled |
+| `--args "<ARGS>"` | Forward command-line arguments to target binary | None |
+
+**Examples:**
+```powershell
+# Debug Editor target in WinDbg
+we debug Editor --config Debug
+
+# Attach WinDbg to running process PID 1234
+we debug --pid 1234
+
+# Open crash dump in WinDbg with symbols loaded
+we debug --dump Saved/Crashes/Crash.dmp
+
+# Debug with console debugger (cdb)
+we debug Editor --cdb
 ```
 
 ---

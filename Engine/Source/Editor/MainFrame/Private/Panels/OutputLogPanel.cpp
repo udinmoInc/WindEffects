@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Widgets/OutputLogWidget.h"
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
@@ -25,6 +26,9 @@ std::shared_ptr<Panel> CreateOutputLogPanel() {
 
     return PanelBuilder("Output Log")
         .TabIcon(WindIcons::Console16)
+        .WithCloseButton([]() {
+            EditorWorkspaceController::Get().SetPanelVisible("OutputLog", false);
+        })
         .ToolbarBox([&](Row& toolbar) {
             toolbar.Padding(Margin{6.0f, 4.0f, 6.0f, 4.0f});
             toolbar.Gap(6.0f);

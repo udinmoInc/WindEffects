@@ -133,6 +133,7 @@ public:
     [[nodiscard]] VkQueue GetPresentQueue() const { return m_PresentQueue; }
     [[nodiscard]] bool NeedsRebuild() const { return m_NeedsRebuild; }
     void ClearNeedsRebuild() { m_NeedsRebuild = false; }
+    void SetNeedsRebuild() { m_NeedsRebuild = true; }
     void SetFrameSlot(uint32_t slot) { m_FrameSlot = slot; }
     [[nodiscard]] uint32_t GetFrameSlot() const { return m_FrameSlot; }
 

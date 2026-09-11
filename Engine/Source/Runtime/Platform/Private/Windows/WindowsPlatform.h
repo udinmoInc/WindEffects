@@ -177,6 +177,7 @@ private:
         bool relativeMouse = false;
         bool borderless = false;
         bool fullscreen = false;
+        bool focused = false;
         WINDOWPLACEMENT savedPlacement{};
         DWORD style = 0;
         DWORD exStyle = 0;

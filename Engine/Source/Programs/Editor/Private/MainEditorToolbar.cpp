@@ -98,6 +98,9 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
             file.DropdownItem(WindIcons::Accessibility16, "", []() {
                 LogStubClick("Accessibility");
             }, "Accessibility");
+            file.DropdownItem(WindIcons::PlaySettings16, "", []() {
+                LogStubClick("Play Settings");
+            }, "Play Settings");
         });
     });
 

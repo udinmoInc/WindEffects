@@ -179,7 +179,9 @@ float WindowsPlatform::GetWindowDpiScale(WindowId id) const {
 
 bool WindowsPlatform::IsWindowFocused(WindowId id) const {
     if (const WindowState* state = FindWindow(id)) {
-        return GetForegroundWindow() == state->hwnd;
+        if (!state->hwnd) return false;
+        HWND foreground = GetForegroundWindow();
+        return (foreground == state->hwnd) || state->focused;
     }
     return false;
 }

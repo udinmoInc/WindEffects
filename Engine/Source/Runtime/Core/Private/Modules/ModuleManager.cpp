@@ -46,9 +46,13 @@ ModuleManager::~ModuleManager() {
     UnloadAllModules();
 }
 
+bool ModuleManager::IsModuleLoaded(const std::string& moduleName) const {
+    return m_LoadedModules.find(moduleName) != m_LoadedModules.end();
+}
+
 IModuleInterface* ModuleManager::LoadModule(const std::string& moduleName) {
     if (const auto it = m_LoadedModules.find(moduleName); it != m_LoadedModules.end()) {
-        return it->second.interface;
+        return it->second.moduleInterface;
     }
 
     std::string loadedLibraryName;
@@ -59,7 +63,25 @@ IModuleInterface* ModuleManager::LoadModule(const std::string& moduleName) {
         handle = LoadLibraryExW(
             modulePath->wstring().c_str(),
             nullptr,
-            LOAD_WITH_ALTERED_SEARCH_PATH);
+            LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+        if (!handle) {
+            const DWORD err1 = ::GetLastError();
+            handle = LoadLibraryExW(
+                modulePath->wstring().c_str(),
+                nullptr,
+                LOAD_WITH_ALTERED_SEARCH_PATH);
+            if (!handle) {
+                const DWORD err2 = ::GetLastError();
+                handle = ::LoadLibraryW(modulePath->wstring().c_str());
+                if (!handle) {
+                    const DWORD err3 = ::GetLastError();
+                    WE_LOG_ERROR(LogCategory::Build.data(), "Failed to load module path " + modulePath->string() +
+                        " (LOAD_LIBRARY_SEARCH_DEFAULT_DIRS|DLL_LOAD_DIR err=" + std::to_string(err1) +
+                        ", LOAD_WITH_ALTERED_SEARCH_PATH err=" + std::to_string(err2) +
+                        ", LoadLibraryW err=" + std::to_string(err3) + ")");
+                }
+            }
+        }
         if (handle) {
             loadedLibraryName = modulePath->string();
         }
@@ -134,10 +156,10 @@ void ModuleManager::UnloadAllModules() {
         const std::string& moduleName = *it;
         ModuleData& data = m_LoadedModules[moduleName];
 
-        if (data.interface) {
+        if (data.moduleInterface) {
             ModuleInitializerRegistry::Get().RunShutdown(moduleName);
-            data.interface->ShutdownModule();
-            delete data.interface;
+            data.moduleInterface->ShutdownModule();
+            delete data.moduleInterface;
         }
 
         if (data.handle) {

@@ -301,9 +301,15 @@ public static class ShaderBytecodeCompiler
             Load();
         }
 
+        private readonly object _lock = new();
+
         public bool TryGetHit(string cacheKey, string outputPath)
         {
-            if (!_entries.TryGetValue(cacheKey, out var entry)) return false;
+            ShaderCacheEntry? entry = null;
+            lock (_lock)
+            {
+                if (!_entries.TryGetValue(cacheKey, out entry)) return false;
+            }
             if (!File.Exists(outputPath)) return false;
             return string.Equals(FastHash.HashFile(outputPath), entry.OutputHash, StringComparison.Ordinal);
         }
@@ -311,7 +317,7 @@ public static class ShaderBytecodeCompiler
         public void Store(string cacheKey, string outputPath, string sourceHash, string includeHash,
             string dxcVersion, string profile, string entry)
         {
-            _entries[cacheKey] = new ShaderCacheEntry
+            var newEntry = new ShaderCacheEntry
             {
                 OutputPath = outputPath,
                 OutputHash = FastHash.HashFile(outputPath),
@@ -322,6 +328,10 @@ public static class ShaderBytecodeCompiler
                 Entry = entry,
                 StoredUtc = DateTime.UtcNow
             };
+            lock (_lock)
+            {
+                _entries[cacheKey] = newEntry;
+            }
         }
 
         public void Save()

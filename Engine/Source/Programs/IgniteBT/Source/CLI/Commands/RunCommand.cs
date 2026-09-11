@@ -78,15 +78,33 @@ public static class RunCommand
             }
 
             Log.Information("Launching {Executable}", executablePath);
+            var engineBinariesPath = Path.Combine(outputRoot, "Engine", "Binaries");
             var thirdPartyPath = Path.Combine(outputRoot, "ThirdParty");
-            var pathPrefix = Directory.Exists(thirdPartyPath)
-                ? thirdPartyPath + Path.PathSeparator
+
+            var extraPaths = new List<string>();
+            if (Directory.Exists(engineBinariesPath)) extraPaths.Add(engineBinariesPath);
+            if (Directory.Exists(thirdPartyPath)) extraPaths.Add(thirdPartyPath);
+
+            var pathPrefix = extraPaths.Count > 0
+                ? string.Join(Path.PathSeparator.ToString(), extraPaths) + Path.PathSeparator
                 : string.Empty;
 
             var passthroughArgs = GetPassthroughArgs(parsed, normalizedTarget);
             if (passthroughArgs.Length > 0)
             {
                 Log.Information("Forwarding {Count} argument(s) to executable", passthroughArgs.Length);
+            }
+
+            if (parsed.HasFlag("windbg") || parsed.HasFlag("debug"))
+            {
+                var launchOptions = new WinDbgLaunchOptions
+                {
+                    ExecutablePath = executablePath,
+                    Arguments = passthroughArgs,
+                    WorkingDirectory = outputRoot,
+                    PreferCdb = parsed.HasFlag("cdb")
+                };
+                return WinDbgResolver.LaunchDebugger(launchOptions);
             }
 
             var startInfo = new System.Diagnostics.ProcessStartInfo

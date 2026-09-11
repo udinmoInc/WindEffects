@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Core/AssetRegistry.h"
+#include "Core/AssetCatalog.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 
@@ -130,105 +131,75 @@ bool AssetRegistry::LoadDefaultEditorAssets() {
     std::unique_lock lock(m_Mutex);
     m_LastLoadResults.clear();
 
-    HE_INFO("[Assets] Loading default editor assets...");
+    HE_INFO("[Assets] Loading editor assets from dynamic catalog...");
 
+    const auto catalog = we::runtime::core::AssetCatalogService::Load();
     const auto& paths = PathService::Get();
-
-    const std::vector<std::pair<std::string, std::vector<std::string>>> fonts = {
-        {"Font_UI", PathsToStrings(paths.FontCandidates("Roboto-Regular.wefont"))},
-    };
-
-    const std::vector<std::pair<std::string, std::string>> shaderNames = {
-        {"UI", "UI_VS.spv"},
-        {"AtmospherePass", "AtmospherePass_VS.spv"},
-        {"VolumetricCloudsPass", "VolumetricCloudsPass_VS.spv"},
-        {"CloudTemporalResolve", "CloudTemporalResolve_VS.spv"},
-        {"CloudCompositePass", "CloudCompositePass_VS.spv"},
-        {"FogCompositePass", "FogCompositePass_VS.spv"},
-        {"EditorGrid", "EditorGrid_VS.spv"},
-        {"SceneObject", "SceneObject_VS.spv"},
-    };
-
-    std::vector<std::pair<std::string, std::vector<std::string>>> shaders;
-    shaders.reserve(shaderNames.size());
-    for (const auto& [name, fileName] : shaderNames) {
-        shaders.emplace_back(name, PathsToStrings(paths.ShaderBytecodeCandidates(fileName)));
-    }
-
-    const std::vector<std::pair<std::string, std::vector<std::string>>> icons = {
-        {"Icon_Lucide", PathsToStrings(paths.IconCandidates("icons"))},
-    };
-
-    const std::vector<std::pair<std::string, std::vector<std::string>>> iconAtlases = {
-        {"Icon_AtlasRoot", PathsToStrings(paths.IconCandidates("Atlas"))},
-    };
-
-    const std::vector<std::pair<std::string, std::vector<std::string>>> iconMeta = {
-        {"Icon_Meta", PathsToStrings(paths.IconCandidates(std::filesystem::path("Atlas") / "icons.weiconmeta"))},
-    };
 
     bool allRequiredFound = true;
 
-    for (const auto& [name, candidatePaths] : fonts) {
-        auto result = TryLoadAsset(name, candidatePaths);
+    for (const auto& entry : catalog.fonts) {
+        auto result = TryLoadAsset(entry.name, PathsToStrings(paths.FontCandidates(entry.file)));
         if (result.found) {
-            m_FontPaths[name] = result.resolvedPath;
-            HE_INFO("[Assets]   Font '" + name + "' -> " + result.resolvedPath);
-        } else {
-            HE_ERROR("[Assets]   MISSING font '" + name + "'");
+            m_FontPaths[entry.name] = result.resolvedPath;
+            HE_INFO("[Assets]   Font '" + entry.name + "' -> " + result.resolvedPath);
+        } else if (entry.required) {
+            HE_ERROR("[Assets]   MISSING font '" + entry.name + "'");
             allRequiredFound = false;
-        }
-    }
-
-    for (const auto& [name, candidatePaths] : shaders) {
-        auto result = TryLoadAsset(name, candidatePaths);
-        if (result.found) {
-            m_ShaderPaths[name] = result.resolvedPath;
-            HE_INFO("[Assets]   Shader '" + name + "' -> " + result.resolvedPath);
         } else {
-            const bool required = (name == "UI");
-            if (required) {
-                HE_ERROR("[Assets]   MISSING required shader '" + name + "'");
-                allRequiredFound = false;
-            } else {
-                HE_INFO("[Assets]   Optional shader '" + name + "' not found (may compile later)");
-            }
+            HE_INFO("[Assets]   Optional font '" + entry.name + "' not found");
         }
     }
 
-    for (const auto& [name, candidatePaths] : icons) {
-        auto result = TryLoadAsset(name, candidatePaths);
+    for (const auto& entry : catalog.shaders) {
+        auto result = TryLoadAsset(entry.name, PathsToStrings(paths.ShaderBytecodeCandidates(entry.file)));
         if (result.found) {
-            m_IconPaths[name] = result.resolvedPath;
-            HE_INFO("[Assets]   Icon source '" + name + "' -> " + result.resolvedPath);
+            m_ShaderPaths[entry.name] = result.resolvedPath;
+            HE_INFO("[Assets]   Shader '" + entry.name + "' -> " + result.resolvedPath);
+        } else if (entry.required) {
+            HE_ERROR("[Assets]   MISSING required shader '" + entry.name + "'");
+            allRequiredFound = false;
         } else {
-            HE_INFO("[Assets]   Optional icon source '" + name + "' not found (offline import only)");
+            HE_INFO("[Assets]   Optional shader '" + entry.name + "' not found (may compile later)");
         }
     }
 
-    for (const auto& [name, candidatePaths] : iconAtlases) {
-        auto result = TryLoadAsset(name, candidatePaths);
+    for (const auto& entry : catalog.icons) {
+        auto result = TryLoadAsset(entry.name, PathsToStrings(paths.IconCandidates(entry.file)));
+        if (result.found) {
+            m_IconPaths[entry.name] = result.resolvedPath;
+            HE_INFO("[Assets]   Icon source '" + entry.name + "' -> " + result.resolvedPath);
+        } else {
+            HE_INFO("[Assets]   Optional icon source '" + entry.name + "' not found (offline import only)");
+        }
+    }
+
+    {
+        auto result = TryLoadAsset(
+            catalog.iconAtlasRoot.name,
+            PathsToStrings(paths.IconCandidates(catalog.iconAtlasRoot.file)));
         if (result.found) {
             m_IconAtlasRoot = result.resolvedPath;
-            HE_INFO("[Assets]   Icon atlas root '" + name + "' -> " + result.resolvedPath);
+            HE_INFO("[Assets]   Icon atlas root '" + catalog.iconAtlasRoot.name + "' -> " + result.resolvedPath);
         } else {
-            HE_ERROR("[Assets]   MISSING icon atlas root '" + name + "'");
-            allRequiredFound = false;
+            HE_INFO("[Assets]   Optional icon atlas root not found (will use fallback)");
         }
     }
 
-    for (const auto& [name, candidatePaths] : iconMeta) {
-        auto result = TryLoadAsset(name, candidatePaths);
+    {
+        auto result = TryLoadAsset(
+            catalog.iconMeta.name,
+            PathsToStrings(paths.IconCandidates(std::filesystem::path(catalog.iconMeta.file))));
         if (result.found) {
             m_IconMetaPath = result.resolvedPath;
-            HE_INFO("[Assets]   Icon meta '" + name + "' -> " + result.resolvedPath);
+            HE_INFO("[Assets]   Icon meta '" + catalog.iconMeta.name + "' -> " + result.resolvedPath);
         } else {
-            HE_ERROR("[Assets]   MISSING icon meta '" + name + "'");
-            allRequiredFound = false;
+            HE_INFO("[Assets]   Optional icon meta not found (will use fallback)");
         }
     }
 
-    HE_INFO("[Assets] Theme provider initialized (GraphiteDarkTheme tokens)");
+    const auto themeName = we::runtime::core::AssetCatalogService::GetActiveThemeName(catalog);
+    HE_INFO("[Assets] Active theme resolver -> " + themeName);
     HE_INFO("[Assets] Default asset load " + std::string(allRequiredFound ? "succeeded" : "FAILED"));
     return allRequiredFound;
 }

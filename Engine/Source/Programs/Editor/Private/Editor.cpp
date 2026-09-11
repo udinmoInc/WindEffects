@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Editor.h"
+#include "Framework/EditorApplicationFramework.h"
 #include "FirstRunAgreementPopup.h"
 #include "KindUI/Benchmark/KindUIBenchmark.h"
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
@@ -21,6 +22,7 @@
 #include "Core/Logger.h"
 #include "Core/PluginManager.h"
 #include "Core/StartupValidator.h"
+#include "Modules/ModuleManager.h"
 #include "ContentBrowser/ContentBrowserApi.h"
 #include "EditorGridRenderer.h"
 #include "Environment/EnvironmentSystem.h"
@@ -60,8 +62,14 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
         HE_WARN("[Startup] No project path provided. Generating a temporary workspace...");
         auto tempDir = we::projects::EngineContext::Get().EngineRoot() / "Intermediate" / "TempProject";
         std::filesystem::create_directories(tempDir);
+
+        // Create required Config directory for temp project
+        auto configDir = tempDir / "Config";
+        std::filesystem::create_directories(configDir);
+        HE_INFO("[Startup] Created temp project Config directory: " + configDir.string());
+
         m_CommandLine.projectPath = tempDir / "TempProject.weproj";
-        
+
         // Use standard C file IO to avoid needing <fstream> include at the top
         FILE* f = fopen(m_CommandLine.projectPath->string().c_str(), "w");
         if (f) {
@@ -133,8 +141,12 @@ void Editor::InitializeEngine() {
     m_Camera = std::make_shared<EditorCamera>();
     BindViewportCamera(m_Camera);
     m_Scene = std::make_shared<Scene>();
-    we::runtime::world::environment::EnvironmentSystem::Get().BindScene(m_Scene);
-    PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
+    if (we::core::ModuleManager::Get().IsModuleLoaded("WindEffects-Environment")) {
+        we::runtime::world::environment::EnvironmentSystem::Get().BindScene(m_Scene);
+    }
+    if (we::core::ModuleManager::Get().IsModuleLoaded("WindEffects-PlaceActors")) {
+        PlaceActorsPlacement::Get().BindScene(m_Scene, m_Camera);
+    }
 
     {
         auto& startup = we::runtime::core::StartupValidator::Get();
@@ -244,6 +256,12 @@ void Editor::Run() {
     MainLoop();
 }
 
+void Editor::HostReloadLayout() {
+    EditorWorkspaceController::Get().LoadLayout();
+    we::runtime::kindui::UIRepaintGate::Request();
+    HE_INFO("[Editor] Layout reload requested via remote API");
+}
+
 void Editor::MaybeShowFirstRunAgreement() {
     if (HasAcceptedFirstRunAgreement()) {
         m_FirstRunAgreementPending = false;
@@ -271,6 +289,7 @@ void Editor::Shutdown() {
     if (m_Window != we::platform::WindowId::Invalid) {
         we::platform::Platform::Get().SetWindowHitTest(m_Window, nullptr, nullptr);
         we::platform::Platform::Get().SetRelativeMouseMode(m_Window, false);
+        // SetRelativeMouseMode(false) already releases cursor clipping internally
     }
     m_WindowHitTestData.titleBar.reset();
 

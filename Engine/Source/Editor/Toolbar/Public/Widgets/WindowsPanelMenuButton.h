@@ -38,6 +38,7 @@ public:
 
     ::we::runtime::kindui::Size Measure(const ::we::runtime::kindui::Size& availableSize) override;
     void Arrange(const ::we::runtime::kindui::Rect& allottedRect) override;
+    void Tick(float deltaTime) override;
     void Paint(::we::runtime::kindui::PaintContext& context) override;
     void OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) override;
     void OnMouseUp(const ::we::runtime::kindui::MouseEvent& event) override;

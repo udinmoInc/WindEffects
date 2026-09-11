@@ -99,4 +99,7 @@ struct GraphiteDarkMetrics {
 /// Returns true when colors/metrics were reloaded this call.
 KINDUI_API bool ReloadGraphiteDarkPaletteIfChanged();
 
+/// Force reload of the active theme JSON regardless of mtime.
+KINDUI_API bool ForceReloadActiveThemePalette();
+
 } // namespace we::runtime::kindui::palette

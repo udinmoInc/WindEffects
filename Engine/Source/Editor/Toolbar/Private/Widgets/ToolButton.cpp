@@ -289,55 +289,57 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 
 void ToolButton::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, HoverDamping());
-    m_PressAnim = Animator::Damp(m_PressAnim, m_Pressed ? 1.0f : 0.0f, PressDamping());
-    m_ActiveAnim = Animator::Damp(m_ActiveAnim, m_Active ? 1.0f : 0.0f, HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    const float targetPress = m_Pressed ? 1.0f : 0.0f;
+    const float targetActive = m_Active ? 1.0f : 0.0f;
+
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, HoverDamping() * 0.8f);
+    m_PressAnim = Animator::Damp(m_PressAnim, targetPress, PressDamping());
+    m_ActiveAnim = Animator::Damp(m_ActiveAnim, targetActive, HoverDamping());
+
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f ||
+        std::abs(m_PressAnim - targetPress) > 0.001f ||
+        std::abs(m_ActiveAnim - targetActive) > 0.001f) {
+        InvalidatePaint();
+    }
+
     Widget::Tick(deltaTime);
 }
 
 void ToolButton::Paint(PaintContext& context) {
     if (!m_Visible) return;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-
     const float pressStrength = PressStrength(m_Pressed, m_PressAnim);
-
+    const float activeStrength = (std::max)(m_HoverAnim, pressStrength);
     Rect renderRect = m_Geometry;
     float centerY   = renderRect.y + renderRect.height / 2.0f;
 
     const bool isWindowControl = (m_ButtonStyle == ToolButtonStyle::WindowControl ||
                                    m_ButtonStyle == ToolButtonStyle::WindowClose);
-    const bool isToolbarIcon   = (m_ButtonStyle == ToolButtonStyle::ToolbarIconOnly ||
-                                   m_ButtonStyle == ToolButtonStyle::TransportButton ||
-                                   m_ButtonStyle == ToolButtonStyle::PlayButton);
-    const bool isLabeled       = (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled);
-    const bool isStatusBar     = (m_ButtonStyle == ToolButtonStyle::StatusBar);
-    const bool isInline        = (m_ButtonStyle == ToolButtonStyle::ToolbarInline);
     const bool isViewportChip  = (m_ButtonStyle == ToolButtonStyle::ViewportChip);
-    const bool isNormal        = (m_ButtonStyle == ToolButtonStyle::Normal);
 
-    if (isWindowControl) {
-        // Window controls: icon lights up only — no hover fill box.
-        // Close uses a warmer hover brightness via the shared floating painter.
-        const float iconSize = WindowControlIconSize(uiScale);
-        PaintFloatingIcon(
-            context,
-            m_Icon,
-            renderRect,
-            iconSize,
-            m_HoverAnim,
-            pressStrength,
-            false);
-        return;
+    if (activeStrength > 0.01f && !m_Chromeless && !isViewportChip) {
+        Color hoverBg;
+        float radius = 4.0f * uiScale;
+        if (m_ButtonStyle == ToolButtonStyle::WindowClose) {
+            hoverBg = m_Pressed ? ThemeColor(ColorToken::ButtonDangerPressed) : ThemeColor(ColorToken::CloseButtonHover);
+            radius = 0.0f;
+        } else {
+            hoverBg = m_Pressed ? ThemeColor(ColorToken::ControlBackgroundPressed) : ThemeColor(ColorToken::HoverBackground);
+        }
+        hoverBg.a *= activeStrength;
+        context.DrawRoundedRect(renderRect, hoverBg, radius);
     }
 
-    if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
+    if (isWindowControl) {
+        const float iconSize = WindowControlIconSize(uiScale);
+        PaintFloatingIcon(
+            context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, false);
+    } else if (m_ButtonStyle == ToolButtonStyle::TitleBarTool) {
         const float iconSize = IconSize(uiScale);
         PaintFloatingIcon(
             context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
-        return;
-    }
-
-    if (isLabeled) {
+    } else if (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled) {
         const float iconSize = PrimaryIconSize(uiScale);
         const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
         const float labelGap = 2.0f * uiScale;
@@ -365,215 +367,56 @@ void ToolButton::Paint(PaintContext& context) {
                 textSize,
                 we::runtime::text::layout::FontWeight::Regular);
         }
-        return;
-    }
+    } else {
+        // Standard buttons (Inline, IconOnly, Transport, StatusBar, ViewportChip, Normal)
+        const float iconSize = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
+        const float textSize = (m_ButtonStyle == ToolButtonStyle::StatusBar)
+            ? ThemeMetric(MetricToken::TextSizeSmall) * uiScale
+            : ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+        const float iconGap  = IconGapPx(uiScale);
+        const float chevGap  = ChevronGapPx(uiScale);
+        const float padH     = ChipHorizontalPad(uiScale);
 
-    if (isStatusBar) {
-        ToolbarButtonChrome::PaintStatusBarControl(context, renderRect, m_HoverAnim, m_Active, uiScale);
+        const bool iconOnly = m_Icon.IsValid() && m_Label.empty() && !m_IsDropdown;
 
-        const float iconSize = IconSize(uiScale);
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
-        const float iconGap = IconGapPx(uiScale);
-        const float padH = ChipHorizontalPad(uiScale);
-
-        float currentX = renderRect.x + padH;
-
-        if (m_Icon.IsValid()) {
-            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            PaintFloatingIcon(
-                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-            currentX += iconSize + iconGap;
-        }
-
-        if (!m_Label.empty()) {
-            Color textColor = m_Active
-                ? ThemeColor(ColorToken::TextPrimary)
-                : Color::Pick(
-                    ThemeColor(ColorToken::TextPrimary),
-                    ThemeColor(ColorToken::TextSecondary),
-                    0.18f);
-            if (m_HoverAnim > 0.01f && !m_Active) {
-                textColor = Color::Pick(textColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim * 0.35f);
-            }
-            context.DrawText(
-                m_Label,
-                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
-                textColor,
-                textSize,
-                we::runtime::text::layout::FontWeight::Regular);
-        }
-        return;
-    }
-
-    if (isInline) {
-        if (!m_Chromeless) {
-            PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
-        }
-
-        const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
-        const float textSize  = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float iconGap   = IconGapPx(uiScale);
-        const float chevGap   = ChevronGapPx(uiScale);
-        const float padH      = ChipHorizontalPad(uiScale);
-
-        float currentX = renderRect.x + padH;
-        if (m_Icon.IsValid()) {
-            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            if (m_Chromeless) {
-                PaintFloatingIcon(
-                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-            } else {
-                PaintFloatingIcon(
-                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, false);
-            }
-            currentX += iconSize + iconGap;
-        }
-
-        if (!m_Label.empty()) {
-            const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
-            Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, false);
-            context.DrawText(
-                m_Label,
-                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
-                textColor,
-                textSize,
-                we::runtime::text::layout::FontWeight::Regular);
-            currentX += labelW;
-        }
-
-        if (m_IsDropdown) {
-            currentX += chevGap;
-            PaintFloatingIcon(
-                context,
-                WindIcons::ChevronDownV212,
-                IconMetrics::CompactGlyphBand(renderRect, currentX),
-                16.0f,
-                m_HoverAnim,
-                pressStrength,
-                false);
-        }
-        return;
-    }
-
-    if (isViewportChip) {
-        // No rounded fill — floating icons / text only.
-        const float iconSize  = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
-        const float textSize  = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float iconGap   = IconGapPx(uiScale);
-        const float chevGap   = ChevronGapPx(uiScale);
-        const float padH      = ChipHorizontalPad(uiScale);
-
-        float currentX = renderRect.x + padH;
-        if (m_Icon.IsValid()) {
-            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            PaintFloatingIcon(
-                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-            currentX += iconSize + iconGap;
-        }
-
-        if (!m_Label.empty()) {
-            const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
-            Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
-            context.DrawText(
-                m_Label,
-                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
-                textColor,
-                textSize,
-                we::runtime::text::layout::FontWeight::Regular);
-            currentX += labelW;
-        }
-
-        if (m_IsDropdown) {
-            currentX += chevGap;
-            PaintFloatingIcon(
-                context,
-                WindIcons::ChevronDownV212,
-                IconMetrics::CompactGlyphBand(renderRect, currentX),
-                16.0f,
-                m_HoverAnim,
-                pressStrength,
-                m_Active);
-        }
-        return;
-    }
-
-    if (isToolbarIcon) {
-        // Always draw transport / play / settings glyphs at the 16px toolbar icon size.
-        const float iconSize = IconSize(uiScale);
-        if (m_IsDropdown) {
-            const float iconGap = IconGapPx(uiScale);
-            const float padH = ChipHorizontalPad(uiScale);
-            float currentX = renderRect.x + padH;
-            Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-            PaintFloatingIcon(
-                context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-            currentX += iconSize + iconGap;
-            PaintFloatingIcon(
-                context,
-                WindIcons::ChevronDownV212,
-                IconMetrics::CompactGlyphBand(renderRect, currentX),
-                16.0f,
-                m_HoverAnim,
-                pressStrength,
-                m_Active);
-        } else {
+        if (iconOnly) {
             PaintFloatingIcon(
                 context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
-        }
-        return;
-    }
-
-    if (isNormal) {
-        const bool iconOnly = m_Label.empty() && !m_IsDropdown;
-        if (!iconOnly) {
-            PaintInlineDropdown(context, renderRect, m_HoverAnim, pressStrength, uiScale);
-        }
-
-        const float iconSize = IconSize(uiScale);
-        float currentX = renderRect.x + ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
-
-        if (m_Icon.IsValid()) {
-            if (iconOnly) {
-                PaintFloatingIcon(
-                    context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
-            } else if (m_Label.empty() && m_IsDropdown) {
-                currentX = renderRect.x + ChipHorizontalPad(uiScale);
-                Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                PaintFloatingIcon(
-                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-            } else {
-                Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
-                PaintFloatingIcon(
-                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-                currentX += iconSize + IconGapPx(uiScale);
-            }
         } else {
-            currentX = renderRect.x + ThemeMetric(MetricToken::ButtonPaddingHorizontal) * uiScale;
-        }
+            float currentX = renderRect.x + padH;
+            if (m_Icon.IsValid()) {
+                Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
+                PaintFloatingIcon(
+                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
+                currentX += iconSize + iconGap;
+            }
 
-        if (!m_Label.empty()) {
-            const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-            Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
-            context.DrawText(
-                m_Label,
-                Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
-                textColor,
-                textSize,
-                we::runtime::text::layout::FontWeight::Regular);
-        }
+            if (!m_Label.empty()) {
+                Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
+                context.DrawText(
+                    m_Label,
+                    Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
+                    textColor,
+                    textSize,
+                    we::runtime::text::layout::FontWeight::Regular);
+                currentX += LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
+            }
 
-        if (m_IsDropdown) {
-            const float chevronX = renderRect.x + renderRect.width - ChipHorizontalPad(uiScale) - kChevronSlotPx;
-            PaintFloatingIcon(
-                context,
-                WindIcons::ChevronDownV212,
-                IconMetrics::CompactGlyphBand(renderRect, chevronX),
-                16.0f,
-                m_HoverAnim,
-                pressStrength,
-                m_Active);
+            if (m_IsDropdown) {
+                currentX += chevGap;
+                PaintFloatingIcon(
+                    context,
+                    WindIcons::ChevronDownV212,
+                    IconMetrics::CompactGlyphBand(renderRect, currentX),
+                    16.0f,
+                    m_HoverAnim,
+                    pressStrength,
+                    m_Active);
+            }
         }
     }
+
+    // --- Step 3: Draw Tooltip Popup ---
 
     if (m_Hovered && m_HoverAnim > 0.6f && !m_Tooltip.empty()) {
         const float tooltipPadX = 10.0f * uiScale;
@@ -608,9 +451,10 @@ void ToolButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && m_Pressed) {
+    if (event.button == MouseButton::Left) {
+        const bool wasPressed = m_Pressed;
         SetPressed(false);
-        if (m_Geometry.Contains(event.position) && m_OnClicked) {
+        if ((wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
             std::string label = !m_Tooltip.empty() ? m_Tooltip
                 : (!m_Label.empty() ? m_Label
                     : (!GetId().empty() ? GetId() : "ToolButton"));

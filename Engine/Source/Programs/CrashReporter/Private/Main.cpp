@@ -72,5 +72,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     (void)platform.DestroyWindow(window);
     we::platform::Platform::Shutdown();
     HE_INFO("[CrashReporter] === WeCrashReporter.exe exiting ===");
+    we::runtime::core::Logger::Shutdown();
     return 0;
 }

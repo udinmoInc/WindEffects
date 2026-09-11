@@ -23,6 +23,8 @@ struct PROJECTS_API EditorCommandLine {
     bool newProject = false;
     bool safeMode = false;
     bool recoveryMode = false;
+    /// Enable Editor remote API (named pipe + inbox file bridge). Default on.
+    bool enableRemoteApi = true;
     std::vector<std::string> rawArgs;
 };
 

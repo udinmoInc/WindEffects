@@ -9,9 +9,12 @@
 #pragma once
 
 #include "Platform/Events.h"
+#include "Core/LoopExecutionTrace.h"
 
+#include <chrono>
 #include <mutex>
 #include <span>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -27,7 +30,13 @@ public:
     void ResetCoalescedCount() noexcept { m_Coalesced = 0; }
 
     void Push(PlatformEvent event) {
+        const auto waitStart = std::chrono::steady_clock::now();
         std::scoped_lock lock(m_Mutex);
+        if (we::runtime::core::LoopExecutionTrace::IsEnabled()) {
+            const double waitMs = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - waitStart).count();
+            we::runtime::core::LoopExecutionTrace::MutexWait("EventQueue.Push", waitMs);
+        }
         if (m_Coalesce && TryCoalesceLocked(event)) {
             ++m_Coalesced;
             return;
@@ -36,13 +45,28 @@ public:
     }
 
     void FlushToFrame() {
+        const auto waitStart = std::chrono::steady_clock::now();
         std::scoped_lock lock(m_Mutex);
+        if (we::runtime::core::LoopExecutionTrace::IsEnabled()) {
+            const double waitMs = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - waitStart).count();
+            we::runtime::core::LoopExecutionTrace::MutexWait("EventQueue.FlushToFrame", waitMs);
+            we::runtime::core::LoopExecutionTrace::Event(
+                "EventQueue.FlushToFrame",
+                "pending=" + std::to_string(m_Pending.size())
+                    + " coalesced=" + std::to_string(m_Coalesced));
+        }
         m_Frame.clear();
         m_Frame.swap(m_Pending);
     }
 
     [[nodiscard]] std::span<const PlatformEvent> FrameEvents() const noexcept {
         return m_Frame;
+    }
+
+    [[nodiscard]] size_t PendingCount() const {
+        std::scoped_lock lock(m_Mutex);
+        return m_Pending.size();
     }
 
     void Clear() {

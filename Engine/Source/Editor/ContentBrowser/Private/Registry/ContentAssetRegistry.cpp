@@ -207,6 +207,11 @@ void ContentAssetRegistry::Tick(float deltaTime) {
         }
     }
 
+    if (lastScanSignature == 0) {
+        lastScanSignature = signature;
+        return;
+    }
+
     if (signature != lastScanSignature) {
         lastScanSignature = signature;
         Refresh();
@@ -214,18 +219,21 @@ void ContentAssetRegistry::Tick(float deltaTime) {
 }
 
 const AssetRecord* ContentAssetRegistry::FindById(const std::string& id) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     auto it = m_IdIndex.find(id);
     if (it == m_IdIndex.end()) return nullptr;
     return &m_Assets[it->second];
 }
 
 const AssetRecord* ContentAssetRegistry::FindByVirtualPath(const std::string& virtualPath) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     auto it = m_PathIndex.find(virtualPath);
     if (it == m_PathIndex.end()) return nullptr;
     return &m_Assets[it->second];
 }
 
 std::vector<const AssetRecord*> ContentAssetRegistry::GetChildren(const std::string& folderVirtualPath) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     std::vector<const AssetRecord*> children;
     for (const auto& asset : m_Assets) {
         if (asset.parentPath == folderVirtualPath) {
@@ -242,6 +250,7 @@ std::vector<const AssetRecord*> ContentAssetRegistry::GetChildren(const std::str
 std::vector<const AssetRecord*> ContentAssetRegistry::GetFolderContents(
     const std::string& folderVirtualPath, bool recursive) const
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     std::vector<const AssetRecord*> result;
     std::function<void(const std::string&)> walk = [&](const std::string& path) {
         for (const auto& asset : m_Assets) {
@@ -259,6 +268,7 @@ std::vector<const AssetRecord*> ContentAssetRegistry::GetFolderContents(
 }
 
 void ContentAssetRegistry::ToggleFavorite(const std::string& id) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     auto it = m_IdIndex.find(id);
     if (it == m_IdIndex.end()) return;
     m_Assets[it->second].isFavorite = !m_Assets[it->second].isFavorite;
@@ -266,12 +276,14 @@ void ContentAssetRegistry::ToggleFavorite(const std::string& id) {
 }
 
 bool ContentAssetRegistry::IsFavorite(const std::string& id) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     auto it = m_IdIndex.find(id);
     if (it == m_IdIndex.end()) return false;
     return m_Assets[it->second].isFavorite;
 }
 
 uint32_t ContentAssetRegistry::GetFolderContentVersion(const std::string& folderVirtualPath) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     auto it = m_FolderVersions.find(folderVirtualPath);
     if (it == m_FolderVersions.end()) return 0;
     return it->second;

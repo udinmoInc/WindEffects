@@ -28,6 +28,7 @@ public:
     static ModuleManager& Get();
 
     IModuleInterface* LoadModule(const std::string& moduleName);
+    bool IsModuleLoaded(const std::string& moduleName) const;
     void UnloadAllModules();
 
 private:
@@ -36,7 +37,7 @@ private:
 
     struct ModuleData {
         void* handle = nullptr;
-        IModuleInterface* interface = nullptr;
+        IModuleInterface* moduleInterface = nullptr;
     };
 
     std::unordered_map<std::string, ModuleData> m_LoadedModules;

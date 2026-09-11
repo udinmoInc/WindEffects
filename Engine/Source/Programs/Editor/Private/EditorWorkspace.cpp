@@ -63,6 +63,7 @@ void Editor::UnloadProjectWorkspace() {
 
     if (m_Window != we::platform::WindowId::Invalid) {
         we::platform::Platform::Get().SetWindowHitTest(m_Window, nullptr, nullptr);
+        we::platform::Platform::Get().SetRelativeMouseMode(m_Window, false);
     }
     m_WindowHitTestData.titleBar.reset();
 

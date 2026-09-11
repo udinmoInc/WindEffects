@@ -206,7 +206,9 @@ void Renderer::EnsureViewportTargets() {
         && m_OwnedViewportHeight == height) {
         return;
     }
-
+    if (m_ViewportColorTexture != we::rhi::RHITextureHandle::Invalid) {
+        (void)m_RHIDevice->WaitIdle();
+    }
     DestroyViewportTargets();
 
     we::rhi::TextureDesc colorDesc{};
