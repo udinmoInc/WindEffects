@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "ViewportToolbar.h"
 #include "ViewportToolbarState.h"
 #include "KindUI/Widgets/Label.h"
@@ -25,7 +26,9 @@ std::shared_ptr<Panel> CreateViewportPanel() {
     return PanelBuilder("Viewport")
         .TabIcon(WindIcons::Viewport16)
         .Transparent()
-        .WithCloseButton()
+        .WithCloseButton([]() {
+            EditorWorkspaceController::Get().SetPanelVisible("Viewport", false);
+        })
         .Toolbar(toolbar)
         .Content(std::make_shared<Label>(""));
 }

@@ -9,6 +9,7 @@
 #include "KindUI/Theming/PaletteRuntime.h"
 #include "KindUI/Theming/Palette.h"
 #include "KindUI/Theming/ThemeManager.h"
+#include "Core/AssetCatalog.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 
@@ -259,33 +260,8 @@ void ApplyAliasFallbacks(GraphiteDarkColors& c) {
 }
 
 std::filesystem::path ResolveConfigPath() {
-    auto& paths = we::core::PathService::Get();
-    std::vector<std::filesystem::path> candidates;
-    candidates.push_back(paths.EngineConfigRoot() / "Themes" / "GraphiteDark.json");
-    candidates.push_back(paths.ConfigRoot() / "Themes" / "GraphiteDark.json");
-    if (const auto repo = we::core::PathService::FindRepositoryRoot(paths.ExecutableDirectory())) {
-        candidates.push_back(*repo / "Engine" / "Config" / "Themes" / "GraphiteDark.json");
-    }
-
-    // Prefer the newest existing copy so editing the repo source file hot-reloads
-    // without waiting for a rebuild/restage.
-    std::error_code ec;
-    std::filesystem::path best;
-    std::filesystem::file_time_type bestTime{};
-    for (const auto& candidate : candidates) {
-        if (!std::filesystem::exists(candidate, ec)) {
-            continue;
-        }
-        const auto writeTime = std::filesystem::last_write_time(candidate, ec);
-        if (ec) {
-            continue;
-        }
-        if (best.empty() || writeTime > bestTime) {
-            best = candidate;
-            bestTime = writeTime;
-        }
-    }
-    return best.empty() ? candidates.front() : best;
+    const auto catalog = we::runtime::core::AssetCatalogService::Load();
+    return we::runtime::core::AssetCatalogService::ResolveThemeConfigPath(catalog);
 }
 
 bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& outColors, GraphiteDarkMetrics& outMetrics) {
@@ -452,6 +428,31 @@ bool ReloadGraphiteDarkPaletteIfChanged() {
         g_Colors = nextColors;
         g_Metrics = nextMetrics;
         g_LastWriteTime = writeTime;
+        reloaded = true;
+    }
+    if (reloaded) {
+        ThemeManager::Get().NotifyChanged();
+    }
+    return reloaded;
+}
+
+bool ForceReloadActiveThemePalette() {
+    bool reloaded = false;
+    {
+        std::lock_guard lock(g_Mutex);
+        const auto path = ResolveConfigPath();
+        GraphiteDarkColors nextColors{};
+        GraphiteDarkMetrics nextMetrics{};
+        ResetToCompileDefaults(nextColors);
+        ResetMetricsToCompileDefaults(nextMetrics);
+        if (!LoadFromFile(path, nextColors, nextMetrics)) {
+            return false;
+        }
+        g_Colors = nextColors;
+        g_Metrics = nextMetrics;
+        std::error_code ec;
+        g_LastWriteTime = std::filesystem::last_write_time(path, ec);
+        g_Initialized = true;
         reloaded = true;
     }
     if (reloaded) {

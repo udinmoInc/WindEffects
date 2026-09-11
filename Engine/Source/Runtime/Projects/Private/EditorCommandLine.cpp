@@ -54,6 +54,14 @@ EditorCommandLine ParseEditorCommandLine(int argc, char* argv[]) {
             result.recoveryMode = true;
             continue;
         }
+        if (arg == "-remote" || arg == "--remote") {
+            result.enableRemoteApi = true;
+            continue;
+        }
+        if (arg == "-no-remote" || arg == "--no-remote") {
+            result.enableRemoteApi = false;
+            continue;
+        }
 
         if (arg == "-project" || arg == "--project") {
             if (i + 1 < argc && argv[i + 1]) {

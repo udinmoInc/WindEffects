@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Registry/AssetTypes.h"
+#include <deque>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -28,7 +29,10 @@ public:
     void Refresh();
     void Tick(float deltaTime);
 
-    const std::vector<AssetRecord>& GetAllAssets() const { return m_Assets; }
+    std::vector<AssetRecord> GetAllAssets() const {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        return std::vector<AssetRecord>(m_Assets.begin(), m_Assets.end());
+    }
     const AssetRecord* FindById(const std::string& id) const;
     const AssetRecord* FindByVirtualPath(const std::string& virtualPath) const;
 
@@ -54,7 +58,7 @@ private:
     void NotifyRegistryRefreshed();
 
     std::string m_ContentRoot;
-    std::vector<AssetRecord> m_Assets;
+    std::deque<AssetRecord> m_Assets;
     std::unordered_map<std::string, size_t> m_IdIndex;
     std::unordered_map<std::string, size_t> m_PathIndex;
     std::unordered_map<std::string, uint32_t> m_FolderVersions;

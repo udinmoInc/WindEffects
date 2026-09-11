@@ -77,6 +77,8 @@ public:
     [[nodiscard]] bool CanReceiveMouseWheelAt(const Point& pos) const override;
 
     void SetRoot(const std::shared_ptr<TreeNode>& root);
+    std::shared_ptr<TreeNode> GetRoot() const { return m_Root; }
+    void RefreshLayout() { MarkRenderListDirty(); BuildRenderList(); InvalidateLayout(); }
     void AddItem(const std::shared_ptr<TreeNode>& item, const std::string& parentId = "");
     void RemoveItem(const std::string& id);
     void Clear();

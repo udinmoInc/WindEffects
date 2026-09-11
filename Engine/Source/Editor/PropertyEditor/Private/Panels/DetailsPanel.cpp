@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "PropertyEditor/PropertyEditorSession.h"
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
@@ -33,7 +34,10 @@ std::shared_ptr<Panel> CreateDetailsPanel() {
 
     auto builder = PanelBuilder::Create(std::string(title))
         .Collapsible(false)
-        .TabIcon(WindIcons::PaperPencile16);
+        .TabIcon(WindIcons::PaperPencile16)
+        .WithCloseButton([]() {
+            EditorWorkspaceController::Get().SetPanelVisible("Details", false);
+        });
 
     if (auto details = PropertyEditorSession::DetailsShared()) {
         auto panel = builder.Build();

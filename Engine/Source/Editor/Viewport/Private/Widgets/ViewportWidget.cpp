@@ -131,6 +131,12 @@ bool ViewportWidget::FlushPendingResize() {
     }
 
     m_ResizePending = false;
+    WE_LOG_INFO(we::LogCategory::Renderer.data(),
+        "[Viewport] Resizing Viewport RT: " + std::to_string(m_PendingWidth) + "x" + std::to_string(m_PendingHeight));
+
+    if (m_Device) {
+        (void)m_Device->WaitIdle();
+    }
 
     if (m_ViewportController) {
         if (m_ViewportRenderTarget) {

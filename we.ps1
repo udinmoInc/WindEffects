@@ -317,6 +317,57 @@ function Invoke-DaemonBuild {
 $manifestPath = Join-Path $engineRoot $manifestRel
 $forwardArgs = $CommandArgs
 
+function Invoke-EditorApi {
+    param(
+        [string]$ProjectRoot,
+        [string]$Command,
+        [hashtable]$ArgsObject = @{}
+    )
+
+    $inbox = Join-Path $ProjectRoot "Build\Temp\editor-api\inbox"
+    $outbox = Join-Path $ProjectRoot "Build\Temp\editor-api\outbox"
+    New-Item -ItemType Directory -Force -Path $inbox | Out-Null
+    New-Item -ItemType Directory -Force -Path $outbox | Out-Null
+
+    $id = [guid]::NewGuid().ToString("N")
+    $reqPath = Join-Path $inbox "$id.json"
+    $rspPath = Join-Path $outbox "$id.rsp.json"
+    $payload = @{
+        id = $id
+        command = $Command
+        args = $ArgsObject
+    } | ConvertTo-Json -Compress -Depth 6
+    Set-Content -LiteralPath $reqPath -Value $payload -Encoding utf8
+
+    $deadline = (Get-Date).AddSeconds(10)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path -LiteralPath $rspPath) {
+            $text = Get-Content -LiteralPath $rspPath -Raw
+            Remove-Item -LiteralPath $rspPath -Force -ErrorAction SilentlyContinue
+            Write-Output $text
+            return 0
+        }
+        Start-Sleep -Milliseconds 50
+    }
+    Write-Error "Timed out waiting for Editor API response at $rspPath (is the Editor running with remote API enabled?)"
+    return 1
+}
+
+if ($forwardArgs.Length -gt 0 -and $forwardArgs[0] -eq "editor-api") {
+    if ($forwardArgs.Length -lt 2) {
+        Write-Host "Usage: .\we.ps1 editor-api <command> [json-args]"
+        Write-Host "Commands: api.list status perf.dump theme.reload assets.reload layout.reload config.set config.get shader.request"
+        exit 1
+    }
+    $cmd = $forwardArgs[1]
+    $argsObj = @{}
+    if ($forwardArgs.Length -gt 2) {
+        $argsObj = $forwardArgs[2] | ConvertFrom-Json -AsHashtable
+    }
+    $code = Invoke-EditorApi -ProjectRoot $engineRoot -Command $cmd -ArgsObject $argsObj
+    exit $code
+}
+
 if ($forwardArgs.Length -gt 0 -and $forwardArgs[0] -eq "build") {
     $buildArgs = @()
     if ($forwardArgs.Length -gt 1) {

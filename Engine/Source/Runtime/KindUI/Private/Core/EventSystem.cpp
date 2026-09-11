@@ -111,6 +111,8 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     std::shared_ptr<Widget> oldHovered = m_HoveredWidget.lock();
 
     if (hitWidget != oldHovered) {
+        UiInputDebug::OnHoverChanged(oldHovered, hitWidget, event.position);
+
         std::vector<std::shared_ptr<Widget>> newChain;
         for (auto curr = hitWidget; curr; curr = curr->GetParent()) {
             newChain.push_back(curr);

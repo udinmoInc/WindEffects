@@ -82,16 +82,11 @@ public:
 
     void UpdateItemIcon(const std::string& id, we::rhi::RHIDescriptorSetHandle textureId) {
         if (!m_Model) return;
-        bool changed = false;
         for (auto& item : m_Model->items) {
             if (item.id == id) {
                 item.iconTexture = textureId;
-                changed = true;
                 break;
             }
-        }
-        if (changed) {
-            m_Model->NotifyChanged();
         }
     }
 

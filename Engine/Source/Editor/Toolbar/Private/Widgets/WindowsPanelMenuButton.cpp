@@ -105,13 +105,21 @@ void WindowsPanelMenuButton::Arrange(const ::we::runtime::kindui::Rect& allotted
     m_Geometry = allottedRect;
 }
 
-void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context) {
-    const float uiScale = std::max(1.0f, DPIContext::GetScale());
+void WindowsPanelMenuButton::Tick(float deltaTime) {
+    (void)deltaTime;
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(
         m_HoverAnim,
-        m_Hovered ? 1.0f : 0.0f,
+        targetHover,
         we::runtime::kindui::ResolveMetric(MetricToken::HoverAnimationDamping));
+    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
+        InvalidatePaint();
+    }
+    Widget::Tick(deltaTime);
+}
 
+void WindowsPanelMenuButton::Paint(::we::runtime::kindui::PaintContext& context) {
+    const float uiScale = std::max(1.0f, DPIContext::GetScale());
     const float pressStrength = m_Pressed ? 1.0f : 0.0f;
     ToolbarButtonChrome::PaintInlineDropdown(context, m_Geometry, m_HoverAnim, pressStrength, uiScale);
 

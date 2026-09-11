@@ -229,8 +229,8 @@ Color ResolveIconColor(
     }
     Color hover = ResolveColor(ColorToken::IconHover);
     Color pressed = ResolveColor(ColorToken::IconActive);
-    Color result = ColorSpace::LerpColor(base, hover, Clamp01(hoverAnim) * 0.45f);
-    result = ColorSpace::LerpColor(result, pressed, Clamp01(pressStrength) * 0.35f);
+    Color result = ColorSpace::LerpColor(base, hover, Clamp01(hoverAnim));
+    result = ColorSpace::LerpColor(result, pressed, Clamp01(pressStrength));
     return result;
 }
 

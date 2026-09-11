@@ -8,8 +8,12 @@
 // ==============================================================================
 #include "EditorShellBuilder.h"
 
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 #include "Core/Logger.h"
 #include "Core/IgniteBTInvoker.h"
+#include "KindUI/Profiling/ScreenRecorder.h"
+#include "Platform/Platform.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Explorer/WorldOutlinerApi.h"
@@ -77,6 +81,27 @@ using ::we::editor::shell::TitleBar;
 using ::we::editor::shell::StatusBar;
 using ::we::editor::shell::WindowShell;
 namespace {
+
+void LogMenuStub(const char* label) {
+    WE_LOG_INFO(we::LogCategory::Editor.data(),
+        std::string("[Menu] ") + label + " clicked (no handler yet)");
+    if (we::runtime::kindui::ScreenRecorder::IsRecordingEnabled()) {
+        we::runtime::kindui::ScreenRecorder::Get().RecordInput(
+            "StubClick", 0.0f, 0.0f, label, "Menu", "empty-handler");
+    }
+}
+
+std::shared_ptr<MenuItem> MakeStubMenuItem(const char* label, const char* shortcut = nullptr) {
+    auto item = std::make_shared<MenuItem>();
+    item->label = label;
+    if (shortcut && shortcut[0] != '\0') {
+        item->shortcut = shortcut;
+    }
+    item->onClick = [name = std::string(label)]() {
+        LogMenuStub(name.c_str());
+    };
+    return item;
+}
 
 void PropagateWidgetContext(const std::shared_ptr<Widget>& widget, const std::shared_ptr<IWidgetContext>& context) {
     if (!widget || !context) {
@@ -147,14 +172,18 @@ EditorShellResult EditorShellBuilder::Build(
     }
     fileItems.push_back(projectManagerItem);
 
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Open Scene"; i->shortcut = "Ctrl+O";
-        return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save"; i->shortcut = "Ctrl+S";
-        return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Save As..."; i->shortcut =
-        "Ctrl+Shift+S"; return i; }());
-    fileItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Exit"; i->shortcut = "Alt+F4";
-        return i; }());
+    fileItems.push_back(MakeStubMenuItem("Open Scene", "Ctrl+O"));
+    fileItems.push_back(MakeStubMenuItem("Save", "Ctrl+S"));
+    fileItems.push_back(MakeStubMenuItem("Save As...", "Ctrl+Shift+S"));
+
+    // Exit is handled by the window chrome / Alt+F4 — keep an explicit item.
+    auto exitItem = std::make_shared<MenuItem>();
+    exitItem->label = "Exit";
+    exitItem->shortcut = "Alt+F4";
+    exitItem->onClick = []() {
+        we::platform::Platform::Get().PostQuit();
+    };
+    fileItems.push_back(exitItem);
     menuBar->AddMenu("File", fileItems);
 
     std::vector<std::shared_ptr<MenuItem>> editItems;
@@ -175,12 +204,9 @@ EditorShellResult EditorShellBuilder::Build(
         }
         editItems.push_back(redoItem);
     }
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cut"; i->shortcut = "Ctrl+X";
-        return i; }());
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Copy"; i->shortcut = "Ctrl+C";
-        return i; }());
-    editItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Paste"; i->shortcut = "Ctrl+V";
-        return i; }());
+    editItems.push_back(MakeStubMenuItem("Cut", "Ctrl+X"));
+    editItems.push_back(MakeStubMenuItem("Copy", "Ctrl+C"));
+    editItems.push_back(MakeStubMenuItem("Paste", "Ctrl+V"));
     menuBar->AddMenu("Edit", editItems);
 
     auto& workspace = we::programs::editor::EditorWorkspaceController::Get();
@@ -237,7 +263,7 @@ EditorShellResult EditorShellBuilder::Build(
         }
     }
 
-    menuBar->AddMenu("Tools", {[] { auto i = std::make_shared<MenuItem>(); i->label = "Place Actors"; return i; }()});
+    menuBar->AddMenu("Tools", { MakeStubMenuItem("Place Actors") });
 
     std::vector<std::shared_ptr<MenuItem>> buildItems;
     auto compileItem = std::make_shared<MenuItem>();
@@ -249,17 +275,17 @@ EditorShellResult EditorShellBuilder::Build(
         context.GetCommandRegistry().Execute("build.compile", commandContext);
     };
     buildItems.push_back(compileItem);
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Build"; return i; }());
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Package"; return i; }());
-    buildItems.push_back([] { auto i = std::make_shared<MenuItem>(); i->label = "Cook Content"; return i; }());
+    buildItems.push_back(MakeStubMenuItem("Build"));
+    buildItems.push_back(MakeStubMenuItem("Package"));
+    buildItems.push_back(MakeStubMenuItem("Cook Content"));
     menuBar->AddMenu("Build", buildItems);
     menuBar->AddMenu("Select", {
-        [] { auto i = std::make_shared<MenuItem>(); i->label = "Select All"; return i; }(),
-        [] { auto i = std::make_shared<MenuItem>(); i->label = "Deselect All"; return i; }()
+        MakeStubMenuItem("Select All"),
+        MakeStubMenuItem("Deselect All"),
     });
     menuBar->AddMenu("Help", {
-        [] { auto i = std::make_shared<MenuItem>(); i->label = "Documentation"; return i; }(),
-        [] { auto i = std::make_shared<MenuItem>(); i->label = "About WindEffects"; return i; }()
+        MakeStubMenuItem("Documentation"),
+        MakeStubMenuItem("About WindEffects"),
     });
     menuBar->SetItemSpacing(0.0f);
 
@@ -338,6 +364,15 @@ EditorShellResult EditorShellBuilder::Build(
         const float logoLogical = we::programs::editor::GetExplorerDockTabLogoSize();
         explorerPanel->SetTabBrand(we::rhi::RHIDescriptorSetHandle::Invalid, logoLogical);
         we::programs::editor::BindExplorerBrandLogo(we::rhi::RHIDescriptorSetHandle::Invalid, logoLogical);
+    }
+
+    if (shellResult.layout.viewportDock) {
+        shellResult.layout.viewportDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
+            we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
+        });
+        shellResult.layout.viewportDock->SetOnTabDragStarted([](const std::shared_ptr<Panel>& panel, const Point& pos) {
+            we::programs::editor::EditorWorkspaceController::Get().FloatPanelWidget(panel, pos);
+        });
     }
 
     if (shellResult.layout.explorerDock) {

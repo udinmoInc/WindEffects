@@ -22,6 +22,7 @@
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "Platform/Platform.h"
+#include "Core/LoopExecutionTrace.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -222,6 +223,8 @@ void TitleBar::Construct() {
     notifBtn->SetButtonStyle(ToolButtonStyle::TitleBarTool);
 
     auto minimizeBtn = std::make_shared<ToolButton>(WindIcons::Minus16, "", [this]() {
+        we::runtime::core::LoopExecutionTrace::Event(
+            "TitleBar.MinimizeClick", "ShowWindow(SW_MINIMIZE) — WM_SIZE arrives via nested WndProc");
         if (m_Window != we::platform::WindowId::Invalid) {
             we::platform::Platform::Get().MinimizeWindow(m_Window);
         }
@@ -238,6 +241,8 @@ void TitleBar::Construct() {
         }
     });
     auto closeBtn = std::make_shared<ToolButton>(WindIcons::X16, "", [this]() {
+        we::runtime::core::LoopExecutionTrace::Event(
+            "TitleBar.CloseClick", "PushEvent(WindowCloseEvent) → pending until next PollEvents flush");
         if (m_Window != we::platform::WindowId::Invalid) {
             we::platform::Platform::Get().PushEvent(we::platform::WindowCloseEvent{m_Window});
         }
@@ -354,25 +359,38 @@ void TitleBar::UpdateMaximizeIcon() {
 we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
     Point p{ static_cast<float>(point.x), static_cast<float>(point.y) };
 
+    // Use the live widget tree so menus / title-bar tools / window controls stay
+    // HTCLIENT even when left/right Row desired-size lags a frame behind paint.
+    // Returning HTCAPTION over those glyphs makes Windows steal the click as a
+    // caption drag — the header icons appear dead.
+    if (auto hit = HitTestPoint(p, nullptr)) {
+        if (hit.get() != static_cast<Widget*>(this)) {
+            return we::platform::WindowHitTestResult::Client;
+        }
+    }
+
+    for (const auto& w : m_InteractableWidgets) {
+        if (!w) {
+            continue;
+        }
+        const Rect& g = w->GetGeometry();
+        if (g.width > 0.0f && g.height > 0.0f && g.Contains(p)) {
+            return we::platform::WindowHitTestResult::Client;
+        }
+    }
+
     if (m_LeftContainer && m_LeftContainer->GetGeometry().Contains(p)) {
         return we::platform::WindowHitTestResult::Client;
     }
     if (m_RightContainer && m_RightContainer->GetGeometry().Contains(p)) {
         return we::platform::WindowHitTestResult::Client;
     }
-    if (m_CenterContainer && m_CenterContainer->GetGeometry().Contains(p)) {
+    if (m_CenterContainer && m_CenterContainer->GetGeometry().width > 0.0f
+        && m_CenterContainer->GetGeometry().Contains(p)) {
         return we::platform::WindowHitTestResult::Client;
     }
 
-    for (const auto& w : m_InteractableWidgets) {
-        if (p.x >= w->GetGeometry().x && p.x <= w->GetGeometry().x + w->GetGeometry().width &&
-            p.y >= w->GetGeometry().y && p.y <= w->GetGeometry().y + w->GetGeometry().height) {
-            return we::platform::WindowHitTestResult::Client;
-        }
-    }
-
-    if (p.x >= m_Geometry.x && p.x <= m_Geometry.x + m_Geometry.width &&
-        p.y >= m_Geometry.y && p.y <= m_Geometry.y + m_Geometry.height) {
+    if (m_Geometry.Contains(p)) {
         return we::platform::WindowHitTestResult::Draggable;
     }
 

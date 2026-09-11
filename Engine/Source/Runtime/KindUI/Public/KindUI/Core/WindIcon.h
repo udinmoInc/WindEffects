@@ -116,6 +116,7 @@ namespace WindIconAssets {
     inline constexpr const char* Pause = "pause-fill";
     inline constexpr const char* PauseFill = "pause-fill";
     inline constexpr const char* Pin = "pin";
+    inline constexpr const char* PlaySettings = "play-settings";
     inline constexpr const char* Play = "play";
     inline constexpr const char* PlayBack = "play-back";
     inline constexpr const char* PlayForward = "play-forward";
@@ -331,6 +332,7 @@ namespace WindIcons {
     inline constexpr WindIconRef PaperPencile24{ WindIconAssets::PaperPencile, 24 };
     inline constexpr WindIconRef Pin16{ WindIconAssets::Pin, 16 };
     inline constexpr WindIconRef Pin24{ WindIconAssets::Pin, 24 };
+    inline constexpr WindIconRef PlaySettings16{ WindIconAssets::PlaySettings, 16 };
     inline constexpr WindIconRef Pause16{ WindIconAssets::Pause, 16 };
     inline constexpr WindIconRef Pause24{ WindIconAssets::Pause, 24 };
     inline constexpr WindIconRef PauseFill24{ WindIconAssets::PauseFill, 24 };

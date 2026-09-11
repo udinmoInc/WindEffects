@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Widgets/ToolbarBuilder.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Tokens/DesignToken.h"
@@ -43,7 +44,9 @@ std::shared_ptr<Panel> CreateGamePanel() {
         .Build();
 
     return PanelBuilder("Game")
-        .WithCloseButton()
+        .WithCloseButton([]() {
+            EditorWorkspaceController::Get().SetPanelVisible("Game", false);
+        })
         .Toolbar(toolbar)
         .Content(std::make_shared<Label>(""));
 }

@@ -199,9 +199,16 @@ inline void ConfigureModuleSearchPaths() {
 
     AddDllDirectory(root.wstring().c_str());
 
+    const auto stagedEngineBinaries = root / layout::kEngine / layout::kBinaries;
+    if (std::filesystem::exists(stagedEngineBinaries)) {
+        SetDllDirectoryW(stagedEngineBinaries.wstring().c_str());
+    } else if (std::filesystem::exists(paths.EngineBinariesRoot())) {
+        SetDllDirectoryW(paths.EngineBinariesRoot().wstring().c_str());
+    }
+
     const std::array searchRoots = {
         paths.EngineBinariesRoot(),
-        root / layout::kEngine / layout::kBinaries,
+        stagedEngineBinaries,
         paths.ThirdPartyRoot(),
         root / layout::kPlugins,
         paths.PluginsRoot()

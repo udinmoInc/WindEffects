@@ -150,6 +150,9 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
         .HeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight))
         .Collapsible(false)
         .TabIcon(WindIcons::Outliner16)
+        .WithCloseButton([]() {
+            EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
+        })
         .Search(g_ExplorerHeader)
         .ColumnHeader(columnHeader)
         .Content(treeView)

@@ -63,7 +63,23 @@ public:
     CORE_API static void Log(
         Level level,
         std::string_view category,
+        std::string_view message,
+        const char* file = nullptr,
+        int line = 0,
+        const char* function = nullptr);
+
+    CORE_API static void Log(
+        Level level,
+        std::string_view category,
         const std::string& message,
+        const char* file = nullptr,
+        int line = 0,
+        const char* function = nullptr);
+
+    CORE_API static void Log(
+        Level level,
+        std::string_view category,
+        const char* message,
         const char* file = nullptr,
         int line = 0,
         const char* function = nullptr);

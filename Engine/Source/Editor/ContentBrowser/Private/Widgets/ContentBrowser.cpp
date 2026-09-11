@@ -92,6 +92,24 @@ void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
     }
 }
 
+void ContentBrowser::UpdateItemIcon(const std::string& id, we::rhi::RHIDescriptorSetHandle texture) {
+    if (m_Model) {
+        for (auto& item : m_Model->items) {
+            if (item.id == id) {
+                item.iconTexture = texture;
+                break;
+            }
+        }
+    }
+    for (auto& renderItem : m_RenderList) {
+        if (renderItem.item.id == id) {
+            renderItem.item.iconTexture = texture;
+            break;
+        }
+    }
+    UIRepaintGate::RequestPaint();
+}
+
 ContentViewMode ContentBrowser::GetEffectiveViewMode() const {
     if (!m_Model) return ContentViewMode::LargeIcons;
     return m_Model->viewMode;

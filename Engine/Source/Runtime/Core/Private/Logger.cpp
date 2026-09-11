@@ -120,6 +120,13 @@ const std::string& Logger::GetCrashesRoot() {
     return s_CrashesRoot;
 }
 
+struct LoggerCleanupGuard {
+    ~LoggerCleanupGuard() {
+        Logger::Shutdown();
+    }
+};
+static LoggerCleanupGuard s_LoggerCleanupGuard;
+
 void Logger::Shutdown() {
     if (!s_Initialized.load()) return;
 
@@ -153,6 +160,16 @@ void Logger::Log(Level level, const std::string& message) {
 
 void Logger::Log(Level level, std::string_view category, const std::string& message, const char* file, int line,
     const char* function) {
+    Log(level, category, std::string_view(message), file, line, function);
+}
+
+void Logger::Log(Level level, std::string_view category, const char* message, const char* file, int line,
+    const char* function) {
+    Log(level, category, message ? std::string_view(message) : std::string_view(), file, line, function);
+}
+
+void Logger::Log(Level level, std::string_view category, std::string_view message, const char* file, int line,
+    const char* function) {
     if (static_cast<int>(level) < static_cast<int>(s_MinimumLevel.load())) {
         return;
     }
@@ -160,7 +177,7 @@ void Logger::Log(Level level, std::string_view category, const std::string& mess
     LogRecord record{};
     record.level = level;
     record.category = std::string(category);
-    record.message = message;
+    record.message = std::string(message);
     record.timestamp = GetCurrentTimestamp();
     record.frameNumber = FrameCounter::GetFrameNumber();
 #if defined(_WIN32)

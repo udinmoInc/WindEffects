@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "WindEffects/Platform.h"
 #include "WindEffects/Runtime/CoreSDK.h"
+#include "Core/EngineWatchdog.h"
 #include "Platform/PlatformSDK.h"
 #include "Projects/EditorCommandLine.h"
 #include "Projects/EngineContext.h"
@@ -46,6 +47,7 @@ void ConfigureModuleSearchPath() {
 int main(int argc, char* argv[]) {
     try {
         we::platform::InitializeLogging();
+        we::runtime::core::EngineWatchdog::Get().Initialize();
 
         auto& platform = we::platform::Platform::Initialize({
             .appName = "WindEffects Editor",
@@ -165,6 +167,7 @@ int main(int argc, char* argv[]) {
 
         we::projects::EngineContext::Get().Shutdown();
         (void)platform.DestroyWindow(window);
+        we::runtime::core::EngineWatchdog::Get().Shutdown();
         we::platform::Platform::Shutdown();
         HE_INFO("[Startup] === WindEffects Editor shutdown complete ===");
     } catch (const std::exception& e) {

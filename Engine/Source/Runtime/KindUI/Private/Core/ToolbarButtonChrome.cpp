@@ -245,25 +245,21 @@ void PaintInlineDropdown(
     const float radius = ButtonRadius(uiScale);
     const float hover = std::clamp(hoverAnim, 0.0f, 1.0f);
     const float press = std::clamp(pressStrength, 0.0f, 1.0f);
+    const float activeStrength = (std::max)(hover, press);
 
-    Color baseBg = ResolveColor(ColorToken::HeaderBackground);
+    if (activeStrength <= 0.001f) {
+        return;
+    }
+
     Color hoverBg = ResolveColor(ColorToken::HoverBackground);
     Color pressBg = ResolveColor(ColorToken::ControlBackgroundPressed);
-
-    Color borderNormal = ResolveColor(ColorToken::BorderSubtle);
     Color borderHover = ResolveColor(ColorToken::BorderLight);
 
-    Color fill = baseBg;
-    if (press > 0.001f) {
-        fill = Color::Pick(fill, pressBg, press);
-    } else if (hover > 0.001f) {
-        fill = Color::Pick(fill, hoverBg, hover);
-    }
+    Color fill = (press > 0.001f) ? Color::Pick(hoverBg, pressBg, press) : hoverBg;
+    fill.a *= activeStrength;
 
-    Color border = borderNormal;
-    if (hover > 0.001f || press > 0.001f) {
-        border = Color::Pick(borderNormal, borderHover, (std::max)(hover, press));
-    }
+    Color border = borderHover;
+    border.a *= activeStrength;
 
     const float compactH = (std::min)(24.0f * uiScale, rect.height);
     const float offsetY = (rect.height - compactH) * 0.5f;
@@ -304,10 +300,10 @@ void PaintStatusBarControl(
         return;
     }
 
-    const Color hover = ResolveInteractiveBackground(
-        hoverAnim, 0.0f, false, ColorToken::ViewportToolbarBackground);
-    if (hover.a > 0.001f) {
-        context.DrawRect(rect, hover);
+    if (hoverAnim > 0.001f) {
+        Color hoverBg = ResolveColor(ColorToken::HoverBackground);
+        hoverBg.a *= std::clamp(hoverAnim, 0.0f, 1.0f);
+        context.DrawRoundedRect(rect, hoverBg, 3.0f * uiScale);
     }
 }
 

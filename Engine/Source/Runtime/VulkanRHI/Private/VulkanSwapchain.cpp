@@ -115,11 +115,18 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
         return RHIError::Make(RHIErrorCode::NotInitialized, "Swapchain surface missing.", "Rebuild");
     }
 
+    VkSurfaceCapabilitiesKHR capabilities{};
+    const VkResult capsResult = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        m_Device->GetVkPhysicalDevice(), m_Surface, &capabilities);
+
+    if (capsResult != VK_SUCCESS) {
+        WE_LOG_WARN(we::LogCategory::Vulkan.data(),
+            "Surface validation failed during rebuild");
+        return RHIError::Make(RHIErrorCode::BackendFailure, "Surface validation failed.", "Rebuild");
+    }
+
     // Query extent BEFORE tearing down. Minimize is 0x0 — destroying first left
     // m_Swapchain null with a stale non-zero m_Extent, so restore never recreated.
-    VkSurfaceCapabilitiesKHR capabilities{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Device->GetVkPhysicalDevice(), m_Surface, &capabilities);
-
     Extent2D extent{};
     if (m_Desc.windowId != we::platform::WindowId::Invalid) {
         const auto pixelSize = we::platform::Platform::Get().GetWindowPixelSize(m_Desc.windowId);
@@ -183,14 +190,35 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
                 break;
             }
         }
+        if (presentMode != VK_PRESENT_MODE_MAILBOX_KHR) {
+            for (const auto& mode : presentModes) {
+                if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                    presentMode = mode;
+                    break;
+                }
+            }
+        }
     }
 
-    vkDeviceWaitIdle(m_Device->GetVkDevice());
-    CleanupImages();
-    if (m_Swapchain) {
-        vkDestroySwapchainKHR(m_Device->GetVkDevice(), m_Swapchain, nullptr);
-        m_Swapchain = VK_NULL_HANDLE;
+    // Prefer fence drains over vkDeviceWaitIdle — WaitIdle hung the editor on focus return.
+    if (m_InFlight && !m_InFlight->empty()) {
+        const VkResult waitAll = vkWaitForFences(
+            m_Device->GetVkDevice(),
+            static_cast<uint32_t>(m_InFlight->size()),
+            m_InFlight->data(),
+            VK_TRUE,
+            100'000'000ull); // 100ms
+        if (waitAll == VK_TIMEOUT) {
+            WE_LOG_WARN(we::LogCategory::Vulkan.data(),
+                "Swapchain Rebuild: fence wait timed out; proceeding without WaitIdle.");
+        }
+    } else {
+        // No frame sync yet (first create) — idle is safe/fast.
+        vkDeviceWaitIdle(m_Device->GetVkDevice());
     }
+    CleanupImages();
+    VkSwapchainKHR oldSwapchain = m_Swapchain;
+    m_Swapchain = VK_NULL_HANDLE;
 
     uint32_t imageCount = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -211,9 +239,16 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = oldSwapchain;
 
     if (vkCreateSwapchainKHR(m_Device->GetVkDevice(), &createInfo, nullptr, &m_Swapchain) != VK_SUCCESS) {
+        if (oldSwapchain) {
+            vkDestroySwapchainKHR(m_Device->GetVkDevice(), oldSwapchain, nullptr);
+        }
         return RHIError::Make(RHIErrorCode::BackendFailure, "vkCreateSwapchainKHR failed.", "Rebuild");
+    }
+    if (oldSwapchain) {
+        vkDestroySwapchainKHR(m_Device->GetVkDevice(), oldSwapchain, nullptr);
     }
 
     vkGetSwapchainImagesKHR(m_Device->GetVkDevice(), m_Swapchain, &imageCount, nullptr);
@@ -276,8 +311,8 @@ RHIResult<uint32_t> VulkanSwapchain::AcquireNextImageForSlot(uint32_t frameSlot)
 
     const uint32_t slot = frameSlot % static_cast<uint32_t>(m_ImageAvailable->size());
     uint32_t imageIndex = 0;
-    // Finite timeout: another fullscreen/app can starve the GPU; never block forever.
-    constexpr uint64_t kAcquireTimeoutNs = 1'000'000'000ull; // 1 second
+    // Finite timeout: do not block main thread forever during focus loss or window resize.
+    constexpr uint64_t kAcquireTimeoutNs = 50'000'000ull; // 50 ms
     const VkResult result = vkAcquireNextImageKHR(
         m_Device->GetVkDevice(),
         m_Swapchain,
