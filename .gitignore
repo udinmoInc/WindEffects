@@ -159,3 +159,8 @@ Desktop.ini
 *.swp
 *.swo
 /RUN.md
+
+# ==========================
+# Local Configuration
+# ==========================
+IgniteBT.SDKs.json
