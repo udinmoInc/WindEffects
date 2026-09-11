@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "activeTheme": "GraphiteDark",
+  "fonts": [
+    { "name": "Font_UI", "file": "Roboto-Regular.wefont", "required": true }
+  ],
+  "shaders": [
+    { "name": "UI", "file": "UI_VS.spv", "required": true },
+    { "name": "AtmospherePass", "file": "AtmospherePass_VS.spv", "required": false },
+    { "name": "VolumetricCloudsPass", "file": "VolumetricCloudsPass_VS.spv", "required": false },
+    { "name": "CloudTemporalResolve", "file": "CloudTemporalResolve_VS.spv", "required": false },
+    { "name": "CloudCompositePass", "file": "CloudCompositePass_VS.spv", "required": false },
+    { "name": "FogCompositePass", "file": "FogCompositePass_VS.spv", "required": false },
+    { "name": "EditorGrid", "file": "EditorGrid_VS.spv", "required": false },
+    { "name": "SceneObject", "file": "SceneObject_VS.spv", "required": false }
+  ],
+  "icons": [
+    { "name": "Icon_Lucide", "file": "icons", "required": false }
+  ],
+  "iconAtlasRoot": { "name": "Icon_AtlasRoot", "file": "Atlas", "required": false },
+  "iconMeta": { "name": "Icon_Meta", "file": "Atlas/icons.weiconmeta", "required": false }
+}
