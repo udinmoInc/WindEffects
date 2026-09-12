@@ -10,18 +10,10 @@
 #include "PropertyEditor/IDetailsView.h"
 #include "PropertyEditorInternal.h"
 
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/EditorWidgets.h"
+#include "KindUI/Widgets/ObjectTitleBar.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -30,19 +22,7 @@ namespace we::editor::property {
 namespace detail {
 namespace {
 
-using we::runtime::kindui::MouseButton;
-using we::runtime::kindui::MouseEvent;
-using we::runtime::kindui::PaintContext;
-using we::runtime::kindui::PanelToolbarRow;
-using we::runtime::kindui::Point;
-using we::runtime::kindui::Rect;
-using we::runtime::kindui::Size;
-using we::runtime::kindui::Widget;
-using ::we::runtime::kindui::kWindIconNone;
-namespace Layout = we::runtime::kindui::LayoutMetrics;
-namespace PanelChrome = we::runtime::kindui::PropertyPanelChrome;
-using we::runtime::kindui::ResolveMetric;
-using we::runtime::kindui::MetricToken;
+using namespace we::runtime::kindui;
 using ::we::runtime::kindui::panels::Panel;
 
 [[nodiscard]] bool HasDetailsSelection(const IDetailsView* details) {
@@ -71,263 +51,268 @@ protected:
     IDetailsView* m_Details = nullptr;
 };
 
-class SelectedObjectHeaderWidget final : public DetailsChromeRegionWidget {
+class ObjectTitleHeaderWrapper final : public DetailsChromeRegionWidget {
 public:
-    Size Measure(const Size& availableSize) override {
-        if (!IsVisible()) {
-            m_DesiredSize = Size{ availableSize.width, 0.0f };
-            return m_DesiredSize;
-        }
-        m_DesiredSize = Size{ availableSize.width, Layout::PropertyObjectHeaderHeight() };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override { m_Geometry = allottedRect; }
-
-    void Paint(PaintContext& context) override {
-        if (!IsVisible() || !m_Details) {
-            return;
-        }
-        const std::string& title = m_Details->GetObjectTitle();
-        if (title.empty()) {
-            return;
-        }
-        PanelChrome::PaintDetailsObjectHeader(
-            context,
-            m_Geometry,
-            title,
-            m_Details->GetObjectIcon());
+    explicit ObjectTitleHeaderWrapper(IDetailsView* details) {
+        SetDetails(details);
+        m_TitleBar = std::make_shared<ObjectTitleBar>();
+        m_TitleBar->SetFlexShrink(0.0f);
+        AddChild(m_TitleBar);
     }
 
     void Tick(float deltaTime) override {
         DetailsChromeRegionWidget::Tick(deltaTime);
-        if (!m_Details) {
-            return;
-        }
+        if (!m_Details || !IsVisible()) return;
+
         const std::string title = m_Details->GetObjectTitle();
         const auto icon = m_Details->GetObjectIcon();
-        if (title != m_LastTitle || icon.stem != m_LastIcon.stem || icon.sizePx != m_LastIcon.sizePx) {
+        if (title != m_LastTitle || !(icon == m_LastIcon)) {
             m_LastTitle = title;
             m_LastIcon = icon;
-            InvalidatePaint();
+            m_TitleBar->SetTitle(title);
+            m_TitleBar->SetIcon(icon);
         }
     }
 
+    Size Measure(const Size& availableSize) override {
+        if (!IsVisible()) {
+            m_DesiredSize = Size{ availableSize.width, 0.0f };
+            return m_DesiredSize;
+        }
+        m_DesiredSize = m_TitleBar->Measure(availableSize);
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+        m_TitleBar->Arrange(allottedRect);
+    }
+
+    void Paint(PaintContext& context) override {
+        if (!IsVisible()) return;
+        m_TitleBar->Paint(context);
+    }
+
 private:
+    std::shared_ptr<ObjectTitleBar> m_TitleBar;
     std::string m_LastTitle;
-    we::runtime::kindui::WindIconRef m_LastIcon = kWindIconNone;
+    WindIconRef m_LastIcon = kWindIconNone;
 };
 
-class DetailsSearchRowWidget final : public DetailsChromeRegionWidget {
+class CategoryFilterTabsWrapper final : public DetailsChromeRegionWidget {
 public:
-    explicit DetailsSearchRowWidget(std::shared_ptr<PanelToolbarRow> search)
-        : m_Search(std::move(search)) {}
-
-    Size Measure(const Size& availableSize) override {
-        if (!IsVisible() || !m_Search) {
-            m_DesiredSize = Size{ availableSize.width, 0.0f };
-            return m_DesiredSize;
-        }
-        m_DesiredSize = m_Search->Measure(availableSize);
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-        if (m_Search && IsVisible()) {
-            m_Search->Arrange(allottedRect);
-        }
-    }
-
-    void Paint(PaintContext& context) override {
-        if (m_Search && IsVisible()) {
-            m_Search->Paint(context);
-        }
-    }
-
-    std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip) override {
-        if (!IsVisible() || !m_Search) {
-            return nullptr;
-        }
-        return m_Search->HitTestPoint(pos, clip);
-    }
-
-    void OnMouseDown(const MouseEvent& event) override {
-        if (m_Search && IsVisible()) {
-            m_Search->OnMouseDown(event);
-        }
-    }
-
-    void OnMouseMove(const MouseEvent& event) override {
-        if (m_Search && IsVisible()) {
-            m_Search->OnMouseMove(event);
-        }
-    }
-
-    void OnMouseUp(const MouseEvent& event) override {
-        if (m_Search && IsVisible()) {
-            m_Search->OnMouseUp(event);
-        }
-    }
-
-private:
-    std::shared_ptr<PanelToolbarRow> m_Search;
-};
-
-class CategoryFilterTabsWidget final : public DetailsChromeRegionWidget {
-public:
-    Size Measure(const Size& availableSize) override {
-        if (!IsVisible()) {
-            m_DesiredSize = Size{ availableSize.width, 0.0f };
-            return m_DesiredSize;
-        }
-        m_DesiredSize = Size{ availableSize.width, Layout::PropertyCategoryTabRowHeight() };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-        LayoutTabs();
-    }
-
-    void Paint(PaintContext& context) override {
-        if (!IsVisible() || !m_Details) {
-            return;
-        }
-        LayoutTabs();
-        const std::string active = m_Details->GetActiveCategory();
-        for (const auto& tab : m_Tabs) {
-            const bool isActive = tab.label == "All" ? active.empty() : active == tab.label;
-            PanelChrome::PaintCategoryTab(context, tab.rect, tab.label, isActive, m_HoveredTab == tab.label);
-        }
-    }
-
-    void OnMouseMove(const MouseEvent& event) override {
-        if (!IsVisible()) {
-            return;
-        }
-        const std::string prev = m_HoveredTab;
-        m_HoveredTab = TabAt(event.position);
-        if (prev != m_HoveredTab) {
-            InvalidatePaint();
-        }
-    }
-
-    void OnMouseDown(const MouseEvent& event) override {
-        if (!IsVisible() || event.button != MouseButton::Left || !m_Details) {
-            return;
-        }
-        const std::string tab = TabAt(event.position);
-        if (tab.empty()) {
-            return;
-        }
-        m_Details->SetActiveCategory(tab == "All" ? "" : tab);
-        InvalidatePaint();
+    explicit CategoryFilterTabsWrapper(IDetailsView* details) {
+        SetDetails(details);
+        m_TabStrip = std::make_shared<FilterTabStrip>();
+        m_TabStrip->SetOnTabSelected([details](const std::string& category) {
+            if (details) {
+                details->SetActiveCategory(category);
+            }
+        });
+        AddChild(m_TabStrip);
     }
 
     void Tick(float deltaTime) override {
         DetailsChromeRegionWidget::Tick(deltaTime);
-        if (!m_Details || !IsVisible()) {
-            return;
-        }
+        if (!m_Details || !IsVisible()) return;
+
         const auto categories = m_Details->GetCategoryNames();
         if (categories != m_LastCategories) {
             m_LastCategories = categories;
-            InvalidateLayout();
-            InvalidatePaint();
+            m_TabStrip->SetTabs(categories);
         }
+        m_TabStrip->SetActiveTab(m_Details->GetActiveCategory());
+    }
+
+    Size Measure(const Size& availableSize) override {
+        if (!IsVisible()) {
+            m_DesiredSize = Size{ availableSize.width, 0.0f };
+            return m_DesiredSize;
+        }
+        m_DesiredSize = m_TabStrip->Measure(availableSize);
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+        m_TabStrip->Arrange(allottedRect);
+    }
+
+    void Paint(PaintContext& context) override {
+        if (!IsVisible()) return;
+        m_TabStrip->Paint(context);
     }
 
 private:
-    struct TabSlot {
-        std::string label;
-        Rect rect;
-    };
-
-    void LayoutTabs() {
-        m_Tabs.clear();
-        if (!m_Details || !IsVisible()) {
-            return;
-        }
-
-        const float scale = std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
-        const float padH = ResolveMetric(MetricToken::Space2) * scale;
-        const float padV = ResolveMetric(MetricToken::Space1) * scale;
-        const float tabH = PanelChrome::CategoryTabHeight();
-        const float gap = ResolveMetric(MetricToken::Space1) * scale;
-        const float minTabW = padH * 3.0f;
-
-        float x = m_Geometry.x + padH;
-        const float y = m_Geometry.y + padV;
-
-        auto addTab = [&](const std::string& label, float textWidth) {
-            const float tabW = std::max(minTabW, textWidth + padH * 2.0f);
-            m_Tabs.push_back(TabSlot{ label, Rect{ x, y, tabW, tabH } });
-            x += tabW + gap;
-        };
-
-        const float captionSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
-        addTab("All", captionSize * 1.5f);
-        for (const auto& category : m_Details->GetCategoryNames()) {
-            addTab(category, static_cast<float>(category.size()) * captionSize * 0.55f);
-        }
-    }
-
-    [[nodiscard]] std::string TabAt(const Point& pos) const {
-        for (const auto& tab : m_Tabs) {
-            if (tab.rect.Contains(pos)) {
-                return tab.label;
-            }
-        }
-        return {};
-    }
-
-    std::vector<TabSlot> m_Tabs;
-    std::string m_HoveredTab;
+    std::shared_ptr<FilterTabStrip> m_TabStrip;
     std::vector<std::string> m_LastCategories;
 };
 
-} // namespace
+class SubOutlinerTreeWrapper final : public DetailsChromeRegionWidget {
+public:
+    explicit SubOutlinerTreeWrapper(IDetailsView* details) {
+        SetDetails(details);
+        m_Tree = std::make_shared<CompactTreeWidget>();
+        m_Tree->SetOnItemClicked([details](const CompactTreeNode& item) {
+            if (details) {
+                details->SetActiveCategory(item.category);
+            }
+        });
+        AddChild(m_Tree);
+        RebuildItems();
+    }
+
+    void Tick(float deltaTime) override {
+        DetailsChromeRegionWidget::Tick(deltaTime);
+        if (!m_Details || !IsVisible()) return;
+
+        RebuildItems();
+        m_Tree->SetActiveCategory(m_Details->GetActiveCategory());
+    }
+
+    Size Measure(const Size& availableSize) override {
+        if (!IsVisible()) {
+            m_DesiredSize = Size{ availableSize.width, 0.0f };
+            return m_DesiredSize;
+        }
+        m_DesiredSize = m_Tree->Measure(availableSize);
+        return m_DesiredSize;
+    }
+
+    void Arrange(const Rect& allottedRect) override {
+        m_Geometry = allottedRect;
+        m_Tree->Arrange(allottedRect);
+    }
+
+    void Paint(PaintContext& context) override {
+        if (!IsVisible()) return;
+        m_Tree->Paint(context);
+    }
+
+private:
+    void RebuildItems() {
+        if (!m_Details) return;
+        const std::string title = m_Details->GetObjectTitle();
+        const auto icon = m_Details->GetObjectIcon();
+        const std::string rootTitle = title.empty() ? "Actor (Self)" : title + " (Self)";
+
+        if (rootTitle != m_LastTitle) {
+            m_LastTitle = rootTitle;
+            std::vector<CompactTreeNode> items;
+            items.push_back({
+                "root",
+                rootTitle,
+                "",
+                "",
+                icon.IsValid() ? icon : WindIcons::Folder16,
+                0,
+                false,
+                true
+            });
+            m_Tree->SetItems(items);
+        }
+    }
+
+    std::shared_ptr<CompactTreeWidget> m_Tree;
+    std::string m_LastTitle;
+};
+
+class DetailsContentRegion final : public Column {
+public:
+    DetailsContentRegion(
+        IDetailsView* details,
+        const std::shared_ptr<Widget>& propertyList,
+        const std::shared_ptr<we::runtime::kindui::EmptyState>& emptyState)
+        : m_Details(details), m_PropertyList(propertyList), m_EmptyState(emptyState) {
+
+        if (propertyList) {
+            propertyList->SetFlexGrow(1.0f);
+            propertyList->SetFlexShrink(1.0f);
+            AddChild(propertyList);
+        }
+        emptyState->SetFlexGrow(1.0f);
+        emptyState->SetFlexShrink(1.0f);
+        AddChild(emptyState);
+        SyncVisibility();
+    }
+
+    void Tick(float deltaTime) override {
+        Column::Tick(deltaTime);
+        SyncVisibility();
+    }
+
+private:
+    void SyncVisibility() {
+        const bool hasSelection = HasDetailsSelection(m_Details);
+        if (hasSelection == m_HasSelection) {
+            return;
+        }
+        m_HasSelection = hasSelection;
+        if (m_PropertyList) m_PropertyList->SetVisible(hasSelection);
+        if (m_EmptyState) m_EmptyState->SetVisible(!hasSelection);
+        InvalidateLayout();
+    }
+
+    IDetailsView* m_Details = nullptr;
+    std::shared_ptr<Widget> m_PropertyList;
+    std::shared_ptr<we::runtime::kindui::EmptyState> m_EmptyState;
+    bool m_HasSelection = true;
+};
+
+}
+
+std::shared_ptr<Widget> CreateSubOutlinerWidget(IDetailsView* details) {
+    auto subOutliner = std::make_shared<SubOutlinerTreeWrapper>(details);
+    subOutliner->SetFlexShrink(0.0f);
+    return subOutliner;
+}
 
 void PopulateDetailsPanelRegions(
-    const std::shared_ptr<Panel>& panel,
+    we::editor::dsl::PanelContext& p,
     const std::shared_ptr<Widget>& propertyList,
     IDetailsView* details)
 {
-    auto header = std::make_shared<SelectedObjectHeaderWidget>();
-    header->SetDetails(details);
-    header->SetFlexShrink(0.0f);
-    header->SetVisible(false);
+    auto objectHeader = std::make_shared<ObjectTitleHeaderWrapper>(details);
+    objectHeader->SetFlexShrink(0.0f);
 
-    auto searchInner = std::make_shared<PanelToolbarRow>("Search...");
-    searchInner->SetOnSearchChanged([details](const std::string& text) {
+    auto subOutliner = std::make_shared<SubOutlinerTreeWrapper>(details);
+    subOutliner->SetFlexShrink(0.0f);
+
+    auto toolbar = std::make_shared<PanelToolbarRow>();
+    toolbar->SetFlexShrink(0.0f);
+    toolbar->AddLeadingIconButton(WindIcons::ListFilter16, []() {});
+    toolbar->SetOnSearchChanged([details](const std::string& text) {
         if (details) {
             details->SetSearchText(text);
         }
     });
-    searchInner->Finalize();
-    searchInner->SetFlexShrink(0.0f);
+    toolbar->AddIconButton(WindIcons::Star16, []() {});
+    toolbar->AddIconButton(WindIcons::Settings16, []() {});
+    toolbar->Finalize();
 
-    auto search = std::make_shared<DetailsSearchRowWidget>(searchInner);
-    search->SetDetails(details);
-    search->SetFlexShrink(0.0f);
-    search->SetVisible(false);
+    auto categoryTabs = std::make_shared<CategoryFilterTabsWrapper>(details);
+    categoryTabs->SetFlexShrink(0.0f);
 
-    auto tabs = std::make_shared<CategoryFilterTabsWidget>();
-    tabs->SetDetails(details);
-    tabs->SetFlexShrink(0.0f);
-    tabs->SetVisible(false);
+    auto emptyState = MakeEmptyState(
+        "Inspector",
+        "Select an object to view and edit its properties");
 
-    if (propertyList) {
-        propertyList->SetFlexGrow(1.0f);
-        propertyList->SetFlexShrink(1.0f);
-    }
+    auto propertyContent = std::make_shared<DetailsContentRegion>(details, propertyList, emptyState);
+    propertyContent->SetFlexGrow(1.0f);
+    propertyContent->SetFlexShrink(1.0f);
 
-    panel->SetModeTabs(header);
-    panel->SetSearch(search);
-    panel->SetColumnHeader(tabs);
-    panel->SetContent(propertyList);
+    auto mainColumn = std::make_shared<Column>();
+    mainColumn->SetFlexGrow(1.0f);
+    mainColumn->SetFlexShrink(1.0f);
+
+    mainColumn->AddChild(objectHeader);
+    mainColumn->AddChild(subOutliner);
+    mainColumn->AddChild(toolbar);
+    mainColumn->AddChild(categoryTabs);
+    mainColumn->AddChild(propertyContent);
+
+    p.Content(mainColumn);
 }
 
-} // namespace detail
-} // namespace we::editor::property
+}
+}

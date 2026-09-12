@@ -64,7 +64,8 @@ public static class DebugCommand
 
             if (string.IsNullOrEmpty(dumpPath) && !pid.HasValue)
             {
-                var discovery = new ModuleDiscoverer(location.EngineRoot, config, CommandLineHelpers.GetCurrentPlatform());
+                var discovery = new ModuleDiscoverer(location.EngineRoot, config,
+                    CommandLineHelpers.GetCurrentPlatform());
                 var modules = await discovery.DiscoverModulesAsync();
                 var outputLayout = new OutputLayout(layout, location.EngineRoot);
                 outputLayout.RegisterModules(modules);

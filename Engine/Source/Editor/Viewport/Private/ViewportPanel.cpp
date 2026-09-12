@@ -10,7 +10,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "ViewportToolbar.h"
 #include "ViewportToolbarState.h"
-#include "KindUI/Widgets/Label.h"
+#include "KindUI/EditorWidgets.h"
 
 namespace we::programs::editor {
 using ::we::runtime::kindui::panels::Panel;
@@ -23,18 +23,21 @@ using ::we::runtime::kindui::kWindIconNone;
 std::shared_ptr<Panel> CreateViewportPanel() {
     auto toolbar = CreateViewportToolbar();
 
-    return PanelBuilder("Viewport")
-        .TabIcon(WindIcons::Viewport16)
-        .Transparent()
-        .WithCloseButton([]() {
-            EditorWorkspaceController::Get().SetPanelVisible("Viewport", false);
-        })
-        .Toolbar(toolbar)
-        .Content(std::make_shared<Label>(""));
+    return we::editor::dsl::Panel("Viewport", [&](we::editor::dsl::PanelContext& p) {
+        p.TabIcon(WindIcons::ConstructV224)
+         .Transparent()
+         .WithCloseButton([]() {
+             EditorWorkspaceController::Get().SetPanelVisible("Viewport", false);
+         })
+         .Content(std::make_shared<Label>(""));
+        p.Toolbar([&](we::editor::dsl::ToolbarContext& t) {
+            t.Custom(toolbar);
+        });
+    });
 }
 
 REGISTER_UI_PANEL(Viewport,
     WE_PANEL(Viewport).Title("Viewport").Icon("viewport").Zone(DockZone::Center).WindowMenu("Viewport").SortOrder(1),
     CreateViewportPanel)
 
-} // namespace we::programs::editor
+}

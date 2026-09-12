@@ -33,7 +33,7 @@ int64_t GetCurrentTimeMs() {
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-} // namespace
+}
 
 EngineWatchdog& EngineWatchdog::Get() {
     static EngineWatchdog instance;
@@ -158,7 +158,8 @@ void EngineWatchdog::CaptureMainThreadCallstack(std::vector<std::string>& outFra
 #if defined(_WIN32)
     if (m_MainThreadId == 0) return;
 
-    HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION, FALSE, m_MainThreadId);
+    HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION, FALSE,
+        m_MainThreadId);
     if (!hThread || hThread == INVALID_HANDLE_VALUE) {
         outFrames.push_back("Failed to OpenThread on main thread ID " + std::to_string(m_MainThreadId));
         return;
@@ -297,4 +298,4 @@ void EngineWatchdog::DumpMainThreadCallstack(const std::string& reason) {
     ReportFreezeIncident(GetStallDurationMs(), stage + " [Manual Dump: " + reason + "]");
 }
 
-} // namespace we::runtime::core
+}

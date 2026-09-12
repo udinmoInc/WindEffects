@@ -21,10 +21,10 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
         return WindIcons::FolderSearch16;
     }
     if (panelId == "output-log" || panelId == "OutputLog" || panelId == "terminal" || panelId == "Terminal") {
-        return WindIcons::Console16;
+        return WindIcons::SettingsV224;
     }
     if (panelId == "viewport" || panelId == "Viewport") {
-        return WindIcons::Viewport16;
+        return WindIcons::ConstructV224;
     }
     if (panelId == "outliner" || panelId == "WorldOutliner" || panelId == "world-outliner" || panelId == "explorer" ||
         panelId == "Explorer") {
@@ -35,12 +35,12 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
         return WindIcons::PaperPencile16;
     }
     if (panelId == "tools-panel" || panelId == "Tools" || panelId == "ToolsPanel") {
-        return WindIcons::Wrench16;
+        return WindIcons::SettingsV224;
     }
     if (panelId == "place-actors" || panelId == "PlaceActors") {
-        return WindIcons::CirclePlus16;
+        return WindIcons::ConstructV224;
     }
     return kWindIconNone;
 }
 
-} // namespace we::editor::services
+}

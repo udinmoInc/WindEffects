@@ -16,7 +16,9 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include <functional>
+#include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include "RHI/Types.h"
 #include "KindUI/Input/InputEvents.h"
@@ -33,7 +35,6 @@ using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::WidgetStyle;
 using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::ScrollViewportMetrics;
-
 
 // Tree node data structure
 struct TreeNode {
@@ -124,7 +125,7 @@ public:
         bool showLocked = true;
         bool showEmptyFolders = true;
         bool showFavorites = false;
-        int sortOrder = 0; // 0: A-Z, 1: Z-A, 2: Modified Recently
+        int sortOrder = 0;
     };
     void SetFilterOptions(const FilterOptions& options) { m_FilterOptions = options; MarkRenderListDirty();
         BuildRenderList(); }
@@ -170,11 +171,13 @@ private:
     int GetVisibleRowCount() const;
     void SyncScrollMetrics();
     void ScrollSelectionIntoView();
+    void SyncSelectedSet();
 
     std::shared_ptr<TreeNode> m_Root;
     std::vector<RenderItem> m_RenderList;
     bool m_RenderListDirty = true;
     std::vector<std::string> m_SelectedIds;
+    std::unordered_set<std::string> m_SelectedSet;
     std::string m_HoveredId;
     std::string m_DropTargetId;
 
@@ -216,4 +219,4 @@ private:
     WidgetStyle m_Style;
 };
 
-} // namespace we::editor::contentbrowser
+}

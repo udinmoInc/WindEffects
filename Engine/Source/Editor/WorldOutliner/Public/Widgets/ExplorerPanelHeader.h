@@ -10,6 +10,7 @@
 
 #include "KindUI/Core/Widgets/PanelToolbarRow.h"
 #include "KindUI/Core/Types.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
@@ -20,7 +21,7 @@ class ExplorerPanelHeader : public we::runtime::kindui::PanelToolbarRow {
 public:
     using Rect = we::runtime::kindui::Rect;
     static float DefaultHeight() {
-        return we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PanelToolbarHeight);
+        return we::runtime::kindui::LayoutMetrics::UnifiedToolbarRowHeight();
     }
 
     using FilterOptions = ::we::editor::contentbrowser::TreeView::FilterOptions;
@@ -51,4 +52,4 @@ private:
     std::function<void()> m_OnRefresh;
 };
 
-} // namespace we::editor::outliner
+}

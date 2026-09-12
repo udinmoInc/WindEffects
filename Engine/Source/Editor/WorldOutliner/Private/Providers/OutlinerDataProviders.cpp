@@ -24,10 +24,15 @@ we::runtime::kindui::WindIconRef IconForEntityType(scene::EntityType type) {
     case EntityType::PointLight:
     case EntityType::SpotLight:
     case EntityType::SkyLight: return we::runtime::kindui::WindIcons::Sun16;
-    case EntityType::SkyAtmosphere:
-    case EntityType::VolumetricClouds: return we::runtime::kindui::WindIcons::Globe16;
-    case EntityType::Landscape: return we::runtime::kindui::WindIcons::Grid16;
-    case EntityType::EmptyActor: return we::runtime::kindui::WindIcons::FolderMask16;
+    case EntityType::SkyAtmosphere: return we::runtime::kindui::WindIcons::Earth16;
+    case EntityType::VolumetricClouds:
+    case EntityType::HeightFog: return we::runtime::kindui::WindIcons::Cloud16;
+    case EntityType::Landscape:
+    case EntityType::GroundPlane: return we::runtime::kindui::WindIcons::Grid16;
+    case EntityType::Character: return we::runtime::kindui::WindIcons::Accessibility16;
+    case EntityType::CameraIcon: return we::runtime::kindui::WindIcons::ToolbarCamera16;
+    case EntityType::AudioSource: return we::runtime::kindui::WindIcons::Speaker16;
+    case EntityType::EmptyActor: return we::runtime::kindui::WindIcons::Folder16;
     default: return we::runtime::kindui::WindIcons::BoxSolid16;
     }
 }
@@ -131,7 +136,6 @@ public:
         }
 
         for (auto& [id, node] : m_Nodes) {
-            (void)id;
             const auto parentId = node->parent.value;
             if (parentId != 0 && m_Nodes.contains(parentId)) {
                 m_Nodes[parentId]->children.push_back(node->id);
@@ -179,7 +183,6 @@ public:
     void EnsureChildrenLoaded(OutlinerNodeId) override {}
     void Rebuild() override {
         // Foundation: when Editor hosts CreateWorldRuntime, map IWorldManager worlds/levels/actors here.
-        (void)m_World;
     }
 
 private:

@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Widgets/ToolButton.h"
+#include "KindUI/Layout/AutoAlign.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
@@ -237,11 +238,24 @@ Size ToolButton::Measure(const Size& availableSize) {
 
     if (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled) {
         const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-        const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
+        const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
+        const float iconSz = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
+        const float iconGap = IconGapPx(uiScale);
         const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
         const float minW = ThemeMetric(MetricToken::ToolbarLabeledMinWidth) * uiScale;
-        const float width = (std::max)(minW, labelW + padH * 2.0f);
-        const float height = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
+        float width = padH * 2.0f;
+        if (m_Icon.IsValid()) {
+            width += iconSz;
+            if (!m_Label.empty() || m_IsDropdown) {
+                width += iconGap;
+            }
+        }
+        width += labelW;
+        if (m_IsDropdown) {
+            width += iconGap + kChevronSlotPx;
+        }
+        width = (std::max)(minW, width);
+        const float height = ToolbarButtonChrome::ItemSize(uiScale);
         m_DesiredSize = Size{ width, height };
         return m_DesiredSize;
     }
@@ -288,7 +302,6 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolButton::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     const float targetActive = m_Active ? 1.0f : 0.0f;
@@ -322,10 +335,12 @@ void ToolButton::Paint(PaintContext& context) {
         Color hoverBg;
         float radius = 4.0f * uiScale;
         if (m_ButtonStyle == ToolButtonStyle::WindowClose) {
-            hoverBg = m_Pressed ? ThemeColor(ColorToken::ButtonDangerPressed) : ThemeColor(ColorToken::CloseButtonHover);
+            hoverBg = m_Pressed ? ThemeColor(ColorToken::ButtonDangerPressed) :
+                ThemeColor(ColorToken::CloseButtonHover);
             radius = 0.0f;
         } else {
-            hoverBg = m_Pressed ? ThemeColor(ColorToken::ControlBackgroundPressed) : ThemeColor(ColorToken::HoverBackground);
+            hoverBg = m_Pressed ? ThemeColor(ColorToken::ControlBackgroundPressed) :
+                ThemeColor(ColorToken::HoverBackground);
         }
         hoverBg.a *= activeStrength;
         context.DrawRoundedRect(renderRect, hoverBg, radius);
@@ -339,34 +354,6 @@ void ToolButton::Paint(PaintContext& context) {
         const float iconSize = IconSize(uiScale);
         PaintFloatingIcon(
             context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
-    } else if (m_ButtonStyle == ToolButtonStyle::ToolbarLabeled) {
-        const float iconSize = PrimaryIconSize(uiScale);
-        const float textSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-        const float labelGap = 2.0f * uiScale;
-        const float contentH = iconSize + labelGap + textSize;
-        const float topY = renderRect.y + (renderRect.height - contentH) * 0.5f;
-        const float labelW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
-
-        Rect iconBand{ renderRect.x, topY, renderRect.width, iconSize };
-        PaintFloatingIcon(
-            context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-
-        if (!m_Label.empty()) {
-            const float labelX = renderRect.x + (renderRect.width - labelW) * 0.5f;
-            const float labelY = topY + iconSize + labelGap;
-            Color labelColor = m_Active
-                ? ThemeColor(ColorToken::IconAccent)
-                : ThemeColor(ColorToken::TextSecondary);
-            if (m_HoverAnim > 0.01f && !m_Active) {
-                labelColor = Color::Pick(labelColor, ThemeColor(ColorToken::TextPrimary), m_HoverAnim);
-            }
-            context.DrawText(
-                m_Label,
-                Point{ labelX, labelY },
-                labelColor,
-                textSize,
-                we::runtime::text::layout::FontWeight::Regular);
-        }
     } else {
         // Standard buttons (Inline, IconOnly, Transport, StatusBar, ViewportChip, Normal)
         const float iconSize = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
@@ -383,31 +370,32 @@ void ToolButton::Paint(PaintContext& context) {
             PaintFloatingIcon(
                 context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
         } else {
-            float currentX = renderRect.x + padH;
+            const auto layout = ::we::runtime::kindui::AutoAlign::ComputeGroupCenterLayout(
+                renderRect, iconSize, m_Icon.IsValid(), m_Label, textSize, 16.0f, m_IsDropdown, iconGap);
+
             if (m_Icon.IsValid()) {
-                Rect iconBand{ currentX, centerY - iconSize * 0.5f, iconSize, iconSize };
+                const ::we::runtime::kindui::Rect iconRect = layout.iconRect;
                 PaintFloatingIcon(
-                    context, m_Icon, iconBand, iconSize, m_HoverAnim, pressStrength, m_Active);
-                currentX += iconSize + iconGap;
+                    context, m_Icon, iconRect, iconSize, m_HoverAnim, pressStrength, m_Active);
             }
 
             if (!m_Label.empty()) {
                 Color textColor = ResolveInteractiveTextColor(m_HoverAnim, pressStrength, m_Active);
+                const ::we::runtime::kindui::Point textPos = layout.textPos;
                 context.DrawText(
                     m_Label,
-                    Point{ currentX, LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize) },
+                    textPos,
                     textColor,
                     textSize,
                     we::runtime::text::layout::FontWeight::Regular);
-                currentX += LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
             }
 
             if (m_IsDropdown) {
-                currentX += chevGap;
+                const ::we::runtime::kindui::Rect chevRect = layout.chevronRect;
                 PaintFloatingIcon(
                     context,
                     WindIcons::ChevronDownV212,
-                    IconMetrics::CompactGlyphBand(renderRect, currentX),
+                    chevRect,
                     16.0f,
                     m_HoverAnim,
                     pressStrength,
@@ -508,6 +496,5 @@ void ToolSeparator::Paint(PaintContext& context) {
         "ToolSeparator");
 }
 
-} // namespace we::editor::toolbar
+}
 
- 

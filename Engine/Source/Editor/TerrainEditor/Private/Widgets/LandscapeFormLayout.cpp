@@ -38,7 +38,7 @@ public:
 
     Size Measure(const Size& availableSize) override {
         const float gap = m_LeadingGap ? ChromeSeparation::GapWide() : 0.0f;
-        const float bandH = PropertyPanelChrome::SectionHeight();
+        const float bandH = LayoutMetrics::UnifiedSectionHeaderHeight();
         m_DesiredSize = Size{ availableSize.width, gap + bandH };
         return m_DesiredSize;
     }
@@ -77,7 +77,7 @@ private:
     Rect m_TitleBand;
 };
 
-} // namespace
+}
 
 void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
     if (!layout) {
@@ -190,6 +190,5 @@ int FormParseInt(std::string_view text, int fallback) {
     }
 }
 
-} // namespace we::editor::terrain
- 
- 
+}
+

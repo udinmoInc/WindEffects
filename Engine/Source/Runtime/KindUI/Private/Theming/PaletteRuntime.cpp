@@ -84,6 +84,15 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.InputInsetInner = D::InputInsetInner;
     c.InputInsetOuter = D::InputInsetOuter;
     c.Recessed = D::Recessed;
+    c.BorderSeparator = D::BorderSeparator;
+    c.BorderSubtle = D::BorderSubtle;
+    c.BorderDefault = D::BorderDefault;
+    c.BorderLight = D::BorderLight;
+    c.BorderFocus = D::BorderFocus;
+    c.BorderError = D::BorderError;
+    c.AxisX = D::AxisX;
+    c.AxisY = D::AxisY;
+    c.AxisZ = D::AxisZ;
     c.Panel = D::Panel;
     c.Header = D::Header;
     c.Dropdown = D::Dropdown;
@@ -144,10 +153,16 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
 
 void ResetMetricsToCompileDefaults(GraphiteDarkMetrics& m) {
     m.TabTopRadius = 6.0f;
+    m.InputWidthCompact = 80.0f;
+    m.InputWidthDefault = 100.0f;
+    m.InputWidthLarge = 120.0f;
 }
 
 float* MetricByName(GraphiteDarkMetrics& m, std::string_view name) {
     if (name == "TabTopRadius") return &m.TabTopRadius;
+    if (name == "InputWidthCompact") return &m.InputWidthCompact;
+    if (name == "InputWidthDefault") return &m.InputWidthDefault;
+    if (name == "InputWidthLarge") return &m.InputWidthLarge;
     return nullptr;
 }
 
@@ -163,6 +178,15 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "InputInsetInner") return &c.InputInsetInner;
     if (name == "InputInsetOuter") return &c.InputInsetOuter;
     if (name == "Recessed") return &c.Recessed;
+    if (name == "BorderSeparator") return &c.BorderSeparator;
+    if (name == "BorderSubtle") return &c.BorderSubtle;
+    if (name == "BorderDefault") return &c.BorderDefault;
+    if (name == "BorderLight") return &c.BorderLight;
+    if (name == "BorderFocus") return &c.BorderFocus;
+    if (name == "BorderError") return &c.BorderError;
+    if (name == "AxisX") return &c.AxisX;
+    if (name == "AxisY") return &c.AxisY;
+    if (name == "AxisZ") return &c.AxisZ;
     if (name == "Panel") return &c.Panel;
     if (name == "Header") return &c.Header;
     if (name == "Dropdown") return &c.Dropdown;
@@ -381,7 +405,7 @@ bool EnsureLoadedLocked() {
     return true;
 }
 
-} // namespace
+}
 
 GraphiteDarkColors& GraphiteDarkLive() {
     std::lock_guard lock(g_Mutex);
@@ -461,5 +485,5 @@ bool ForceReloadActiveThemePalette() {
     return reloaded;
 }
 
-} // namespace we::runtime::kindui::palette
- 
+}
+

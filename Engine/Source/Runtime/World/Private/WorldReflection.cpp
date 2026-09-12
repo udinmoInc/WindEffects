@@ -313,6 +313,16 @@ void RegisterEnvironmentSkyAtmosphere(reflection::ITypeRegistry& registry) {
         .SchemaVersion(1)
         .Property(WithCategory(
             MakeOffsetProperty(
+                "SkyMaterial",
+                BuiltinTypeId::String(),
+                static_cast<std::uint32_t>(offsetof(EnvironmentSkyAtmosphere, SkyMaterial)),
+                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentSkyAtmosphere>().SkyMaterial))),
+                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentSkyAtmosphere>().SkyMaterial))),
+                PropertyFlags::Serialize | PropertyFlags::Editable | PropertyFlags::AssetReference,
+                PrimitiveKind::String),
+            "Atmosphere"))
+        .Property(WithCategory(
+            MakeOffsetProperty(
                 "RayleighScattering",
                 BuiltinTypeId::Float(),
                 static_cast<std::uint32_t>(offsetof(EnvironmentSkyAtmosphere, RayleighScattering)),
@@ -874,7 +884,7 @@ void RegisterActorSpawnParams(reflection::ITypeRegistry& registry) {
         .Register(registry, RegisterMode::Replace);
 }
 
-} // namespace
+}
 
 void WorldTypeRegistrar::RegisterTypes(reflection::ITypeRegistry& registry) {
     const bool wasSealed = registry.IsSealed();
@@ -904,7 +914,6 @@ void WorldTypeRegistrar::UnregisterTypes(reflection::ITypeRegistry& registry) {
     if (wasSealed) {
         registry.Unseal();
     }
-    (void)registry;
     if (wasSealed) {
         registry.Seal();
     }
@@ -915,4 +924,4 @@ void RegisterWorldReflectionTypes(reflection::ITypeRegistry& registry) {
     registrar.RegisterTypes(registry);
 }
 
-} // namespace we::runtime::world
+}

@@ -16,22 +16,14 @@
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
 #include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/TreeView.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/Splitter.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/Types.h"
 #include "Core/Localization.h"
 #include "Core/Paths.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
 #include "ContentBrowser/Models/ContentBrowserModel.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelBuilder.h"
+#include "KindUI/EditorWidgets.h"
+#include "KindUI/Layout/Splitter.h"
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -66,7 +58,8 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> MakeSection(const std::s
     return node;
 }
 
-void CollectExpandedNodes(const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& node, std::unordered_set<std::string>& outExpanded) {
+void CollectExpandedNodes(const std::shared_ptr<::we::editor::contentbrowser::TreeNode>& node,
+    std::unordered_set<std::string>& outExpanded) {
     if (!node) return;
     if (node->expanded) {
         outExpanded.insert(node->id);
@@ -96,7 +89,8 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(
     return node;
 }
 
-void SyncFolderTreeSelection(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree, const std::string& virtualPath) {
+void SyncFolderTreeSelection(const std::shared_ptr<::we::editor::contentbrowser::TreeView>& tree, const std::string&
+    virtualPath) {
     if (!tree) return;
 
     std::function<bool(const std::shared_ptr<::we::editor::contentbrowser::TreeNode>&)> expandPath =
@@ -140,11 +134,13 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
         root->icon = WindIcons::FolderOpenMask16;
         tree->SetRoot(root);
     }
-    const std::string selectedId = (ContentAssetRegistry::Get().FindByVirtualPath(currentFolder) != nullptr) ? currentFolder : "/Game";
+    const std::string selectedId = (ContentAssetRegistry::Get().FindByVirtualPath(currentFolder) != nullptr)
+        ? currentFolder : "/Game";
     SyncFolderTreeSelection(tree, selectedId);
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string& virtualPath) {
+void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string&
+    virtualPath) {
     if (!breadcrumb) return;
     std::vector<std::string> crumbs;
     crumbs.push_back("All");
@@ -240,7 +236,7 @@ void WireContentBrowser(
     });
 }
 
-} // namespace
+}
 
 void InitializeContentBrowserService(
     we::runtime::kindui::IconRenderer* iconRenderer,
@@ -275,7 +271,6 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
     folderTree->SetShowRowControls(false);
 
-    // Main layout: vertical column with toolbar spanning the top, and splitter below
     auto mainColumn = std::make_shared<we::runtime::kindui::Column>();
     mainColumn->SetFlexGrow(1.0f);
     mainColumn->SetFlexShrink(1.0f);
@@ -289,14 +284,13 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     folderTree->SetFlexGrow(1.0f);
     folderTree->SetFlexShrink(1.0f);
 
-    // Right pane layout: search & filter row at the top, content browser asset grid below
     auto rightPane = std::make_shared<we::runtime::kindui::Column>();
     rightPane->SetFlexGrow(1.0f);
     rightPane->SetFlexShrink(1.0f);
 
     auto searchRow = std::make_shared<we::runtime::kindui::Row>();
     searchRow->Background(we::runtime::kindui::Hex("#151515"));
-    searchRow->Padding(Margin{ 6.0f, 4.0f, 6.0f, 2.0f });
+    searchRow->Padding(Margin{ 6.0f, 3.0f, 6.0f, 3.0f });
     searchRow->Gap(4.0f);
     searchRow->Align(AlignItems::Center);
     searchRow->SetFlexShrink(0.0f);
@@ -321,8 +315,6 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     rightPane->AddChild(searchRow);
     rightPane->AddChild(contentBrowser);
 
-    // Split content area below toolbar into left (folder tree sidebar) and right (content browser grid/list with
-    // search).
     const float treePaneWidth = std::max(200.0f * we::runtime::kindui::DPIContext::GetScale(),
         we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::PropertyLabelColumnWidth) * 2.0f);
     auto contentSplitter =
@@ -337,16 +329,16 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     mainColumn->AddChild(assetToolbar);
     mainColumn->AddChild(contentSplitter);
 
-    auto panel = PanelBuilder(title)
-        .TabIcon(WindIcons::FolderSearch16)
-        .WithCloseButton([]() {
-            EditorWorkspaceController::Get().SetPanelVisible("ContentBrowser", false);
-        })
-        .Content(mainColumn);
+    auto panel = we::editor::dsl::Panel(std::string(title), [&](we::editor::dsl::PanelContext& p) {
+        p.TabIcon(WindIcons::FolderSearch16)
+         .WithCloseButton([]() {
+             EditorWorkspaceController::Get().SetPanelVisible("ContentBrowser", false);
+         })
+         .Content(mainColumn);
+    });
 
     auto breadcrumb = assetToolbar->GetBreadcrumb();
 
-    // Folder navigation history stack
     auto history = std::make_shared<std::vector<std::string>>();
     auto historyIndex = std::make_shared<int>(-1);
 
@@ -372,7 +364,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
         *historyIndex = static_cast<int>(history->size()) - 1;
     };
 
-    auto doNavigate = [contentBrowser, folderTree, breadcrumb, searchBox, pushHistory, updateNavButtons](const std::string& path,
+    auto doNavigate = [contentBrowser, folderTree, breadcrumb, searchBox, pushHistory,
+        updateNavButtons](const std::string& path,
         bool recordHistory = true) {
         NavigateToFolder(path, contentBrowser, breadcrumb, searchBox);
         SyncFolderTreeSelection(folderTree, path);
@@ -385,8 +378,6 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     RefreshFolderTree(folderTree);
     WireContentBrowser(contentBrowser, breadcrumb, searchBox, doNavigate);
     doNavigate(ContentBrowserService::Get().GetCurrentFolder(), true);
-
-    // Wire up navigation buttons (Back, Forward, Folder, Breadcrumb)
     assetToolbar->SetOnPreviousClicked([history, historyIndex, doNavigate, updateNavButtons]() {
         if (*historyIndex > 0) {
             --(*historyIndex);
@@ -428,18 +419,15 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
         (void)we::runtime::kindui::FontImportService::ImportFontFile(*inputFont, outputDir, 18.0f);
     });
 
-    // Wire search box in right pane
     searchBox->SetOnTextChanged([contentBrowser](const std::string& text) {
         ContentBrowserService::Get().GetSearchController().SetQuery(text);
         if (contentBrowser->GetModel()) contentBrowser->GetModel()->NotifyChanged();
     });
 
     assetToolbar->SetOnSaveClicked([]() {
-        // Save all placeholder – layout hook for future save workflow.
     });
 
     assetToolbar->SetOnFabClicked([]() {
-        // Fab 3D marketplace placeholder – layout hook for future library workflow.
     });
 
     folderTree->SetOnSelectionChanged([doNavigate](const std::vector<std::string>& ids) {
@@ -483,4 +471,4 @@ REGISTER_UI_PANEL(ContentBrowser,
     WE_PANEL(ContentBrowser).Title("Asset Explorer").Icon("content-browser").Zone(DockZone::Bottom).WindowMenu("Asset Explorer").SortOrder(4),
     CreateContentBrowserPanel)
 
-} // namespace we::programs::editor
+}

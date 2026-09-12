@@ -23,7 +23,8 @@ namespace we::programs::crashreporter {
 CrashReporterApp::CrashReporterApp(we::platform::WindowId window) : m_Window(window) {
     HE_INFO("[CrashReporterApp] Constructor started");
 
-    const we::core::ProductMetadata* crashedApp = we::core::ProductMetadataService::Get().GetCrashedApplicationMetadata();
+    const we::core::ProductMetadata* crashedApp =
+        we::core::ProductMetadataService::Get().GetCrashedApplicationMetadata();
 
     if (crashedApp) {
         HE_INFO("[CrashReporterApp] Running in crash mode - processing crashed application");

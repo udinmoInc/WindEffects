@@ -179,7 +179,6 @@ private:
             !event.afterBytes.empty()) {
             // Diff via temporary buffers is approximate; use DiffInstances when we have before clone.
             // For hook wiring we still notify with null diff if we cannot reconstruct.
-            (void)diff;
         }
 
         if (m_Services.transactionHook) {
@@ -338,6 +337,7 @@ public:
             std::vector<void*> instances{binding.instance};
             BuildTypeNodes(binding.typeId, instances);
         }
+        OrderCategoryRoots();
         ApplyFilter(m_Filter);
     }
 
@@ -394,6 +394,9 @@ private:
             auto catIt = categories.find(categoryName);
             if (catIt == categories.end()) {
                 auto cat = std::make_shared<PropertyNodeImpl>();
+                // Category nodes participate in hit-testing and hover state, so
+                // they need a stable identity just like property nodes do.
+                cat->path = "__category__/" + categoryName;
                 cat->displayName = categoryName;
                 cat->category = categoryName;
                 cat->categoryNode = true;
@@ -417,9 +420,48 @@ private:
 
             auto node = BuildPropertyNode(typeId, instances, property, property.name, 1, categoryName);
             if (node) {
-                catIt->second->children.push_back(node);
+                // An actor binding and its component binding can expose the
+                // same field (for example the Sun's transform rotation). The
+                // actor owns the canonical transform row; do not render a
+                // second, indistinguishable editor in the same group.
+                const bool alreadyRepresented = std::any_of(
+                    catIt->second->children.begin(),
+                    catIt->second->children.end(),
+                    [&node](const PropertyNodePtr& existing) {
+                        return existing && existing->GetDisplayName() == node->GetDisplayName();
+                    });
+                if (!alreadyRepresented) {
+                    catIt->second->children.push_back(node);
+                }
             }
         }
+    }
+
+    void OrderCategoryRoots() {
+        static constexpr std::string_view kPreferredOrder[] = {
+            "Actor", "Transform", "Light", "Atmosphere", "Fog", "Clouds", "Rendering"
+        };
+        const auto rank = [](std::string_view category) {
+            for (std::size_t i = 0; i < std::size(kPreferredOrder); ++i) {
+                if (category == kPreferredOrder[i]) {
+                    return i;
+                }
+            }
+            return std::size(kPreferredOrder);
+        };
+
+        std::stable_sort(m_Roots.begin(), m_Roots.end(), [&rank](const PropertyNodePtr& left, const PropertyNodePtr&
+            right) {
+            if (!left || !right) {
+                return static_cast<bool>(left);
+            }
+            const std::size_t leftRank = rank(left->GetDisplayName());
+            const std::size_t rightRank = rank(right->GetDisplayName());
+            if (leftRank != rightRank) {
+                return leftRank < rightRank;
+            }
+            return left->GetDisplayName() < right->GetDisplayName();
+        });
     }
 
     PropertyNodePtr FilterNode(const PropertyNodePtr& node) const {
@@ -569,7 +611,7 @@ std::shared_ptr<IPropertyTree> CreatePropertyTree(RuntimeServices services) {
     return std::make_shared<PropertyTreeImpl>(std::move(services));
 }
 
-} // namespace detail
+}
 
 std::vector<MultiObjectPropertyState> MergeCommonProperties(
     const reflection::ITypeRegistry& registry,
@@ -647,4 +689,4 @@ std::vector<MultiObjectPropertyState> MergeCommonProperties(
     return result;
 }
 
-} // namespace we::editor::property
+}

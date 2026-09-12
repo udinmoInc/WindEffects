@@ -27,22 +27,18 @@ float ButtonRadius(float uiScale) {
 }
 
 float IconSize(float uiScale) {
-    (void)uiScale;
     return ResolveMetric(MetricToken::IconSizeToolbar);
 }
 
 float PrimaryIconSize(float uiScale) {
-    (void)uiScale;
     return ResolveMetric(MetricToken::IconSizeToolbar);
 }
 
 float NavigationIconSize(float uiScale) {
-    (void)uiScale;
     return ResolveMetric(MetricToken::IconSizeNavigation);
 }
 
 float WindowControlIconSize(float uiScale) {
-    (void)uiScale;
     return ResolveMetric(MetricToken::IconSizeWindowControl);
 }
 
@@ -63,11 +59,11 @@ float ChevronGapPx(float uiScale) {
 }
 
 float ItemSize(float uiScale) {
-    return 26.0f * uiScale;
+    return ResolveMetric(MetricToken::HeaderControlHeight) * uiScale;
 }
 
 float RowContentHeight(float uiScale) {
-    return 26.0f * uiScale;
+    return ResolveMetric(MetricToken::PanelToolbarHeight) * uiScale;
 }
 
 float GroupGap(float uiScale) {
@@ -83,18 +79,13 @@ Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
-    // Grayscale multiply: muted at rest → luminous on hover. Preserves authored icon hue.
-    float brightness = active ? 1.06f : 0.78f;
-    brightness = brightness + (1.12f - brightness) * std::clamp(hoverAnim, 0.0f, 1.0f);
-    if (pressStrength > 0.001f) {
-        brightness = brightness + (1.00f - brightness) * std::clamp(pressStrength, 0.0f, 1.0f) * 0.35f;
-    }
-    return Color{ brightness, brightness, brightness, 1.0f };
+
+    return Color{ 0.72f, 0.72f, 0.72f, 1.0f };
 }
 
 Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
-    // Same lighting model — play glyph keeps its authored green.
-    return ResolveIconColor(hoverAnim, pressStrength, active);
+
+    return Color{ 0.72f, 0.72f, 0.72f, 1.0f };
 }
 
 [[nodiscard]] bool IsAuthoredColorIcon(WindIconRef icon) {
@@ -182,7 +173,7 @@ void PaintSubtleToolbarFill(
     context.DrawRoundedRect(rect, bgColor, radius);
 }
 
-} // namespace
+}
 
 void PaintToolbarButtonSurface(
     PaintContext& context,
@@ -214,13 +205,7 @@ void PaintIconButton(
     float uiScale)
 {
     // Standalone floating icons: no background, border, pill, or hover box.
-    (void)context;
-    (void)rect;
-    (void)hoverAnim;
-    (void)pressStrength;
-    (void)active;
-    (void)activeAnim;
-    (void)uiScale;
+
 }
 
 void PaintActiveIndicator(
@@ -229,10 +214,7 @@ void PaintActiveIndicator(
     float activeAnim,
     float uiScale)
 {
-    (void)context;
-    (void)rect;
-    (void)activeAnim;
-    (void)uiScale;
+
 }
 
 void PaintInlineDropdown(
@@ -274,9 +256,7 @@ void PaintExecutionCluster(
     const Rect& rect,
     float uiScale)
 {
-    (void)context;
-    (void)rect;
-    (void)uiScale;
+
     // Variant without recessed card background fill
 }
 
@@ -325,12 +305,8 @@ void PaintViewportChip(
     float uiScale)
 {
     // Viewport controls are floating icons/labels — no rounded hover/active fill.
-    (void)context;
-    (void)rect;
-    (void)hoverAnim;
-    (void)pressStrength;
-    (void)uiScale;
+
 }
 
-} // namespace we::runtime::kindui::ToolbarButtonChrome
- 
+}
+

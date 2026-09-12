@@ -15,7 +15,6 @@ namespace we::runtime::kindui::palette {
 
 // Compile-time fallback defaults only.
 // Edit live colors in Engine/Config/Themes/GraphiteDark.json (hot-reloads; no rebuild).
-// ColorToken resolves via GraphiteDarkTheme → palette::GraphiteDarkLive().
 // Do not reference this struct from widgets; use ResolveColor / ds:: accessors.
 
 struct GraphiteDark {
@@ -43,23 +42,35 @@ struct GraphiteDark {
     static constexpr Color WindowBorder      = Hex("#060606");
 
     // Recessed control wells
-    static constexpr Color Foldout           = Hex("#0D0D0D");
+    static constexpr Color Foldout           = Hex("#151515");
 
     // Inputs / pressed wells
-    static constexpr Color Input             = Hex("#0C0C0C");
+    static constexpr Color Input             = Hex("#0E0E0E");
 
     // Input and control borders
-    static constexpr Color InputOutline      = Hex("#383838");
+    static constexpr Color InputOutline      = Hex("#292929");
+
+    // Border colors — configurable from JSON
+    static constexpr Color BorderSeparator   = Hex("#181818");
+    static constexpr Color BorderSubtle      = Hex("#383838");
+    static constexpr Color BorderDefault     = Hex("#383838");
+    static constexpr Color BorderLight       = Hex("#4C4C4C");
+    static constexpr Color BorderFocus       = Hex("#0068D0");
+    static constexpr Color BorderError       = Hex("#EF3535");
+
+    // Axis colors — configurable from JSON
+    static constexpr Color AxisX            = Hex("#D63838");
+    static constexpr Color AxisY            = Hex("#719F3D");
+    static constexpr Color AxisZ            = Hex("#209ED8");
 
     // Recessed input top inner edge — darker charcoal, low contrast against Input.
-    static constexpr Color InputInsetInner   = Hex("#06060666");
+    static constexpr Color InputInsetInner   = Hex("#08080866");
     // Optional outer lip for non-input chrome (panels / cards).
-    static constexpr Color InputInsetOuter   = Hex("#000000A8");
+    static constexpr Color InputInsetOuter   = Hex("#00000080");
 
     // Tree / grid wells
     static constexpr Color Recessed          = Hex("#101010");
 
-    // Main panel body
     static constexpr Color Panel             = Hex("#161616");
 
     // Section / panel headers
@@ -70,7 +81,6 @@ struct GraphiteDark {
 
     // Raised control / popup edges
     static constexpr Color DropdownOutline   = Hex("#3A3A3A");
-
 
     // ── Interaction (EStyleColor) ───────────────────────────────────────────
 
@@ -99,7 +109,6 @@ struct GraphiteDark {
     // Hovered selected item
     static constexpr Color SelectHover       = Panel;
 
-
     // ── Text (EStyleColor) ──────────────────────────────────────────────────
 
     static constexpr Color White             = Hex("#E0E0E0");
@@ -119,7 +128,6 @@ struct GraphiteDark {
     // Disabled / notification label text
     static constexpr Color Notifications     = Hex("#858585");
 
-
     // ── Icons (mono atlas tint targets — separate from body text) ───────────
 
     // Normal inactive toolbar / panel icons — lifted for dark-surface contrast
@@ -137,13 +145,11 @@ struct GraphiteDark {
     // 1px contact silhouette under glyphs (alpha; not a glow/box)
     static constexpr Color IconContactShadow = Hex("#00000073");
 
-
     // ── Status & accents (EStyleColor) ──────────────────────────────────────
 
     static constexpr Color Warning           = Hex("#FFB800");
     static constexpr Color Error             = Hex("#EF3535");
     static constexpr Color Success           = Hex("#1FE44B");
-
 
     // ── Accent colors ───────────────────────────────────────────────────────
 
@@ -164,7 +170,6 @@ struct GraphiteDark {
 
     static constexpr Color AccentWhite       = White;
     static constexpr Color AccentFolder      = Hex("#9A7848");
-
 
     // ── Composites (alpha permitted — overlays / shadows only) ──────────────
 
@@ -187,17 +192,15 @@ struct GraphiteDark {
     static constexpr Color ShadowColor       = Hex("#00000047");
     static constexpr Color FolderShadow      = Hex("#00000061");
 
-
     // ── Button bevel ────────────────────────────────────────────────────────
     // Toolbar / raised controls only — never full-surface fills.
 
     static constexpr Color ButtonBevelTop    = Hex("#383A3D");
     static constexpr Color ButtonBevelBottom = Hex("#111213");
 
-
     // ── Diagnostics (WE_TEXT_DEBUG glyph bounds) ────────────────────────────
 
     static constexpr Color DebugGlyphBounds  = Hex("#FF729C59");
 };
 
-} 
+}

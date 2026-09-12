@@ -16,7 +16,6 @@
 
 #include <algorithm>
 
-
 namespace we::runtime::kindui {
 namespace {
 
@@ -114,7 +113,7 @@ Color ResolveInteractiveBackgroundImpl(
     return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, false, false, Color::Transparent());
 }
 
-} // namespace
+}
 
 IKindUITheme& ResolveDefaultTheme() {
     return ThemeManager::Get().Theme();
@@ -223,19 +222,10 @@ Color ResolveIconColor(
         return ResolveColor(ColorToken::IconDisabled);
     }
 
-    Color base = ResolveColor(ColorToken::IconSecondary);
-    if (role == IconColorRole::Primary) {
-        base = ResolveColor(ColorToken::IconPrimary);
-    }
-    Color hover = ResolveColor(ColorToken::IconHover);
-    Color pressed = ResolveColor(ColorToken::IconActive);
-    Color result = ColorSpace::LerpColor(base, hover, Clamp01(hoverAnim));
-    result = ColorSpace::LerpColor(result, pressed, Clamp01(pressStrength));
-    return result;
+    return ResolveColor(ColorToken::IconSecondary);
 }
 
 Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool secondary) {
-    (void)secondary;
     if (disabled) {
         return ResolveIconColor(IconColorRole::Disabled);
     }
@@ -249,5 +239,5 @@ Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool se
         accent);
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

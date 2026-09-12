@@ -8,8 +8,7 @@
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelBuilder.h"
+#include "KindUI/EditorWidgets.h"
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {
@@ -32,7 +31,6 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
 
     const std::string activeModeId = EditorModeController::Get().GetActiveModeId();
     const auto* mode = EditorToolsRegistry::Get().FindMode(activeModeId);
-    // Compact modes (Select) keep the Place Actors drawer UI while transform tools stay active.
     if (mode && !mode->opensToolDrawerByDefault) {
         if (const auto* actors = EditorToolsRegistry::Get().FindMode("Actors")) {
             if (actors->customContent) {
@@ -53,23 +51,19 @@ void SyncPanelTitle(const std::shared_ptr<Panel>& panel) {
     panel->SetTabIcon(mode->icon);
 }
 
-} // namespace
+}
 
 std::shared_ptr<Panel> CreateToolsPanel() {
     auto toolsContent = std::make_shared<ToolsPanel>();
     toolsContent->InitializeFromRegistry(toolsContent);
 
-    auto panel = PanelBuilder::Create("Creation Palette")
-        .TabIcon(kWindIconNone)
-        .AddHeaderAction(we::runtime::kindui::kWindIconNone, []() {
-            auto& modeController = EditorModeController::Get();
-            modeController.SetDrawerPinned(!modeController.IsDrawerPinned());
-        })
-        .WithCloseButton([]() {
-            EditorModeController::Get().SetDrawerVisible(false);
-        })
-        .Content(toolsContent)
-        .Build();
+    auto panel = we::editor::dsl::Panel("Creation Palette", [&](we::editor::dsl::PanelContext& p) {
+        p.TabIcon(WindIcons::SettingsV224)
+         .WithCloseButton([]() {
+             EditorModeController::Get().SetDrawerVisible(false);
+         })
+         .Content(toolsContent);
+    });
 
     SyncPanelTitle(panel);
     std::weak_ptr<Panel> weakPanel = panel;
@@ -92,4 +86,4 @@ REGISTER_UI_PANEL(Tools,
     WE_PANEL(Tools).Title("Creation Palette").Icon("tools-panel").Zone(DockZone::Left).SortOrder(0),
     CreateToolsPanel)
 
-} // namespace we::programs::editor
+}

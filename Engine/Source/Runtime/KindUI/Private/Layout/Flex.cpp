@@ -18,18 +18,12 @@ namespace {
 
 float EffectiveFlexGrow(const Widget& child, bool row) {
     float grow = child.GetFlexGrow();
-    // VerticalAlignment::Fill on a Column child (main axis) means consume free space.
-    // Do not mirror HorizontalAlignment::Fill on Row — that is the default cross-axis
-    // stretch hint and must not force every row child to grow.
     if (grow <= 0.0f && !row && child.GetVerticalAlignment() == VerticalAlignment::Fill) {
         grow = 1.0f;
     }
     return grow;
 }
 
-// Flex base size on the main axis. Grow items start at their minimum (usually 0)
-// so they do not each claim 100% of availableSize during Measure and then get
-// flex-shrinked to empty rectangles — the KindUI declarative layout regression.
 float ResolveMainBasis(const Widget& child, float desiredMain, bool row) {
     if (child.GetFlexBasis() >= 0.0f) {
         return child.GetFlexBasis();
@@ -63,6 +57,38 @@ Flex& Flex::Background(ColorToken token) {
 
 Flex& Flex::Radius(RadiusToken token) {
     return Radius(ResolveRadius(token));
+}
+
+Flex& Flex::Align(AlignItems a) {
+    m_Align = a;
+    switch (a) {
+    case AlignItems::Start: m_AlignRule = AlignRule::Start; break;
+    case AlignItems::End: m_AlignRule = AlignRule::End; break;
+    case AlignItems::Center: m_AlignRule = AlignRule::Center; break;
+    case AlignItems::Stretch: m_AlignRule = AlignRule::Stretch; break;
+    }
+    InvalidateLayout();
+    return *this;
+}
+
+Flex& Flex::Align(AlignRule rule) {
+    m_AlignRule = rule;
+    switch (rule) {
+    case AlignRule::Start: m_Align = AlignItems::Start; break;
+    case AlignRule::End: m_Align = AlignItems::End; break;
+    case AlignRule::Center:
+    case AlignRule::Baseline:
+    case AlignRule::IconText:
+    case AlignRule::LabelControl:
+    case AlignRule::GroupCenter:
+        m_Align = AlignItems::Center;
+        break;
+    case AlignRule::Stretch:
+        m_Align = AlignItems::Stretch;
+        break;
+    }
+    InvalidateLayout();
+    return *this;
 }
 
 Size Flex::Measure(const Size& availableSize) {
@@ -118,8 +144,6 @@ void Flex::Arrange(const Rect& allottedRect) {
     const float contentH = std::max(0.0f, allottedRect.height - padH);
     const bool row = IsRow();
 
-    // Re-measure against the final content box so text wrapping and fill-width
-    // controls see the real cross-axis constraint before basis resolution.
     for (const auto& child : m_Children) {
         if (!child || !child->IsVisible()) continue;
         child->Measure(Size{ contentW, contentH });
@@ -262,17 +286,21 @@ void Flex::Arrange(const Rect& allottedRect) {
         float crossPos = crossOrigin + item.marginCrossStart;
         const float crossAvail = crossContainer - item.marginCrossStart - item.marginCrossEnd;
 
-        switch (m_Align) {
-        case AlignItems::Stretch:
+        switch (m_AlignRule) {
+        case AlignRule::Stretch:
             crossSize = crossAvail;
             break;
-        case AlignItems::Center:
+        case AlignRule::Center:
+        case AlignRule::IconText:
+        case AlignRule::LabelControl:
+        case AlignRule::Baseline:
+        case AlignRule::GroupCenter:
             crossPos += (crossAvail - item.crossSize) * 0.5f;
             break;
-        case AlignItems::End:
+        case AlignRule::End:
             crossPos += crossAvail - item.crossSize;
             break;
-        case AlignItems::Start:
+        case AlignRule::Start:
         default:
             break;
         }
@@ -359,4 +387,4 @@ std::shared_ptr<Column> MakeColumn() {
 }
 
 } // namespace we::runtime::kindui
- 
+

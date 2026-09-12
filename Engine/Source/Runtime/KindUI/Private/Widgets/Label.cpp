@@ -44,12 +44,16 @@ std::string EllipsizeToWidth(
     return truncated;
 }
 
-} // namespace
+}
 
 Label::Label(const std::string& text, TypographyToken role)
     : m_Text(text)
     , m_Style(TextStyle::FromRole(role))
 {
+    // Force neutral colors for label roles to prevent any green tint
+    if (role == TypographyToken::PropertyLabel || role == TypographyToken::Caption || role == TypographyToken::Error) {
+        m_Style.color = ResolveColor(ColorToken::TextSecondary);
+    }
 }
 
 Label::Label(const std::string& text, const Color& color, float fontSize)
@@ -166,5 +170,5 @@ void Label::Paint(PaintContext& context) {
     }
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

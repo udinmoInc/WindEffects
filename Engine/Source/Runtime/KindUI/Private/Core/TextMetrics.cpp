@@ -53,7 +53,7 @@ void TrimCacheIfNeeded() {
     }
 }
 
-} // namespace
+}
 
 void TextMetrics::SetMeasureProvider(TextMetrics::MeasureFn provider) {
     std::scoped_lock lock(g_MeasureMutex);
@@ -64,6 +64,17 @@ void TextMetrics::SetMeasureProvider(TextMetrics::MeasureFn provider) {
 void TextMetrics::ClearCache() {
     std::scoped_lock lock(g_MeasureMutex);
     g_MeasureCache.clear();
+}
+
+FontMetricsSpec TextMetrics::GetFontMetrics(float fontSize) {
+    const float scale = (fontSize > 0.0f) ? fontSize : 13.0f;
+    FontMetricsSpec spec;
+    spec.ascender = scale * 0.82f;
+    spec.descender = scale * 0.22f;
+    spec.capHeight = scale * 0.70f;
+    spec.xHeight = scale * 0.50f;
+    spec.lineHeight = scale * (32.0f / 24.0f);
+    return spec;
 }
 
 float TextMetrics::MeasureWidth(const std::string_view text, const float fontSize, const bool bold) {
@@ -111,5 +122,62 @@ float TextMetrics::CharWidth(const float fontSize) {
     return MeasureWidth("M", fontSize, false);
 }
 
-} // namespace we::runtime::kindui
- 
+std::string TextMetrics::TruncateText(
+    const std::string_view text,
+    const float maxWidth,
+    const float fontSize,
+    const bool bold,
+    const TruncateMode mode)
+{
+    if (text.empty() || maxWidth <= 0.0f) {
+        return "";
+    }
+
+    const float fullW = MeasureWidth(text, fontSize, bold);
+    if (fullW <= maxWidth) {
+        return std::string(text);
+    }
+
+    constexpr std::string_view kEllipsis = "...";
+    const float ellipsisW = MeasureWidth(kEllipsis, fontSize, bold);
+    if (ellipsisW >= maxWidth) {
+        return std::string(kEllipsis);
+    }
+
+    const std::string str(text);
+
+    if (mode == TruncateMode::Middle) {
+        const auto dotPos = str.rfind('.');
+        std::string suffix;
+        std::string stem;
+
+        if (dotPos != std::string::npos && dotPos > 0 && (str.size() - dotPos) <= 6) {
+            suffix = str.substr(dotPos);
+            stem = str.substr(0, dotPos);
+        } else {
+            stem = str;
+        }
+
+        const float suffixW = MeasureWidth(suffix, fontSize, bold);
+        if (suffixW + ellipsisW < maxWidth) {
+            for (size_t L = stem.size(); L > 0; --L) {
+                std::string candidate = stem.substr(0, L) + "..." + suffix;
+                if (MeasureWidth(candidate, fontSize, bold) <= maxWidth) {
+                    return candidate;
+                }
+            }
+        }
+    }
+
+    for (size_t L = str.size(); L > 0; --L) {
+        std::string candidate = str.substr(0, L) + "...";
+        if (MeasureWidth(candidate, fontSize, bold) <= maxWidth) {
+            return candidate;
+        }
+    }
+
+    return std::string(kEllipsis);
+}
+
+}
+

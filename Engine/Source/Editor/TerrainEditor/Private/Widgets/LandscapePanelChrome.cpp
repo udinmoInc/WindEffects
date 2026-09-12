@@ -46,14 +46,14 @@ float UiScale() {
     return std::max(1.0f, we::runtime::kindui::DPIContext::GetScale());
 }
 
-} // namespace
+}
 
 float PanelPad() { return PanelChromeNs::PanelPaddingH(); }
 float SectionGap() { return PropertyPanelChrome::FormStackGap(); }
 float RowHeight() { return PropertyPanelChrome::RowHeight(); }
-float ChipHeight() { return ResolveMetric(MetricToken::ToolbarLabeledHeight) * UiScale(); }
-float TabBarHeight() { return ResolveMetric(MetricToken::NavigationButtonSize) * UiScale(); }
-float PrimaryButtonHeight() { return ResolveMetric(MetricToken::PrimaryButtonHeight) * UiScale(); }
+float ChipHeight() { return LayoutMetrics::UnifiedToolbarRowHeight(); }
+float TabBarHeight() { return LayoutMetrics::UnifiedTabRowHeight(); }
+float PrimaryButtonHeight() { return LayoutMetrics::UnifiedRowHeight(); }
 float LabelColumnWidth() { return PropertyPanelChrome::LabelColumnWidth(); }
 
 void PaintPanelBackground(PaintContext& context, const Rect& bounds) {
@@ -146,7 +146,7 @@ void PaintChip(
     }
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(label, Point{textX, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary), fontSize, false);
+        ResolveColor(ColorToken::TextSecondary), fontSize, false);
 }
 
 void PaintPropertyLabel(PaintContext& context, const Rect& bounds, std::string_view label) {
@@ -197,7 +197,7 @@ void PaintToggle(
         knob * 0.5f);
     const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * UiScale();
     context.DrawText(label, Point{track.x + track.width + 10.f, LayoutMetrics::AlignTextTopY(bounds, fontSize)},
-        ResolveColor(ColorToken::TextPrimary), fontSize, false);
+        ResolveColor(ColorToken::TextSecondary), fontSize, false);
 }
 
 void PaintPrimaryButton(
@@ -276,4 +276,4 @@ void PaintInfoValue(
         false);
 }
 
-} // namespace we::editor::terrain::LandscapePanelChrome
+}

@@ -23,6 +23,7 @@
 #include "Text/Layout/TextStyle.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace we::runtime::kindui {
 namespace PropertyPanelChrome {
@@ -33,12 +34,12 @@ float UiScale() {
     return std::max(1.0f, DPIContext::GetScale());
 }
 
-} // namespace
+}
 
 float ObjectHeaderHeight() {
     const float scale = UiScale();
     const float titleRowH = ResolveMetric(MetricToken::ControlHeightCompact) * scale;
-    return titleRowH + RowHeight();
+    return titleRowH;
 }
 
 float CategoryTabHeight() {
@@ -51,10 +52,12 @@ float CategoryTabRowHeight() {
 }
 
 float SectionHeight() {
-    return ResolveMetric(MetricToken::CategoryHeaderHeight) * UiScale();
+    // Section headers now match property row height for consistent vertical rhythm
+    return ResolveMetric(MetricToken::FormRowHeight) * UiScale();
 }
 
 float RowHeight() {
+    // Direct metric call to avoid circular dependency
     return ResolveMetric(MetricToken::FormRowHeight) * UiScale();
 }
 
@@ -63,6 +66,7 @@ float LabelColumnWidth() {
 }
 
 float RowPaddingH() {
+    // Consistent horizontal padding for rows and headers
     return ResolveMetric(MetricToken::Space2) * UiScale();
 }
 
@@ -75,21 +79,49 @@ float PropertyIndentStep() {
 }
 
 float FormColumnPadding() {
-    return RowPaddingH();
+    // Consistent padding for form columns (top, bottom, left, right)
+    return ResolveMetric(MetricToken::Space2) * UiScale();
 }
 
 float FormStackGap() {
-    return ResolveMetric(MetricToken::ContentGap) * UiScale();
+    // Consistent minimal gap for vertical rhythm
+    return ResolveMetric(MetricToken::FormRowGap) * UiScale();
 }
 
 float ValueColumnGap() {
     return ResolveMetric(MetricToken::Space1) * UiScale();
 }
 
+float ActionIconSize() {
+    return static_cast<float>(IconMetrics::kCompactGlyphPx) * UiScale();
+}
+
+float ActionSlotGap() {
+    return ValueColumnGap();
+}
+
+float ActionStripWidth(const PropertyActionIcons& icons) {
+    // Calculate width based on which actions are present
+    int slotCount = 0;
+    if (icons.undo) slotCount++;
+    return ActionIconSize() * static_cast<float>(slotCount);
+}
+
+float DividerInset() {
+    // Continuous column rules run edge-to-edge; callers that need a short
+    // segment inside a rounded control may still query this (currently 0).
+    return 0.0f;
+}
+
 void ConfigureFormRowChildren(Widget& labelWidget, Widget* controlWidget, int depth) {
-    const float labelW = LabelColumnWidth();
+    const float columnW = LabelColumnWidth();
     const float valuePad = ControlPaddingH();
     const float indent = static_cast<float>(depth) * PropertyIndentStep();
+
+    // Depth may indent a label to express hierarchy, but it must never move
+    // the value column. Keeping the combined indent + label width constant
+    // makes every Inspector control begin on the same vertical grid line.
+    const float labelW = std::max(0.0f, columnW - indent);
 
     // Fixed label column so every value control shares one left edge.
     // Horizontal inset comes from the form column padding — do not double-pad here.
@@ -111,37 +143,250 @@ void ConfigureFormRowChildren(Widget& labelWidget, Widget* controlWidget, int de
     }
 }
 
-PropertyRowLayout LayoutPropertyRow(const Rect& rowRect, int depth) {
+PropertyRowLayout LayoutPropertyRow(const Rect& rowRect, int depth, const PropertyActionIcons& icons, bool hasLockIcon,
+    float labelColumnRatio) {
     PropertyRowLayout layout;
     layout.row = rowRect;
 
+    const float scale = UiScale();
     const float padH = RowPaddingH();
     const float indent = padH + static_cast<float>(depth) * PropertyIndentStep();
-    const float labelW = LabelColumnWidth();
-    const float valuePad = ControlPaddingH();
     const float gap = ValueColumnGap();
+    const float actionsW = ActionStripWidth(icons);
+
+    const float labelX = rowRect.x + indent;
+    const float actionsX = rowRect.x + rowRect.width - padH - actionsW;
+
+    // 2nd vertical divider line (between Value and Action Strip at right edge)
+    layout.valueRightDividerX = actionsX - gap * 0.5f;
+
+    // Resizable control group width configured by labelColumnRatio with min-width safety clamping
+    const float availableRowW = std::max(0.0f, rowRect.width - padH * 2.0f - actionsW - gap);
+
+    const float minLabelW = 80.0f * scale;
+    const float minValueW = 80.0f * scale;
+    const float ratio = std::clamp(
+        (labelColumnRatio > 0.0f) ? labelColumnRatio : 0.40f,
+        std::min(0.85f, minLabelW / std::max(1.0f, availableRowW)),
+        std::max(0.15f, 1.0f - (minValueW / std::max(1.0f, availableRowW)))
+    );
+
+    const float controlW = std::floor(availableRowW * (1.0f - ratio));
+
+    const float controlRight = layout.valueRightDividerX - gap * 0.5f;
+    const float valueX = std::max(labelX + minLabelW, controlRight - controlW);
+
+    // 1st vertical divider line (between Label and Value)
+    layout.columnDividerX = valueX - gap * 0.5f;
+
+    // Position lock icon at the right edge of the label column if present
+    float lockIconX = 0.0f;
+    float lockIconSize = 0.0f;
+    if (hasLockIcon) {
+        lockIconSize = ActionIconSize();
+        lockIconX = valueX - gap - lockIconSize;
+    }
 
     layout.label = Rect{
-        rowRect.x + indent,
+        labelX,
         rowRect.y,
-        labelW,
+        std::max(0.0f, valueX - gap - labelX - (hasLockIcon ? (lockIconSize + 4.0f * scale) : 0.0f)),
         rowRect.height
     };
 
-    const float valueX = layout.label.x + layout.label.width + gap;
+    layout.actions = Rect{
+        actionsX,
+        rowRect.y,
+        actionsW,
+        rowRect.height
+    };
+
     layout.value = Rect{
         valueX,
         rowRect.y,
-        std::max(0.0f, rowRect.width - (valueX - rowRect.x) - valuePad),
+        std::max(0.0f, layout.valueRightDividerX - gap * 0.5f - valueX),
         rowRect.height
     };
+
+    // Position lock icon
+    if (hasLockIcon) {
+        const float lockIconY = rowRect.y + (rowRect.height - lockIconSize) * 0.5f;
+        layout.lockIcon = Rect{ lockIconX, lockIconY, lockIconSize, lockIconSize };
+    } else {
+        layout.lockIcon = Rect{};
+    }
+
     return layout;
 }
 
+void PaintPropertySplitterHighlight(
+    PaintContext& context,
+    float x,
+    float top,
+    float bottom,
+    bool isDragging,
+    bool isHovered)
+{
+    if (!isDragging && !isHovered) {
+        return;
+    }
+    const float scale = UiScale();
+    const float width = (isDragging ? 3.0f : 2.0f) * scale;
+    const Rect lineRect{
+        std::floor(x - width * 0.5f),
+        top,
+        width,
+        std::max(0.0f, bottom - top)
+    };
+    const auto colorToken = isDragging ? ColorToken::SelectedBackground : ColorToken::BorderFocus;
+    context.DrawRect(lineRect, ResolveColor(colorToken));
+}
+
 Rect LayoutPropertyControlRect(const Rect& valueRect) {
-    const float controlH = ResolveMetric(MetricToken::ControlHeightCompact) * UiScale();
+    const float scale = UiScale();
+    const float standardRowH = RowHeight();
+    const float padding = ResolveMetric(MetricToken::Space1) * scale;
+
+    if (valueRect.height > standardRowH + 2.0f * scale) {
+        const float w = std::max(0.0f, valueRect.width - padding * 2.0f);
+        const float x = valueRect.x + valueRect.width - padding - w;
+        return Rect{ x, valueRect.y + padding, w, std::max(0.0f, valueRect.height - padding * 2.0f) };
+    }
+
+    const float controlH = (ResolveMetric(MetricToken::ControlHeightCompact) - ResolveMetric(MetricToken::Space1)) *
+        scale;
     const float y = valueRect.y + (valueRect.height - controlH) * 0.5f;
-    return Rect{ valueRect.x, y, valueRect.width, controlH };
+    const float w = std::max(0.0f, valueRect.width - padding * 2.0f);
+    const float x = valueRect.x + valueRect.width - padding - w;
+    return Rect{ x, y, w, controlH };
+}
+
+PropertyActionLayout LayoutPropertyActions(const Rect& actionsRect) {
+    PropertyActionLayout layout;
+    layout.strip = actionsRect;
+
+    const float iconSize = ActionIconSize();
+    const float gap = ActionSlotGap();
+    const float y = actionsRect.y + (actionsRect.height - iconSize) * 0.5f;
+
+    auto slotAt = [&](int index) {
+        return Rect{
+            IconMetrics::SnapPx(actionsRect.x + static_cast<float>(index) * (iconSize + gap)),
+            IconMetrics::SnapPx(y),
+            iconSize,
+            iconSize };
+    };
+
+    layout.undo = slotAt(0);
+    layout.options = Rect{};
+    return layout;
+}
+
+void PaintPropertyControlBorder(PaintContext& context, const Rect& valueRect) {
+    const Rect controlRect = LayoutPropertyControlRect(valueRect);
+    if (controlRect.IsEmpty()) {
+        return;
+    }
+
+    // Inputs already own their fill and interaction state. This final pass
+    // establishes a consistent Inspector grid edge across text, numeric, and
+    // vector editors, using the theme's raised-control border color.
+    const float scale = UiScale();
+    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
+    const float width = std::max(1.0f, ResolveMetric(MetricToken::BorderWidth) * scale);
+    context.DrawRoundedRectOutline(
+        controlRect,
+        ResolveColor(ColorToken::BorderLight),
+        width,
+        radius);
+}
+
+void PaintPropertyDivider(
+    PaintContext& context,
+    float x,
+    float top,
+    float bottom)
+{
+    if (bottom - top <= 1.0f) {
+        return;
+    }
+    // Dark mid-tone input outline — darker than BorderLight, not near-black Separator.
+    // Uses BorderSeparator from JSON theme configuration.
+    // Use 1.0f thickness to match label text thickness instead of BorderWidth
+    ControlChrome::PaintVerticalSeparator(
+        context,
+        x,
+        top,
+        bottom,
+        1.0f,
+        ColorToken::Separator);
+}
+
+void PaintPropertyHorizontalDivider(
+    PaintContext& context,
+    float y,
+    float left,
+    float right)
+{
+    const float width = right - left;
+    if (width <= 1.0f) {
+        return;
+    }
+    // Use 1.0f thickness to match label text thickness instead of BorderWidth
+    const float borderW = std::max(1.0f, 1.0f * UiScale());
+    const float snappedY = std::floor(y - borderW);
+    context.DrawRect(
+        Rect{ left, snappedY, width, borderW },
+        ResolveColor(ColorToken::Separator));
+}
+
+void PaintPropertyColumnDivider(PaintContext& context, const PropertyRowLayout& layout) {
+    // Full row height so adjacent property rows form one continuous column rule.
+    PaintPropertyDivider(
+        context,
+        layout.columnDividerX,
+        layout.row.y,
+        layout.row.y + layout.row.height);
+}
+
+void PaintPropertyRowGrid(PaintContext& context, const PropertyRowLayout& layout) {
+    // 1st vertical divider (between Label and Value)
+    PaintPropertyColumnDivider(context, layout);
+
+    // 2nd vertical divider (between Value and Actions - right after value input controls)
+    if (layout.valueRightDividerX > 0.0f) {
+        PaintPropertyDivider(
+            context,
+            layout.valueRightDividerX,
+            layout.row.y,
+            layout.row.y + layout.row.height);
+    }
+
+    // Horizontal row divider
+    PaintPropertyHorizontalDivider(
+        context,
+        layout.row.y + layout.row.height,
+        layout.row.x,
+        layout.row.x + layout.row.width);
+}
+
+void PaintPropertyActions(
+    PaintContext& context,
+    const PropertyActionLayout& layout,
+    const PropertyActionIcons& icons,
+    float optionsHover)
+{
+    const float glyphPx = ActionIconSize();
+
+    // Paint undo reset icon when property value has been changed
+    if (icons.undo && icons.undoEnabled && !layout.undo.IsEmpty()) {
+        IconPainter::Draw(
+            context,
+            WindIcons::Undo16,
+            layout.undo,
+            static_cast<uint32_t>(glyphPx),
+            ResolveColor(ColorToken::IconPrimary));
+    }
 }
 
 namespace {
@@ -175,7 +420,7 @@ void PaintInlineIconLabelRow(
         we::runtime::text::layout::FontWeight::Regular);
 }
 
-} // namespace
+}
 
 void PaintObjectHeader(
     PaintContext& context,
@@ -198,20 +443,14 @@ void PaintDetailsObjectHeader(
     WindIconRef icon) {
     const float scale = UiScale();
     const float titleRowH = ResolveMetric(MetricToken::ControlHeightCompact) * scale;
-    const float instanceRowH = RowHeight();
-
     const Rect titleRow{ rect.x, rect.y, rect.width, titleRowH };
-    const Rect instanceRow{ rect.x, rect.y + titleRowH, rect.width, instanceRowH };
 
+    // Keep the selected actor readable and compact. The old second "Instance"
+    // row was rendered as a full selection band but carried no additional data,
+    // which looked like an empty blue strip above the search control.
+    // Use Panel color to match active tab color
+    context.DrawSurface(titleRow, SurfaceRole::Panel, 0.0f, "DetailsObjectHeader");
     PaintInlineIconLabelRow(context, titleRow, displayName, icon, true);
-
-    ControlChrome::InteractionState state;
-    state.selected = true;
-    ControlChrome::PaintListRow(context, instanceRow, state);
-
-    std::string instanceLabel(displayName);
-    instanceLabel += " (Instance)";
-    PaintInlineIconLabelRow(context, instanceRow, instanceLabel, icon, false);
 }
 
 void PaintSectionHeader(
@@ -235,6 +474,7 @@ void PaintSectionHeader(
         context.DrawSurface(rect, SurfaceRole::PanelHeader, 0.0f, "SectionHeader");
     }
 
+    // Use consistent padding equal to row padding
     const float padH = RowPaddingH() + indent;
     const float chevronSize = 16.0f;
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
@@ -250,6 +490,13 @@ void PaintSectionHeader(
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);
+
+    // Draw horizontal divider at bottom to align with property-row grid
+    const float borderW = std::max(1.0f, 1.0f * scale);
+    const float snappedY = std::floor(rect.y + rect.height - borderW);
+    context.DrawRect(
+        Rect{ rect.x, snappedY, rect.width, borderW },
+        ResolveColor(ColorToken::Separator));
 }
 
 void PaintPropertyRowLabel(
@@ -258,7 +505,7 @@ void PaintPropertyRowLabel(
     std::string_view label,
     bool mixed) {
     const float scale = UiScale();
-    const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
+    const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
     const float textY = LayoutMetrics::AlignTextTopY(labelRect, fontSize);
 
     std::string display(label);
@@ -280,6 +527,23 @@ void PaintPropertyRowLabel(
         Point{ labelRect.x, textY },
         mixed ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::TextSecondary),
         fontSize);
+}
+
+void PaintPropertyLockIcon(
+    PaintContext& context,
+    const Rect& lockIconRect,
+    bool locked) {
+    if (lockIconRect.IsEmpty()) {
+        return;
+    }
+    const float glyphPx = lockIconRect.width;
+    WindIconRef lockIcon = locked ? WindIcons::Lock16 : WindIcons::LockOpen16;
+    IconPainter::Draw(
+        context,
+        lockIcon,
+        lockIconRect,
+        static_cast<uint32_t>(glyphPx),
+        ResolveColor(ColorToken::IconSecondary));
 }
 
 void PaintCategoryTab(
@@ -333,6 +597,6 @@ void PaintPropertyRowBackground(
     ControlChrome::PaintListRow(context, rowRect, state);
 }
 
-} // namespace PropertyPanelChrome
-} // namespace we::runtime::kindui
- 
+}
+}
+

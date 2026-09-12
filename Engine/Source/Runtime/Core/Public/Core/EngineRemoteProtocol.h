@@ -40,7 +40,8 @@ public:
 
     /// Encode/decode length-prefixed UTF-8 frames (4-byte little-endian length).
     [[nodiscard]] static std::vector<uint8_t> EncodeFrame(std::string_view payload);
-    [[nodiscard]] static bool TryDecodeFrame(const std::vector<uint8_t>& buffer, size_t& consumed, std::string& payload);
+    [[nodiscard]] static bool TryDecodeFrame(const std::vector<uint8_t>& buffer, size_t& consumed, std::string&
+        payload);
 
     [[nodiscard]] static std::filesystem::path ApiRoot(const std::filesystem::path& projectOrEngineRoot);
     [[nodiscard]] static std::filesystem::path InboxDirectory(const std::filesystem::path& root);
@@ -50,4 +51,4 @@ public:
     [[nodiscard]] static std::string PipeName(const std::filesystem::path& root);
 };
 
-} // namespace we::runtime::core
+}

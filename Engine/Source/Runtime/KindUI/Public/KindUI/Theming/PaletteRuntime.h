@@ -26,6 +26,15 @@ struct GraphiteDarkColors {
     Color InputInsetInner{};
     Color InputInsetOuter{};
     Color Recessed{};
+    Color BorderSeparator{};
+    Color BorderSubtle{};
+    Color BorderDefault{};
+    Color BorderLight{};
+    Color BorderFocus{};
+    Color BorderError{};
+    Color AxisX{};
+    Color AxisY{};
+    Color AxisZ{};
     Color Panel{};
     Color Header{};
     Color Dropdown{};
@@ -87,6 +96,9 @@ struct GraphiteDarkColors {
 /// Hot-reloadable metrics from GraphiteDark.json "Metrics" object.
 struct GraphiteDarkMetrics {
     float TabTopRadius = 6.0f;
+    float InputWidthCompact = 80.0f;
+    float InputWidthDefault = 100.0f;
+    float InputWidthLarge = 120.0f;
 };
 
 /// Live palette used by GraphiteDarkTheme / Color::White|Black.
@@ -102,4 +114,4 @@ KINDUI_API bool ReloadGraphiteDarkPaletteIfChanged();
 /// Force reload of the active theme JSON regardless of mtime.
 KINDUI_API bool ForceReloadActiveThemePalette();
 
-} // namespace we::runtime::kindui::palette
+}

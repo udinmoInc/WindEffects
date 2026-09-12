@@ -55,7 +55,7 @@ public static class WindowsResourceCompiler
         foreach (var rawLine in lines)
         {
             var line = rawLine.Trim();
-            if (line.Length == 0 || line.StartsWith("//")) continue;
+            if (line.Length == 0 || line.StartsWith("
 
             string? quoted = null;
             if (line.StartsWith("#include", StringComparison.Ordinal))
@@ -131,7 +131,7 @@ public static class WindowsResourceCompiler
 
     public static string? FindRcExe()
     {
-        // Alongside cl.exe (some toolchains stage it there).
+        // 1. Alongside cl.exe (some toolchains stage it there).
         var cl = new MSVCCompiler();
         var clPath = cl.ExecutablePath;
         if (!string.IsNullOrEmpty(clPath))
@@ -144,19 +144,60 @@ public static class WindowsResourceCompiler
             }
         }
 
-        // Windows SDK versioned bin dirs — prefer the newest kit.
-        const string kitsBin = @"C:\Program Files (x86)\Windows Kits\10\bin";
-        if (Directory.Exists(kitsBin))
+        // 2. Windows SDK environment variable
+        var sdkDir = Environment.GetEnvironmentVariable("WindowsSdkDir")
+            ?? Environment.GetEnvironmentVariable("WINDOWSSDKDIR");
+        if (!string.IsNullOrEmpty(sdkDir))
         {
-            var best = Directory.GetDirectories(kitsBin)
-                .Select(d => new { Dir = d, Rc = Path.Combine(d, "x64", "rc.exe") })
-                .Where(x => File.Exists(x.Rc))
-                .OrderByDescending(x => x.Dir, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
-            if (best != null) return best.Rc;
+            var binDir = Path.Combine(sdkDir, "bin");
+            if (Directory.Exists(binDir))
+            {
+                var best = Directory.GetDirectories(binDir)
+                    .Select(d => new { Dir = d, Rc = Path.Combine(d, "x64", "rc.exe") })
+                    .Where(x => File.Exists(x.Rc))
+                    .OrderByDescending(x => x.Dir, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
+                if (best != null) return best.Rc;
+            }
         }
 
-        // PATH fallback (vcvarsall / developer prompt environments).
+        // 3. Dynamic Windows Kits discovery across Program Files and fixed drives
+        var kitBinCandidates = new List<string>();
+        var pfX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrEmpty(pfX86)) kitBinCandidates.Add(Path.Combine(pfX86, "Windows Kits", "10", "bin"));
+
+        var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (!string.IsNullOrEmpty(pf)) kitBinCandidates.Add(Path.Combine(pf, "Windows Kits", "10", "bin"));
+
+        try
+        {
+            foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
+            {
+                var root = drive.RootDirectory.FullName;
+                kitBinCandidates.Add(Path.Combine(root, "Program Files (x86)", "Windows Kits", "10", "bin"));
+                kitBinCandidates.Add(Path.Combine(root, "Program Files", "Windows Kits", "10", "bin"));
+                kitBinCandidates.Add(Path.Combine(root, "Windows Kits", "10", "bin"));
+            }
+        }
+        catch
+        {
+            // Ignore drive access errors
+        }
+
+        foreach (var kitsBin in kitBinCandidates.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (Directory.Exists(kitsBin))
+            {
+                var best = Directory.GetDirectories(kitsBin)
+                    .Select(d => new { Dir = d, Rc = Path.Combine(d, "x64", "rc.exe") })
+                    .Where(x => File.Exists(x.Rc))
+                    .OrderByDescending(x => x.Dir, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
+                if (best != null) return best.Rc;
+            }
+        }
+
+        // 4. PATH fallback (vcvarsall / developer prompt environments).
         var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         foreach (var dir in pathEnv.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {

@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/Core/LayoutMetrics.h"
 
+#include "KindUI/Layout/AutoAlign.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -27,7 +28,7 @@ float UiScale() {
     return std::max(1.0f, DPIContext::GetScale());
 }
 
-} // namespace
+}
 
 float ResolvedStyleHeight(StyleRole role, MetricToken fallbackToken) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(role);
@@ -50,7 +51,7 @@ float ToolbarSearchInputHeight() {
 }
 
 float SearchRowHeight() {
-    return ResolveMetric(MetricToken::PanelToolbarHeight) * UiScale();
+    return UnifiedToolbarRowHeight();
 }
 
 float SearchInputPaddingH() {
@@ -82,17 +83,18 @@ Rect LayoutToolbarSearchInputRect(const Rect& allottedRect) {
 }
 
 float FormRowMinHeight() {
-    return std::max(
-        ResolvedStyleHeight(StyleRole::PropertyRow, MetricToken::FormRowHeight),
-        InputMinHeight());
+    const float scale = UiScale();
+    const float rowH = ResolveMetric(MetricToken::FormRowHeight) * scale;
+    return std::max(rowH, InputMinHeight());
 }
 
 float PropertySectionHeight() {
-    return PropertyPanelChrome::SectionHeight();
+    return ResolveMetric(MetricToken::CategoryHeaderHeight) * UiScale();
 }
 
 float PropertyObjectHeaderHeight() {
-    return PropertyPanelChrome::ObjectHeaderHeight();
+    const float scale = UiScale();
+    return ResolveMetric(MetricToken::ControlHeightCompact) * scale;
 }
 
 float PropertyCategoryTabRowHeight() {
@@ -108,7 +110,7 @@ float PropertyRowHeight() {
 }
 
 float PropertyControlHeight() {
-    return ResolveMetric(MetricToken::ControlHeightCompact) * UiScale();
+    return UnifiedCompactRowHeight();
 }
 
 Rect LayoutPropertyControlInRow(const Rect& valueRect) {
@@ -172,6 +174,7 @@ std::shared_ptr<Row> MakeTextFormRow(
 }
 
 void ConfigurePropertyFormColumn(Column& column) {
+    // Use consistent padding for form columns (equal top/bottom spacing)
     const float pad = PropertyPanelChrome::FormColumnPadding();
     column.Align(AlignItems::Stretch);
     column.Padding(Margin{ pad, pad, pad, pad });
@@ -187,14 +190,105 @@ float TextLineHeight(float fontSizePx) {
     return std::max(1.0f, fontSizePx) * kTextLineHeightRatio;
 }
 
-float AlignTextTopY(const Rect& bounds, float fontSizePx) {
-    const float lineH = TextLineHeight(fontSizePx);
-    return bounds.y + (bounds.height - lineH) * 0.5f;
-}
-
 float AlignTextTopAtCenterY(float centerY, float fontSizePx) {
-    return centerY - TextLineHeight(fontSizePx) * 0.5f;
+    return AutoAlign::AlignTextTopAtCenterY(centerY, fontSizePx);
 }
 
-} // namespace we::runtime::kindui::LayoutMetrics
- 
+float AlignTextTopY(const Rect& bounds, float fontSizePx) {
+    return AutoAlign::AlignTextTopY(bounds, fontSizePx);
+}
+
+// ============================================================================
+// Unified Row-Height System
+// ============================================================================
+
+float UnifiedRowHeight() {
+    // Standard row height for most UI elements (property rows, list items, etc.)
+    return ResolveMetric(MetricToken::FormRowHeight) * UiScale();
+}
+
+float UnifiedCompactRowHeight() {
+    // Compact row height for dense UI (toolbar controls, compact lists)
+    return ResolveMetric(MetricToken::ControlHeightCompact) * UiScale();
+}
+
+float UnifiedSectionHeaderHeight() {
+    // Section header height now matches property row height for consistency
+    return ResolveMetric(MetricToken::FormRowHeight) * UiScale();
+}
+
+float UnifiedToolbarRowHeight() {
+    // Toolbar row height for toolbar buttons and controls
+    return ResolveMetric(MetricToken::PanelToolbarHeight) * UiScale();
+}
+
+float UnifiedTabRowHeight() {
+    // Tab row height for dock tabs and mode tabs
+    return ResolveMetric(MetricToken::PanelTabHeight) * UiScale();
+}
+
+float UnifiedListItemHeight() {
+    // List item height for tree views, lists, and arrays
+    return ResolveMetric(MetricToken::ListRowHeight) * UiScale();
+}
+
+float UnifiedArrayItemHeight() {
+    // Array item height (same as list items for consistency)
+    return UnifiedListItemHeight();
+}
+
+float UnifiedNestedRowHeight() {
+    // Nested row height (same as standard row for consistency)
+    return UnifiedRowHeight();
+}
+
+void ApplyUnifiedRowHeight(Widget& widget) {
+    const float rowH = UnifiedRowHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedCompactRowHeight(Widget& widget) {
+    const float rowH = UnifiedCompactRowHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedSectionHeaderHeight(Widget& widget) {
+    const float rowH = UnifiedSectionHeaderHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedToolbarRowHeight(Widget& widget) {
+    const float rowH = UnifiedToolbarRowHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedTabRowHeight(Widget& widget) {
+    const float rowH = UnifiedTabRowHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedListItemHeight(Widget& widget) {
+    const float rowH = UnifiedListItemHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedArrayItemHeight(Widget& widget) {
+    const float rowH = UnifiedArrayItemHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+void ApplyUnifiedNestedRowHeight(Widget& widget) {
+    const float rowH = UnifiedNestedRowHeight();
+    const Size current = widget.GetMinSize();
+    widget.SetMinSize({ current.width, std::max(current.height, rowH) });
+}
+
+}
+

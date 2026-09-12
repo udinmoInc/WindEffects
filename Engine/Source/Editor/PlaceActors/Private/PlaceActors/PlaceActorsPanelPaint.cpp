@@ -22,6 +22,9 @@
 #include "PlaceActors/PlaceActorsFavoritesManager.h"
 #include "PlaceActors/PlaceActorsRecentlyUsedManager.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
+#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
+#include <chrono>
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "KindUI/Panel/PanelChrome.h"
@@ -43,7 +46,6 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
-
 
 namespace we::programs::editor {
 namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
@@ -431,10 +433,20 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
             if (IsPinnedCategory(entry->categoryId)) {
                 return;
             }
-            m_CategoryExpanded[entry->categoryId] = !m_CategoryExpanded[entry->categoryId];
+            const auto startTime = std::chrono::high_resolution_clock::now();
+            const bool newState = !m_CategoryExpanded[entry->categoryId];
+            m_CategoryExpanded[entry->categoryId] = newState;
             SaveCategoryState();
             m_NeedsLayout = true;
             RebuildLayout();
+            const auto endTime = std::chrono::high_resolution_clock::now();
+            const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+
+            WE_LOG_INFO(we::LogCategory::General.data(),
+                "[PlaceActorsDebug] ToggleCategory: category='" + entry->categoryId + "' expanded=" +
+                    (newState ? "true" : "false") +
+                " layoutEntries=" + std::to_string(m_Layout.size()) +
+                " duration=" + std::to_string(durationMs) + "ms");
             return;
         }
 
@@ -657,4 +669,4 @@ void PlaceActorsPanel::OnKeyDown(const KeyEvent& event) {
     ScrollFocusedIntoView();
 }
 
-} // namespace we::programs::editor
+}

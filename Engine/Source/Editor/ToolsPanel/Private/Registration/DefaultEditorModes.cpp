@@ -23,12 +23,12 @@ struct BuiltinModeBootstrap {
 };
 static BuiltinModeBootstrap g_BuiltinModeBootstrap;
 
-} // namespace
+}
 
 // ===== Editor Modes (extensible via REGISTER_EDITOR_TOOL_MODE in plugins) =====
 REGISTER_EDITOR_TOOL_MODE_COMPACT_WITH_TOOLTIP(Select,      "Select",      WindIcons::ToolbarHand16, 10,
     "Select, move, rotate, and scale scene objects (Q, W, E, R)")
-REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Actors,      "Actors",      WindIcons::Cube2516,      20,
+REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Actors,      "Actors",      WindIcons::ConstructV224,      20,
     "Place geometry, lights, cameras, shapes, and actor classes")
 REGISTER_EDITOR_TOOL_MODE_WITH_TOOLTIP(Landscape,   "Landscape",   WindIcons::Grid16,       30,
     "Sculpt terrain heightmaps and paint landscape materials")
@@ -151,4 +151,4 @@ REGISTER_EDITOR_TOOL_CATEGORY(Cinematics, CinematicsTools, "Sequencer", kWindIco
 REGISTER_EDITOR_TOOL(CinematicsTools, CineAddShot,   "Add Camera", WindIcons::ToolbarCamera16, "", [](){})
 REGISTER_EDITOR_TOOL(CinematicsTools, CineKeyframe,  "Keyframe",   WindIcons::ToolbarVideocamera16, "", [](){})
 
-} // namespace we::programs::editor
+}

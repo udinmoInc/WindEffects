@@ -24,7 +24,6 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     const auto& P = palette::GraphiteDarkLive();
     switch (token) {
     case ColorToken::WindowBackground:
-        // Title / menu header strip
         return CS::OpaqueSurface(P.Background);
     case ColorToken::StatusBarBackground:
     case ColorToken::ToolbarBackground:
@@ -83,15 +82,19 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::SelectParentBackground:
         return P.SelectParent;
     case ColorToken::Separator:
-        return P.Background;
+        return P.BorderSeparator;
     case ColorToken::BorderSubtle:
+        return P.BorderSubtle;
     case ColorToken::BorderDefault:
+        return P.BorderDefault;
     case ColorToken::ContentBrowserFolderEdge:
         return P.InputOutline;
     case ColorToken::BorderLight:
+        return P.BorderLight;
     case ColorToken::ContentBrowserFolderHighlight:
         return P.DropdownOutline;
     case ColorToken::BorderFocus:
+        return P.BorderFocus;
     case ColorToken::AccentPrimary:
     case ColorToken::LinkForeground:
         return P.Primary;
@@ -112,10 +115,17 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::ButtonPrimaryPressed:
         return Color(P.Dropdown.r * 0.80f, P.Dropdown.g * 0.80f, P.Dropdown.b * 0.80f, 1.0f);
     case ColorToken::ButtonDangerBackground:
-    case ColorToken::BorderError:
     case ColorToken::ErrorForeground:
     case ColorToken::CloseButtonHover:
         return P.Error;
+    case ColorToken::BorderError:
+        return P.BorderError;
+    case ColorToken::AxisX:
+        return P.AxisX;
+    case ColorToken::AxisY:
+        return P.AxisY;
+    case ColorToken::AxisZ:
+        return P.AxisZ;
     case ColorToken::ButtonDangerHover:
         return P.AccentRed;
     case ColorToken::ButtonDangerPressed:
@@ -149,11 +159,11 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::Warning:
         return P.Warning;
     case ColorToken::GizmoAxisX:
-        return P.AccentRed;
+        return P.AxisX;
     case ColorToken::GizmoAxisY:
-        return P.AccentGreen;
+        return P.AxisY;
     case ColorToken::GizmoAxisZ:
-        return P.AccentBlue;
+        return P.AxisZ;
     case ColorToken::ContentBrowserFolderBody:
         return P.AccentBrown;
     case ColorToken::ContentBrowserFolderTab:
@@ -182,11 +192,10 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
 
 float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     switch (token) {
-    case MetricToken::CornerRadiusSmall: return 3.0f;
+    case MetricToken::CornerRadiusSmall: return 4.0f;
     case MetricToken::CornerRadiusMedium: return 4.0f;
     case MetricToken::CornerRadiusLarge:
     case MetricToken::WindowCornerRadius: return 10.0f;
-    // Sized for 16px WindIcons — previous 10–12px read as half-weight next to glyphs.
     case MetricToken::TextSizeMenu: return 13.0f;
     case MetricToken::TextSizeToolbar: return 13.0f;
     case MetricToken::TextSizeTabs: return 13.0f;
@@ -206,36 +215,38 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::FocusRingWidth: return 1.0f;
     case MetricToken::PanelHeaderHeight: return 28.0f;
     case MetricToken::PanelTabHeight: return 28.0f;
-    case MetricToken::PanelToolbarHeight: return 34.0f;
-    case MetricToken::HeaderControlHeight: return 24.0f;
-    case MetricToken::IconButtonSize: return 24.0f;
-    case MetricToken::ButtonHeight: return 24.0f;
-    case MetricToken::ControlHeightCompact: return 24.0f;
-    case MetricToken::ControlHeightLarge: return 36.0f;
-    case MetricToken::InputWidthCompact: return 180.0f;
-    case MetricToken::InputWidthDefault: return 260.0f;
-    case MetricToken::InputWidthLarge: return 320.0f;
-    case MetricToken::FormRowHeight: return 26.0f;
+    case MetricToken::PanelToolbarHeight:
+    case MetricToken::ToolbarHeight:
+    case MetricToken::ViewportToolbarHeight:
+    case MetricToken::BreadcrumbBarHeight: return 26.0f;
+    case MetricToken::HeaderControlHeight:
+    case MetricToken::IconButtonSize:
+    case MetricToken::ButtonHeight:
+    case MetricToken::SearchBoxHeight:
+    case MetricToken::NavigationButtonSize:
+    case MetricToken::ToolbarLabeledHeight: return 22.0f;
+    case MetricToken::ControlHeightCompact: return 26.0f;
+    case MetricToken::ControlHeightLarge: return 34.0f;
+    case MetricToken::InputWidthCompact: return palette::GraphiteDarkLiveMetrics().InputWidthCompact;
+    case MetricToken::InputWidthDefault: return palette::GraphiteDarkLiveMetrics().InputWidthDefault;
+    case MetricToken::InputWidthLarge: return palette::GraphiteDarkLiveMetrics().InputWidthLarge;
+    case MetricToken::FormRowHeight: return 36.0f;
     case MetricToken::MenuItemHeight: return 26.0f;
     case MetricToken::PageMargin: return 16.0f;
     case MetricToken::SectionGap: return 12.0f;
     case MetricToken::CardPadding: return 12.0f;
     case MetricToken::ContentGap: return 8.0f;
-    case MetricToken::FormRowGap: return 6.0f;
+    case MetricToken::FormRowGap: return 2.0f;
     case MetricToken::LabelHintGap: return 4.0f;
-    case MetricToken::ListRowHeight: return 20.0f;
-    case MetricToken::CategoryHeaderHeight: return 30.0f;
+    case MetricToken::ListRowHeight: return 22.0f;
+    case MetricToken::CategoryHeaderHeight: return 36.0f;
     case MetricToken::TitleBarHeight: return 32.0f;
     case MetricToken::WindowControlWidth: return 40.0f;
-    case MetricToken::ToolbarHeight: return 30.0f;
-    case MetricToken::SearchBoxHeight: return 24.0f;
-    case MetricToken::NavigationButtonSize: return 24.0f;
     case MetricToken::IconSizeSearch: return 16.0f;
     case MetricToken::IconSizeTree: return 16.0f;
     case MetricToken::IconSizeToolbar:
     case MetricToken::IconSizeNavigation:
     case MetricToken::IconSizePrimary: return 16.0f;
-    // Close / chevron / window chrome — authored 16px.
     case MetricToken::IconSizeVerySmall:
     case MetricToken::IconSizeWindowControl: return 16.0f;
     case MetricToken::IconButtonRadius: return 3.0f;
@@ -262,15 +273,12 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::TabActiveIndicatorWidth: return 0.0f;
     case MetricToken::TabPaddingH: return 10.0f;
     case MetricToken::TabPaddingV: return 4.0f;
-    case MetricToken::DockPanelGap: return 2.5f;
-    case MetricToken::ChromeSeparationGap: return 2.5f;
-    case MetricToken::ChromeSeparationGapWide: return 2.5f;
-    case MetricToken::ViewportToolbarHeight: return 34.0f;
+    case MetricToken::DockPanelGap: return 8.0f;
+    case MetricToken::ChromeSeparationGap: return 2.0f;
+    case MetricToken::ChromeSeparationGapWide: return 2.0f;
     case MetricToken::ToolbarSeparatorWidth: return 2.0f;
-    case MetricToken::ToolbarSeparatorHeight: return 24.0f;
-    case MetricToken::ToolbarLabeledHeight: return 24.0f;
+    case MetricToken::ToolbarSeparatorHeight: return 20.0f;
     case MetricToken::ToolbarLabeledMinWidth: return 36.0f;
-    case MetricToken::BreadcrumbBarHeight: return 32.0f;
     case MetricToken::PropertyLabelColumnWidth: return 120.0f;
     case MetricToken::PropertyIndentStep: return 16.0f;
     case MetricToken::TreeIndentWidth: return 16.0f;
@@ -345,7 +353,6 @@ Margin GraphiteDarkTheme::ResolvePadding(PaddingToken token) const {
         return {};
     }
 }
-
 
 float GraphiteDarkTheme::ResolveSpacing(SpacingToken token) const {
     switch (token) {
@@ -433,7 +440,6 @@ float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
 }
 
 int GraphiteDarkTheme::ResolveElevation(ElevationToken token) const {
-    // Shadow intensity only — surface brightness comes from ColorToken ladder.
     switch (token) {
     case ElevationToken::None:
     case ElevationToken::Window:
@@ -466,12 +472,6 @@ Color GraphiteDarkTheme::InteractiveBackground(float hoverAnim, float pressAnim,
 }
 
 Color GraphiteDarkTheme::IconForState(bool hovered, bool active) const {
-    if (active) {
-        return ResolveColor(ColorToken::IconActive);
-    }
-    if (hovered) {
-        return ResolveColor(ColorToken::IconHover);
-    }
     return ResolveColor(ColorToken::IconSecondary);
 }
 
@@ -584,12 +584,12 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         break;
     case StyleRole::IconButtonHover:
         style.background = Color::Transparent();
-        style.icon = ResolveColor(ColorToken::IconHover);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
         style.border = Color::Transparent();
         break;
     case StyleRole::IconButtonPressed:
         style.background = Color::Transparent();
-        style.icon = ResolveColor(ColorToken::IconActive);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
         break;
     case StyleRole::NavigationButton:
         style.background = Color::Transparent();
@@ -603,7 +603,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
         style.background = ResolveColor(ColorToken::InputBackground);
         style.foreground = ResolveColor(ColorToken::TextPrimary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::SearchBoxHeight));
-        style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusSmall));
+        style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         break;
     case StyleRole::SearchBox:
         style.background = ResolveColor(ColorToken::InputBackground);
@@ -778,8 +778,8 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::SidebarItemActive:
         style.background = ResolveColor(ColorToken::SelectedBackground);
         style.foreground = ResolveColor(ColorToken::TextPrimary);
-        style.icon = ResolveColor(ColorToken::AccentPrimary);
-        style.border = ResolveColor(ColorToken::AccentPrimary);
+        style.icon = ResolveColor(ColorToken::IconSecondary);
+        style.border = ResolveColor(ColorToken::IconSecondary);
         style.height = Scaled(theme.ResolveMetric(MetricToken::FormRowHeight));
         style.fontSize = Scaled(theme.ResolveMetric(MetricToken::TextSizeBody));
         style.iconSize = theme.ResolveMetric(MetricToken::IconSizeToolbar);
@@ -831,5 +831,5 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     return style;
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

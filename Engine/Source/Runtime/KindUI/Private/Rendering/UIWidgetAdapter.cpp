@@ -66,7 +66,7 @@ void DumpWidgetLayoutTree(const std::shared_ptr<Widget>& widget, int depth, int&
         DumpWidgetLayoutTree(child, depth + 1, count);
     }
 }
-} // namespace
+}
 
 UIWidgetAdapter::UIWidgetAdapter()
     : m_Renderer(nullptr)
@@ -129,7 +129,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         m_LastBuiltHeight = height;
         return;
     }
-    
+
     // Helper lambda to count widgets (diagnostics only — avoid per-frame tree walk).
     if (Widget::s_GlobalDiagnostics) {
         std::function<void(const std::shared_ptr<Widget>&)> CountWidgets = [&](const std::shared_ptr<Widget>& w) {
@@ -174,7 +174,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
             DumpWidgetLayoutTree(root, 0, count);
         }
     }
-    
+
     PaintContext paintCtx;
     if (TextUIService* textService = m_Renderer->GetTextUIService()) {
         paintCtx.SetTextUIService(textService);
@@ -220,7 +220,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
     UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);
     root->ClearSubtreePaintDirty();
-    
+
     // Convert paint commands to geometry
     const auto& commands = paintCtx.GetCommands();
     for (const auto& cmd : commands) {
@@ -313,7 +313,7 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
         static_cast<uint32_t>(cmd.clipRect.width),
         static_cast<uint32_t>(cmd.clipRect.height)
     };
-    
+
     // Clamp scissor to screen bounds.
     if (m_CurrentScissor.x < 0) {
         m_CurrentScissor.width = (m_CurrentScissor.x + m_CurrentScissor.width > 0) ? (m_CurrentScissor.width +
@@ -325,7 +325,7 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
             m_CurrentScissor.y) : 0;
         m_CurrentScissor.y = 0;
     }
-    
+
     // Ensure extent doesn't exceed screen dimensions when added to offset
     if (static_cast<uint32_t>(m_CurrentScissor.x) + m_CurrentScissor.width > m_Width) {
         m_CurrentScissor.width = (m_Width > static_cast<uint32_t>(m_CurrentScissor.x)) ? (m_Width -
@@ -335,7 +335,7 @@ void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
         m_CurrentScissor.height = (m_Height > static_cast<uint32_t>(m_CurrentScissor.y)) ? (m_Height -
             static_cast<uint32_t>(m_CurrentScissor.y)) : 0;
     }
-    
+
     m_Diagnostics.totalDrawCommandsGenerated++;
 
     if (cmd.clipRect.width == 0 || cmd.clipRect.height == 0) {
@@ -500,10 +500,10 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
         }
         return;
     }
-    
+
     // Semi-transparent rects still use SDF feathering + alpha blending.
     float type = 1.0f;
-    
+
     UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w,
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w,
@@ -512,13 +512,13 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
     UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a}, {x, y, w,
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-    
+
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
     m_Vertices.push_back(v1);
     m_Vertices.push_back(v2);
     m_Vertices.push_back(v3);
-    
+
     m_Indices.push_back(startIndex + 0);
     m_Indices.push_back(startIndex + 1);
     m_Indices.push_back(startIndex + 2);
@@ -630,14 +630,14 @@ void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
     float y = y0;
     float w = x1 - x0;
     float h = y1 - y0;
-    
+
     m_CurrentTextureSet = cmd.textureId;
-    
+
     float type = 0.0f;
-    
+
     Color colorTop = cmd.color;
     Color colorBottom = cmd.colorBottom;
-    
+
     UIVertex2 v0{ {x,     y},     {0.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w,
         h}, {0.0f, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {1.0f, 0.0f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w,
@@ -646,20 +646,20 @@ void UIWidgetAdapter::GenerateTextureGeometry(const DrawCommand& cmd) {
         h}, {0.0f, type, 0.0f, 0.0f} };
     UIVertex2 v3{ {x,     y + h}, {0.0f, 1.0f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w,
         h}, {0.0f, type, 0.0f, 0.0f} };
-    
+
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
     m_Vertices.push_back(v1);
     m_Vertices.push_back(v2);
     m_Vertices.push_back(v3);
-    
+
     m_Indices.push_back(startIndex + 0);
     m_Indices.push_back(startIndex + 1);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
-    
+
     AddOrMergeBatch(6);
 }
 
@@ -675,7 +675,7 @@ void UIWidgetAdapter::GenerateColorTextureGeometry(const DrawCommand& cmd) {
 
     m_CurrentTextureSet = cmd.textureId;
 
-    float type = 4.0f; // Full-color texture (viewport render targets)
+    float type = 4.0f;
 
     Color colorTop = cmd.color;
     Color colorBottom = cmd.colorBottom;
@@ -752,6 +752,20 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     // Vertex color multiplies authored icon RGB (white = unchanged). Used for hover brightness.
     // Folder icons keep their authored colors — never force a theme brown override.
     Color tint = (cmd.color.a > 0.0f) ? cmd.color : Color::White();
+
+    // Check if this is a folder icon - if so, keep the passed tint
+    const std::string_view stem(cmd.iconStem);
+    const bool isFolderIcon =
+        stem == "folder" ||
+        stem == "folder-open" ||
+        stem == "folder-mask" ||
+        stem == "folder-open-mask" ||
+        stem == "content-folder";
+
+    if (!isFolderIcon) {
+        tint = Color{ 0.72f, 0.72f, 0.72f, 1.0f };
+    }
+
     const float shaderType = 4.0f;
 
     auto emitQuad = [&](float px, float py, const Color& color, float type) {
@@ -974,12 +988,12 @@ void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
     float y = y0;
     float w = x1 - x0;
     float h = y1 - y0;
-    
+
     float type = 1.0f;
-    
+
     Color colorTop = cmd.color;
     Color colorBottom = cmd.colorBottom;
-    
+
     UIVertex2 v0{ {x,     y},     {0.5f, 0.5f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w,
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
     UIVertex2 v1{ {x + w, y},     {0.5f, 0.5f}, {colorTop.r, colorTop.g, colorTop.b, colorTop.a},       {x, y, w,
@@ -988,20 +1002,20 @@ void UIWidgetAdapter::GenerateGradientGeometry(const DrawCommand& cmd) {
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
     UIVertex2 v3{ {x,     y + h}, {0.5f, 0.5f}, {colorBottom.r, colorBottom.g, colorBottom.b, colorBottom.a}, {x, y, w,
         h}, {cmd.borderRadius, type, 0.0f, 0.0f} };
-    
+
     uint32_t startIndex = static_cast<uint32_t>(m_Vertices.size());
     m_Vertices.push_back(v0);
     m_Vertices.push_back(v1);
     m_Vertices.push_back(v2);
     m_Vertices.push_back(v3);
-    
+
     m_Indices.push_back(startIndex + 0);
     m_Indices.push_back(startIndex + 1);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 2);
     m_Indices.push_back(startIndex + 3);
     m_Indices.push_back(startIndex + 0);
-    
+
     AddOrMergeBatch(6);
 }
 
@@ -1052,5 +1066,5 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
     AddOrMergeBatch(6);
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

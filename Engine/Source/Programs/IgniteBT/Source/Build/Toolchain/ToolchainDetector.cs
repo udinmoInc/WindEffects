@@ -31,148 +31,282 @@ public class ToolchainDetector
     }
 
     /// <summary>
+    /// Finds vswhere.exe dynamically across installer directories, PATH, environment, and fixed drives.
+    /// </summary>
+    public static string? FindVsWhere()
+    {
+        var candidates = new List<string>();
+
+        var pfX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrEmpty(pfX86))
+            candidates.Add(Path.Combine(pfX86, "Microsoft Visual Studio", "Installer", "vswhere.exe"));
+
+        var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (!string.IsNullOrEmpty(pf))
+            candidates.Add(Path.Combine(pf, "Microsoft Visual Studio", "Installer", "vswhere.exe"));
+
+        var vsDir = Environment.GetEnvironmentVariable("VSINSTALLDIR");
+        if (!string.IsNullOrEmpty(vsDir))
+            candidates.Add(Path.Combine(vsDir, "Installer", "vswhere.exe"));
+
+        // PATH lookup
+        if (TryFindCompiler("vswhere.exe", out var pathInPath) && !string.IsNullOrEmpty(pathInPath))
+            candidates.Add(pathInPath);
+        if (TryFindCompiler("vswhere", out var pathInPathNoExt) && !string.IsNullOrEmpty(pathInPathNoExt))
+            candidates.Add(pathInPathNoExt);
+
+        foreach (var c in candidates)
+        {
+            if (File.Exists(c)) return c;
+        }
+
+        // Drive roots scan for Installer/vswhere.exe
+        try
+        {
+            foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
+            {
+                var root = drive.RootDirectory.FullName;
+                var commonSubdirs = new[]
+                {
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "Installer", "vswhere.exe"),
+                    Path.Combine(root, "Program Files", "Microsoft Visual Studio", "Installer", "vswhere.exe"),
+                    Path.Combine(root, "Microsoft Visual Studio", "Installer", "vswhere.exe"),
+                    Path.Combine(root, "vs", "Installer", "vswhere.exe"),
+                    Path.Combine(root, "vs", "vswhere.exe")
+                };
+                foreach (var s in commonSubdirs)
+                {
+                    if (File.Exists(s)) return s;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore filesystem permissions exceptions on drive roots
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Constructs a DetectedCompiler from a Visual Studio installation directory.
+    /// </summary>
+    public static DetectedCompiler? ResolveMSVCFromVsInstallPath(string vsPath)
+    {
+        if (string.IsNullOrEmpty(vsPath) || !Directory.Exists(vsPath))
+            return null;
+
+        var vcvarsallPath = Path.Combine(vsPath, "VC", "Auxiliary", "Build", "vcvarsall.bat");
+        var vcToolsPath = Path.Combine(vsPath, "VC", "Tools", "MSVC");
+
+        if (!File.Exists(vcvarsallPath) || !Directory.Exists(vcToolsPath))
+            return null;
+
+        var latestVersion = Directory.GetDirectories(vcToolsPath)
+            .OrderByDescending(d => d, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (latestVersion == null) return null;
+
+        var hostArch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64";
+        var binPath = Path.Combine(latestVersion, "bin", $"Host{hostArch}", hostArch);
+        var clPath = Path.Combine(binPath, "cl.exe");
+
+        if (!File.Exists(clPath))
+        {
+            binPath = Path.Combine(latestVersion, "bin", "Hostx64", "x64");
+            clPath = Path.Combine(binPath, "cl.exe");
+            if (!File.Exists(clPath)) return null;
+        }
+
+        Log.Information("Resolved MSVC at {Path} (Version: {Version})", clPath, Path.GetFileName(latestVersion));
+
+        return new DetectedCompiler
+        {
+            Type = CompilerType.MSVC,
+            Path = clPath,
+            Version = ExtractMSVCVersion(latestVersion),
+            IncludePath = Path.Combine(latestVersion, "include"),
+            LibraryPath = Path.Combine(latestVersion, "lib", hostArch),
+            VcVarsAllPath = vcvarsallPath,
+            VsInstallPath = vsPath
+        };
+    }
+
+    /// <summary>
     /// Detects MSVC compiler on Windows.
     /// </summary>
     private static DetectedCompiler DetectMSVC()
     {
         Log.Information("Detecting MSVC compiler on Windows");
 
-        // Try to find Visual Studio installations using vswhere
-        var vswherePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            "Microsoft Visual Studio",
-            "Installer",
-            "vswhere.exe"
-        );
-
-        if (!File.Exists(vswherePath))
+        var vswherePath = FindVsWhere();
+        if (!string.IsNullOrEmpty(vswherePath) && File.Exists(vswherePath))
         {
-            Log.Warning("vswhere.exe not found at {Path}", vswherePath);
-            return DetectMSVCFallback();
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = vswherePath,
+                    Arguments = "-latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = System.Diagnostics.Process.Start(psi);
+                if (process != null)
+                {
+                    var output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+                    {
+                        var vsPath = output.Trim();
+                        var detected = ResolveMSVCFromVsInstallPath(vsPath);
+                        if (detected != null)
+                            return detected;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "vswhere execution encountered error");
+            }
         }
 
+        return DetectMSVCFallback();
+    }
+
+    /// <summary>
+    /// Fallback MSVC detection using VSINSTALLDIR, PATH, cl.exe parent hierarchy, and drive roots.
+    /// </summary>
+    private static DetectedCompiler DetectMSVCFallback()
+    {
+        Log.Information("Attempting fallback MSVC detection via VSINSTALLDIR, PATH, and drive scanning");
+
+        // 1. Try VSINSTALLDIR environment variable
+        var vsEnvDir = Environment.GetEnvironmentVariable("VSINSTALLDIR");
+        if (!string.IsNullOrEmpty(vsEnvDir))
+        {
+            var detectedEnv = ResolveMSVCFromVsInstallPath(vsEnvDir);
+            if (detectedEnv != null) return detectedEnv;
+        }
+
+        // 2. Search PATH for cl.exe and infer VC installation tree
+        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var paths = pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var p in paths)
+        {
+            var clPath = Path.Combine(p, "cl.exe");
+            if (File.Exists(clPath))
+            {
+                Log.Information("Found cl.exe in PATH at {Path}", clPath);
+                var resolvedFromCl = InferMSVCFromClPath(clPath);
+                if (resolvedFromCl != null) return resolvedFromCl;
+            }
+        }
+
+        // 3. Scan all fixed drives for Visual Studio / VC roots
         try
         {
-            var psi = new System.Diagnostics.ProcessStartInfo
+            foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
             {
-                FileName = vswherePath,
-                Arguments = "-latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                var root = drive.RootDirectory.FullName;
+                var commonVcRoots = new[]
+                {
+                    Path.Combine(root, "vs"),
+                    Path.Combine(root, "Microsoft Visual Studio"),
+                    Path.Combine(root, "Program Files", "Microsoft Visual Studio", "2022", "Community"),
+                    Path.Combine(root, "Program Files", "Microsoft Visual Studio", "2022", "Professional"),
+                    Path.Combine(root, "Program Files", "Microsoft Visual Studio", "2022", "Enterprise"),
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "2019", "Community"),
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "2019", "Professional"),
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "2019", "Enterprise"),
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "2022", "BuildTools"),
+                    Path.Combine(root, "Program Files (x86)", "Microsoft Visual Studio", "2019", "BuildTools")
+                };
 
-            using var process = System.Diagnostics.Process.Start(psi);
-            if (process == null)
+                foreach (var vcRoot in commonVcRoots)
+                {
+                    var detectedRoot = ResolveMSVCFromVsInstallPath(vcRoot);
+                    if (detectedRoot != null) return detectedRoot;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Exception while scanning fixed drive roots for MSVC");
+        }
+
+        Log.Warning("MSVC compiler not found");
+        return new DetectedCompiler { Type = CompilerType.None, Path = string.Empty };
+    }
+
+    /// <summary>
+    /// Infers MSVC version, vcvarsall.bat, include/lib paths by navigating up from cl.exe directory.
+    /// </summary>
+    public static DetectedCompiler? InferMSVCFromClPath(string clPath)
+    {
+        try
+        {
+            var fullCl = Path.GetFullPath(clPath);
+            var dir = Path.GetDirectoryName(fullCl);
+            if (string.IsNullOrEmpty(dir)) return null;
+
+            // Walk up to find MSVC version dir (parent of bin/Host.../...)
+            var current = new DirectoryInfo(dir);
+            DirectoryInfo? msvcVersionDir = null;
+            DirectoryInfo? vcDir = null;
+            DirectoryInfo? vsInstallDir = null;
+
+            while (current != null)
             {
-                return DetectMSVCFallback();
+                if (current.Parent?.Name.Equals("MSVC", StringComparison.OrdinalIgnoreCase) == true &&
+                    current.Parent.Parent?.Name.Equals("Tools", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    msvcVersionDir = current;
+                }
+
+                if (current.Name.Equals("VC", StringComparison.OrdinalIgnoreCase) ||
+                    File.Exists(Path.Combine(current.FullName, "Auxiliary", "Build", "vcvarsall.bat")))
+                {
+                    vcDir = current;
+                    vsInstallDir = current.Parent;
+                    break;
+                }
+
+                current = current.Parent;
             }
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
-            {
-                Log.Warning("vswhere failed to find Visual Studio installation");
-                return DetectMSVCFallback();
-            }
-
-            var vsPath = output.Trim();
-            Log.Information("Found Visual Studio at {Path}", vsPath);
-
-            // Find vcvarsall.bat
-            var vcvarsallPath = Path.Combine(vsPath, "VC", "Auxiliary", "Build", "vcvarsall.bat");
-            if (!File.Exists(vcvarsallPath))
-            {
-                Log.Warning("vcvarsall.bat not found at {Path}", vcvarsallPath);
-                return DetectMSVCFallback();
-            }
-
-            // Find cl.exe
-            var vcToolsPath = Path.Combine(vsPath, "VC", "Tools", "MSVC");
-            if (!Directory.Exists(vcToolsPath))
-            {
-                Log.Warning("VC Tools directory not found at {Path}", vcToolsPath);
-                return DetectMSVCFallback();
-            }
-
-            // Get the latest MSVC version
-            var latestVersion = Directory.GetDirectories(vcToolsPath)
-                .OrderByDescending(d => d)
-                .FirstOrDefault();
-
-            if (latestVersion == null)
-            {
-                Log.Warning("No MSVC version found");
-                return DetectMSVCFallback();
-            }
-
-            Log.Information("Using MSVC version: {Version}", Path.GetFileName(latestVersion));
-
-            // Find the host architecture
             var hostArch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64";
-            var binPath = Path.Combine(latestVersion, "bin", $"Host{hostArch}", hostArch);
+            var vcvarsallPath = vcDir != null
+                ? Path.Combine(vcDir.FullName, "Auxiliary", "Build", "vcvarsall.bat")
+                : null;
 
-            if (!Directory.Exists(binPath))
-            {
-                Log.Warning("Bin directory not found at {Path}", binPath);
-                return DetectMSVCFallback();
-            }
+            if (vcvarsallPath != null && !File.Exists(vcvarsallPath))
+                vcvarsallPath = null;
 
-            var clPath = Path.Combine(binPath, "cl.exe");
-            if (!File.Exists(clPath))
-            {
-                Log.Warning("cl.exe not found at {Path}", clPath);
-                return DetectMSVCFallback();
-            }
-
-            Log.Information("Found cl.exe at {Path}", clPath);
+            var versionStr = msvcVersionDir?.Name ?? "Unknown";
+            var includePath = msvcVersionDir != null ? Path.Combine(msvcVersionDir.FullName, "include") : null;
+            var libPath = msvcVersionDir != null ? Path.Combine(msvcVersionDir.FullName, "lib", hostArch) : null;
 
             return new DetectedCompiler
             {
                 Type = CompilerType.MSVC,
-                Path = clPath,
-                Version = ExtractMSVCVersion(latestVersion),
-                IncludePath = Path.Combine(latestVersion, "include"),
-                LibraryPath = Path.Combine(latestVersion, "lib", hostArch),
+                Path = fullCl,
+                Version = versionStr,
+                IncludePath = includePath,
+                LibraryPath = libPath,
                 VcVarsAllPath = vcvarsallPath,
-                VsInstallPath = vsPath
+                VsInstallPath = vsInstallDir?.FullName
             };
         }
-        catch (Exception ex)
+        catch
         {
-            Log.Error(ex, "Error detecting MSVC compiler");
-            return DetectMSVCFallback();
+            return null;
         }
-    }
-
-    /// <summary>
-    /// Fallback MSVC detection using PATH environment variable.
-    /// </summary>
-    private static DetectedCompiler DetectMSVCFallback()
-    {
-        Log.Information("Attempting fallback MSVC detection via PATH");
-
-        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var paths = pathEnv.Split(Path.PathSeparator);
-
-        foreach (var path in paths)
-        {
-            var clPath = Path.Combine(path, "cl.exe");
-            if (File.Exists(clPath))
-            {
-                Log.Information("Found cl.exe in PATH at {Path}", clPath);
-                return new DetectedCompiler
-                {
-                    Type = CompilerType.MSVC,
-                    Path = clPath,
-                    Version = "Unknown"
-                };
-            }
-        }
-
-        Log.Warning("MSVC compiler not found in PATH");
-        return new DetectedCompiler { Type = CompilerType.None, Path = string.Empty };
     }
 
     /// <summary>
@@ -311,7 +445,6 @@ public class ToolchainDetector
         {
             Log.Information("Setting up MSVC environment using vcvarsall.bat");
 
-            // Create a temporary batch file that runs vcvarsall.bat and outputs environment variables
             var tempBatPath = Path.Combine(Path.GetTempPath(), $"ignitebt_vcvars_{Guid.NewGuid()}.bat");
             var tempEnvPath = Path.Combine(Path.GetTempPath(), $"ignitebt_env_{Guid.NewGuid()}.txt");
 
@@ -407,7 +540,6 @@ public class DetectedCompiler
     public string? VcVarsAllPath { get; set; }
 
     /// <summary>
-    /// Visual Studio installation path (for MSVC).
     /// </summary>
     public string? VsInstallPath { get; set; }
 }

@@ -19,6 +19,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Core/LayoutMetrics.h"
 
 #include <algorithm>
 
@@ -42,51 +43,50 @@ ExplorerFilterMenu::ExplorerFilterMenu(const FilterOptions& initialOptions, OnFi
 
 void ExplorerFilterMenu::BuildMenuItems() {
     m_MenuItems.clear();
-    
+
     MenuItem item1 = { "Show Folders", &m_FilterOptions.showFolders, false, false, 0, {} };
     m_MenuItems.push_back(item1);
-    
+
     MenuItem item2 = { "Show Assets", &m_FilterOptions.showAssets, false, false, 0, {} };
     m_MenuItems.push_back(item2);
-    
+
     MenuItem item3 = { "Show Actors", &m_FilterOptions.showActors, false, false, 0, {} };
     m_MenuItems.push_back(item3);
-    
+
     MenuItem item4 = { "Show Components", &m_FilterOptions.showComponents, false, false, 0, {} };
     m_MenuItems.push_back(item4);
-    
+
     MenuItem sep1 = { "", nullptr, true, false, 0, {} };
     m_MenuItems.push_back(sep1);
-    
+
     // Visibility options
     MenuItem item5 = { "Show Hidden", &m_FilterOptions.showHidden, false, false, 0, {} };
     m_MenuItems.push_back(item5);
-    
+
     MenuItem item6 = { "Show Locked", &m_FilterOptions.showLocked, false, false, 0, {} };
     m_MenuItems.push_back(item6);
-    
+
     MenuItem item7 = { "Show Empty Folders", &m_FilterOptions.showEmptyFolders, false, false, 0, {} };
     m_MenuItems.push_back(item7);
-    
+
     MenuItem item8 = { "Favorites", &m_FilterOptions.showFavorites, false, false, 0, {} };
     m_MenuItems.push_back(item8);
-    
+
     MenuItem sep2 = { "", nullptr, true, false, 0, {} };
     m_MenuItems.push_back(sep2);
-    
+
     // Sort options (radio group)
     MenuItem item9 = { "Sort A–Z", nullptr, false, true, 0, {} };
     m_MenuItems.push_back(item9);
-    
+
     MenuItem item10 = { "Sort Z–A", nullptr, false, true, 0, {} };
     m_MenuItems.push_back(item10);
-    
+
     MenuItem item11 = { "Modified Recently", nullptr, false, true, 0, {} };
     m_MenuItems.push_back(item11);
 }
 
 Size ExplorerFilterMenu::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
     float maxWidth = 180.0f;
     for (const auto& item : m_MenuItems) {
@@ -98,16 +98,16 @@ Size ExplorerFilterMenu::Measure(const Size& availableSize) {
         }
     }
     const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
-    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    const float rowH = we::runtime::kindui::LayoutMetrics::UnifiedListItemHeight();
     m_DesiredSize = Size{ maxWidth, menuPad * 2.0f + static_cast<float>(m_MenuItems.size()) * rowH };
     return m_DesiredSize;
 }
 
 void ExplorerFilterMenu::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    
+
     const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
-    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    const float rowH = we::runtime::kindui::LayoutMetrics::UnifiedListItemHeight();
     float y = m_Geometry.y + menuPad;
     for (auto& item : m_MenuItems) {
         item.geometry = Rect{ m_Geometry.x + menuPad, y, m_Geometry.width - menuPad * 2.0f, rowH };
@@ -116,7 +116,7 @@ void ExplorerFilterMenu::Arrange(const Rect& allottedRect) {
 }
 
 void ExplorerFilterMenu::Paint(PaintContext& context) {
-    const float rowH = we::runtime::kindui::UiMetrics::MenuItemHeight();
+    const float rowH = we::runtime::kindui::LayoutMetrics::UnifiedListItemHeight();
     const float checkSize = we::runtime::kindui::UiMetrics::CheckMarkSize();
     const float menuPad = we::runtime::kindui::UiMetrics::MenuPadding();
     const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
@@ -148,10 +148,10 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
 
         const float checkX = item.geometry.x + menuPad;
         const float checkY = item.geometry.y + (rowH - checkSize) * 0.5f;
-        
+
         if (item.isRadio) {
             // Radio button style - check if this sort option is selected
-            const size_t sortStartIndex = 10; // Index where sort options begin
+            const size_t sortStartIndex = 10;
             if (i >= sortStartIndex) {
                 const bool isSelected = (m_FilterOptions.sortOrder == static_cast<int>(i - sortStartIndex));
                 if (isSelected) {
@@ -163,7 +163,7 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
                 IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
             }
         }
-        
+
         const float textX = item.geometry.x + we::runtime::kindui::UiMetrics::MenuTextIndent();
         const float textY = item.geometry.y + (rowH - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
         context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary),
@@ -184,7 +184,7 @@ void ExplorerFilterMenu::OnMouseDown(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
-    
+
     m_PressedItem = HitMenuItemIndex(event.position);
 }
 
@@ -196,14 +196,14 @@ void ExplorerFilterMenu::OnMouseUp(const MouseEvent& event) {
     if (event.button != MouseButton::Left) {
         return;
     }
-    
+
     const int clickedIndex = HitMenuItemIndex(event.position);
     if (clickedIndex >= 0 && clickedIndex == m_PressedItem) {
         auto& item = m_MenuItems[static_cast<size_t>(clickedIndex)];
-        
+
         if (item.isRadio) {
             // Handle radio button selection for sort options
-            const size_t sortStartIndex = 10; // Index where sort options begin
+            const size_t sortStartIndex = 10;
             if (clickedIndex >= static_cast<int>(sortStartIndex)) {
                 m_FilterOptions.sortOrder = clickedIndex - static_cast<int>(sortStartIndex);
             }
@@ -216,16 +216,16 @@ void ExplorerFilterMenu::OnMouseUp(const MouseEvent& event) {
                 m_FilterOptions.sortOrder = clickedIndex - static_cast<int>(sortStartIndex);
             }
         }
-        
+
         if (m_OnFilterChanged) {
             m_OnFilterChanged(m_FilterOptions);
         }
-        
+
         if (auto* overlay = GetPopupHost()) {
             overlay->CloseAllPopups();
         }
     }
-    
+
     m_PressedItem = -1;
 }
 
@@ -233,4 +233,4 @@ bool ExplorerFilterMenu::ShowsPointerCursor(const Point& position) const {
     return HitMenuItemIndex(position) >= 0;
 }
 
-} // namespace we::editor::outliner
+}

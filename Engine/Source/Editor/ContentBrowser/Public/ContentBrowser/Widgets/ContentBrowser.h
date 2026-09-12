@@ -22,6 +22,10 @@
 #include "ContentBrowser/Controllers/ContentBrowserController.h"
 #include "KindUI/Input/InputEvents.h"
 
+namespace we::runtime::kindui {
+class EmptyState;
+}
+
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::ScrollViewport;
@@ -35,7 +39,6 @@ using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
-
 
 class ContentBrowser : public Widget {
 public:
@@ -90,7 +93,6 @@ public:
 
     std::shared_ptr<ContentBrowserModel> GetModel() { return m_Model; }
     std::shared_ptr<ContentBrowserController> GetController() { return m_Controller; }
-
     void UpdateItemIcon(const std::string& id, we::rhi::RHIDescriptorSetHandle texture);
 
 private:
@@ -141,6 +143,7 @@ private:
 
     std::shared_ptr<ContentBrowserModel> m_Model;
     std::shared_ptr<ContentBrowserController> m_Controller;
+    std::shared_ptr<we::runtime::kindui::EmptyState> m_EmptyState;
     std::vector<std::string> m_EmptySelectedIds;
 
     std::vector<RenderItem> m_RenderList;
@@ -253,4 +256,4 @@ private:
     size_t m_LastFolderCount = static_cast<size_t>(-1);
 };
 
-} // namespace we::editor::contentbrowser
+}

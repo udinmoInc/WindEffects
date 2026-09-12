@@ -12,6 +12,7 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Layout/AutoAlign.h"
 
 #include <vector>
 
@@ -34,7 +35,9 @@ public:
     Flex& Direction(FlexDirection d) { m_Direction = d; InvalidateLayout(); return *this; }
     Flex& Wrap(FlexWrap w) { m_Wrap = w; InvalidateLayout(); return *this; }
     Flex& Justify(JustifyContent j) { m_Justify = j; InvalidateLayout(); return *this; }
-    Flex& Align(AlignItems a) { m_Align = a; InvalidateLayout(); return *this; }
+    Flex& Align(AlignItems a);
+    Flex& Align(AlignRule rule);
+    [[nodiscard]] AlignRule GetAlignRule() const { return m_AlignRule; }
     Flex& Gap(float gap) { m_Gap = gap; InvalidateLayout(); return *this; }
     Flex& Gap(SpacingToken token);
     Flex& Padding(const Margin& p) { m_Padding = p; InvalidateLayout(); return *this; }
@@ -56,6 +59,7 @@ private:
     FlexWrap m_Wrap = FlexWrap::NoWrap;
     JustifyContent m_Justify = JustifyContent::Start;
     AlignItems m_Align = AlignItems::Stretch;
+    AlignRule m_AlignRule = AlignRule::Stretch;
     float m_Gap = 0.0f;
     Margin m_Padding{};
     Color m_Background{};
@@ -77,4 +81,4 @@ public:
 [[nodiscard]] KINDUI_API std::shared_ptr<Row> MakeRow();
 [[nodiscard]] KINDUI_API std::shared_ptr<Column> MakeColumn();
 
-} // namespace we::runtime::kindui
+}

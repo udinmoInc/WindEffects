@@ -40,84 +40,43 @@ using ::we::runtime::kindui::ToolbarNavigationButton;
 
 class Breadcrumb;
 
-// Square icon toggle for view modes (legacy, kept for compatibility).
-class ToolbarIconToggle : public Widget {
+// Square icon toggle for view modes deriving from KindUI::IconButton.
+class ToolbarIconToggle : public we::runtime::kindui::IconButton {
 public:
-    ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char* tooltip = nullptr);
+    explicit ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char* tooltip = nullptr)
+        : we::runtime::kindui::IconButton(icon) {
+        SetBorderless(true);
+    }
 
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-    void Tick(float deltaTime) override;
-
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() &&
-        m_Geometry.Contains(position); }
-
-    void SetSelected(bool selected) { m_Selected = selected; }
-    bool IsSelected() const { return m_Selected; }
-    void SetFrameless(bool frameless) { m_Frameless = frameless; }
-    bool IsFrameless() const { return m_Frameless; }
-    void SetCustomColor(Color color) { m_CustomColor = color; m_HasCustomColor = true; }
-    void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
-
-private:
-    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
-    bool m_Selected = false;
-    bool m_Frameless = true;
-    bool m_HasCustomColor = false;
-    Color m_CustomColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-    float m_HoverAnim = 0.0f;
-    float m_PressAnim = 0.0f;
-    std::function<void()> m_OnClicked;
+    void SetSelected(bool selected) { SetActive(selected); }
+    [[nodiscard]] bool IsSelected() const { return IsActive(); }
+    void SetFrameless(bool frameless) { SetBorderless(frameless); }
+    [[nodiscard]] bool IsFrameless() const { return true; }
+    void SetCustomColor(Color color) { }
 };
 
-// Icon + label + optional chevron (Filter, Sort, Import, Create) - legacy.
-class ToolbarLabeledButton : public Widget {
+// Icon + label button deriving from KindUI::ToolbarButton.
+class ToolbarLabeledButton : public we::runtime::kindui::ToolbarButton {
 public:
     enum class Variant { Standard, Primary, AddAction };
 
     ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon =
         we::runtime::kindui::kWindIconNone,
-        bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 8.0f);
+        bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 8.0f)
+        : we::runtime::kindui::ToolbarButton(label, icon) {
 
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-    void Tick(float deltaTime) override;
+    }
 
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseUp(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override { return IsEnabled() &&
-        m_Geometry.Contains(position); }
-
-    void SetOnClicked(std::function<void()> callback) { m_OnClicked = callback; }
-    void SetFrameless(bool frameless) { m_Frameless = frameless; }
-    bool IsFrameless() const { return m_Frameless; }
-
-private:
-    void UpdateTextMetrics(float textSize) const;
-
-    std::string m_Label;
-    we::runtime::kindui::WindIconRef m_Icon = we::runtime::kindui::kWindIconNone;
-    bool m_ShowChevron = false;
-    Variant m_Variant = Variant::Standard;
-    float m_HorizontalPadding = 8.0f;
-    bool m_Frameless = false;
-    float m_HoverAnim = 0.0f;
-    float m_PressAnim = 0.0f;
-    std::function<void()> m_OnClicked;
-    mutable float m_CachedTextSize = -1.0f;
-    mutable float m_CachedTextWidth = 0.0f;
+    void SetFrameless(bool frameless) { }
+    [[nodiscard]] bool IsFrameless() const { return false; }
 };
 
 // Premium AAA toolbar with reusable components.
 class ContentBrowserToolbarControls : public we::runtime::kindui::Row {
 public:
     enum class ToolbarMode {
-        Full,           // Panel toolbar: create, import, back, forward, folder
-        AssetPane       // Asset pane toolbar: search, save all, filter icon
+        Full,
+        AssetPane
     };
 
     static std::shared_ptr<ContentBrowserToolbarControls> Create(ToolbarMode mode = ToolbarMode::Full);
@@ -157,7 +116,7 @@ private:
     ToolbarMode m_Mode;
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
-    
+
     std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
     std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
     std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
@@ -165,7 +124,7 @@ private:
     std::shared_ptr<ToolbarIconToggle> m_BackBtn;
     std::shared_ptr<ToolbarIconToggle> m_ForwardBtn;
     std::shared_ptr<ToolbarIconToggle> m_FolderBtn;
-    
+
     // Legacy / secondary controls (for AssetPane mode)
     std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
     std::shared_ptr<ToolbarIconToggle> m_ListViewBtn;
@@ -184,4 +143,4 @@ private:
     std::function<void()> m_OnFilterClicked;
 };
 
-} // namespace we::editor::contentbrowser
+}

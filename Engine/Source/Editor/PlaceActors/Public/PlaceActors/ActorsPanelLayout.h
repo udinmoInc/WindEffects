@@ -81,7 +81,7 @@ inline float CategoryGap() {
 }
 
 inline float CategoryContentGap() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::ContentGap);
+    return we::runtime::kindui::ResolveMetric(MetricToken::Space2);
 }
 
 inline float SectionRadius() {
@@ -126,4 +126,4 @@ inline float GridScrollbarReserve() {
         + we::runtime::kindui::ResolveMetric(MetricToken::Space1);
 }
 
-} // namespace we::programs::editor::ActorsPanelLayout
+}

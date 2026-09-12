@@ -16,7 +16,6 @@
 
 #include <algorithm>
 
-
 namespace we::runtime::kindui {
 
 std::shared_ptr<ModalHost> MakeModalHost() {
@@ -65,17 +64,24 @@ void ModalHost::Arrange(const Rect& allottedRect) {
     } else {
         h = std::min(std::max(desired.height, 200.0f * scale), allottedRect.height * 0.90f);
     }
-    m_Content->Arrange(Rect{
-        allottedRect.x + (allottedRect.width - w) * 0.5f,
-        allottedRect.y + (allottedRect.height - h) * 0.5f,
-        w,
-        h
-    });
+    float posX = allottedRect.x + (allottedRect.width - w) * 0.5f;
+    float posY = allottedRect.y + (allottedRect.height - h) * 0.5f;
+
+    if (m_AnchorPosition && !m_CenterInParent) {
+        posX = std::clamp(m_AnchorPosition->x, allottedRect.x + 8.0f, (std::max)(allottedRect.x + 8.0f,
+            allottedRect.x + allottedRect.width - w - 8.0f));
+        posY = std::clamp(m_AnchorPosition->y, allottedRect.y + 8.0f, (std::max)(allottedRect.y + 8.0f,
+            allottedRect.y + allottedRect.height - h - 8.0f));
+    }
+
+    m_Content->Arrange(Rect{ posX, posY, w, h });
 }
 
 void ModalHost::Paint(PaintContext& context) {
-    const Color scrim = ResolveColor(ColorToken::ModalScrim);
-    context.DrawRect(m_Geometry, scrim);
+    if (m_ShowScrim) {
+        const Color scrim = ResolveColor(ColorToken::ModalScrim);
+        context.DrawRect(m_Geometry, scrim);
+    }
     if (m_Content && m_Content->IsVisible()) {
         m_Content->Paint(context);
     }
@@ -94,5 +100,5 @@ void ModalHost::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

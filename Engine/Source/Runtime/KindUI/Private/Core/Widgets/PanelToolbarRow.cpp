@@ -15,11 +15,12 @@ namespace we::runtime::kindui {
 
 PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
-    Padding(Margin{});
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+    Padding(Margin{ padH, 0.0f, padH, 0.0f });
     Gap(ThemeMetric(MetricToken::ChromeSeparationGapWide));
     Align(AlignItems::Center);
 
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_SearchBox = std::make_shared<SearchBoxControl>(m_SearchPlaceholder);
     m_SearchBox->SetToolbarInset(true);
     m_SearchBox->SetMargin(Margin{ 0.0f, 0.0f, ThemeMetric(MetricToken::Space1), 0.0f });
@@ -31,7 +32,7 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
 }
 
 Size PanelToolbarRow::Measure(const Size& availableSize) {
-    const float rowH = LayoutMetrics::SearchRowHeight();
+    const float rowH = LayoutMetrics::UnifiedToolbarRowHeight();
     Size childAvail = availableSize;
     if (childAvail.height > rowH) {
         childAvail.height = rowH;
@@ -121,5 +122,5 @@ std::shared_ptr<IconButton> PanelToolbarRow::GetIconButton(size_t index) const {
     return index < m_IconButtons.size() ? m_IconButtons[index] : nullptr;
 }
 
-} // namespace we::runtime::kindui
- 
+}
+
