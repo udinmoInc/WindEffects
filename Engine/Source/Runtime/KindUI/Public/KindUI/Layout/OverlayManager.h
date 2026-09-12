@@ -26,6 +26,10 @@ public:
     void SetBaseWidget(const std::shared_ptr<Widget>& baseWidget);
 
     void ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) override;
+    void ShowAnchoredPopup(
+        const std::shared_ptr<Widget>& popup,
+        const Rect& anchorRect,
+        PopupPlacementMode placementMode = PopupPlacementMode::SidePreferred) override;
     void ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) override;
     void CloseTopPopup() override;
     void CloseAllPopups() override;
@@ -61,9 +65,11 @@ private:
     std::vector<bool> m_FullscreenPopups;
     std::vector<bool> m_PinnedPopups;
     std::vector<Size> m_PopupCachedSizes;
+    std::vector<Rect> m_PopupAnchors;
+    std::vector<PopupPlacementMode> m_PopupPlacementModes;
     Size m_LastArrangeSize{};
 };
 
 using OverlayManager = OverlayHost;
 
-} // namespace we::runtime::kindui
+}

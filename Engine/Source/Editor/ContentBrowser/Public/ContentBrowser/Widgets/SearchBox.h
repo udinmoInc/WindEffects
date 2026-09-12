@@ -9,79 +9,20 @@
 #pragma once
 
 #include "ContentBrowser/Export.h"
-
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include <string>
+#include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include <functional>
-#include "KindUI/Input/InputEvents.h"
+#include <string>
 
 namespace we::editor::widgets {
-using ::we::runtime::kindui::KeyEvent;
 
-using ::we::runtime::kindui::Widget;
-using ::we::runtime::kindui::Size;
-using ::we::runtime::kindui::Rect;
-using ::we::runtime::kindui::Point;
-using ::we::runtime::kindui::Color;
-using ::we::runtime::kindui::PaintContext;
-using ::we::runtime::kindui::MouseEvent;
-using ::we::runtime::kindui::WidgetStyle;
-
-
-// Search box widget with icon and clear button
-class CONTENTBROWSER_API SearchBox : public Widget {
+/// Search box control derived directly from KindUI's shared SearchBoxControl.
+class CONTENTBROWSER_API SearchBox : public we::runtime::kindui::SearchBoxControl {
 public:
     using OnTextChanged = std::function<void(const std::string&)>;
 
-    SearchBox();
-    virtual ~SearchBox() = default;
-
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
-    void OnKeyDown(const KeyEvent& event) override;
-    void OnTextInput(const std::string& utf8) override;
-    void OnFocus() override;
-    void OnBlur() override;
-
-    void SetText(const std::string& text);
-    std::string GetText() const { return m_Text; }
-    void SetPlaceholder(const std::string& placeholder) { m_Placeholder = placeholder; }
-
-    void SetOnTextChanged(OnTextChanged callback) { m_OnTextChanged = callback; }
-
-    void SetFillWidth(bool fill) { m_FillWidth = fill; }
-    void SetWidth(float width) { m_Width = width; }
-    void SetToolbarInset(bool inset) { m_ToolbarInset = inset; }
-
-    void Tick(float deltaTime);
-    bool ShouldShowCaret() const { return m_ShowCaret; }
-
-private:
-    void UpdateCaretBlink(float deltaTime);
-    Rect GetTextRect() const;
-    Rect GetClearButtonRect() const;
-
-    std::string m_Text;
-    std::string m_Placeholder = "Search...";
-    size_t m_CaretPosition = 0;
-    
-    float m_Height = 0.0f;
-    float m_Width = 240.0f;
-    bool m_FillWidth = false;
-    bool m_ToolbarInset = false;
-    float m_CaretBlinkTime = 0.0f;
-    bool m_ShowCaret = true;
-    
-    OnTextChanged m_OnTextChanged;
-
-    WidgetStyle m_Style;
+    SearchBox() : we::runtime::kindui::SearchBoxControl("Search...") {}
+    explicit SearchBox(std::string placeholder) : we::runtime::kindui::SearchBoxControl(std::move(placeholder)) {}
+    ~SearchBox() override = default;
 };
 
-} // namespace we::editor::widgets
+}

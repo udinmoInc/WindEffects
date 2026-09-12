@@ -20,4 +20,5 @@
 #include "KindUI/Panel/PanelBuilder.h"
 #include "KindUI/Panel/PanelBodyLayout.h"
 #include "KindUI/Panel/Panel.h"
+#include "KindUI/DSL/EditorDSL.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"

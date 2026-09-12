@@ -67,7 +67,7 @@ float SanitizeContentBrowserHeight(float value) {
     return std::max(value, kMinUsableContentBrowserHeight);
 }
 
-} // namespace
+}
 
 EditorWorkspaceController& EditorWorkspaceController::Get() {
     static EditorWorkspaceController instance;
@@ -172,7 +172,8 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
         if (m_Layout.rootVerticalSplitter) {
             const float targetHeight = SanitizeContentBrowserHeight(m_ContentBrowserBottomHeight);
             WE_LOG_INFO(we::LogCategory::General.data(),
-                "[Workspace] Expanding Content Browser via SetPanelVisible: targetHeight=" + std::to_string(targetHeight));
+                "[Workspace] Expanding Content Browser via SetPanelVisible: targetHeight=" +
+                    std::to_string(targetHeight));
             m_Layout.rootVerticalSplitter->SetResizeMode(Splitter::ResizeMode::FixedSecond);
             m_Layout.rootVerticalSplitter->SetFixedSecondWidth(targetHeight);
         }
@@ -418,7 +419,6 @@ void EditorWorkspaceController::WireFloatingDock(FloatingHost& host) {
         // Peel tab into a new float / merge / redock based on drop cursor.
         FloatPanelAt(id, pos);
         // Stash source host so BeginFloating can decide peel vs move.
-        (void)hostId;
     });
 }
 
@@ -1179,7 +1179,6 @@ void EditorWorkspaceController::Reset() {
     }
 
     for (auto& [panelId, entry] : m_Panels) {
-        (void)panelId;
         entry.floating = false;
         entry.floatHostId = -1;
     }
@@ -1194,4 +1193,4 @@ void EditorWorkspaceController::ClearLayoutRefs() {
     m_Layout = {};
 }
 
-} // namespace we::programs::editor
+}

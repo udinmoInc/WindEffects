@@ -73,7 +73,7 @@ void ComputePaneExtents(
         second = availMain;
     }
 }
-} // namespace
+}
 
 bool Splitter::AnySplitterDragging() {
     return g_SplitterDragCount.load(std::memory_order_relaxed) > 0;
@@ -491,7 +491,6 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
         if (wasHovered != m_Hovered) {
             InvalidatePaint();
         }
-        // Set after EventSystem's default arrow/hand so the resize cursor wins.
         ApplyResizeCursor(m_Hovered);
         return;
     }
@@ -535,7 +534,6 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
 }
 
 void Splitter::OnMouseUp(const MouseEvent& event) {
-    (void)event;
     if (m_Dragging) {
         m_Dragging = false;
         const int prev = g_SplitterDragCount.fetch_sub(1, std::memory_order_relaxed);
@@ -543,7 +541,10 @@ void Splitter::OnMouseUp(const MouseEvent& event) {
             g_SplitterDragCount.store(0, std::memory_order_relaxed);
         }
         ApplyResizeCursor(GetSplitterHitRect().Contains(event.position));
-        // Apply deferred viewport RT resize on the next flush after drag ends.
+        // Dragging arranges this splitter locally for responsiveness. Commit one
+        // full tree layout on release so nested dock panels (Inspector, Asset
+        // Explorer, and Viewport) do not retain stale child geometry.
+        UIRepaintGate::RequestLayout();
         UIRepaintGate::RequestPaint();
     }
 }
@@ -560,6 +561,10 @@ void Splitter::OnHoverLost() {
         if (prev <= 0) {
             g_SplitterDragCount.store(0, std::memory_order_relaxed);
         }
+        // A captured drag can leave the window without a mouse-up event.
+        // Finalize its geometry through the same path as a normal release.
+        UIRepaintGate::RequestLayout();
+        UIRepaintGate::RequestPaint();
     }
     if (!AnySplitterDragging()) {
         we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
@@ -597,5 +602,5 @@ std::shared_ptr<Widget> Splitter::HitTestPoint(const Point& pos, const Rect* cli
     return nullptr;
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

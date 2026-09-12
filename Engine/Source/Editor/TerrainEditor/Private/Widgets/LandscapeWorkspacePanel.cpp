@@ -14,12 +14,12 @@
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Panel/PanelBodyLayout.h"
 #include "KindUI/Panel/PanelChrome.h"
+#include "KindUI/Core/WindIcon.h"
 
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/DPIContext.h"
-
 
 namespace we::editor::terrain {
 
@@ -47,10 +47,10 @@ LandscapeWorkspacePanel::LandscapeWorkspacePanel(ILandscapeEditor* editor) : m_E
 
     m_TabBar = std::make_shared<we::runtime::kindui::panels::PanelModeTabs>();
     std::vector<we::runtime::kindui::panels::PanelModeTabDescriptor> tabs = {
-        { "Create", "Create" },
-        { "Sculpt", "Sculpt" },
-        { "Paint", "Paint" },
-        { "Manage", "Manage" }
+        { "Create", "Create", we::runtime::kindui::WindIcons::ConstructV224 },
+        { "Sculpt", "Sculpt", we::runtime::kindui::WindIcons::AccessibilityV224 },
+        { "Paint", "Paint", we::runtime::kindui::WindIcons::ColorPalette24 },
+        { "Manage", "Manage", we::runtime::kindui::WindIcons::SettingsV224 }
     };
     m_TabBar->SetTabs(std::move(tabs));
     m_TabBar->SetOnTabChanged([this](const std::string& tabId) {
@@ -110,7 +110,6 @@ void LandscapeWorkspacePanel::SetActiveTab(LandscapeWorkspaceTab tab) {
 }
 
 void LandscapeWorkspacePanel::ActivateSculptTool(runtime_terrain::TerrainBrushOp op) {
-    (void)op;
 }
 
 void LandscapeWorkspacePanel::RebuildLayout() {
@@ -224,5 +223,5 @@ std::shared_ptr<we::runtime::kindui::Widget> LandscapeWorkspacePanel::HitTestPoi
     return nullptr;
 }
 
-} // namespace we::editor::terrain
- 
+}
+

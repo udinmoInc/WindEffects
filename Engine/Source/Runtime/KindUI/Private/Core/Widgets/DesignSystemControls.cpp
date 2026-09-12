@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 
+#include "KindUI/Layout/AutoAlign.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/LayoutMetrics.h"
@@ -58,7 +59,6 @@ void DesignButton::SetLabel(std::string label) {
 }
 
 Size DesignButton::Measure(const Size& availableSize) {
-    (void)availableSize;
     const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
     const float pad = ResolveMetric(MetricToken::Space2);
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
@@ -104,27 +104,40 @@ void DesignButton::Paint(PaintContext& context) {
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize, style.bold);
     const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
     const float contentW = textW + iconW;
-    // Center label in wide full-width buttons (toggles / CTAs); left-align when compact.
-    float x = m_Geometry.x + pad;
-    if (m_Geometry.width > contentW + pad * 2.0f + ResolveMetric(MetricToken::Space2)) {
-        x = m_Geometry.x + (m_Geometry.width - contentW) * 0.5f;
+
+    const bool centerGroup = m_Geometry.width > contentW + pad * 2.0f + ResolveMetric(MetricToken::Space2);
+    if (centerGroup) {
+        auto groupLayout = AutoAlign::ComputeGroupCenterLayout(
+            m_Geometry, style.iconSize, m_Icon.IsValid(), m_Label, style.fontSize, 0.0f, false);
+        if (m_Icon.IsValid()) {
+            IconPainter::Draw(context, m_Icon, groupLayout.iconRect);
+        }
+        if (!m_Label.empty()) {
+            context.DrawText(
+                m_Label,
+                groupLayout.textPos,
+                fg,
+                style.fontSize,
+                style.bold ? we::runtime::text::layout::FontWeight::Medium
+                           : we::runtime::text::layout::FontWeight::Regular);
+        }
+    } else {
+        const Rect contentBox{ m_Geometry.x + pad, m_Geometry.y, m_Geometry.width - pad * 2.0f, m_Geometry.height };
+        auto iconTextLayout = AutoAlign::ComputeIconTextLayout(
+            contentBox, style.iconSize, m_Icon.IsValid(), m_Label, style.fontSize);
+        if (m_Icon.IsValid()) {
+            IconPainter::Draw(context, m_Icon, iconTextLayout.iconRect);
+        }
+        if (!m_Label.empty()) {
+            context.DrawText(
+                m_Label,
+                iconTextLayout.textPos,
+                fg,
+                style.fontSize,
+                style.bold ? we::runtime::text::layout::FontWeight::Medium
+                           : we::runtime::text::layout::FontWeight::Regular);
+        }
     }
-    if (m_Icon.IsValid()) {
-        const Rect iconRect{
-            x,
-            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-            style.iconSize,
-            style.iconSize};
-        IconPainter::Draw(context, m_Icon, iconRect);
-        x += style.iconSize + ResolveMetric(MetricToken::Space1);
-    }
-    context.DrawText(
-        m_Label,
-        Point{ x, m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f },
-        fg,
-        style.fontSize,
-        style.bold ? we::runtime::text::layout::FontWeight::Medium
-                   : we::runtime::text::layout::FontWeight::Regular);
 }
 
 void DesignButton::OnMouseDown(const MouseEvent& event) {
@@ -144,7 +157,6 @@ void DesignButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void DesignButton::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered && IsEnabled() ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
@@ -166,7 +178,6 @@ void IconButton::SetOnClicked(std::function<void()> cb) {
 }
 
 Size IconButton::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float s = ThemeManager::Get().Resolve(StyleRole::IconButton).height;
     m_DesiredSize = Size{ s, s };
     return m_DesiredSize;
@@ -218,7 +229,6 @@ void IconButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void IconButton::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
@@ -278,7 +288,6 @@ void Card::Paint(PaintContext& context) {
 }
 
 void Card::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
@@ -293,7 +302,6 @@ SectionHeader::SectionHeader(std::string title, std::string subtitle)
 }
 
 Size SectionHeader::Measure(const Size& availableSize) {
-    (void)availableSize;
     const TypographySpec titleSpec = ResolveTypography(TypographyToken::SectionTitle);
     const TypographySpec subtitleSpec = ResolveTypography(TypographyToken::Subtitle);
     float h = titleSpec.lineHeightPx;
@@ -330,7 +338,7 @@ Size PropertyRow::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::PropertyRow);
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 320.0f,
-        style.height > 0.0f ? style.height : ResolveMetric(MetricToken::FormRowHeight)
+        style.height > 0.0f ? style.height : LayoutMetrics::UnifiedRowHeight()
     };
     return m_DesiredSize;
 }
@@ -345,16 +353,26 @@ void PropertyRow::Paint(PaintContext& context) {
     }
     const auto layout = PropertyPanelChrome::LayoutPropertyRow(m_Geometry, 0);
     PropertyPanelChrome::PaintPropertyRowLabel(context, layout.label, m_Label, false);
+    PropertyPanelChrome::PaintPropertyRowGrid(context, layout);
 
     const TypographySpec valueSpec = ResolveTypography(TypographyToken::PropertyValue);
     const float fontSize = valueSpec.sizePx;
-    const float textY = layout.value.y + (layout.value.height - fontSize) * 0.5f;
+    const float textY = AutoAlign::AlignTextTopY(layout.value, fontSize);
     context.DrawText(
         m_Value.empty() ? "—" : m_Value,
         Point{ layout.value.x, textY },
         valueSpec.color,
         fontSize,
         valueSpec.bold);
+
+    // Demo: dirty undo affordance only (matches live Inspector).
+    PropertyPanelChrome::PropertyActionIcons icons;
+    icons.undo = true;
+    icons.undoEnabled = true;
+    PropertyPanelChrome::PaintPropertyActions(
+        context,
+        PropertyPanelChrome::LayoutPropertyActions(layout.actions),
+        icons);
 }
 
 SearchBoxControl::SearchBoxControl(std::string placeholder)
@@ -434,7 +452,6 @@ void SearchBoxControl::Paint(PaintContext& context) {
 }
 
 void SearchBoxControl::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
@@ -442,7 +459,6 @@ void SearchBoxControl::Tick(float deltaTime) {
     }
     Widget::Tick(deltaTime);
 }
-
 
 void SearchBoxControl::OnKeyDown(const KeyEvent& event) {
     if (!m_Focused) {
@@ -486,7 +502,7 @@ void SearchBoxControl::OnBlur() {
 PanelTab::PanelTab(std::string label)
     : m_Label(std::move(label)) {
     SetFocusable(false);
-    SetMinSize({ 0.0f, ResolveMetric(MetricToken::PanelTabHeight) });
+    SetMinSize({ 0.0f, LayoutMetrics::UnifiedTabRowHeight() });
 }
 
 PanelTab::~PanelTab() = default;
@@ -503,7 +519,7 @@ Size PanelTab::Measure(const Size& availableSize) {
     if (availableSize.width > 0.0f) {
         w = std::max(w, availableSize.width);
     }
-    m_DesiredSize = Size{ w, ResolveMetric(MetricToken::PanelTabHeight) };
+    m_DesiredSize = Size{ w, LayoutMetrics::UnifiedTabRowHeight() };
     return m_DesiredSize;
 }
 
@@ -569,7 +585,7 @@ Size SidebarItem::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::SidebarItem);
     m_DesiredSize = Size{
         availableSize.width > 0.0f ? availableSize.width : 200.0f,
-        style.height
+        style.height > 0.0f ? style.height : LayoutMetrics::UnifiedListItemHeight()
     };
     return m_DesiredSize;
 }
@@ -585,7 +601,6 @@ void SidebarItem::Paint(PaintContext& context) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(
         m_Active ? StyleRole::SidebarItemActive : StyleRole::SidebarItem);
     ControlChrome::InteractionState state{ m_HoverAnim, m_Pressed ? 1.0f : 0.0f, m_Active, false, false };
-    (void)state;
     const Color fill = we::runtime::kindui::MixInteractiveSurface(
         style.background,
         m_Active ? 0.0f : m_HoverAnim,
@@ -598,22 +613,22 @@ void SidebarItem::Paint(PaintContext& context) {
             Rect{ m_Geometry.x, m_Geometry.y + 6.0f, 2.0f, m_Geometry.height - 12.0f },
             ResolveColor(ColorToken::AccentPrimary));
     }
-    float x = m_Geometry.x + ResolveMetric(MetricToken::Space2);
+    const float pad = ResolveMetric(MetricToken::Space2);
+    const Rect contentBox{ m_Geometry.x + pad, m_Geometry.y, m_Geometry.width - pad * 2.0f, m_Geometry.height };
+    auto iconTextLayout = AutoAlign::ComputeIconTextLayout(
+        contentBox, style.iconSize, m_Icon.IsValid(), m_Label, style.fontSize, pad);
+
     if (m_Icon.IsValid()) {
-        const Rect iconRect{
-            x,
-            m_Geometry.y + (m_Geometry.height - style.iconSize) * 0.5f,
-            style.iconSize,
-            style.iconSize};
-        IconPainter::Draw(context, m_Icon, iconRect);
-        x += style.iconSize + ResolveMetric(MetricToken::Space2);
+        IconPainter::Draw(context, m_Icon, iconTextLayout.iconRect);
     }
-    context.DrawText(
-        m_Label,
-        Point{ x, m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f },
-        style.foreground,
-        style.fontSize,
-        style.bold);
+    if (!m_Label.empty()) {
+        context.DrawText(
+            m_Label,
+            iconTextLayout.textPos,
+            style.foreground,
+            style.fontSize,
+            style.bold);
+    }
 }
 
 void SidebarItem::OnMouseDown(const MouseEvent& event) {
@@ -632,7 +647,6 @@ void SidebarItem::OnMouseUp(const MouseEvent& event) {
 }
 
 void SidebarItem::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered && !m_Active ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
@@ -668,7 +682,7 @@ void WindowHeader::Paint(PaintContext& context) {
         m_Title,
         Point{
             m_Geometry.x + ResolveMetric(MetricToken::Space3),
-            m_Geometry.y + (m_Geometry.height - style.fontSize) * 0.5f
+            LayoutMetrics::AlignTextTopY(m_Geometry, style.fontSize)
         },
         style.foreground,
         style.fontSize);
@@ -696,7 +710,6 @@ void TableRowBase::Paint(PaintContext& context) {
 }
 
 void TableRowBase::Tick(float deltaTime) {
-    (void)deltaTime;
     const float targetHover = m_Hovered && !m_Selected ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
@@ -717,6 +730,5 @@ std::shared_ptr<PanelTab> MakePanelTab(std::string label) {
     return std::make_shared<PanelTab>(std::move(label));
 }
 
-} // namespace we::runtime::kindui
- 
- 
+}
+

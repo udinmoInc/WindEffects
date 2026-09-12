@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Serilog;
 using System.Text.RegularExpressions;
+using IgniteBT.Build.Toolchain;
 
 namespace IgniteBT.Build.Compiler;
 
@@ -120,9 +121,9 @@ public class MSVCCompiler : ICompiler
             {
                 Log.Debug("vcvarsall.bat path: {VcVarsPath}", _vcVarsAllPath);
                 Log.Debug("vcvarsall.bat exists: {Exists}", File.Exists(_vcVarsAllPath));
-                
+
                 var tempBatPath = Path.Combine(Path.GetTempPath(), $"ignitebt_compile_{Guid.NewGuid()}.bat");
-                
+
                 var batchContent = $@"@echo off
 echo Running vcvarsall.bat...
 call ""{_vcVarsAllPath}"" x64
@@ -132,9 +133,9 @@ echo Compiler exit code: %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 ";
                 File.WriteAllText(tempBatPath, batchContent);
-                
+
                 Log.Debug("Batch file created at: {BatPath}", tempBatPath);
-                
+
                 startInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
@@ -145,7 +146,7 @@ exit /b %ERRORLEVEL%
                     CreateNoWindow = true,
                     WorkingDirectory = options.WorkingDirectory
                 };
-                
+
                 Log.Debug("Running compiler through batch file");
 
                 using var batchProcess = Process.Start(startInfo);
@@ -157,14 +158,14 @@ exit /b %ERRORLEVEL%
                     Log.Error("Failed to start compiler process");
                     return result;
                 }
-                
+
                 result.StandardOutput = await batchProcess.StandardOutput.ReadToEndAsync();
                 result.StandardError = await batchProcess.StandardError.ReadToEndAsync();
                 await batchProcess.WaitForExitAsync();
-                
+
                 result.ExitCode = batchProcess.ExitCode;
                 result.Success = batchProcess.ExitCode == 0;
-                
+
                 // Clean up temp file
                 try
                 {
@@ -177,12 +178,12 @@ exit /b %ERRORLEVEL%
                 {
                     // Ignore cleanup errors
                 }
-                
+
                 stopwatch.Stop();
                 result.CompilationTimeMs = stopwatch.ElapsedMilliseconds;
-                
+
                 Log.Information("Compiler process exited with code: {ExitCode}", batchProcess.ExitCode);
-                
+
                 if (!string.IsNullOrEmpty(result.StandardOutput))
                 {
                     Log.Information("Compiler stdout:\n{Output}", result.StandardOutput);
@@ -191,7 +192,7 @@ exit /b %ERRORLEVEL%
                 {
                     Log.Error("Compiler stderr:\n{Error}", result.StandardError);
                 }
-                
+
                 if (result.Success)
                 {
                     Log.Information("Compiled {SourceFile} in {Time}ms", options.SourceFile, result.CompilationTimeMs);
@@ -200,7 +201,7 @@ exit /b %ERRORLEVEL%
                 {
                     Log.Error("Compilation failed with exit code {ExitCode}", batchProcess.ExitCode);
                 }
-                
+
                 result.Diagnostics = ParseDiagnostics(result.StandardError, options.SourceFile);
                 return result;
             }
@@ -248,7 +249,7 @@ exit /b %ERRORLEVEL%
             {
                 Log.Information("Compiler stderr: {Error}", result.StandardError);
             }
-            
+
             if (string.IsNullOrEmpty(result.StandardOutput) && string.IsNullOrEmpty(result.StandardError))
             {
                 Log.Warning("Compiler produced no output (stdout or stderr)");
@@ -324,12 +325,12 @@ exit /b %ERRORLEVEL%
         return new List<string>
         {
             "/W4",
-            "/WX",  // Treat warnings as errors
-            "/wd4100", // unreferenced formal parameter (common in UI event stubs)
-            "/wd4189", // unreferenced local variable
-            "/wd4702", // unreachable code (third-party headers during LTCG)
-            "/wd4996", // CRT deprecation warnings in third-party headers (stb, etc.)
-            "/wd4073"  // init_seg(lib) used for editor module bootstrap preloading
+            "/WX",
+            "/wd4100",
+            "/wd4189",
+            "/wd4702",
+            "/wd4996",
+            "/wd4073"
         };
     }
 
@@ -439,95 +440,15 @@ exit /b %ERRORLEVEL%
             return _executablePath;
         }
 
-        // Try to find cl.exe in common locations
-        var possiblePaths = new[]
+        var detected = ToolchainDetector.DetectCompiler();
+        if (detected.Type == CompilerType.MSVC && !string.IsNullOrEmpty(detected.Path))
         {
-            // Visual Studio 2022
-            @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            @"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            @"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            // Visual Studio 2019
-            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            // Build Tools
-            @"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
-            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe"
-        };
-
-        foreach (var pattern in possiblePaths)
-        {
-            var directory = Path.GetDirectoryName(pattern);
-            var fileName = Path.GetFileName(pattern);
-            
-            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
-                continue;
-
-            if (directory.Contains('*'))
+            _executablePath = detected.Path;
+            if (!string.IsNullOrEmpty(detected.VcVarsAllPath))
             {
-                var dirParts = directory.Split('\\');
-                var resolvedDir = new List<string>();
-                bool foundWildcard = false;
-
-                foreach (var part in dirParts)
-                {
-                    if (part.Contains('*') && !foundWildcard)
-                    {
-                        var parentDir = string.Join("\\", resolvedDir);
-                        if (Directory.Exists(parentDir))
-                        {
-                            var matchingDirs = Directory.GetDirectories(parentDir, part)
-                                .OrderByDescending(d => new DirectoryInfo(d).LastWriteTime)
-                                .FirstOrDefault();
-                            if (matchingDirs != null)
-                            {
-                                resolvedDir.Add(matchingDirs);
-                                foundWildcard = true;
-                                continue;
-                            }
-                        }
-                    }
-                    resolvedDir.Add(part);
-                }
-
-                var fullPath = Path.Combine(string.Join(Path.DirectorySeparatorChar, resolvedDir), fileName);
-                if (File.Exists(fullPath))
-                {
-                    _executablePath = fullPath;
-                    return fullPath;
-                }
+                _vcVarsAllPath = detected.VcVarsAllPath;
             }
-            else
-            {
-                var fullPath = pattern.Replace("*", "");
-                if (File.Exists(fullPath))
-                {
-                    _executablePath = fullPath;
-                    return fullPath;
-                }
-            }
-        }
-
-        // Try to find via vswhere or environment
-        var vsDevCmd = Environment.GetEnvironmentVariable("VSINSTALLDIR");
-        if (!string.IsNullOrEmpty(vsDevCmd))
-        {
-            var clPath = Path.Combine(vsDevCmd, "VC", "Tools", "MSVC", "*", "bin", "Hostx64", "x64", "cl.exe");
-            if (Directory.Exists(Path.GetDirectoryName(clPath)))
-            {
-                var msvcDir = Directory.GetDirectories(Path.GetDirectoryName(clPath)!, "*")
-                    .OrderByDescending(d => new DirectoryInfo(d).LastWriteTime)
-                    .FirstOrDefault();
-                if (msvcDir != null)
-                {
-                    var foundPath = Path.Combine(msvcDir, "bin", "Hostx64", "x64", "cl.exe");
-                    if (File.Exists(foundPath))
-                    {
-                        _executablePath = foundPath;
-                        return foundPath;
-                    }
-                }
-            }
+            return _executablePath;
         }
 
         return string.Empty;

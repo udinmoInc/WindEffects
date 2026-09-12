@@ -54,7 +54,6 @@ namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace ToolbarButtonChrome = ::we::runtime::kindui::ToolbarButtonChrome;
 using ::we::runtime::kindui::DPIContext;
 
-
 namespace {
 
 using we::runtime::scene::Entity;
@@ -160,6 +159,31 @@ void SortTreeChildren(std::vector<std::shared_ptr<::we::editor::contentbrowser::
 
 void RefreshOutliner();
 
+// A new editor scene already contains the default environment actors. Selecting
+// the sun gives the Inspector meaningful, editable content on first launch
+// without inventing a separate fake-data path. Existing scene selections are
+// always preserved.
+void SelectInitialInspectorDemoActor(Scene& scene) {
+    if (scene.GetSelectedEntityId() != 0) {
+        return;
+    }
+
+    const Entity* fallback = nullptr;
+    for (const Entity& entity : scene.GetEntities()) {
+        if (entity.Type == EntityType::DirectionalLight) {
+            scene.SetSelectedEntityId(entity.Id);
+            return;
+        }
+        if (!fallback && entity.Type != EntityType::EmptyActor) {
+            fallback = &entity;
+        }
+    }
+
+    if (fallback) {
+        scene.SetSelectedEntityId(fallback->Id);
+    }
+}
+
 void OnDetailsPropertyChanged() {
     EnvironmentSystem& system = EnvironmentSystem::Get();
     system.SyncFromScene();
@@ -253,8 +277,7 @@ void RefreshOutliner() {
     }
 }
 
-
-} // namespace
+}
 
 void InitializeEditor(
     const std::shared_ptr<Scene>& scene,
@@ -274,6 +297,9 @@ void InitializeEditor(
     }
 
     EnvironmentSystem::Get().BindScene(scene);
+    if (scene) {
+        SelectInitialInspectorDemoActor(*scene);
+    }
     EnvironmentSystem::Get().AddChangeListener([]() {
         g_LastSelectedEntityId = 0;
         RefreshOutliner();
@@ -322,6 +348,9 @@ void InitializeEditor(
     }
 
     RefreshOutliner();
+    if (auto* outlinerRuntime = ::we::editor::outliner::WorldOutlinerSession::Runtime()) {
+        outlinerRuntime->Outliner().SyncSelectionFromScene();
+    }
     RefreshDetailsPanel();
 }
 
@@ -351,4 +380,4 @@ void TickEditor() {
     }
 }
 
-} // namespace we::editor::environment
+}

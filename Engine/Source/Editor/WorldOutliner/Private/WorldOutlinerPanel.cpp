@@ -11,24 +11,16 @@
 #include "Explorer/ExplorerPanelAssets.h"
 #include "WorldOutliner/WorldOutlinerSession.h"
 #include "WorldOutliner/OutlinerTypes.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelBuilder.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "ContentBrowser/Widgets/TreeColumnHeader.h"
 #include "Widgets/ExplorerPanelHeader.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/ExplorerFilterMenu.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Layout/Flex.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/EditorWidgets.h"
 
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
-
 
 using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
@@ -53,7 +45,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     auto treeView = std::make_shared<TreeView>();
     treeView->SetExplorerStyle(true);
     treeView->SetShowColumnHeader(false);
-    treeView->SetItemHeight(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ListRowHeight));
+    treeView->SetItemHeight(we::runtime::kindui::LayoutMetrics::UnifiedListItemHeight());
     treeView->SetIndentWidth(we::runtime::kindui::ResolveMetric(MetricToken::TreeIndentWidth));
     treeView->SetFlexGrow(1.0f);
     RegisterExplorerTreeView(treeView);
@@ -146,22 +138,20 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
         }
     });
 
-    return PanelBuilder::Create("Scene Explorer")
-        .HeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight))
-        .Collapsible(false)
-        .TabIcon(WindIcons::Outliner16)
-        .WithCloseButton([]() {
-            EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
-        })
-        .Search(g_ExplorerHeader)
-        .ColumnHeader(columnHeader)
-        .Content(treeView)
-        .Footer(statusRow)
-        .Build();
+    return we::editor::dsl::Panel("Scene Explorer", [&](we::editor::dsl::PanelContext& p) {
+        p.HeaderHeight(we::runtime::kindui::ResolveMetric(MetricToken::PanelHeaderHeight))
+         .TabIcon(WindIcons::Outliner16)
+         .WithCloseButton([]() {
+             EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
+         })
+         .Search(g_ExplorerHeader)
+         .Content(treeView)
+         .Footer(statusRow);
+    });
 }
 
 REGISTER_UI_PANEL(WorldOutliner,
     WE_PANEL(WorldOutliner).Title("Scene Explorer").Icon("outliner").Zone(DockZone::Right).WindowMenu("Scene Explorer").SortOrder(2),
     CreateWorldOutlinerPanel)
 
-} // namespace we::programs::editor
+}

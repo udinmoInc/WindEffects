@@ -20,70 +20,75 @@ namespace we::runtime::kindui {
 
 enum class ColorToken : uint32_t {
     // ── Surfaces (dark panel defaults) ───────────────────────
-    WindowBackground,       // Title (#151515) — window frame
-    WorkspaceBackground,    // Background (#151515) — workspace canvas / tab-strip backdrop
-    DockChromeBackground,   // Background (#151515) — dock tab strip / splitter chrome
-    PanelBackground,        // Panel (#242424) — panel body
-    TabActiveBackground,    // Panel (#242424) — active dock tab fill
-    SecondarySurface,       // Recessed (#1A1A1A) — tree / grid wells
-    CardBackground,         // Dropdown (#383838) — raised cards
-    HeaderBackground,       // Header (#2F2F2F) — section headers
-    ListLabelBandBackground, // Header (#2F2F2F) — column label rows, panel footer bands
-    ToolbarBackground,      // Background (#151515) — main toolbar strip
-    TabBackground,          // Background (#151515) — inactive dock tab
-    InputBackground,        // Input (#0F0F0F) — search / property fields
-    ControlBackground,      // Dropdown (#383838) — raised controls / secondary buttons
-    PopupBackground,        // Dropdown (#383838) — menus / context popups
-    TooltipBackground,      // Tooltips (#383838 @ 97%)
-    DisabledBackground,     // Foldout (#0F0F0F) — disabled control fill
-    StatusBarBackground,    // Bottom status bar (#151515)
-    ViewportToolbarBackground, // Floating viewport toolbar (opaque chrome)
-    ScrollbarTrack,         // Scroll gutter / recessed (#1A1A1A)
+    WindowBackground,
+    WorkspaceBackground,
+    DockChromeBackground,
+    PanelBackground,
+    TabActiveBackground,
+    SecondarySurface,
+    CardBackground,
+    HeaderBackground,
+    ListLabelBandBackground,
+    ToolbarBackground,
+    TabBackground,
+    InputBackground,
+    ControlBackground,
+    PopupBackground,
+    TooltipBackground,
+    DisabledBackground,
+    StatusBarBackground,
+    ViewportToolbarBackground,
+    ScrollbarTrack,
 
     // ── Interaction states ────────────────────────────────────────────────────
     HoverBackground,
     PressedBackground,
-    SelectedBackground,     // Select (#0070E0)
-    SelectInactiveBackground, // Select inactive (#40576F)
-    SelectParentBackground,   // Select parent (#2C323A)
-    SelectHoverBackground,    // Select hover (#242424)
+    SelectedBackground,
+    SelectInactiveBackground,
+    SelectParentBackground,
+    SelectHoverBackground,
     ControlBackgroundHover,
     ControlBackgroundPressed,
     ControlBackgroundDisabled,
     ControlBackgroundSelected,
 
     // ── Borders & separators ──────────────────────────────────────────────────
-    Separator,              // WindowBorder (#0F0F0F) — dividers
-    BorderSubtle,           // InputOutline (#383838) — input / recessed edges
-    BorderDefault,          // InputOutline (#383838) — general control borders
-    BorderLight,            // DropdownOutline (#4C4C4C) — raised / popup edges
-    BorderFocus,            // Focus ring (#0070E0)
-    BorderError,            // Validation error (#EF3535)
+    Separator,
+    BorderSubtle,
+    BorderDefault,
+    BorderLight,
+    BorderFocus,
+    BorderError,
+
+    // ── Axis colors ───────────────────────────────────────────────────────────
+    AxisX,
+    AxisY,
+    AxisZ,
 
     // ── Text hierarchy ──────────────────────────────────────────────────────
-    TextPrimary,            // Foreground (#C0C0C0)
-    TextSecondary,          // Muted metadata (#808080)
-    TextHint,               // Placeholders / muted (#808080)
-    TextDisabled,           // Disabled / placeholder (#464B50)
-    TextOnAccent,           // Text on filled buttons (#FFFFFF)
-    LinkForeground,         // Hyperlinks (#0070E0)
-    SearchPlaceholder,      // Search field placeholder (alias → TextHint)
+    TextPrimary,
+    TextSecondary,
+    TextHint,
+    TextDisabled,
+    TextOnAccent,
+    LinkForeground,
+    SearchPlaceholder,
 
     // ── Icons ─────────────────────────────────────────────────────────────────
-    IconPrimary,            // Default mono icon
-    IconSecondary,          // Default mono icon
-    IconDisabled,           // Disabled icon
-    IconAccent,             // Active/accent icon
-    IconHover,              // Hovered icon
-    IconActive,             // Pressed/active icon
-    IconContactShadow,      // 1px glyph contact silhouette (composite)
+    IconPrimary,
+    IconSecondary,
+    IconDisabled,
+    IconAccent,
+    IconHover,
+    IconActive,
+    IconContactShadow,
 
     // ── Accent & selection ────────────────────────────────────────────────────
-    AccentPrimary,          // Primary accent (#0070E0)
-    AccentHover,            // Accent hover (#0E86FF)
-    AccentOrange,           // Inline code / warning accent (#FE9B07)
-    ActiveTabLine,          // Active dock tab indicator (#0070E0 @ 80%)
-    SelectionHighlight,     // Selection overlay (#0070E0 @ 90%)
+    AccentPrimary,
+    AccentHover,
+    AccentOrange,
+    ActiveTabLine,
+    SelectionHighlight,
 
     // ── Semantic status ───────────────────────────────────────────────────────
     Success,
@@ -112,8 +117,8 @@ enum class ColorToken : uint32_t {
     ButtonBevelShadow,
 
     // ── Input recessed edge chrome (charcoal only — never white/highlight) ────
-    InputInsetInner,        // 1px top inner highlight of recessed inputs
-    InputInsetOuter,        // Optional outer lip for non-input chrome
+    InputInsetInner,
+    InputInsetOuter,
 
     // ── Depth & overlays ──────────────────────────────────────────────────────
     HighlightSubtle,
@@ -142,19 +147,19 @@ enum class ColorToken : uint32_t {
 
 enum class SpacingToken : uint32_t {
     None,
-    ExtraSmall, // 2
-    Small,      // 4
-    Medium,     // 8
-    Large,      // 16
-    ExtraLarge, // 24
-    Huge,       // 32 — page / section breathing room
+    ExtraSmall,
+    Small,
+    Medium,
+    Large,
+    ExtraLarge,
+    Huge,
 };
 
 // Semantic control height roles (maps to MetricToken heights).
 enum class ControlSize : uint32_t {
-    Compact, // denser inputs / toggles / menu items
-    Default, // buttons, search, header controls
-    Large,   // prominent CTAs / list rows
+    Compact,
+    Default,
+    Large,
 };
 
 enum class RadiusToken : uint32_t {
@@ -166,7 +171,6 @@ enum class RadiusToken : uint32_t {
 };
 
 enum class TypographyToken : uint32_t {
-    // Window / page chrome
     WindowTitle,
     PageTitle,
     SectionTitle,
@@ -180,12 +184,12 @@ enum class TypographyToken : uint32_t {
     Heading4,
     Heading5,
     Heading6,
-    Heading, // maps to Heading2 in themes
+    Heading,
 
     // Body — PrimaryText / SecondaryText / Caption / Hint
     Title,
-    Subtitle,    // Secondary supporting text at body size
-    Body,        // PrimaryText
+    Subtitle,
+    Body,
     BodyStrong,
     Caption,
     CaptionSmall,
@@ -270,27 +274,27 @@ enum class MetricToken : uint32_t {
     SearchBoxHeight,
     IconButtonSize,
     ButtonHeight,
-    ControlHeightCompact, // denser form controls (toggle, spin, compact input)
-    ControlHeightLarge,   // prominent CTAs
-    InputWidthCompact,    // 180px: compact filters, small toolbars, inspector inputs
-    InputWidthDefault,    // 260px: standard inputs, console command bar, panel search
-    InputWidthLarge,      // 320px: wide content browser search, prominent search bars
-    FormRowHeight,        // label + control settings/property row
-    MenuItemHeight,       // popup / dropdown option row
-    PageMargin,           // page content inset
-    SectionGap,           // gap between titled sections
+    ControlHeightCompact,
+    ControlHeightLarge,
+    InputWidthCompact,
+    InputWidthDefault,
+    InputWidthLarge,
+    FormRowHeight,
+    MenuItemHeight,
+    PageMargin,
+    SectionGap,
     CardPadding,          // inner card / group padding
     ContentGap,           // default stack gap between content blocks
     FormRowGap,           // vertical padding around form rows
-    LabelHintGap,         // gap between label and hint in a form row
+    LabelHintGap,
     NavigationButtonSize,
     IconSizeSearch,
-    IconSizeToolbar,       // default UI icons (16px authored)
+    IconSizeToolbar,
     IconSizePrimary,
     IconSizeTree,
     IconSizeNavigation,
-    IconSizeVerySmall,     // close / compact chrome (16px authored)
-    IconSizeWindowControl, // system nav min/max/close (16px authored)
+    IconSizeVerySmall,
+    IconSizeWindowControl,
     IconButtonRadius,
     ButtonPaddingHorizontal,
     ButtonSpacing,
@@ -298,42 +302,42 @@ enum class MetricToken : uint32_t {
     ScrollbarWidth,
     ScrollbarThumbMinHeight,
 
-    TabTopRadius,              // dock tab upper corner radius
-    TabActiveIndicatorHeight,  // accent line on active dock tab
-    TabGap,                    // horizontal gap between dock tabs
-    TabIconGap,                // horizontal gap between icon/brand and tab title
-    TabCloseGap,               // horizontal gap before close glyph
-    TabMinWidth,               // minimum width for dock tab
-    CloseGlyphSize,            // close glyph size (12 logical px)
-    TabStripPadH,              // dock/mode tab strip left inset (align with panel content)
-    TabStripPadV,              // dock tab strip top inset (gap above tabs)
-    TabActiveIndicatorWidth,   // active tab left accent width
+    TabTopRadius,
+    TabActiveIndicatorHeight,
+    TabGap,
+    TabIconGap,
+    TabCloseGap,
+    TabMinWidth,
+    CloseGlyphSize,
+    TabStripPadH,
+    TabStripPadV,
+    TabActiveIndicatorWidth,
     TabPaddingH,               // dock tab horizontal inner padding
     TabPaddingV,               // dock tab vertical inner padding
     DockPanelGap,              // legacy alias — dock gutter (logical px, use ChromeSeparationGap)
-    ChromeSeparationGap,       // gap between stacked panel regions (background shows through)
-    ChromeSeparationGapWide,   // wider gap for toolbar/status section separation
-    ViewportToolbarHeight,     // floating viewport control strip
-    StatusBarHeight,           // bottom status/command bar
+    ChromeSeparationGap,
+    ChromeSeparationGapWide,
+    ViewportToolbarHeight,
+    StatusBarHeight,
 
-    ToolbarSeparatorHeight,    // vertical separator line in toolbars
-    ToolbarLabeledHeight,      // labeled toolbar button variant
+    ToolbarSeparatorHeight,
+    ToolbarLabeledHeight,
     ToolbarLabeledMinWidth,
 
-    BreadcrumbBarHeight,       // content browser path bar
-    PropertyLabelColumnWidth,  // details / property inspector label column
-    PropertyIndentStep,        // nested property tree indent per level
-    TreeIndentWidth,           // tree view indent per depth level
-    TreeExpanderHitSize,       // expand/collapse chevron hit area (20–24 logical px)
+    BreadcrumbBarHeight,
+    PropertyLabelColumnWidth,
+    PropertyIndentStep,
+    TreeIndentWidth,
+    TreeExpanderHitSize,
 
     PopupMinWidth,
     PopupMaxWidth,
-    PopupMaxHeight,            // scrollable dropdown / context menu cap
+    PopupMaxHeight,
     TooltipMinWidth,
-    ToggleTrackWidth,          // toggle switch track
+    ToggleTrackWidth,
     ToggleTrackHeight,
-    CheckboxGlyphSize,         // checkbox inner mark
-    PrimaryButtonHeight,       // prominent panel CTA (e.g. Create Landscape)
+    CheckboxGlyphSize,
+    PrimaryButtonHeight,
 
     ContentBrowserGridPadding,
     ContentBrowserGridHSpacing,
@@ -345,14 +349,14 @@ enum class MetricToken : uint32_t {
     ContentBrowserCellMedium,
     ContentBrowserCellSmall,
 
-    DragThreshold,      // pointer movement before drag gesture starts
-    MenuPadding,        // popup / dropdown inner inset
-    CheckMarkSize,      // checkbox / menu check glyph
-    MenuTextIndent,     // label offset after check column in menus
+    DragThreshold,
+    MenuPadding,
+    CheckMarkSize,
+    MenuTextIndent,
 
     SpaceXS,
     Space1,
-    SpaceMD,   // compact editor rhythm (6 logical px)
+    SpaceMD,
     Space2,
     Space3,
     Space4,
@@ -367,7 +371,7 @@ enum class MetricToken : uint32_t {
     ShadowBlurMedium,
     ShadowSpreadMedium,
 
-    ToolbarSeparatorWidth,     // vertical toolbar divider gap-cut (logical px)
+    ToolbarSeparatorWidth,
 };
 
 enum class PaddingToken : uint32_t {
@@ -387,4 +391,4 @@ enum class PaddingToken : uint32_t {
     PaddingButtonBottom,
 };
 
-} // namespace we::runtime::kindui
+}

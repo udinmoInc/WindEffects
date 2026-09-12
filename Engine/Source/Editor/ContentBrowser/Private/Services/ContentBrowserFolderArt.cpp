@@ -24,16 +24,10 @@ namespace {
 
 kindui::Color FolderTint(bool hovered) {
     kindui::Color tint = kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderPrimary);
-    if (hovered) {
-        tint = kindui::Color::Pick(
-            tint,
-            kindui::ResolveColor(kindui::ColorToken::ContentBrowserFolderTab),
-            0.4f);
-    }
     return tint;
 }
 
-} // namespace
+}
 
 ContentBrowserFolderArt& ContentBrowserFolderArt::Get() {
     static ContentBrowserFolderArt instance;
@@ -110,4 +104,4 @@ void ContentBrowserFolderArt::PaintSmallIcon(
     PaintFolderIcon(context, iconRect, hovered, opened);
 }
 
-} // namespace we::editor::contentbrowser
+}

@@ -1,6 +1,9 @@
 {
   "Metrics": {
-    "TabTopRadius": 6
+    "TabTopRadius": 6,
+    "InputWidthCompact": 80,
+    "InputWidthDefault": 100,
+    "InputWidthLarge": 120
   },
 
   "Black": "#060606",
@@ -8,12 +11,23 @@
   "Background": "#0B0B0B",
   "WindowBorder": "#030303",
 
-  "Foldout": "#0F0F0F",
-  "Input": "#0C0C0C",
-  "InputOutline": "#383838",
-  "InputInsetInner": "#08080866",
-  "InputInsetOuter": "#00000080",
-  "Recessed": "#0E0E0E",
+  "Foldout": "#151515",
+"Input": "#0d0d0d",
+"InputOutline": "#292929",
+"InputInsetOuter": "#00000080",
+"InputInsetInner": "#08080866",
+"Recessed": "#101010",
+
+ "BorderSeparator": "#0F0F0F",
+  "BorderSubtle": "#383838",
+  "BorderDefault": "#383838",
+  "BorderLight": "#4C4C4C",
+  "BorderFocus": "#0068D0",
+  "BorderError": "#EF3535",
+
+  "AxisX": "#D63838",
+  "AxisY": "#719F3D",
+  "AxisZ": "#209ED8",
 
   "Panel": "#171717",
   "Header": "#1D1D1D",
@@ -43,11 +57,11 @@
   "ForegroundHover": "#D2D2D2",
   "ForegroundInverted": "#0A0A0A",
   "ForegroundHeader": "#C5C5C5",
-  "Notifications": "#777777",
+  "Notifications": "#969696",
 
   "IconNormal": "#B8B8B8",
-  "IconHoverTint": "#D2D2D2",
-  "IconActiveTint": "#D8D8D8",
+  "IconHoverTint": "#B8B8B8",
+  "IconActiveTint": "#B8B8B8",
   "IconSubdued": "#777777",
   "IconContactShadow": "#00000073",
 
@@ -83,8 +97,8 @@
   "ShadowColor": "#00000047",
   "FolderShadow": "#00000061",
 
-  "ButtonBevelTop": "#2E2E2E",
-  "ButtonBevelBottom": "#0A0A0A",
+  "ButtonBevelTop": "#242424",
+  "ButtonBevelBottom": "#070707",
 
   "DebugGlyphBounds": "#D8618250"
 }

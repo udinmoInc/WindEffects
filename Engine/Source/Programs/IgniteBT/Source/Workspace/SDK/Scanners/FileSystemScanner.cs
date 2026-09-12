@@ -22,14 +22,14 @@ public class FileSystemScanner
     public async Task<SDKScanResult> ScanAsync(ISDKProvider provider)
     {
         var result = new SDKScanResult();
-        
+
         // Get default installation paths for this SDK
         var defaultPaths = GetDefaultPaths(provider.SDKName);
-        
+
         foreach (var path in defaultPaths)
         {
             result.SearchLocations.Add(path);
-            
+
             if (Directory.Exists(path))
             {
                 result.Success = true;
@@ -38,10 +38,10 @@ public class FileSystemScanner
                 return result;
             }
         }
-        
+
         return await Task.FromResult(result);
     }
-    
+
     /// <summary>
     /// Gets default installation paths for a given SDK.
     /// </summary>
@@ -51,18 +51,13 @@ public class FileSystemScanner
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        
+
         switch (sdkName.ToLowerInvariant())
         {
             case "vulkan":
             case "vulkansdk":
                 paths.AddRange(new[]
                 {
-                    @"C:\VulkanSDK",
-                    @"C:\VulkanSDK\1.3.290.0",
-                    @"C:\VulkanSDK\1.3.280.0",
-                    @"C:\VulkanSDK\1.3.275.0",
-                    @"C:\VulkanSDK\1.3.268.0",
                     Path.Combine(programFiles, "VulkanSDK"),
                     Path.Combine(programFilesX86, "VulkanSDK"),
                     "/usr/local/share/vulkan",
@@ -70,19 +65,43 @@ public class FileSystemScanner
                     "/opt/vulkan",
                     "/usr/local/vulkan"
                 });
+                try
+                {
+                    foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
+                    {
+                        var root = drive.RootDirectory.FullName;
+                        var vulkanRoot = Path.Combine(root, "VulkanSDK");
+                        if (Directory.Exists(vulkanRoot))
+                        {
+                            paths.Add(vulkanRoot);
+                            foreach (var sub in Directory.GetDirectories(vulkanRoot))
+                                paths.Add(sub);
+                        }
+                    }
+                }
+                catch { }
                 break;
-                
+
             case "directx":
             case "directxsdk":
                 paths.AddRange(new[]
                 {
                     Path.Combine(programFilesX86, "Microsoft DirectX SDK (June 2010)"),
                     Path.Combine(programFilesX86, "Microsoft DirectX SDK"),
-                    Path.Combine(programFiles, "Microsoft DirectX SDK"),
-                    @"C:\DXSDK"
+                    Path.Combine(programFiles, "Microsoft DirectX SDK")
                 });
+                try
+                {
+                    foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
+                    {
+                        var root = drive.RootDirectory.FullName;
+                        var dx = Path.Combine(root, "DXSDK");
+                        if (Directory.Exists(dx)) paths.Add(dx);
+                    }
+                }
+                catch { }
                 break;
-                
+
             case "openxr":
             case "openxrsdk":
                 paths.AddRange(new[]
@@ -93,7 +112,7 @@ public class FileSystemScanner
                     "/usr/include/openxr"
                 });
                 break;
-                
+
             case "android":
             case "androidsdk":
                 paths.AddRange(new[]
@@ -105,7 +124,7 @@ public class FileSystemScanner
                     "/opt/android-sdk"
                 });
                 break;
-                
+
             case "python":
             case "python3":
                 paths.AddRange(new[]
@@ -120,7 +139,7 @@ public class FileSystemScanner
                     "/opt/python3"
                 });
                 break;
-                
+
             case "dotnet":
             case ".net":
             case "dotnetsdk":
@@ -133,7 +152,7 @@ public class FileSystemScanner
                     "/opt/dotnet"
                 });
                 break;
-                
+
             case "windows":
             case "windowssdk":
                 paths.AddRange(new[]
@@ -145,7 +164,7 @@ public class FileSystemScanner
                 });
                 break;
         }
-        
+
         return paths;
     }
 }

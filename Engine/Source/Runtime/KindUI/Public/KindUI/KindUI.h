@@ -15,9 +15,6 @@
 //   using namespace we::runtime::kindui::UI;
 // HTML-style trees + CSS-style token props (all C++, no .css / WEUI files):
 //   auto page = UI::Fill(UI::Bg(
-//       UI::Pad(UI::Column({
-//           UI::Label("Hello"),
-//           UI::Gap(UI::Row({…}), SpacingToken::Small),
 //       }), PaddingToken::Page),
 //       ColorToken::PanelBackground));
 // Imperative twin on Flex:
@@ -65,8 +62,12 @@
 #include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theming/Palette.h"
+#include "KindUI/DSL/EditorDSL.h"
 
 // --- Advanced / extension (include directly when needed) ----------------------
 // KindUI/Core/Widget.h              — subclassing & custom widgets
 // KindUI/StylePipeline/StylePipeline.h — custom style resolution
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration
+
+// --- Editor-specific widgets (single entry point) ---------------------------
+#include "KindUI/EditorWidgets.h"

@@ -75,9 +75,9 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall) * uiScale;
 
-    Color bgIdle = Color(0.21f, 0.21f, 0.21f, 1.0f);
-    Color bgHover = Color(0.27f, 0.27f, 0.27f, 1.0f);
-    Color bgPress = Color(0.13f, 0.13f, 0.13f, 1.0f);
+    Color bgIdle = we::runtime::kindui::ResolveColor(ColorToken::ControlBackground);
+    Color bgHover = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
+    Color bgPress = we::runtime::kindui::ResolveColor(ColorToken::InputBackground);
     Color bgSelected = we::runtime::kindui::ResolveColor(ColorToken::SelectInactiveBackground);
 
     Color bgColor = bgIdle;
@@ -91,8 +91,6 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
             bgColor = Color::Pick(bgColor, bgPress, std::clamp(pressAnim, 0.0f, 1.0f));
         }
     }
-
-    // Bake press ShadowOverlay into the opaque face — same Src-over result, one less alpha quad.
     if (pressAnim > 0.01f) {
         Color pressShadow = we::runtime::kindui::ResolveColor(ColorToken::ShadowOverlay);
         pressShadow.a *= pressAnim;
@@ -129,221 +127,6 @@ struct ToolbarMenuItem {
     std::function<void()> onClick;
 };
 
-} // namespace
-
-ToolbarIconToggle::ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char*)
-    : m_Icon(icon)
-{}
-
-Size ToolbarIconToggle::Measure(const Size& availableSize) {
-    (void)availableSize;
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = ThemeMetric(MetricToken::IconButtonSize) * uiScale;
-    m_DesiredSize = Size{ h, h };
-    return m_DesiredSize;
-}
-
-void ToolbarIconToggle::Arrange(const Rect& allottedRect) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(ThemeMetric(MetricToken::IconButtonSize) * uiScale, allottedRect.height);
-    m_Geometry = CenterRect(allottedRect, h, h);
-}
-
-void ToolbarIconToggle::Tick(float deltaTime) {
-    (void)deltaTime;
-    const bool enabled = IsEnabled();
-    m_HoverAnim = Animator::Damp(m_HoverAnim, (enabled && m_Hovered) ? 1.0f : 0.0f, 15.0f);
-    m_PressAnim = Animator::Damp(m_PressAnim, (enabled && m_Pressed) ? 1.0f : 0.0f, 25.0f);
-    Widget::Tick(deltaTime);
-}
-
-void ToolbarIconToggle::Paint(PaintContext& context) {
-    const bool enabled = IsEnabled();
-
-    // Framed primary actions keep chrome; icon-only toggles stay floating glyphs.
-    if (!m_Frameless) {
-        PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, m_Selected, false);
-    }
-
-    if (!m_Icon.IsValid()) {
-        return;
-    }
-
-    const float iconPx = static_cast<float>(m_Icon.sizePx > 0 ? m_Icon.sizePx : 16u);
-    if (!enabled) {
-        Color disabled = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(0.0f, 0.0f, false);
-        disabled.a = 0.35f;
-        IconPainter::Draw(context, m_Icon, m_Geometry, static_cast<uint32_t>(iconPx), disabled);
-        return;
-    }
-
-    we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
-        context,
-        m_Icon,
-        m_Geometry,
-        iconPx,
-        m_HoverAnim,
-        m_PressAnim,
-        m_Selected);
-}
-
-void ToolbarIconToggle::OnMouseDown(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && IsEnabled()) {
-        m_Pressed = true;
-        if (m_OnClicked) {
-            m_OnClicked();
-        }
-    }
-}
-
-void ToolbarIconToggle::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        m_Pressed = false;
-    }
-}
-
-ToolbarLabeledButton::ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon,
-    bool showChevron, Variant variant, float horizontalPadding)
-    : m_Label(label)
-    , m_Icon(icon)
-    , m_ShowChevron(showChevron)
-    , m_Variant(variant)
-    , m_HorizontalPadding(horizontalPadding)
-{}
-
-void ToolbarLabeledButton::UpdateTextMetrics(const float textSize) const {
-    if (m_CachedTextSize == textSize) {
-        return;
-    }
-    PaintContext ctx;
-    m_CachedTextWidth = ctx.GetTextWidth(m_Label, textSize);
-    m_CachedTextSize = textSize;
-}
-
-Size ToolbarLabeledButton::Measure(const Size& availableSize) {
-    (void)availableSize;
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float hPad = (m_HorizontalPadding > 0.0f
-        ? m_HorizontalPadding
-        : ThemeMetric(MetricToken::ButtonPaddingHorizontal)) * uiScale;
-    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-
-    UpdateTextMetrics(textSize);
-    const float textWidth = m_CachedTextWidth;
-
-    float width = hPad * 2.0f + textWidth;
-    if (m_Icon.IsValid()) {
-        width += ThemeMetric(MetricToken::IconSizeToolbar) * uiScale + iconGap;
-    }
-    if (m_ShowChevron) {
-        width += iconGap + 12.0f * uiScale;
-    }
-    const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
-    m_DesiredSize = Size{ width, h };
-    return m_DesiredSize;
-}
-
-void ToolbarLabeledButton::Arrange(const Rect& allottedRect) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float h = std::min(ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale, allottedRect.height);
-    m_Geometry = Rect{
-        allottedRect.x,
-        allottedRect.y + (allottedRect.height - h) * 0.5f,
-        allottedRect.width,
-        h
-    };
-}
-
-void ToolbarLabeledButton::Tick(float deltaTime) {
-    (void)deltaTime;
-    const bool enabled = IsEnabled();
-    m_HoverAnim = Animator::Damp(m_HoverAnim, (enabled && m_Hovered) ? 1.0f : 0.0f, 15.0f);
-    m_PressAnim = Animator::Damp(m_PressAnim, (enabled && m_Pressed) ? 1.0f : 0.0f, 25.0f);
-    Widget::Tick(deltaTime);
-}
-
-void ToolbarLabeledButton::Paint(PaintContext& context) {
-    const bool enabled = IsEnabled();
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-
-    if (!m_Frameless) {
-        PaintToolbarButtonChrome(context, m_Geometry, m_HoverAnim, m_PressAnim, false, m_Variant == Variant::Primary);
-    }
-
-    const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD
-    const float hPad = (m_HorizontalPadding > 0.0f
-        ? m_HorizontalPadding
-        : ThemeMetric(MetricToken::ButtonPaddingHorizontal)) * uiScale;
-    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
-    float x = m_Geometry.x + hPad;
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
-    UpdateTextMetrics(textSize);
-
-    if (m_Icon.IsValid()) {
-        const float iconSize = ThemeMetric(MetricToken::IconSizeToolbar) * uiScale;
-        const float iconY = m_Geometry.y + (m_Geometry.height - iconSize) * 0.5f;
-        Rect iconBand{ x, iconY, iconSize, iconSize };
-
-        if (!enabled) {
-            Color iconColor = we::runtime::kindui::ToolbarButtonChrome::ResolveIconColor(0.0f, 0.0f, false);
-            iconColor.a = 0.35f;
-            IconPainter::Draw(context, m_Icon, iconBand, static_cast<uint32_t>(iconSize), iconColor);
-        } else if (m_Variant == Variant::AddAction) {
-            IconPainter::Draw(
-                context,
-                m_Icon,
-                iconBand,
-                static_cast<uint32_t>(iconSize),
-                ThemeColor(ColorToken::Success));
-        } else {
-            we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
-                context,
-                m_Icon,
-                iconBand,
-                iconSize,
-                m_HoverAnim,
-                m_PressAnim,
-                false);
-        }
-        x += iconSize + iconGap;
-    }
-
-    Color textColor = ThemeColor(ColorToken::TextSecondary);
-    if (!enabled) {
-        textColor = ThemeColor(ColorToken::TextDisabled);
-    } else if (m_Variant == Variant::Primary) {
-        textColor = Color::Pick(ThemeColor(ColorToken::TextPrimary), ThemeColor(ColorToken::AccentPrimary), 0.25f);
-    } else if (m_Variant == Variant::AddAction) {
-        textColor = ThemeColor(ColorToken::TextPrimary);
-    } else if (m_HoverAnim > 0.01f || m_PressAnim > 0.01f) {
-        float t = (std::max)(m_HoverAnim, m_PressAnim);
-        textColor = Color::Pick(textColor, kHighlightColor, std::clamp(t, 0.0f, 1.0f));
-    }
-    context.DrawText(m_Label, Point{ x, textY }, textColor, textSize, we::runtime::text::layout::FontWeight::Regular);
-
-    if (m_ShowChevron) {
-        const float tier = 12.0f * uiScale;
-        const float chevronX = m_Geometry.x + m_Geometry.width - hPad - tier;
-        Rect chevronBand{ chevronX, m_Geometry.y + (m_Geometry.height - tier) * 0.5f, tier, tier };
-        IconPainter::Draw(context, WindIcons::ChevronDownV212, chevronBand, ThemeColor(ColorToken::TextSecondary));
-    }
-}
-
-void ToolbarLabeledButton::OnMouseDown(const MouseEvent& event) {
-    if (event.button == MouseButton::Left && IsEnabled()) {
-        m_Pressed = true;
-        if (m_OnClicked) {
-            m_OnClicked();
-        }
-    }
-}
-
-void ToolbarLabeledButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        m_Pressed = false;
-    }
 }
 
 std::shared_ptr<ContentBrowserToolbarControls> ContentBrowserToolbarControls::Create(ToolbarMode mode) {
@@ -356,9 +139,8 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
     : Row()
     , m_Mode(mode)
 {
-    const float padV = ThemeMetric(MetricToken::Space1);
     const float padH = ThemeMetric(MetricToken::Space2);
-    Padding(Margin{padH, padV, padH + 6.0f, padV});
+    Padding(Margin{padH, 0.0f, padH + 6.0f, 0.0f});
     Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 }
@@ -631,5 +413,5 @@ void ContentBrowserToolbarControls::SetOnFolderClicked(std::function<void()> cal
     }
 }
 
-} // namespace we::editor::contentbrowser
- 
+}
+

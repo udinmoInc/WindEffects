@@ -32,6 +32,7 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Panel/Panel.h"
+#include "KindUI/DSL/EditorDSL.h"
 
 #include <algorithm>
 #include <cstring>
@@ -113,8 +114,9 @@ struct RuntimeServices {
 
 [[nodiscard]] std::shared_ptr<IPropertyTree> CreatePropertyTree(RuntimeServices services);
 [[nodiscard]] std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services);
+[[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> CreateSubOutlinerWidget(IDetailsView* details);
 void PopulateDetailsPanelRegions(
-    const std::shared_ptr<we::runtime::kindui::panels::Panel>& panel,
+    we::editor::dsl::PanelContext& p,
     const std::shared_ptr<we::runtime::kindui::Widget>& propertyList,
     IDetailsView* details);
 [[nodiscard]] std::unique_ptr<IPropertyEditorFactory> CreateEditorFactory(
@@ -122,5 +124,5 @@ void PopulateDetailsPanelRegions(
     bool registerDefaults);
 void RegisterDefaultEditors(IPropertyEditorFactory& factory);
 
-} // namespace detail
-} // namespace we::editor::property
+}
+}

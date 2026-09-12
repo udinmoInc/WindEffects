@@ -19,7 +19,6 @@
 
 namespace we::runtime::kindui {
 
-// Design-system control variants. All styling comes from ThemeManager StyleRoles.
 
 class KINDUI_API DesignButton : public Widget {
 public:
@@ -150,6 +149,8 @@ public:
     void SetText(std::string text);
     [[nodiscard]] const std::string& GetText() const;
     void SetOnChanged(std::function<void(const std::string&)> cb);
+    void SetOnTextChanged(std::function<void(const std::string&)> cb) { SetOnChanged(cb); }
+    void SetPlaceholder(std::string placeholder) { m_Placeholder = std::move(placeholder); InvalidatePaint(); }
     void SetToolbarFlat(bool flat) { m_ToolbarFlat = flat; }
     void SetToolbarInset(bool inset);
     void SetWidth(float width) { m_Width = width; InvalidateLayout(); }
@@ -260,4 +261,4 @@ protected:
     WindIconRef icon = kWindIconNone);
 [[nodiscard]] KINDUI_API std::shared_ptr<PanelTab> MakePanelTab(std::string label);
 
-} // namespace we::runtime::kindui
+}

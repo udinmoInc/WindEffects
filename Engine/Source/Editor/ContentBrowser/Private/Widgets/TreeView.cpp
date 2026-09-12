@@ -7,6 +7,8 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Platform/Platform.h"
+#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "Widgets/MenuBar.h"
 #include "Widgets/DropdownMenu.h"
@@ -26,12 +28,15 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Input/HotkeyManager.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <string_view>
@@ -54,7 +59,6 @@ namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
 using ::we::runtime::kindui::DPIContext;
 
-
 namespace {
 
 using ::we::editor::contentbrowser::ContentBrowserBlueprintArt;
@@ -74,7 +78,6 @@ float TreeAccessoryColumnX(float viewportX, int column, float uiScale) {
     }
     return viewportX + std::floor(30.0f * uiScale);
 }
-
 
 constexpr float kMinTreeZoom = 0.75f;
 constexpr float kMaxTreeZoom = 1.75f;
@@ -115,18 +118,16 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
 
-    const Color iconColor = hovered
-        ? we::runtime::kindui::ResolveColor(ColorToken::IconHover)
-        : we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
+    const Color iconColor = we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
     IconPainter::Draw(context, node.icon, iconRect, iconColor);
 }
 
-} // namespace
+}
 
 TreeView::TreeView()
     : m_Style(WidgetStyle::TreeItem())
 {
-    m_BaseItemHeight = we::runtime::kindui::ResolveMetric(MetricToken::ListRowHeight);
+    m_BaseItemHeight = we::runtime::kindui::LayoutMetrics::UnifiedListItemHeight();
     m_BaseIndentWidth = we::runtime::kindui::ResolveMetric(MetricToken::TreeIndentWidth);
     m_ItemHeight = m_BaseItemHeight;
     m_IndentWidth = m_BaseIndentWidth;
@@ -227,13 +228,13 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
     const float centerY = item.geometry.y + rowHeight * 0.5f;
 
     if (m_ExplorerStyle) {
-        const float hitSize = TreeExpanderHit(uiScale);
         const float colWidth = std::floor(30.0f * uiScale);
+        const float iconSize = 16.0f * uiScale;
         layout.eyeBounds = Rect{
-            viewportX,
-            centerY - hitSize * 0.5f,
-            colWidth,
-            hitSize };
+            viewportX + (colWidth - iconSize) * 0.5f,
+            centerY - iconSize * 0.5f,
+            iconSize,
+            iconSize };
     }
 
     const float contentPad = m_ExplorerStyle ? 0.0f : ThemeMetric(MetricToken::Space2) * uiScale;
@@ -380,12 +381,12 @@ void TreeView::Paint(PaintContext& context) {
                 context, layout.rowBounds, item.flatIndex);
         }
 
-        // Drop Target Indicator Line
-        if (node->id == m_DropTargetId && m_Dragging) {
+        // Drop Target Indicator Line (Only when actively dragging over a valid drop target)
+        if (m_Dragging && !m_DropTargetId.empty() && node->id == m_DropTargetId && m_DropTargetId != m_DragSourceId) {
             Rect dropLine{
-                m_ScrollMetrics.viewport.x + 4.0f,
+                m_ScrollMetrics.viewport.x + 2.0f,
                 layout.rowBounds.y,
-                m_ScrollMetrics.viewport.width - 8.0f,
+                m_ScrollMetrics.viewport.width - 4.0f,
                 2.0f
             };
             context.DrawRect(dropLine, ThemeColor(ColorToken::AccentPrimary));
@@ -396,7 +397,7 @@ void TreeView::Paint(PaintContext& context) {
             if (hovered || selected || !node->visible) {
                 const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) :
                     ThemeColor(ColorToken::TextDisabled);
-                const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
+                const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : WindIcons::EyeOff16;
                 IconPainter::Draw(context, eyeIcon, IconMetrics::PlaceGlyphCentered(layout.eyeBounds, 16u), eyeColor);
             }
         }
@@ -416,7 +417,7 @@ void TreeView::Paint(PaintContext& context) {
 
         // Node Label Text (With Search Highlighting & Text Clipping)
         const float textY = LayoutMetrics::AlignTextTopY(layout.rowBounds, fontSize);
-        Color textColor = node->locked ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextPrimary);
+        Color textColor = ThemeColor(ColorToken::TextSecondary);
         if (!node->visible) {
             textColor = ThemeColor(ColorToken::TextDisabled);
         }
@@ -426,11 +427,11 @@ void TreeView::Paint(PaintContext& context) {
                 rowHeight - 4.0f };
             context.DrawRoundedRect(editBg, ThemeColor(ColorToken::InputBackground), 3.0f);
             context.DrawRoundedRectOutline(editBg, ThemeColor(ColorToken::AccentPrimary), 1.0f, 3.0f);
-            context.DrawText(m_RenameBuffer, Point{ layout.textX, textY }, ThemeColor(ColorToken::TextPrimary),
+            context.DrawText(m_RenameBuffer, Point{ layout.textX, textY }, ThemeColor(ColorToken::TextSecondary),
                 fontSize);
             if (static_cast<int>(m_RenameCursorBlink * 2.0f) % 2 == 0) {
                 const float cursorX = layout.textX + context.GetTextWidth(m_RenameBuffer, fontSize) + 1.0f;
-                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ColorToken::TextPrimary));
+                context.DrawRect(Rect{ cursorX, textY, 1.0f, fontSize }, ThemeColor(ColorToken::TextSecondary));
             }
         } else {
             if (!m_SearchQuery.empty()) {
@@ -484,14 +485,13 @@ void TreeView::Paint(PaintContext& context) {
             }
         }
 
-
         // Trailing Type Column (Right-Aligned)
         if (!node->typeName.empty()) {
             const float typeFontSize = fontSize * 0.9f;
             const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
             const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
             const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - typeColumnReserve;
-            const float typeY = layout.rowBounds.y + (rowHeight - typeFontSize) * 0.5f;
+            const float typeY = LayoutMetrics::AlignTextTopY(layout.rowBounds, typeFontSize);
             context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY },
                 ThemeColor(ColorToken::TextSecondary), typeFontSize);
         }
@@ -619,6 +619,7 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
     }
     m_Dragging = false;
     m_DropTargetId.clear();
+    m_DragSourceId.clear();
 
     static std::string lastClickedId;
     static uint64_t lastClickTime = 0;
@@ -637,7 +638,6 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
         if (m_OnItemDoubleClicked) {
             m_OnItemDoubleClicked(item->node->id);
         }
-        BeginRename(item->node->id);
     }
 
     lastClickedId = item->node->id;
@@ -646,6 +646,9 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
 
 void TreeView::OnHoverLost() {
     m_HoveredId.clear();
+    m_Dragging = false;
+    m_DropTargetId.clear();
+    m_DragSourceId.clear();
 }
 
 void TreeView::OnMouseMove(const MouseEvent& event) {
@@ -741,8 +744,52 @@ void TreeView::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
+    if (we::runtime::kindui::HotkeyManager::Get().Dispatch(event, "ContentBrowser")) {
+        return;
+    }
+
+    if (event.ctrlDown && event.key == we::platform::KeyCode::A) {
+        m_SelectedIds.clear();
+        for (const auto& item : m_RenderList) {
+            if (item.node && item.node->id != "root") {
+                m_SelectedIds.push_back(item.node->id);
+            }
+        }
+        SyncSelectedSet();
+        if (m_OnSelectionChanged) {
+            m_OnSelectionChanged(m_SelectedIds);
+        }
+        InvalidatePaint();
+        return;
+    }
+
+    if (event.key == we::platform::KeyCode::Delete && !m_SelectedIds.empty()) {
+        auto selected = m_SelectedIds;
+        for (const auto& id : selected) {
+            RemoveItem(id);
+        }
+        m_SelectedIds.clear();
+        SyncSelectedSet();
+        if (m_OnSelectionChanged) {
+            m_OnSelectionChanged(m_SelectedIds);
+        }
+        InvalidatePaint();
+        return;
+    }
+
+    if (event.key == we::platform::KeyCode::Escape && !m_SelectedIds.empty()) {
+        m_SelectedIds.clear();
+        SyncSelectedSet();
+        if (m_OnSelectionChanged) {
+            m_OnSelectionChanged(m_SelectedIds);
+        }
+        InvalidatePaint();
+        return;
+    }
+
     if (event.key == we::platform::KeyCode::F2 && !m_SelectedIds.empty()) {
         BeginRename(m_SelectedIds.back());
+        return;
     }
 }
 
@@ -782,19 +829,29 @@ void TreeView::RemoveItem(const std::string& id) {
     BuildRenderList();
 }
 
+void TreeView::SyncSelectedSet() {
+    m_SelectedSet.clear();
+    m_SelectedSet.insert(m_SelectedIds.begin(), m_SelectedIds.end());
+}
+
 void TreeView::Clear() {
     m_Root->children.clear();
     m_SelectedIds.clear();
+    m_SelectedSet.clear();
     MarkRenderListDirty();
     BuildRenderList();
 }
 
 void TreeView::SetSelectedId(const std::string& id) {
     m_SelectedIds = id.empty() ? std::vector<std::string>{} : std::vector<std::string>{ id };
+    SyncSelectedSet();
+    InvalidatePaint();
 }
 
 void TreeView::SetSelectedIds(const std::vector<std::string>& ids) {
     m_SelectedIds = ids;
+    SyncSelectedSet();
+    InvalidatePaint();
 }
 
 std::string TreeView::GetSelectedId() const {
@@ -811,17 +868,17 @@ void TreeView::BuildRenderList() {
     // Fuzzy match helper function
     auto fuzzyMatch = [](const std::string& text, const std::string& pattern) -> bool {
         if (pattern.empty()) return true;
-        
+
         size_t textIdx = 0;
         size_t patternIdx = 0;
-        
+
         while (textIdx < text.size() && patternIdx < pattern.size()) {
             if (std::tolower(text[textIdx]) == std::tolower(pattern[patternIdx])) {
                 patternIdx++;
             }
             textIdx++;
         }
-        
+
         return patternIdx == pattern.size();
     };
 
@@ -831,22 +888,22 @@ void TreeView::BuildRenderList() {
         if (!m_SearchQuery.empty() && !fuzzyMatch(node->label, m_SearchQuery)) {
             return false;
         }
-        
+
         // Hidden items filter
         if (!m_FilterOptions.showHidden && !node->visible) {
             return false;
         }
-        
+
         // Locked items filter
         if (!m_FilterOptions.showLocked && node->locked) {
             return false;
         }
-        
-        // Empty folders filter
-        if (!m_FilterOptions.showEmptyFolders && node->children.empty() && !node->icon.IsValid()) {
-            return false;
+
+        // Empty folders filter - always show empty folders
+        if (node->children.empty() && !node->icon.IsValid()) {
+            return true;
         }
-        
+
         return true;
     };
 
@@ -855,11 +912,11 @@ void TreeView::BuildRenderList() {
             if (node->id != "root") {
                 const bool nodeMatches = matchesFilter(node);
                 const bool shouldShow = nodeMatches || parentMatches;
-                
+
                 if (shouldShow) {
                     m_RenderList.push_back({ node, depth, 0, Rect{} });
                 }
-                
+
                 // Always expand children if searching or if parent matches
                 if (nodeMatches || parentMatches || !m_SearchQuery.empty()) {
                     for (const auto& child : node->children) {
@@ -878,10 +935,18 @@ void TreeView::BuildRenderList() {
             }
         };
 
+    const auto startTime = std::chrono::high_resolution_clock::now();
     buildRecursive(m_Root, 0, false);
 
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
     m_RenderListDirty = false;
+
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        "[TreeViewDebug] BuildRenderList: items=" + std::to_string(m_RenderList.size()) +
+        " contentHeight=" + std::to_string(m_ContentHeight) +
+        " duration=" + std::to_string(durationMs) + "ms");
 }
 
 void TreeView::UpdateVisibleRange() {
@@ -902,8 +967,6 @@ void TreeView::UpdateVisibleRange() {
     const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / rowHeight)) + overscan * 2;
     m_LastVisibleIndex = std::min(static_cast<int>(m_RenderList.size()) - 1, m_FirstVisibleIndex + visibleCount);
 
-    (void)viewTop;
-    (void)viewBottom;
 }
 
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
@@ -963,8 +1026,11 @@ std::shared_ptr<TreeNode> TreeView::FindNode(const std::string& id) {
 }
 
 void TreeView::ToggleExpand(const std::string& id) {
+    const auto startTime = std::chrono::high_resolution_clock::now();
+    bool newState = false;
     if (auto node = FindNode(id)) {
         node->expanded = !node->expanded;
+        newState = node->expanded;
         if (node->icon.IsValid()) {
             const std::string_view stem = node->icon.stem ? node->icon.stem : "";
             const bool isFolderGlyph =
@@ -984,6 +1050,14 @@ void TreeView::ToggleExpand(const std::string& id) {
     MarkRenderListDirty();
     BuildRenderList();
     Arrange(m_Geometry);
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        "[TreeViewDebug] ToggleExpand: node='" + id + "' expanded=" + (newState ? "true" : "false") +
+        " totalItems=" + std::to_string(m_RenderList.size()) +
+        " visibleRange=[" + std::to_string(m_FirstVisibleIndex) + ".." + std::to_string(m_LastVisibleIndex) + "]" +
+        " duration=" + std::to_string(durationMs) + "ms");
 }
 
 void TreeView::BeginRename(const std::string& id) {
@@ -1087,15 +1161,18 @@ void TreeView::HandleSelection(const std::string& id, bool shift, bool ctrl) {
         m_SelectedIds = { id };
     }
 
+    SyncSelectedSet();
+
     if (m_OnSelectionChanged) {
         m_OnSelectionChanged(m_SelectedIds);
     }
 
     ScrollSelectionIntoView();
+    InvalidatePaint();
 }
 
 bool TreeView::IsSelected(const std::string& id) const {
-    return std::find(m_SelectedIds.begin(), m_SelectedIds.end(), id) != m_SelectedIds.end();
+    return m_SelectedSet.count(id) > 0;
 }
 
 int TreeView::GetVisibleRowCount() const {
@@ -1113,4 +1190,4 @@ bool TreeView::ShowsPointerCursor(const Point& position) const {
     return ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
-} // namespace we::editor::contentbrowser
+}

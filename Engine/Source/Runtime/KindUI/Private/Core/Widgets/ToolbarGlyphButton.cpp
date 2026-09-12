@@ -39,7 +39,6 @@ void ToolbarGlyphButton::SetOnClicked(std::function<void()> callback) {
 }
 
 Size ToolbarGlyphButton::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float size = ThemeMetric(m_SizeToken);
     m_DesiredSize = Size{ size, size };
     return m_DesiredSize;
@@ -61,7 +60,8 @@ void ToolbarGlyphButton::Paint(PaintContext& context) {
 
     const float activeStrength = IsEnabled() ? (std::max)(m_HoverAnim, m_PressAnim) : 0.0f;
     if (activeStrength > 0.01f) {
-        Color hoverBg = m_Pressed ? ThemeColor(ColorToken::ControlBackgroundPressed) : ThemeColor(ColorToken::HoverBackground);
+        Color hoverBg = m_Pressed ? ThemeColor(ColorToken::ControlBackgroundPressed) :
+            ThemeColor(ColorToken::HoverBackground);
         hoverBg.a *= activeStrength;
         context.DrawRoundedRect(buttonRect, hoverBg, 4.0f);
     }
@@ -96,7 +96,6 @@ void ToolbarGlyphButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void ToolbarGlyphButton::Tick(float deltaTime) {
-    (void)deltaTime;
     const float hoverDamping = ThemeMetric(MetricToken::HoverAnimationDamping);
     const float pressDamping = ThemeMetric(MetricToken::PressAnimationDamping);
     const float pressOffsetTarget = ThemeMetric(MetricToken::PressOffset);
@@ -118,5 +117,5 @@ void ToolbarGlyphButton::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

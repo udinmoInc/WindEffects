@@ -24,6 +24,13 @@ struct WindIconRef {
     [[nodiscard]] constexpr bool IsValid() const noexcept {
         return stem != nullptr && stem[0] != '\0' && sizePx > 0;
     }
+
+    [[nodiscard]] constexpr bool operator==(const WindIconRef& other) const noexcept {
+        return stem == other.stem && sizePx == other.sizePx;
+    }
+    [[nodiscard]] constexpr bool operator!=(const WindIconRef& other) const noexcept {
+        return !(*this == other);
+    }
 };
 
 /// Asset stems available under Assets/Icons/WindIcons/.
@@ -160,7 +167,7 @@ namespace WindIconAssets {
     inline constexpr const char* Wrench = "wrench";
     inline constexpr const char* X = "x";
     inline constexpr const char* Xv2 = "xv2";
-} // namespace WindIconAssets
+}
 
 /// Invalid / blank icon slot.
 inline constexpr WindIconRef kWindIconNone{ nullptr, 0 };
@@ -420,6 +427,6 @@ namespace WindIcons {
     inline constexpr WindIconRef X16{ WindIconAssets::X, 16 };
     inline constexpr WindIconRef X24{ WindIconAssets::X, 24 };
     inline constexpr WindIconRef Xv212{ WindIconAssets::Xv2, 12 };
-} // namespace WindIcons
+}
 
-} // namespace we::runtime::kindui
+}

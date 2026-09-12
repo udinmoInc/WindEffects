@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/Layout/PopupPositioner.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
@@ -56,6 +57,12 @@ void OverlayHost::RemovePopupAt(size_t index) {
     if (index < m_PopupCachedSizes.size()) {
         m_PopupCachedSizes.erase(m_PopupCachedSizes.begin() + static_cast<std::ptrdiff_t>(index));
     }
+    if (index < m_PopupAnchors.size()) {
+        m_PopupAnchors.erase(m_PopupAnchors.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+    if (index < m_PopupPlacementModes.size()) {
+        m_PopupPlacementModes.erase(m_PopupPlacementModes.begin() + static_cast<std::ptrdiff_t>(index));
+    }
 }
 
 void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) {
@@ -73,9 +80,11 @@ void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& p
     float posX = position.x;
     float posY = position.y;
 
-    const float flipOffset = ResolveMetric(MetricToken::PanelToolbarHeight);
-    if (posY + size.height > screenH - margin && posY - size.height >= margin) {
-        posY = posY - size.height - flipOffset;
+    if (posX + size.width > screenW - margin) {
+        posX = (std::max)(margin, position.x - size.width - 8.0f);
+    }
+    if (posY + size.height > screenH - margin) {
+        posY = (std::max)(margin, screenH - size.height - margin);
     }
     posX = std::clamp(posX, margin, (std::max)(margin, screenW - size.width - margin));
     posY = std::clamp(posY, margin, (std::max)(margin, screenH - size.height - margin));
@@ -87,6 +96,42 @@ void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& p
     m_FullscreenPopups.push_back(false);
     m_PinnedPopups.push_back(false);
     m_PopupCachedSizes.push_back(size);
+    m_PopupAnchors.push_back(Rect{});
+    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
+    AttachOverlayChild(popup);
+}
+
+void OverlayHost::ShowAnchoredPopup(
+    const std::shared_ptr<Widget>& popup,
+    const Rect& anchorRect,
+    PopupPlacementMode placementMode) {
+    if (!popup) {
+        return;
+    }
+
+    const float screenW = (std::max)(m_Geometry.width, 1.0f);
+    const float screenH = (std::max)(m_Geometry.height, 1.0f);
+    const Rect viewport{ 0.0f, 0.0f, screenW, screenH };
+
+    Size size = popup->Measure(Size{ screenW, screenH });
+    size = popup->ClampDesiredSize(size);
+
+    PopupPlacementOptions options{};
+    options.anchorRect = anchorRect;
+    options.mode = placementMode;
+    options.gap = ResolveMetric(MetricToken::Space1);
+    options.viewportMargin = ResolveMetric(MetricToken::Space2);
+    options.viewportBounds = viewport;
+
+    PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+    popup->Arrange(placement.popupRect);
+
+    m_Popups.push_back(popup);
+    m_FullscreenPopups.push_back(false);
+    m_PinnedPopups.push_back(false);
+    m_PopupCachedSizes.push_back(size);
+    m_PopupAnchors.push_back(anchorRect);
+    m_PopupPlacementModes.push_back(placementMode);
     AttachOverlayChild(popup);
 }
 
@@ -101,6 +146,8 @@ void OverlayHost::ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) {
     m_FullscreenPopups.push_back(true);
     m_PinnedPopups.push_back(false);
     m_PopupCachedSizes.push_back(Size{width, height});
+    m_PopupAnchors.push_back(Rect{});
+    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
     AttachOverlayChild(popup);
 }
 
@@ -140,6 +187,8 @@ void OverlayHost::ShowPinnedPopup(
     m_FullscreenPopups.push_back(false);
     m_PinnedPopups.push_back(true);
     m_PopupCachedSizes.push_back(size);
+    m_PopupAnchors.push_back(Rect{});
+    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
     AttachOverlayChild(popup);
 }
 
@@ -165,6 +214,8 @@ void OverlayHost::ShowPinnedFullscreenPopup(const std::shared_ptr<Widget>& popup
     m_FullscreenPopups.push_back(true);
     m_PinnedPopups.push_back(true);
     m_PopupCachedSizes.push_back(Size{ width, height });
+    m_PopupAnchors.push_back(Rect{});
+    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
     AttachOverlayChild(popup);
 }
 
@@ -259,6 +310,8 @@ void OverlayHost::CloseAllPopups() {
     m_FullscreenPopups.clear();
     m_PinnedPopups.clear();
     m_PopupCachedSizes.clear();
+    m_PopupAnchors.clear();
+    m_PopupPlacementModes.clear();
 }
 
 void OverlayHost::ExecutePendingCallbacks() {
@@ -335,6 +388,26 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
         const bool pinned = i < m_PinnedPopups.size() && m_PinnedPopups[i];
         Rect geom = popup->GetGeometry();
         Size size = (i < m_PopupCachedSizes.size()) ? m_PopupCachedSizes[i] : Size{};
+
+        if (i < m_PopupAnchors.size() && (m_PopupAnchors[i].width > 0.0f || m_PopupAnchors[i].height > 0.0f)) {
+            size = popup->Measure(Size{ allottedRect.width, allottedRect.height });
+            size = popup->ClampDesiredSize(size);
+
+            PopupPlacementOptions options{};
+            options.anchorRect = m_PopupAnchors[i];
+            options.mode = i < m_PopupPlacementModes.size() ? m_PopupPlacementModes[i] :
+                PopupPlacementMode::SidePreferred;
+            options.gap = ResolveMetric(MetricToken::Space1);
+            options.viewportMargin = ResolveMetric(MetricToken::Space2);
+            options.viewportBounds = allottedRect;
+
+            PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+            popup->Arrange(placement.popupRect);
+            if (i < m_PopupCachedSizes.size()) {
+                m_PopupCachedSizes[i] = size;
+            }
+            continue;
+        }
 
         if (pinned) {
             if (size.width <= 0.0f || size.height <= 0.0f) {
@@ -416,5 +489,5 @@ std::shared_ptr<Widget> OverlayHost::HitTestPoint(const Point& pos, const Rect* 
     return nullptr;
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

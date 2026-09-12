@@ -17,7 +17,6 @@ EXTENSIONS = {
     ".ps1": "PowerShell",
     ".bat": "Batch",
     ".cmake": "CMake",
-    ".json": "JSON",
     ".xml": "XML",
 }
 

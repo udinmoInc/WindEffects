@@ -1,6 +1,6 @@
 // ==============================================================================
 // WindEffects — ToolsPanel — ToolsPanel
-// UI widget used by the ToolsPanel module.
+// Internal implementation for the ToolsPanel module.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
@@ -25,8 +25,10 @@
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/UiMetrics.h"
 #include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cctype>
 
@@ -38,7 +40,6 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 using ::we::runtime::kindui::WindIconRef;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
-
 
 using ::we::editor::shell::EditorModeController;
 using ::we::editor::toolspanel::EditorToolsRegistry;
@@ -110,7 +111,6 @@ public:
     }
 
     void Paint(PaintContext& context) override {
-        (void)context;
     }
 
 private:
@@ -215,9 +215,19 @@ bool ToolsPanel::IsCategoryExpanded(const std::string& categoryId, bool defaultE
 }
 
 void ToolsPanel::SetCategoryExpanded(const std::string& categoryId, bool expanded) {
+    const auto startTime = std::chrono::high_resolution_clock::now();
     m_State.categoryExpanded[categoryId] = expanded;
     RebuildLayout();
     SaveState();
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        "[ToolsPanelDebug] SetCategoryExpanded: category='" + categoryId + "' expanded=" + (expanded ? "true" :
+            "false") +
+        " sections=" + std::to_string(m_Sections.size()) +
+        " toolHits=" + std::to_string(m_ToolHits.size()) +
+        " duration=" + std::to_string(durationMs) + "ms");
 }
 
 void ToolsPanel::ExecuteTool(const EditorToolAction* tool) {
@@ -811,4 +821,4 @@ void ToolsPanel::OnKeyDown(const KeyEvent& event) {
 }
 
 } // namespace we::programs::editor
- 
+

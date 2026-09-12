@@ -161,7 +161,7 @@ public static class WinDbgResolver
         // Standard Microsoft public symbol server cache setup
         var tempCache = Path.Combine(Path.GetTempPath(), "SymbolCache");
         Directory.CreateDirectory(tempCache);
-        symbolPaths.Add($"srv*{tempCache}*https://msdl.microsoft.com/download/symbols");
+        symbolPaths.Add($"srv*{tempCache}*https:
 
         return string.Join(";", symbolPaths);
     }
@@ -239,7 +239,8 @@ public static class WinDbgResolver
             pathEntries.Add(existingPath);
         }
 
-        startInfo.Environment["PATH"] = string.Join(Path.PathSeparator.ToString(), pathEntries.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct());
+        startInfo.Environment["PATH"] = string.Join(Path.PathSeparator.ToString(), pathEntries.Where(p =>
+            !string.IsNullOrWhiteSpace(p)).Distinct());
 
         var isWinDbgX = Path.GetFileName(debuggerExe).Equals("WinDbgX.exe", StringComparison.OrdinalIgnoreCase);
 
@@ -300,7 +301,8 @@ public static class WinDbgResolver
         }
     }
 
-    public static void EnsureDebugCrtDlls(string outputDirectory, string? vsInstallPath, List<string>? outPathEntries = null)
+    public static void EnsureDebugCrtDlls(string outputDirectory, string? vsInstallPath, List<string>? outPathEntries =
+        null)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {

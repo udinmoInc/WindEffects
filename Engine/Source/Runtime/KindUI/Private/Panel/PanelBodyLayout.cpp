@@ -36,7 +36,8 @@ constexpr size_t RegionIndex(PanelBodyRegion region) {
 }
 
 float RegionSeparationGap() {
-    return 0.0f;
+    const float scale = DPIContext::GetScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::Space1) * scale;
 }
 
 void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
@@ -82,7 +83,10 @@ void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect
 }
 
 bool RegionUsesHorizontalInset(PanelBodyRegion region) {
-    return region == PanelBodyRegion::Search || region == PanelBodyRegion::Toolbar;
+    // Search fields need to align with section headers and scrollable content.
+    // The search control supplies its own internal text inset, so a panel-level
+    // inset only creates a visibly offset left edge in narrow inspectors.
+    return region == PanelBodyRegion::Toolbar;
 }
 
 Rect InsetRegionContent(const Rect& regionGeometry, PanelBodyRegion region) {
@@ -90,7 +94,7 @@ Rect InsetRegionContent(const Rect& regionGeometry, PanelBodyRegion region) {
         return regionGeometry;
     }
     const float padH = (region == PanelBodyRegion::Search)
-        ? 6.0f * Chrome::UiScale()
+        ? 6.0f * DPIContext::GetScale()
         : Chrome::PanelPaddingH();
     return Rect{
         regionGeometry.x + padH,
@@ -100,7 +104,7 @@ Rect InsetRegionContent(const Rect& regionGeometry, PanelBodyRegion region) {
     };
 }
 
-} // namespace
+}
 
 PanelBodyLayout::PanelBodyLayout() {
     SetFlexGrow(1.0f);
@@ -177,9 +181,6 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
         }
         const float intrinsicH = IntrinsicRegionHeight(region);
         Size childAvail = availableSize;
-        if (childAvail.height < 1.0e8f) {
-            childAvail.height = intrinsicH;
-        }
         const Size desired = slot.widget->Measure(childAvail);
         const float measuredH = std::max(intrinsicH, desired.height);
         reservedHeight += measuredH;
@@ -209,6 +210,9 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
     countGap(PanelBodyRegion::ColumnHeader);
     countGap(PanelBodyRegion::Footer);
     reservedHeight += static_cast<float>(regionGapCount) * RegionSeparationGap();
+
+    // Add consistent top spacing for panels
+    reservedHeight += RegionSeparationGap();
 
     Size rowAvailable = availableSize;
     if (rowAvailable.height < 1.0e8f) {
@@ -247,14 +251,10 @@ void PanelBodyLayout::ArrangeFixedRegion(
     const float intrinsicH = IntrinsicRegionHeight(region);
     const float availableH = std::max(0.0f, totalBottom - currentY);
 
-    float regionH = intrinsicH;
-    if (regionH > 0.0f) {
-        slot.widget->Measure(Size{ allottedRect.width, regionH });
-        regionH = std::min(availableH, regionH);
-    } else {
-        slot.widget->Measure(Size{ allottedRect.width, availableH });
-        regionH = std::min(availableH, std::max(0.0f, slot.widget->GetDesiredSize().height));
-    }
+    slot.widget->Measure(Size{ allottedRect.width, availableH });
+    const float desiredH = slot.widget->GetDesiredSize().height;
+    float regionH = (intrinsicH > 0.0f) ? std::max(intrinsicH, desiredH) : desiredH;
+    regionH = std::min(availableH, regionH);
 
     slot.geometry = ClampRectToParent(
         Rect{ allottedRect.x, currentY, allottedRect.width, regionH },
@@ -263,7 +263,7 @@ void PanelBodyLayout::ArrangeFixedRegion(
     slot.widget->Arrange(InsetRegionContent(slot.geometry, region));
     currentY += slot.geometry.height;
     if (slot.geometry.height > 0.01f) {
-        currentY = std::min(currentY + RegionSeparationGap(), totalBottom);
+        currentY += RegionSeparationGap();
     }
 }
 
@@ -273,6 +273,9 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 
     float currentY = allottedRect.y;
     const float totalBottom = allottedRect.y + allottedRect.height;
+
+    // Add consistent top spacing before first region
+    currentY += RegionSeparationGap();
 
     ArrangeFixedRegion(PanelBodyRegion::ModeTabs, currentY, allottedRect);
     if (!m_OverlayToolbar) {
@@ -330,7 +333,6 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
     }
 
     if (footerSlot.widget && footerSlot.widget->IsVisible() && footerHeight > 0.0f) {
-        currentY = std::min(currentY + RegionSeparationGap(), totalBottom);
         footerSlot.geometry = ClampRectToParent(
             Rect{ allottedRect.x, currentY, allottedRect.width, footerHeight },
             allottedRect);
@@ -363,7 +365,6 @@ void PanelBodyLayout::Paint(PaintContext& context) {
         if (!skipRegionChrome) {
             PaintRegionChrome(region, context, slot.geometry);
         }
-        (void)paintAfterContent;
     };
 
     for (size_t i = 0; i < m_Regions.size(); ++i) {
@@ -443,5 +444,5 @@ std::shared_ptr<Widget> PanelBodyLayout::HitTestPoint(const Point& pos, const Re
     return shared_from_this();
 }
 
-} // namespace we::runtime::kindui::panels
- 
+}
+

@@ -12,15 +12,10 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "Core/Localization.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelBuilder.h"
+#include "KindUI/EditorWidgets.h"
 
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
-using ::we::runtime::kindui::kWindIconNone;
 
 using namespace ::we::runtime::kindui;
 using ::we::runtime::kindui::panels::Panel;
@@ -32,24 +27,20 @@ using ::we::editor::property::detail::PopulateDetailsPanelRegions;
 std::shared_ptr<Panel> CreateDetailsPanel() {
     const auto title = we::core::Localization::Get().GetString("Panel_Details", "Inspector");
 
-    auto builder = PanelBuilder::Create(std::string(title))
-        .Collapsible(false)
-        .TabIcon(WindIcons::PaperPencile16)
-        .WithCloseButton([]() {
-            EditorWorkspaceController::Get().SetPanelVisible("Details", false);
-        });
+    return we::editor::dsl::Panel(std::string(title), [&](we::editor::dsl::PanelContext& p) {
+        p.TabIcon(WindIcons::PaperPencile16)
+         .WithCloseButton([]() {
+             EditorWorkspaceController::Get().SetPanelVisible("Details", false);
+         });
 
-    if (auto details = PropertyEditorSession::DetailsShared()) {
-        auto panel = builder.Build();
-        PopulateDetailsPanelRegions(panel, details->GetWidget(), details.get());
-        return panel;
-    }
-
-    return builder.Build();
+        if (auto details = PropertyEditorSession::DetailsShared()) {
+            PopulateDetailsPanelRegions(p, details->GetWidget(), details.get());
+        }
+    });
 }
 
 REGISTER_UI_PANEL(Details,
     WE_PANEL(Details).Title("Inspector").Icon("paper-pencile").Zone(DockZone::Right).WindowMenu("Inspector").SortOrder(3),
     CreateDetailsPanel)
 
-} // namespace we::programs::editor
+}

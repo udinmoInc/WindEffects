@@ -13,12 +13,9 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "WindEffects/Editor/EditorSDK.h"
 
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Layout/Flex.h"
+#include "KindUI/EditorWidgets.h"
 #include "Widgets/ToolButton.h"
 #include "Widgets/ViewportSliderPopup.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
 
 #include <memory>
 #include <string>
@@ -180,12 +177,13 @@ std::shared_ptr<we::runtime::kindui::Column> BuildViewportNavigationPreferencesC
     return content;
 }
 
-} // namespace
+}
 
 std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateViewportNavigationPreferencesPanel() {
-    return ::we::runtime::kindui::panels::PanelBuilder("Viewport Navigation")
-        .TabIcon(we::runtime::kindui::kWindIconNone)
-        .Content(BuildViewportNavigationPreferencesContent());
+    return we::editor::dsl::Panel("Viewport Navigation", [&](we::editor::dsl::PanelContext& p) {
+        p.TabIcon(we::runtime::kindui::kWindIconNone)
+         .Content(BuildViewportNavigationPreferencesContent());
+    });
 }
 
 REGISTER_UI_PANEL(ViewportNavigation,
@@ -196,5 +194,5 @@ void ShowViewportNavigationPreferences() {
     EditorWorkspaceController::Get().FocusViewportNavigationPanel();
 }
 
-} // namespace we::programs::editor
- 
+}
+

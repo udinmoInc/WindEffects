@@ -127,7 +127,7 @@ float EdgeWidthPx() {
     return std::max(1.0f, ResolveMetric(MetricToken::BorderWidth));
 }
 
-} // namespace
+}
 
 void PaintSubtleDropShadow(PaintContext& context, const Rect& rect, float radius, float strength) {
     if (strength <= 0.01f) {
@@ -173,7 +173,6 @@ void PaintInsetBevel(PaintContext& context, const Rect& rect, float radius, floa
     Color highlight = ResolveColor(ColorToken::InputInsetInner);
     highlight.a *= strength;
 
-    // Only a 1px top inner highlight — no left, right, or bottom rims.
     context.DrawRect(
         Rect{ rect.x + edgeTrim, rect.y + inset, lineW, w },
         highlight);
@@ -282,7 +281,7 @@ void PaintInputFrameInternal(
     context.PopSurfaceOwner();
 }
 
-} // namespace
+}
 
 ResolvedStyle Role(StyleRole role) {
     return ThemeManager::Get().Resolve(role);
@@ -425,7 +424,6 @@ void PaintBorderlessIconButton(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    // Floating icons: no hover/press fill — glyph lighting is handled by the caller.
     (void)context;
     (void)rect;
     (void)state;
@@ -458,7 +456,6 @@ void PaintSearchInputFrame(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state) {
-    // Same shared recessed input chrome as text boxes / property fields.
     PaintInputFrameInternal(context, rect, state, SearchInputCornerRadius(rect));
 }
 
@@ -549,7 +546,6 @@ void PaintListRow(
     const InteractionState& state,
     ColorToken underlayToken) {
     const ResolvedStyle base = Role(StyleRole::TableRow);
-    // Pre-composite ghost hover onto the known underlay so idle-transparent rows stay opaque-replace.
     const Color underlay = ColorSpace::OpaqueSurface(ResolveColor(underlayToken));
     const Color bg = MixInteractiveSurface(
         base.background,
@@ -748,6 +744,6 @@ void PaintVerticalSeparator(
     context.DrawRect(Rect{ snappedX, top, lineWidth, height }, ResolveColor(colorToken));
 }
 
-} // namespace ControlChrome
-} // namespace we::runtime::kindui
- 
+}
+}
+

@@ -9,9 +9,7 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Widgets/ToolbarBuilder.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/EditorWidgets.h"
 
 namespace we::programs::editor {
 using namespace ::we::runtime::kindui;
@@ -43,16 +41,19 @@ std::shared_ptr<Panel> CreateGamePanel() {
         .Dropdown(WindIcons::Grid16, "Gizmos", {}, "Toggle Gizmos")
         .Build();
 
-    return PanelBuilder("Game")
-        .WithCloseButton([]() {
-            EditorWorkspaceController::Get().SetPanelVisible("Game", false);
-        })
-        .Toolbar(toolbar)
-        .Content(std::make_shared<Label>(""));
+    return we::editor::dsl::Panel("Game", [&](we::editor::dsl::PanelContext& p) {
+        p.WithCloseButton([]() {
+             EditorWorkspaceController::Get().SetPanelVisible("Game", false);
+         })
+         .Content(std::make_shared<Label>(""));
+        p.Toolbar([&](we::editor::dsl::ToolbarContext& t) {
+            t.Custom(toolbar);
+        });
+    });
 }
 
 REGISTER_UI_PANEL(Game,
     WE_PANEL(Game).Title("Game").Zone(DockZone::Floating).Hidden(),
     CreateGamePanel)
 
-} // namespace we::programs::editor
+}

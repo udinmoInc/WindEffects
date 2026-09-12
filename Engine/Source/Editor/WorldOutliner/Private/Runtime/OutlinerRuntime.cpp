@@ -276,6 +276,7 @@ public:
                 m_Events->Suspend(false);
                 m_ApplyingExternalSelection = false;
             }
+            ClearDetailsForEmptySceneSelection();
             return;
         }
         const OutlinerNodeId node{id};
@@ -287,6 +288,7 @@ public:
             ApplySelectionToTreeView();
             m_ApplyingExternalSelection = false;
         }
+        PopulateDetailsForSceneSelection(id);
     }
 
     void SyncSelectionToViewport() override {
@@ -344,11 +346,31 @@ public:
             SyncSelectionToScene();
             ApplySelectionToTreeView();
             m_ApplyingExternalSelection = false;
-            (void)ev;
         }
     }
 
 private:
+    void ClearDetailsForEmptySceneSelection() {
+        if (m_Deps.detailsView && m_LastDetailsEntityId != 0) {
+            m_Deps.detailsView->Clear();
+        }
+        m_LastDetailsEntityId = 0;
+    }
+
+    void PopulateDetailsForSceneSelection(std::uint64_t entityId) {
+        if (!m_Deps.detailsView || !m_Deps.scene || entityId == m_LastDetailsEntityId) {
+            return;
+        }
+
+        if (auto* entity = m_Deps.scene->FindEntityById(entityId)) {
+            ::we::editor::property::PopulateDetailsFromSceneEntity(*m_Deps.detailsView, entity);
+            m_LastDetailsEntityId = entityId;
+        } else {
+            m_Deps.detailsView->Clear();
+            m_LastDetailsEntityId = 0;
+        }
+    }
+
     void RefreshModelWiring() {
         std::vector<IOutlinerDataProvider*> providers;
         providers.reserve(m_Providers.size());
@@ -421,7 +443,6 @@ private:
         }
 
         // Preserve expansion for non-visible ancestors when search filters.
-        (void)visibleSet;
         tree->SetRoot(root);
         ApplySelectionToTreeView();
     }
@@ -462,6 +483,7 @@ private:
 
     std::weak_ptr<::we::editor::contentbrowser::TreeView> m_Tree;
     bool m_ApplyingExternalSelection = false;
+    std::uint64_t m_LastDetailsEntityId = 0;
 };
 
 class WorldOutlinerRuntimeImpl final : public IWorldOutlinerRuntime {
@@ -479,10 +501,10 @@ private:
     std::unique_ptr<WorldOutlinerImpl> m_Outliner;
 };
 
-} // namespace detail
+}
 
 std::unique_ptr<IWorldOutlinerRuntime> CreateWorldOutlinerRuntime(const WorldOutlinerDependencies& deps) {
     return std::make_unique<detail::WorldOutlinerRuntimeImpl>(deps);
 }
 
-} // namespace we::editor::outliner
+}

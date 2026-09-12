@@ -33,15 +33,21 @@ public:
 
     void SetOnScrimClicked(std::function<void()> cb) { m_OnScrimClicked = std::move(cb); }
     void SetDismissOnScrim(bool enabled) { m_DismissOnScrim = enabled; }
+    void SetShowScrim(bool show) { m_ShowScrim = show; }
+    void SetAnchorPosition(const std::optional<Point>& anchor) { m_AnchorPosition = anchor; }
+    void SetCenterInParent(bool center) { m_CenterInParent = center; }
 
 private:
     std::shared_ptr<Widget> m_Content;
     float m_DialogWidth = 520.0f;
     float m_DialogHeight = 0.0f;
     bool m_DismissOnScrim = true;
+    bool m_ShowScrim = false;
+    bool m_CenterInParent = true;
+    std::optional<Point> m_AnchorPosition;
     std::function<void()> m_OnScrimClicked;
 };
 
 [[nodiscard]] KINDUI_API std::shared_ptr<ModalHost> MakeModalHost();
 
-} // namespace we::runtime::kindui
+}

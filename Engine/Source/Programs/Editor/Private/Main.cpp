@@ -41,10 +41,10 @@ void ConfigureModuleSearchPath() {
 }
 
 [[nodiscard]] bool NeedsWeLauncher(const we::projects::EditorCommandLine& commandLine) {
-    return false; // Temporarily disabled: commandLine.forceProjectManager || commandLine.newProject || !commandLine.projectPath.has_value();
+    return false;
 }
 
-} // namespace
+}
 
 int main(int argc, char* argv[]) {
     try {
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
         } else {
             HE_INFO("[Startup] Starting without a project.");
         }
-        
+
         if (commandLine.safeMode) {
             HE_INFO("[Startup] Safe mode enabled.");
         }
@@ -123,6 +123,8 @@ int main(int argc, char* argv[]) {
             "WindEffects-MainFrame",
             "WindEffects-Viewport",
             "WindEffects-ContentBrowser",
+            // Registers Scene and environment reflection types used by the Inspector.
+            "WindEffects-World",
             "WindEffects-WorldOutliner",
             "WindEffects-PropertyEditor",
             "WindEffects-Toolbar",

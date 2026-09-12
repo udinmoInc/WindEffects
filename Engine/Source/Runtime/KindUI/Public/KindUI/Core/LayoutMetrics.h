@@ -81,5 +81,24 @@ inline constexpr float kTextLineHeightRatio = 32.0f / 24.0f;
 /// Top Y for DrawText centered on a horizontal midline (toolbar / tab chrome).
 [[nodiscard]] KINDUI_API float AlignTextTopAtCenterY(float centerY, float fontSizePx);
 
-} // namespace LayoutMetrics
-} // namespace we::runtime::kindui
+/// Unified row-height system for consistent UI across all panels
+[[nodiscard]] KINDUI_API float UnifiedRowHeight();
+[[nodiscard]] KINDUI_API float UnifiedCompactRowHeight();
+[[nodiscard]] KINDUI_API float UnifiedSectionHeaderHeight();
+[[nodiscard]] KINDUI_API float UnifiedToolbarRowHeight();
+[[nodiscard]] KINDUI_API float UnifiedTabRowHeight();
+[[nodiscard]] KINDUI_API float UnifiedListItemHeight();
+[[nodiscard]] KINDUI_API float UnifiedArrayItemHeight();
+[[nodiscard]] KINDUI_API float UnifiedNestedRowHeight();
+
+KINDUI_API void ApplyUnifiedRowHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedCompactRowHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedSectionHeaderHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedToolbarRowHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedTabRowHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedListItemHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedArrayItemHeight(Widget& widget);
+KINDUI_API void ApplyUnifiedNestedRowHeight(Widget& widget);
+
+}
+}

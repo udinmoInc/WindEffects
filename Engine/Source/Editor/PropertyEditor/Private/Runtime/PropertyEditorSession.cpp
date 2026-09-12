@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "PropertyEditor/PropertyEditorSession.h"
+#include "Core/Logger.h"
 
 namespace we::editor::property {
 namespace {
@@ -14,7 +15,7 @@ namespace {
 std::shared_ptr<IPropertyEditorRuntime> g_Runtime;
 std::shared_ptr<IDetailsView> g_Details;
 
-} // namespace
+}
 
 void PropertyEditorSession::Install(
     std::shared_ptr<IPropertyEditorRuntime> runtime,
@@ -22,9 +23,14 @@ void PropertyEditorSession::Install(
 {
     g_Runtime = std::move(runtime);
     g_Details = std::move(detailsView);
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        std::string("[InspectorDebug] Session installed: runtime=") +
+        (g_Runtime ? "ready" : "missing") + ", details=" +
+        (g_Details ? "ready" : "missing"));
 }
 
 void PropertyEditorSession::Clear() noexcept {
+    WE_LOG_INFO(we::LogCategory::General.data(), "[InspectorDebug] Session cleared.");
     g_Details.reset();
     g_Runtime.reset();
 }
@@ -45,4 +51,4 @@ bool PropertyEditorSession::IsInstalled() noexcept {
     return g_Runtime != nullptr && g_Details != nullptr;
 }
 
-} // namespace we::editor::property
+}

@@ -72,7 +72,6 @@ void ResolvePanelBevelColors(Color& outHighlight, Color& outShadow) {
     const Color deep = we::runtime::kindui::ColorSpace::OpaqueSurface(
         we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
 
-    // Top/left: one step toward Header (#1D vs Panel #17) — dark, visible.
     outHighlight = we::runtime::kindui::ColorSpace::OpaqueSurface(
         we::runtime::kindui::ColorSpace::LerpColor(panel, header, 0.85f));
     // Bottom/right: sink toward workspace gap color.
@@ -97,7 +96,7 @@ void PaintTabShoulderFill(
 
     // Rows from the top of the shoulder pocket down to just above the join.
     for (int i = 0; i < ri; ++i) {
-        const float relY = static_cast<float>(i); // 0 at pocket top
+        const float relY = static_cast<float>(i);
         const float rowY = py - r + relY;
         const float dx = std::sqrt(std::max(0.0f, r * r - relY * relY));
         // Arc x from outside center; fill only the inside of the silhouette.
@@ -303,7 +302,6 @@ void PaintDockConnectedFrameBevel(
         PaintHEdge(context, tx0 + topR, ty0, (tx1 - topR) - (tx0 + topR), highlight);
     }
 
-    // Right silhouette — must bend into the panel top (fixes the stair-step).
     if (flushRight) {
         PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, highlight);
         PaintVEdge(context, x1 - 1.0f, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), shadow);
@@ -343,12 +341,6 @@ void PaintInsetWellTopEdge(PaintContext& context, const Rect& rect) {
 }
 
 Color ResolveTabIconColor(bool isActive, float hoverAnim) {
-    if (isActive) {
-        return we::runtime::kindui::ResolveColor(ColorToken::IconActive);
-    }
-    if (hoverAnim > 0.01f) {
-        return we::runtime::kindui::ResolveColor(ColorToken::IconHover);
-    }
     return we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
 }
 
@@ -358,7 +350,7 @@ Color ResolveTabTextColor(bool isActive, float hoverAnim) {
         isActive);
 }
 
-} // namespace
+}
 
 namespace PanelChrome {
 
@@ -387,7 +379,7 @@ float PanelPaddingH() {
 }
 
 float CategoryHeaderHeight() {
-    return we::runtime::kindui::ResolveMetric(MetricToken::CategoryHeaderHeight) * UiScale();
+    return we::runtime::kindui::ResolveMetric(MetricToken::FormRowHeight) * UiScale();
 }
 
 float PanelPaddingV() {
@@ -578,8 +570,7 @@ void PaintContentRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect) {
-    (void)context;
-    (void)headerRect;
+
 }
 
 void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect) {
@@ -587,8 +578,7 @@ void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect) {
 }
 
 void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect) {
-    (void)context;
-    (void)headerRect;
+
 }
 
 float MeasureDockTabWidth(
@@ -599,8 +589,7 @@ float MeasureDockTabWidth(
     bool flushLeft,
     bool modeTabs)
 {
-    (void)flushLeft;
-    (void)isActive;
+
     const float scale = UiScale();
     const float fontSize = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale
@@ -990,12 +979,6 @@ void PaintDockTabStrip(
     }
 
     const float scale = UiScale();
-    const Color sepColor = we::runtime::kindui::ResolveColor(ColorToken::BorderSubtle);
-    context.DrawLine(
-        Point{ stripRect.x, stripRect.y + stripRect.height },
-        Point{ stripRect.x + stripRect.width, stripRect.y + stripRect.height },
-        sepColor,
-        1.0f * scale);
 
     if (!stripRect.IsEmpty() && state.showOptionsMenu) {
         const float buttonSize = HeaderButtonSize();
@@ -1223,6 +1206,13 @@ void PaintDockPanelChrome(
     }
     const float tabRadius = state.flatCorners ? 0.0f : TabTopRadius();
     PaintDockConnectedFrameBevel(context, contentRect, activeTab, tabRadius);
+
+    // Existing KindUI separator border system; width matches the tab of the panel
+    if (!activeTab.IsEmpty()) {
+        PaintSeparatorEdge(context, Rect{ activeTab.x, headerRect.y, activeTab.width, headerRect.height }, false);
+    } else if (!headerRect.IsEmpty()) {
+        PaintSeparatorEdge(context, headerRect, false);
+    }
 }
 
 void PaintSearchField(
@@ -1251,16 +1241,15 @@ void PaintAlternatingListRowBackground(PaintContext& context, const Rect& rowRec
 }
 
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected, bool focused) {
-    we::runtime::kindui::SurfaceRole role = we::runtime::kindui::SurfaceRole::Transparent;
     if (selected) {
-        role = focused
+        const we::runtime::kindui::SurfaceRole role = focused
             ? we::runtime::kindui::SurfaceRole::Selected
             : we::runtime::kindui::SurfaceRole::SelectedInactive;
-    } else if (hovered) {
-        role = we::runtime::kindui::SurfaceRole::ControlHover;
-    }
-    if (role != we::runtime::kindui::SurfaceRole::Transparent) {
         context.DrawSurface(rowRect, role, 0.0f, "TreeRow");
+        return;
+    }
+    if (hovered) {
+        context.DrawSurface(rowRect, we::runtime::kindui::SurfaceRole::ControlHover, 0.0f, "TreeRow");
     }
 }
 
@@ -1328,7 +1317,7 @@ Rect InsetSearchRect(const Rect& toolbarRect, float searchWidth) {
     return Rect{ toolbarRect.x + padH, searchY, searchWidth, searchH };
 }
 
-} // namespace PanelChrome
+}
 
-} // namespace we::runtime::kindui::panels
- 
+}
+

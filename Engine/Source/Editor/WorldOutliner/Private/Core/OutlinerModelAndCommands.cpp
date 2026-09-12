@@ -7,6 +7,8 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "OutlinerInternal.h"
+#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
 
 #include "ContentBrowser/ContentBrowserSession.h"
 #include "Undo/UndoTypes.h"
@@ -65,6 +67,10 @@ public:
 
     void SetExpanded(OutlinerNodeId id, bool expanded) override {
         m_Expanded[id.value] = expanded;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[WorldOutlinerDebug] SetExpanded: node=" + std::to_string(id.value) + " expanded=" + (expanded ? "true" :
+                "false") +
+            " visibleRows=" + std::to_string(m_Visible.size()));
         MarkDirty();
     }
 
@@ -598,7 +604,6 @@ public:
     [[nodiscard]] bool SetVisible(OutlinerNodeId id, bool visible) override {
         WorldOutlinerDiagnostics::Get().OnCommand();
         m_Visibility[id.value] = visible;
-        (void)m_Model;
         return true;
     }
 
@@ -633,7 +638,7 @@ private:
     std::unordered_map<std::uint64_t, bool> m_Pinned;
 };
 
-} // namespace
+}
 
 // Factories used by Runtime
 std::unique_ptr<IOutlinerTreeModel> CreateTreeModel() {
@@ -673,5 +678,5 @@ void TreeModelSetSearch(IOutlinerTreeModel& model, IOutlinerSearch* search) {
     }
 }
 
-} // namespace detail
-} // namespace we::editor::outliner
+}
+}

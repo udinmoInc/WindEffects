@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
+#include "KindUI/Layout/AutoAlign.h"
 #include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Layout/ScrollViewport.h"
 #include "Controllers/FilterController.h"
@@ -27,6 +28,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Widgets/Components.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -47,7 +49,6 @@ namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 namespace IconMetrics = ::we::runtime::kindui::IconMetrics;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
-
 
 namespace {
 using ::we::editor::contentbrowser::ContentBrowserService;
@@ -74,9 +75,16 @@ ContentBrowser::ContentBrowser()
 {
     m_Model = std::make_shared<ContentBrowserModel>();
     m_Controller = std::make_shared<ContentBrowserController>(m_Model);
+    m_EmptyState = ::we::runtime::kindui::MakeEmptyState(
+        "This folder is empty");
     m_Model->onModelChanged = [this]() {
+        // Do NOT call BuildRenderList() here — it resets all geometry to Rect{}
+        // before Arrange() can re-lay items out. Paint() then calls
+        // UpdateVisibleRange() with zero rects → nothing in viewport → blank screen.
+        // RecalculateLayout() (called from Arrange on the next layout pass) will
+        // call BuildRenderList() with correct positions. Just flag dirty + repaint.
         MarkLayoutDirty();
-        BuildRenderList();
+        InvalidatePaint();
     };
 }
 
@@ -85,8 +93,9 @@ void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
     if (m_Model) {
         m_Model->onModelChanged = [this]() {
             MarkLayoutDirty();
-            BuildRenderList();
+            InvalidatePaint();
         };
+        // Initial build is fine here — SetModel is called before first layout.
         MarkLayoutDirty();
         BuildRenderList();
     }
@@ -313,30 +322,43 @@ void ContentBrowser::RequestVisibleThumbnails() {
 
 void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bool selected, float hoverAlpha) {
     const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
-    if (selected || hoverAlpha > 0.001f) {
+    if (hoverAlpha > 0.001f && !selected) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
             context,
             cell,
             radius,
             hoverAlpha,
             0.0f,
-            selected,
+            false,
             ColorToken::SecondarySurface);
     }
+
     if (selected) {
-        context.DrawRoundedRectOutline(
-            cell,
-            ThemeColor(ColorToken::AccentPrimary),
-            ThemeMetric(MetricToken::BorderWidth),
-            radius);
+        // A full opaque primary-blue card hides the thumbnail and is especially
+        // harsh when a range is selected. Keep the asset readable and use the
+        // border as the primary selected-state affordance instead.
+        Color selectionFill = ThemeColor(ColorToken::AccentPrimary);
+        selectionFill.a = 0.16f;
+        context.DrawRoundedRect(cell, selectionFill, radius);
+
+        Color selectionBorder = ThemeColor(ColorToken::AccentPrimary);
+        selectionBorder.a = 0.92f;
+        const float borderWidth = std::max(1.0f, ThemeMetric(MetricToken::BorderWidth));
+        context.DrawRoundedRectOutline(cell, selectionBorder, borderWidth, radius);
+
+        // A compact top rail stays recognizable at a glance when tile labels
+        // are close together or the browser contains a large multi-selection.
+        const float railHeight = std::max(2.0f, borderWidth);
+        context.DrawRoundedRect(
+            Rect{ cell.x + radius, cell.y, std::max(0.0f, cell.width - radius * 2.0f), railHeight },
+            selectionBorder,
+            railHeight * 0.5f);
     }
 }
 
 void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect,
     const ContentItem& item, bool selected, bool hovered)
 {
-    (void)selected;
-    (void)hovered;
 
     if (item.isFolder) {
         ContentBrowserFolderArt::Get().PaintThumbnail(context, thumbRect, hovered);
@@ -536,7 +558,37 @@ void ContentBrowser::Paint(PaintContext& context) {
         else PaintListItem(context, renderItem);
     }
 
+    if (m_IsSelecting) {
+        const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
+        const float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
+        const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
+        const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
+        Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
+        selectBox = selectBox.Intersect(m_ScrollMetrics.viewport);
+        if (selectBox.width > 0.0f && selectBox.height > 0.0f) {
+            Color selectFill = ThemeColor(ColorToken::AccentPrimary);
+            // The marquee must remain distinguishable from selected cards,
+            // while still allowing thumbnails under it to be inspected.
+            selectFill.a = 0.13f;
+            context.DrawRect(selectBox, selectFill);
+            Color borderCol = ThemeColor(ColorToken::AccentPrimary);
+            borderCol.a = 0.9f;
+            context.DrawRoundedRectOutline(
+                selectBox,
+                borderCol,
+                std::max(1.0f, ThemeMetric(MetricToken::BorderWidth)),
+                0.0f);
+        }
+    }
+
     context.PopClipRect();
+
+    // Keep the browser canvas and its themed chrome in place. The shared KindUI
+    // component is only an overlay, not a replacement for this widget.
+    if (m_RenderList.empty() && m_EmptyState) {
+        m_EmptyState->Arrange(m_ScrollMetrics.viewport);
+        m_EmptyState->Paint(context);
+    }
 
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
     if (m_Model) {
@@ -556,16 +608,6 @@ void ContentBrowser::Paint(PaintContext& context) {
         context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
     }
 
-    if (m_IsSelecting) {
-        const float minX = std::min(m_SelectStart.x, m_SelectEnd.x);
-        const float maxX = std::max(m_SelectStart.x, m_SelectEnd.x);
-        const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
-        const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
-        Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
-        context.DrawRect(selectBox, ThemeColor(ColorToken::SelectionHighlight));
-        context.DrawRoundedRectOutline(selectBox, ThemeColor(ColorToken::AccentPrimary), 1.0f, 0.0f);
-    }
-
     if (m_IsDragging && m_Model && !m_Model->selectedIds.empty()) {
         for (const auto& renderItem : m_RenderList) {
             if (!IsSelected(renderItem.item.id)) continue;
@@ -576,11 +618,17 @@ void ContentBrowser::Paint(PaintContext& context) {
                 ThemeMetric(MetricToken::CornerRadiusSmall));
             context.DrawRoundedRectOutline(ghostRect, ThemeColor(ColorToken::AccentPrimary),
                 ThemeMetric(MetricToken::BorderWidth), ThemeMetric(MetricToken::CornerRadiusSmall));
-            if (renderItem.item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
-                const float iconInset = ThemeMetric(MetricToken::Space3);
-                const float iconSize = ghostSize - iconInset * 2.0f;
-                Rect iconRect{ ghostRect.x + iconInset, ghostRect.y + iconInset, iconSize, iconSize };
+            const float iconInset = ThemeMetric(MetricToken::Space3);
+            const float iconSize = ghostSize - iconInset * 2.0f;
+            Rect iconRect{ ghostRect.x + iconInset, ghostRect.y + iconInset, iconSize, iconSize };
+            if (renderItem.item.isFolder) {
+                ContentBrowserFolderArt::Get().PaintThumbnail(context, iconRect, false);
+            } else if (IsBlueprintItem(renderItem.item)) {
+                ContentBrowserBlueprintArt::Get().PaintThumbnail(context, iconRect, false);
+            } else if (renderItem.item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
                 context.DrawTexture(iconRect, renderItem.item.iconTexture);
+            } else {
+                IconPainter::Draw(context, ResolveItemIcon(renderItem.item), iconRect);
             }
             if (m_Model->selectedIds.size() > 1) {
                 const std::string countStr = std::to_string(m_Model->selectedIds.size());
@@ -588,7 +636,7 @@ void ContentBrowser::Paint(PaintContext& context) {
                 const float badgeH = ThemeMetric(MetricToken::ButtonHeight) - ThemeMetric(MetricToken::Space1);
                 Rect badgeRect{ ghostRect.x + ghostRect.width - badgeW + ThemeMetric(MetricToken::Space1),
                     ghostRect.y - ThemeMetric(MetricToken::Space2), badgeW, badgeH };
-                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::ErrorForeground),
+                context.DrawRoundedRect(badgeRect, ThemeColor(ColorToken::AccentPrimary),
                     ThemeMetric(MetricToken::CornerRadiusMedium));
                 context.DrawText(countStr, Point{ badgeRect.x + ThemeMetric(MetricToken::Space2), badgeRect.y +
                     ThemeMetric(MetricToken::Space1) - 2.0f }, ThemeColor(ColorToken::TextPrimary),
@@ -735,8 +783,8 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
         }
         if (m_Model && m_Model->selectedIds != boxedIds) {
             m_Model->selectedIds = std::move(boxedIds);
-            m_Model->NotifyChanged();
         }
+        InvalidatePaint();
     } else if (m_DragStart.x != 0.0f || m_DragStart.y != 0.0f) {
         const float dx = event.position.x - m_DragStart.x;
         const float dy = event.position.y - m_DragStart.y;
@@ -933,7 +981,6 @@ void ContentBrowser::CalculateDetailsLayout() {
 
 ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) {
     // Visible window first: keeps hover/drag hit-testing flat cost on huge
-    // folders instead of scanning the whole render list per mouse event.
     const int last = static_cast<int>(m_RenderList.size()) - 1;
     const int visFirst = std::max(0, std::min(m_FirstVisibleIndex, last));
     const int visLast = std::max(-1, std::min(m_LastVisibleIndex, last));
@@ -951,7 +998,6 @@ ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) 
 ContentBrowserStatusBar::ContentBrowserStatusBar() = default;
 
 Size ContentBrowserStatusBar::Measure(const Size& availableSize) {
-    (void)availableSize;
     m_DesiredSize = Size{ availableSize.width, ThemeMetric(MetricToken::StatusBarHeight) };
     return m_DesiredSize;
 }
@@ -984,7 +1030,6 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
 Breadcrumb::Breadcrumb() = default;
 
 Size Breadcrumb::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float chevronW = 12.0f * uiScale;
     const float space = 4.0f * uiScale;
@@ -1009,24 +1054,27 @@ void Breadcrumb::Arrange(const Rect& allottedRect) {
 void Breadcrumb::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
     const float chevronSize = 12.0f * uiScale;
-    const float chevronY = m_Geometry.y + (m_Geometry.height - chevronSize) * 0.5f;
-    const Color kHighlightColor = Color(0.8392f, 0.8510f, 0.8667f, 1.0f); // #D6D9DD
+    const Color kHighlightColor = we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
 
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
-        const float textX = crumb.geometry.x;
         const Color textColor = (static_cast<int>(i) == m_HoveredCrumb)
             ? kHighlightColor
             : ((i == m_Crumbs.size() - 1)
                 ? kHighlightColor
                 : ThemeColor(ColorToken::TextSecondary));
-        context.DrawText(crumb.text, Point{ textX, textY }, textColor, textSize, false);
+
+        const Rect crumbArea{ crumb.geometry.x, m_Geometry.y, crumb.geometry.width, m_Geometry.height };
+        auto crumbLayout = we::runtime::kindui::AutoAlign::ComputeIconTextLayout(
+            crumbArea, 0.0f, false, crumb.text, textSize);
+
+        context.DrawText(crumb.text, crumbLayout.textPos, textColor, textSize, false);
 
         // Draw chevron separator '>' after each crumb
         const float chevronX = crumb.geometry.x + crumb.geometry.width + 3.0f * uiScale;
-        Rect chevronRect{ chevronX, chevronY, chevronSize, chevronSize };
+        const Rect chevronBand{ chevronX, m_Geometry.y, chevronSize, m_Geometry.height };
+        const Rect chevronRect = we::runtime::kindui::AutoAlign::NormalizeIconBounds(chevronBand, chevronSize);
         IconPainter::Draw(context, WindIcons::ChevronRight16, chevronRect, ThemeColor(ColorToken::IconSecondary));
     }
 }
@@ -1125,4 +1173,4 @@ Breadcrumb::CrumbInfo* Breadcrumb::GetCrumbAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::editor::contentbrowser
+}

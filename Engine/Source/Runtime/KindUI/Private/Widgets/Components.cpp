@@ -15,7 +15,6 @@
 
 #include <cmath>
 
-
 namespace we::runtime::kindui {
 
 EmptyState::EmptyState(std::string title, std::string subtitle) {
@@ -24,12 +23,12 @@ EmptyState::EmptyState(std::string title, std::string subtitle) {
     Justify(JustifyContent::Center);
     Gap(8.0f);
 
-    auto titleLabel = std::make_shared<Label>(std::move(title));
+    auto titleLabel = std::make_shared<Label>(std::move(title), TypographyToken::Caption);
     titleLabel->SetHorizontalAlignment(HorizontalAlignment::Center);
     AddChild(titleLabel);
 
     if (!subtitle.empty()) {
-        auto sub = std::make_shared<Label>(std::move(subtitle));
+        auto sub = std::make_shared<Label>(std::move(subtitle), TypographyToken::Caption);
         sub->SetHorizontalAlignment(HorizontalAlignment::Center);
         AddChild(sub);
     }
@@ -47,7 +46,6 @@ void StatusBadge::SetText(std::string text) {
 }
 
 Size StatusBadge::Measure(const Size& availableSize) {
-    (void)availableSize;
     const float minH = ThemeMetric(MetricToken::ControlHeightCompact);
     const float padH = ThemeMetric(MetricToken::Space2);
     m_DesiredSize = ClampDesiredSize({
@@ -157,5 +155,5 @@ std::shared_ptr<SkeletonBlock> MakeSkeleton() {
     return std::make_shared<SkeletonBlock>();
 }
 
-} // namespace we::runtime::kindui
- 
+}
+

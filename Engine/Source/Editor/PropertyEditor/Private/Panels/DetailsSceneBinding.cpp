@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "PropertyEditor/DetailsSceneBinding.h"
 
+#include "Core/Logger.h"
 #include "Environment/EnvironmentSystem.h"
 #include "Environment/EnvironmentTypes.h"
 #include "PropertyEditor/PropertyEditorTypes.h"
@@ -51,10 +52,33 @@ void ResetCategoryFilter(IDetailsView& details) {
     details.SetActiveCategory("");
 }
 
-} // namespace
+// The EnvironmentSystem discovers actor ids asynchronously as scenes are
+// attached or rebuilt. During that short window GetActorKind can report its
+// Folder fallback even for a fully typed environment actor. The entity type is
+// stable, so use it to keep the Inspector populated with the component that
+// actually owns the editable settings.
+EnvironmentActorKind ResolveActorKind(EnvironmentSystem& system, const Entity& entity) {
+    const EnvironmentActorKind discovered = system.GetActorKind(entity.Id);
+    if (discovered != EnvironmentActorKind::Folder) {
+        return discovered;
+    }
+
+    switch (entity.Type) {
+    case EntityType::DirectionalLight: return EnvironmentActorKind::DirectionalLight;
+    case EntityType::SkyLight: return EnvironmentActorKind::SkyLight;
+    case EntityType::SkyAtmosphere: return EnvironmentActorKind::SkyAtmosphere;
+    case EntityType::HeightFog: return EnvironmentActorKind::HeightFog;
+    case EntityType::VolumetricClouds: return EnvironmentActorKind::VolumetricClouds;
+    default: return discovered;
+    }
+}
+
+}
 
 void PopulateDetailsFromSceneEntity(IDetailsView& details, Entity* entity) {
     if (!entity) {
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[InspectorDebug] Scene binding received no entity; clearing Inspector.");
         details.Clear();
         return;
     }
@@ -67,7 +91,8 @@ void PopulateDetailsFromSceneEntity(IDetailsView& details, Entity* entity) {
     std::vector<ObjectBinding> bindings;
     bindings.push_back({ MakeTypeId("we::runtime::scene::Entity"), entity });
 
-    switch (system.GetActorKind(entity->Id)) {
+    const EnvironmentActorKind actorKind = ResolveActorKind(system, *entity);
+    switch (actorKind) {
     case EnvironmentActorKind::DirectionalLight:
         bindings.push_back({
             MakeTypeId("we::runtime::world::environment::EnvironmentDirectionalLight"),
@@ -105,6 +130,11 @@ void PopulateDetailsFromSceneEntity(IDetailsView& details, Entity* entity) {
     details.SetBindings(bindings);
     details.SetObjectTitle(entity->Name);
     details.SetObjectIcon(IconForEntity(*entity));
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        "[InspectorDebug] Bound entity id=" + std::to_string(entity->Id) +
+        " name='" + entity->Name + "' type=" + std::to_string(static_cast<int>(entity->Type)) +
+        " actorKind=" + std::to_string(static_cast<int>(actorKind)) +
+        " bindings=" + std::to_string(bindings.size()));
 }
 
-} // namespace we::editor::property
+}

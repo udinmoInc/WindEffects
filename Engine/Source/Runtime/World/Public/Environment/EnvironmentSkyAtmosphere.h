@@ -11,6 +11,7 @@
 #include "World/Export.h"
 
 #include <cstdint>
+#include <string>
 #include "Core/Math/Types.h"
 
 namespace we::runtime::world::environment {
@@ -18,6 +19,8 @@ namespace we::runtime::world::environment {
 class WORLD_API EnvironmentSkyAtmosphere {
 public:
     std::uint64_t EntityId = 0;
+
+    std::string SkyMaterial = "Assets/Materials/M_Sky_Default.mat";
 
     float RayleighScattering = 0.005802f;
     float MieScattering = 0.003996f;
@@ -34,4 +37,4 @@ public:
     we::math::Vec3 GetOzoneAbsorption() const;
 };
 
-} // namespace we::runtime::world::environment
+}
