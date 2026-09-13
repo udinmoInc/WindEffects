@@ -91,7 +91,7 @@ private:
 
     void SaveState() const;
     [[nodiscard]] std::string GetActiveModeId() const;
-    // Compact modes (Select) keep transform tools, but the pinned drawer shows Place Actors.
+
     [[nodiscard]] std::string GetDrawerContentModeId() const;
 
     SectionHit* HitSectionHeader(const we::runtime::kindui::Point& p);

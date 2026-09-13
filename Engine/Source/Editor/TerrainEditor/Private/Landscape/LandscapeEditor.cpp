@@ -593,7 +593,7 @@ public:
         m_StrokeBefore = runtime_terrain::TerrainSystem::Get().CaptureHeightSamples();
         m_StrokeActive = !m_StrokeBefore.empty();
         if (m_StrokeActive) {
-            // Defer collision + coalesce remesh until EndStroke / Tick.
+
             if (auto* terrain = runtime_terrain::GetDefaultTerrainRuntime().Manager().GetActive()) {
                 terrain->Brush().BeginStroke();
             }

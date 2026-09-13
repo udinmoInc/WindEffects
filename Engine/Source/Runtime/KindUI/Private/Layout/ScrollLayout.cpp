@@ -102,7 +102,7 @@ void ScrollLayout::Paint(PaintContext& context) {
 
     context.PushClipRect(m_Metrics.viewport);
     if (m_Content && m_Content->IsVisible()) {
-        m_Content->Paint(context);
+        m_Content->PaintSubtree(context);
     }
     context.PopClipRect();
 

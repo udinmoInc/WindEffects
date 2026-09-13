@@ -158,7 +158,7 @@ void VirtualList::Paint(PaintContext& context) {
     ClearPaintDirty();
     for (auto& child : m_Cache) {
         if (child && child->IsVisible()) {
-            child->Paint(context);
+            child->PaintSubtree(context);
         }
     }
 }

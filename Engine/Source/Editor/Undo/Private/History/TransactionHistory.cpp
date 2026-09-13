@@ -105,7 +105,7 @@ public:
         if (!id.IsValid()) {
             return false;
         }
-        // Undo until checkpoint is the tip (checkpoint remains on undo stack).
+
         while (!m_Undo.empty()) {
             const auto& tip = m_Undo.back();
             if (tip && tip->IsCheckpoint() && tip->Id().value == id.value) {
@@ -115,7 +115,7 @@ public:
                 return false;
             }
         }
-        // Redo until checkpoint is tip.
+
         while (!m_Redo.empty()) {
             if (!RedoOne()) {
                 return false;

@@ -1,9 +1,5 @@
 {
-  "SDKPaths": {
-    "MSVC": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207",
-    "VulkanSDK": "C:\\VulkanSDK\\1.3.290.0",
-    "SDL3": "C:\\SDL3"
-  },
+  "SDKPaths": {},
   "AdditionalIncludePaths": {},
   "AdditionalLibraryPaths": {}
 }

@@ -79,7 +79,7 @@ static LandscapeWorkspaceRegistration g_LandscapeWorkspaceRegistration;
 
 } // namespace
 
-// Keep tool registrations for shortcuts / search; primary UX is the workspace panel.
+
 REGISTER_EDITOR_TOOL(LandscapeSculpt, SculptRaise, "Raise", WindIcons::Box16, "", []() {
     ActivateLandscapeViewportMode();
     TerrainEditorService::Get().SetBrushOp(TerrainBrushOp::Raise);

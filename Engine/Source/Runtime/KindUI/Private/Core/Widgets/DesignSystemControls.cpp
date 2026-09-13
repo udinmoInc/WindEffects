@@ -291,7 +291,7 @@ void Card::Paint(PaintContext& context) {
     ControlChrome::PaintCard(context, m_Geometry, state);
     for (auto& child : GetChildren()) {
         if (child && child->IsVisible()) {
-            child->Paint(context);
+            child->PaintSubtree(context);
         }
     }
 }

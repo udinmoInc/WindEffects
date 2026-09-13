@@ -453,10 +453,10 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
 
 void OverlayHost::Paint(PaintContext& context) {
     if (m_BaseWidget) {
-        m_BaseWidget->Paint(context);
+        m_BaseWidget->PaintSubtree(context);
     }
     for (auto& popup : m_Popups) {
-        popup->Paint(context);
+        popup->PaintSubtree(context);
     }
 }
 

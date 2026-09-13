@@ -208,7 +208,7 @@ void Grid::Paint(PaintContext& context) {
     }
     for (auto& child : m_Children) {
         if (child && child->IsVisible()) {
-            child->Paint(context);
+            child->PaintSubtree(context);
         }
     }
 }

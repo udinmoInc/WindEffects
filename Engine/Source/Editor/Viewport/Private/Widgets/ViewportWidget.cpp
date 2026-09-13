@@ -117,7 +117,7 @@ bool ViewportWidget::FlushPendingResize() {
         return false;
     }
 
-    // Keep camera aspect + blit rect in sync with the live panel geometry immediately.
+
     m_Camera->SetViewportSize(static_cast<float>(m_PendingWidth), static_cast<float>(m_PendingHeight));
     SyncRendererViewport();
 

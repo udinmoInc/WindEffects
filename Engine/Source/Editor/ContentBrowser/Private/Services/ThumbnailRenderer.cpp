@@ -103,7 +103,7 @@ std::array<uint8_t, 3> LerpRgb(const std::array<uint8_t, 3>& a, const std::array
 }
 
 uint32_t SnapFolderRasterHeight(uint32_t heightPx) {
-    // Keep small tree icons at their requested size so we don't downscale a 64px texture to ~15px.
+
     if (heightPx <= 48u) return std::max(16u, heightPx);
     if (heightPx <= 72u) return 64u;
     if (heightPx <= 112u) return 96u;
@@ -125,7 +125,7 @@ std::array<uint8_t, 3> ThemeRgb(const we::runtime::kindui::Color& color, float h
 }
 
 std::array<uint8_t, 3> SampleFolderThemeColor(float t, float hoverBrightness) {
-    // Use multi-color palette for folder: blend between tab color (top) and body color (bottom)
+
     const auto tabColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderTab),
         hoverBrightness);
     const auto bodyColor = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderBody),
@@ -548,13 +548,13 @@ void ThumbnailRenderer::FillRoundedRectVerticalGradient(BitmapRGBA& bmp, float x
 }
 
 BitmapRGBA ThumbnailRenderer::RenderContentBrowserFolderProcedural(uint32_t w, uint32_t h, float hoverBrightness) {
-    // Multi-colored folder using theme palette
+
     BitmapRGBA bmp;
     bmp.width = w;
     bmp.height = h;
     bmp.pixels.assign(static_cast<size_t>(w) * h * 4, 0);
 
-    // Use full theme palette for folder
+
     const auto shadowRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderShadow),
         hoverBrightness);
     const auto edgeRgb = ThemeRgb(ThumbnailThemeColor(we::runtime::kindui::ColorToken::ContentBrowserFolderEdge),
@@ -665,7 +665,7 @@ BitmapRGBA ThumbnailRenderer::RasterizeMonochromeSvg(const std::string& resolved
 
     if (!hasOpaque) return bmp;
 
-    // Folder SVGs are monochrome masks — always apply the theme gradient tint.
+
     const float opaqueSpan = std::max(1.0f, static_cast<float>(maxOpaqueY - minOpaqueY));
 
     for (uint32_t y = 0; y < h; ++y) {

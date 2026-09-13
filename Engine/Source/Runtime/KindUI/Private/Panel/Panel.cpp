@@ -200,7 +200,7 @@ void Panel::Paint(PaintContext& context) {
     }
 
     if (m_BodyLayout) {
-        m_BodyLayout->Paint(context);
+        m_BodyLayout->PaintSubtree(context);
     }
 
     // Standalone / floating panel chrome: frame includes header + body.

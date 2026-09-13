@@ -10,7 +10,6 @@
 
 #include "Environment/EnvironmentSystem.h"
 #include "Environment/EnvironmentTypes.h"
-#include "Environment/EnvironmentTypes.h"
 #include "Scene/Entity.h"
 #include "Scene/Scene.h"
 #include "ContentBrowser/Widgets/TreeView.h"

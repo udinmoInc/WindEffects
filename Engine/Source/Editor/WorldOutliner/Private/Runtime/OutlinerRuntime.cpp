@@ -428,7 +428,7 @@ private:
             }
         }
 
-        // Build hierarchy among visible nodes; attach orphans to root.
+
         for (const auto& [id, tn] : byId) {
             const auto* node = m_Model->GetNode(OutlinerNodeId{id});
             if (!node) {
@@ -442,7 +442,7 @@ private:
             }
         }
 
-        // Preserve expansion for non-visible ancestors when search filters.
+
         tree->SetRoot(root);
         ApplySelectionToTreeView();
     }

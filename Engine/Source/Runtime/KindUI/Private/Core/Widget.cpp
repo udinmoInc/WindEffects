@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Profiling/PaintCauseLog.h"
 #include "KindUI/Core/WidgetContext.h"
@@ -45,13 +46,89 @@ void Widget::InvalidateRetainedPaintUpward() {
     }
 }
 
+namespace {
+
+using RetainedPaintStore = std::vector<DrawCommand>;
+
+struct PaintRetentionFrame {
+    struct Range {
+        Widget* widget = nullptr;
+        uint32_t begin = 0;
+        uint32_t end = 0;
+    };
+    int depth = 0;
+    std::vector<Range> ranges;
+};
+
+PaintRetentionFrame& RetentionFrame() {
+    thread_local PaintRetentionFrame frame;
+    return frame;
+}
+
+} // namespace
+
 void Widget::PaintSubtree(PaintContext& context) {
-    // Temporary: identity path while isolating shell-build hang.
     if (!m_Visible) {
+        if (m_SubtreeNeedsPaint || m_NeedsPaint) {
+            ClearSubtreePaintDirty();
+        }
         return;
     }
+
+    const bool canReplay = context.IsPaintRetentionEnabled()
+        && m_RetainedPaintValid
+        && static_cast<bool>(m_RetainedPaintStore)
+        && !SubtreeNeedsPaint();
+
+    if (canReplay) {
+        const auto& store = *std::static_pointer_cast<const RetainedPaintStore>(m_RetainedPaintStore);
+        context.AppendCommands(
+            store,
+            static_cast<size_t>(m_RetainedPaintBegin),
+            static_cast<size_t>(m_RetainedPaintEnd));
+        ++s_PaintRetentionStats.subtreesReplayed;
+        s_PaintRetentionStats.commandsReplayed += (m_RetainedPaintEnd - m_RetainedPaintBegin);
+        return;
+    }
+
+    auto& frame = RetentionFrame();
+    const size_t commandStart = context.CommandCount();
+    ++frame.depth;
     Paint(context);
+    --frame.depth;
+    ++s_PaintRetentionStats.subtreesPainted;
+
     ClearSubtreePaintDirty();
+
+    const uint32_t commandEnd = static_cast<uint32_t>(context.CommandCount());
+    const uint32_t commandBegin = static_cast<uint32_t>(commandStart);
+    frame.ranges.push_back(PaintRetentionFrame::Range{ this, commandBegin, commandEnd });
+
+    // One shared command store per outermost PaintSubtree; widgets keep index slices.
+    if (frame.depth == 0) {
+        const auto& cmds = context.GetCommands();
+        auto store = std::make_shared<RetainedPaintStore>();
+        if (commandBegin <= commandEnd && commandBegin <= cmds.size()) {
+            const size_t end = (std::min)(static_cast<size_t>(commandEnd), cmds.size());
+            store->assign(
+                cmds.begin() + static_cast<std::ptrdiff_t>(commandBegin),
+                cmds.begin() + static_cast<std::ptrdiff_t>(end));
+        }
+        for (const auto& range : frame.ranges) {
+            if (!range.widget) {
+                continue;
+            }
+            if (range.begin < commandBegin || range.end > commandEnd || range.begin > range.end) {
+                continue;
+            }
+            range.widget->m_RetainedPaintStore = store;
+            range.widget->m_RetainedPaintBegin = range.begin - commandBegin;
+            range.widget->m_RetainedPaintEnd = range.end - commandBegin;
+            range.widget->m_RetainedPaintValid = true;
+        }
+        s_PaintRetentionStats.commandsRecorded += static_cast<uint32_t>(store->size());
+        frame.ranges.clear();
+    }
 }
 
 void Widget::Tick(float deltaTime) {
@@ -82,6 +159,7 @@ bool Widget::ShouldFireClickOnLeftUp(const MouseEvent& event) {
 }
 
 void Widget::InvalidateLayout() {
+    InvalidateRetainedPaintUpward();
     if (m_NeedsLayout) {
         return;
     }
@@ -101,6 +179,8 @@ void Widget::InvalidateLayout() {
 }
 
 void Widget::InvalidatePaint() {
+    // Retained slices include descendants — invalidate self + ancestors always.
+    InvalidateRetainedPaintUpward();
     if (m_NeedsPaint) {
         return;
     }
@@ -132,6 +212,9 @@ bool Widget::SubtreeNeedsLayout() const {
 }
 
 void Widget::ClearSubtreePaintDirty() {
+    if (!m_NeedsPaint && !m_SubtreeNeedsPaint) {
+        return;
+    }
     m_NeedsPaint = false;
     m_SubtreeNeedsPaint = false;
     for (auto& child : m_Children) {
@@ -193,8 +276,8 @@ void Widget::AttachOverlayChild(const std::shared_ptr<Widget>& child) {
         child->SetContext(m_Context);
     }
     m_Children.push_back(child);
-    UIRepaintGate::RequestPaint();
-    UiPathDiagnostics::Get().OnPaintInvalidation();
+    // Overlay attach changes the painted tree without layout — invalidate retention.
+    InvalidatePaint();
 }
 
 void Widget::RemoveChild(const std::shared_ptr<Widget>& child) {
@@ -216,8 +299,8 @@ void Widget::DetachOverlayChild(const std::shared_ptr<Widget>& child) {
     if (it != m_Children.end()) {
         child->m_Parent.reset();
         m_Children.erase(it);
-        UIRepaintGate::RequestPaint();
-        UiPathDiagnostics::Get().OnPaintInvalidation();
+        // Overlay detach changes the painted tree without layout — invalidate retention.
+        InvalidatePaint();
     }
 }
 

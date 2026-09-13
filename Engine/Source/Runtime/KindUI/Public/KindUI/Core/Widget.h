@@ -310,4 +310,3 @@ protected:
 
 } // namespace we::runtime::kindui
 
-// widget-abi-rebuild

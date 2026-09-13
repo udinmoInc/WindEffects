@@ -32,7 +32,6 @@
 #include "KindUI/Input/HotkeyManager.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>

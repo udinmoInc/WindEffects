@@ -127,7 +127,7 @@ public:
         if (!txn) {
             return false;
         }
-        // Reverse commands already applied inside the open transaction.
+
         (void)txn->Undo();
         txn->SetState(TransactionState::Cancelled);
         UndoDiagnostics::Get().OnCancel();
@@ -265,7 +265,7 @@ public:
             std::move(undoFn),
             std::move(redoFn),
             estimatedBytes);
-        // Custom: assume redo already applied by caller unless we auto-execute.
+
         const bool autoWrap = m_Open.empty();
         if (autoWrap) {
             TransactionDescriptor desc;

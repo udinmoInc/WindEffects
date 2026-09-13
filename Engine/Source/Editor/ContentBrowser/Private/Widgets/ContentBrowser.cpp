@@ -568,7 +568,7 @@ void ContentBrowser::Paint(PaintContext& context) {
 
     context.PopClipRect();
 
-    // Keep the browser canvas and its themed chrome in place. The shared KindUI
+
     // component is only an overlay, not a replacement for this widget.
     if (m_RenderList.empty() && m_EmptyState) {
         m_EmptyState->Arrange(m_ScrollMetrics.viewport);
@@ -757,8 +757,8 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
         const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
         const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
         Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
-        // Batch the selection into one model update: per-item NotifyChanged
-        // here used to rebuild the whole render list N times per mouse move.
+
+
         std::vector<std::string> boxedIds;
         for (const auto& renderItem : m_RenderList) {
             Rect intersection = renderItem.geometry.Intersect(selectBox);
@@ -965,7 +965,7 @@ void ContentBrowser::CalculateDetailsLayout() {
 }
 
 ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) {
-    // Visible window first: keeps hover/drag hit-testing flat cost on huge
+
     const int last = static_cast<int>(m_RenderList.size()) - 1;
     const int visFirst = std::max(0, std::min(m_FirstVisibleIndex, last));
     const int visLast = std::max(-1, std::min(m_LastVisibleIndex, last));
@@ -973,7 +973,7 @@ ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) 
         auto& renderItem = m_RenderList[static_cast<size_t>(i)];
         if (renderItem.geometry.Contains(pos)) return &renderItem;
     }
-    // Fallback: full scan covers stale visible ranges (layout not yet synced).
+
     for (auto& renderItem : m_RenderList) {
         if (renderItem.geometry.Contains(pos)) return &renderItem;
     }

@@ -80,7 +80,7 @@ void CollapsibleGroup::Paint(PaintContext& context) {
     PropertyPanelChrome::PaintSectionHeader(context, headerRect, m_Title, m_Expanded, m_HeaderHovered, 0.0f);
 
     if (m_Expanded && m_ContentColumn && m_ContentColumn->IsVisible()) {
-        m_ContentColumn->Paint(context);
+        m_ContentColumn->PaintSubtree(context);
     }
 }
 

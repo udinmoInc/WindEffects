@@ -15,7 +15,7 @@
 namespace we::editor::contentbrowser {
 
 namespace {
-constexpr uint64_t kThumbnailCacheSchema = 5; // folders use shared Lucide icon (no baked thumbnail)
+constexpr uint64_t kThumbnailCacheSchema = 5;
 }
 
 ThumbnailManager::ThumbnailManager() {

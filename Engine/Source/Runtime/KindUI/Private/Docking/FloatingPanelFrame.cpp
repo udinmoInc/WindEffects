@@ -299,7 +299,7 @@ void FloatingPanelFrame::Paint(::we::runtime::kindui::PaintContext& context) {
     }
 
     if (m_Dock && !m_Minimized) {
-        m_Dock->Paint(context);
+        m_Dock->PaintSubtree(context);
     }
 
     auto paintControl = [&](const Rect& rect, auto icon, int controlIndex, bool /*isClose*/) {

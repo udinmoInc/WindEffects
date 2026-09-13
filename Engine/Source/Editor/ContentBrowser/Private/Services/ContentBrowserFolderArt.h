@@ -18,7 +18,7 @@ using ::we::runtime::kindui::IconRenderer;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 
-/// Content Browser folder art (separate assets; shared theme folder tint):
+
 /// - Grid thumbnails: content-folder_512
 /// - Sidebar / list: folder / folder-open
 class ContentBrowserFolderArt {

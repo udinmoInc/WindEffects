@@ -159,7 +159,7 @@ void SortTreeChildren(std::vector<std::shared_ptr<::we::editor::contentbrowser::
 
 void RefreshOutliner();
 
-// A new editor scene already contains the default environment actors. Selecting
+
 // the sun gives the Inspector meaningful, editable content on first launch
 // without inventing a separate fake-data path. Existing scene selections are
 // always preserved.
