@@ -78,7 +78,6 @@ public:
     }
 
     [[nodiscard]] bool CanFinish() const noexcept override {
-        // Heightmap path is never required — Flat/Empty/Procedural are always valid.
         return m_State.createInfo.resolutionX > 1 && m_State.createInfo.resolutionY > 1
             && !m_State.name.empty();
     }
@@ -112,7 +111,6 @@ public:
     [[nodiscard]] bool IsEnabled() const noexcept override { return m_Preview.visible; }
 
     void Draw(IViewportContext&, float, float) override {
-        // Host/renderer draws circle from BrushPreview (GPU brush preview hook).
     }
 
 private:
@@ -131,7 +129,6 @@ public:
     [[nodiscard]] int SortOrder() const noexcept override { return 50; }
 
     void OnDrawOverlay(IViewportContext&) override {
-        // Future: dispatch GPU brush cursor / falloff ring via Renderer hooks.
         (void)m_Preview;
     }
 
@@ -201,7 +198,6 @@ private:
         if (hit.valid) {
             m_Editor.UpdateBrushPreview(hit.worldPoint.x, hit.worldPoint.y, hit.worldPoint.z);
         } else {
-            // Project onto ground plane Y=0 when no actor hit.
             const auto ray = context.HitTester().ScreenToRay(
                 x, y, context.ViewportWidth(), context.ViewportHeight());
             if (std::abs(ray.direction.y) > 1e-5f) {
@@ -358,7 +354,6 @@ public:
             info.materialSlot0 = state.materialSlot0;
         }
 
-        // Backward-compat: old generateProcedural flag.
         if (state.generateProcedural) {
             info.creationMethod = runtime_terrain::TerrainCreationMethod::Procedural;
             info.generator = state.procedural;
@@ -367,7 +362,6 @@ public:
             }
         }
 
-        // Heightmap import is optional and never blocks Create Landscape.
         if (info.creationMethod == runtime_terrain::TerrainCreationMethod::HeightmapImport
             && state.importHeightmapPath.empty())
         {
@@ -387,7 +381,6 @@ public:
 
         terrain.Streaming().SetEnabled(state.enableStreaming);
         terrain.Streaming().SetLoadRadiusChunks(state.enableStreaming ? 8 : 64);
-        // Keep initial landscape fully resident so Create always yields visible geometry.
         for (auto& chunk : terrain.Chunks().Chunks()) {
             chunk.visible = true;
             terrain.Streaming().RequestLoad(chunk.id);

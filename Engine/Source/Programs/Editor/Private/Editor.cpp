@@ -184,7 +184,8 @@ void Editor::InitializeEngine() {
     if (const char* vsyncEnv = std::getenv("WE_VSYNC"); vsyncEnv != nullptr) {
         we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(vsyncEnv[0] != '\0' && vsyncEnv[0] != '0');
     } else {
-        we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(true);
+        // Match Renderer::VsyncFromEnvironment default (off / uncapped).
+        we::runtime::kindui::UiInputLatencyAudit::SetVsyncEnabled(false);
     }
     if (m_Renderer->GetRHIDevice()) {
         const auto& rhiStats = m_Renderer->GetRHIDevice()->GetDiagnostics().lastFrame;

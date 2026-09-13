@@ -174,19 +174,13 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         }
     };
 
-    m_CreateBtn = std::make_shared<ToolbarLabeledButton>("Add", WindIcons::Plus16, false,
-        ToolbarLabeledButton::Variant::AddAction);
-    m_CreateBtn->SetFrameless(false);
+    m_CreateBtn = std::make_shared<ToolbarButton>("Add", WindIcons::Plus16);
     m_CreateBtn->SetFlexShrink(0.0f);
 
-    m_ImportBtn = std::make_shared<ToolbarLabeledButton>("Import", WindIcons::Import16, false,
-        ToolbarLabeledButton::Variant::Standard);
-    m_ImportBtn->SetFrameless(true);
+    m_ImportBtn = std::make_shared<ToolbarButton>("Import", WindIcons::Import16);
     m_ImportBtn->SetFlexShrink(0.0f);
 
-    m_SaveBtn = std::make_shared<ToolbarLabeledButton>("Save All", WindIcons::SaveAll16, false,
-        ToolbarLabeledButton::Variant::Standard);
-    m_SaveBtn->SetFrameless(true);
+    m_SaveBtn = std::make_shared<ToolbarButton>("Save All", WindIcons::SaveAll16);
     m_SaveBtn->SetFlexShrink(0.0f);
 
     m_ImportBtn->SetOnClicked([this]() {
@@ -197,28 +191,23 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         if (m_OnSaveClicked) m_OnSaveClicked();
     });
 
-    m_BackBtn = std::make_shared<ToolbarIconToggle>(WindIcons::CircleArrowLeft16, "Back");
-    m_BackBtn->SetFrameless(true);
+    m_BackBtn = std::make_shared<ToolbarIconButton>(WindIcons::CircleArrowLeft16, "Back");
     m_BackBtn->SetFlexShrink(0.0f);
 
-    m_ForwardBtn = std::make_shared<ToolbarIconToggle>(WindIcons::CircleArrowRight16, "Forward");
-    m_ForwardBtn->SetFrameless(true);
+    m_ForwardBtn = std::make_shared<ToolbarIconButton>(WindIcons::CircleArrowRight16, "Forward");
     m_ForwardBtn->SetFlexShrink(0.0f);
 
-    m_FolderBtn = std::make_shared<ToolbarIconToggle>(WindIcons::Folder16, "Folder");
-    m_FolderBtn->SetFrameless(true);
+    m_FolderBtn = std::make_shared<ToolbarIconButton>(WindIcons::Folder16, "Folder");
     m_FolderBtn->SetFlexShrink(0.0f);
 
     m_Breadcrumb = std::make_shared<Breadcrumb>();
     m_Breadcrumb->SetFlexShrink(0.0f);
     m_Breadcrumb->SetPath({ "All", "Content" });
 
-    m_SettingsBtn = std::make_shared<ToolbarIconToggle>(WindIcons::Settings16, "Settings");
-    m_SettingsBtn->SetFrameless(true);
+    m_SettingsBtn = std::make_shared<ToolbarIconButton>(WindIcons::Settings16, "Settings");
     m_SettingsBtn->SetFlexShrink(0.0f);
 
-    m_MoreBtn = std::make_shared<ToolbarIconToggle>(WindIcons::EllipsisVertical16, "More Options");
-    m_MoreBtn->SetFrameless(true);
+    m_MoreBtn = std::make_shared<ToolbarIconButton>(WindIcons::EllipsisVertical16, "More Options");
     m_MoreBtn->SetFlexShrink(0.0f);
 
     m_SettingsBtn->SetOnClicked([this, showMenuBelow]() {

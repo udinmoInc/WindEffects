@@ -17,7 +17,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 
 namespace we::runtime::kindui {
 namespace {
@@ -35,16 +34,53 @@ std::string EllipsizeToWidth(
     }
 
     constexpr const char* kEllipsis = "...";
-    std::string truncated = text;
-    while (truncated.size() > 1
-        && TextMetrics::MeasureWidth(truncated + kEllipsis, fontSize, bold) > maxWidth) {
-        truncated.pop_back();
+    const float ellipsisWidth = TextMetrics::MeasureWidth(kEllipsis, fontSize, bold);
+    if (ellipsisWidth >= maxWidth) {
+        return kEllipsis;
     }
-    truncated += kEllipsis;
-    return truncated;
+    const float targetWidth = maxWidth - ellipsisWidth;
+
+    size_t low = 0;
+    size_t high = text.size();
+    size_t bestLen = 0;
+
+    while (low <= high) {
+        const size_t mid = low + (high - low) / 2;
+        std::string_view sub(text.data(), mid);
+        if (TextMetrics::MeasureWidth(sub, fontSize, bold) <= targetWidth) {
+            bestLen = mid;
+            low = mid + 1;
+        } else {
+            if (mid == 0) break;
+            high = mid - 1;
+        }
+    }
+
+    std::string result;
+    result.reserve(bestLen + 3);
+    result.assign(text.data(), bestLen);
+    result += kEllipsis;
+    return result;
 }
 
+void SplitLines(const std::string& text, std::vector<std::string>& out) {
+    out.clear();
+    size_t start = 0;
+    while (start <= text.size()) {
+        const size_t end = text.find('\n', start);
+        if (end == std::string::npos) {
+            out.push_back(text.substr(start));
+            break;
+        }
+        out.push_back(text.substr(start, end - start));
+        start = end + 1;
+    }
+    if (out.empty()) {
+        out.emplace_back();
+    }
 }
+
+} // namespace
 
 Label::Label(const std::string& text, TypographyToken role)
     : m_Text(text)
@@ -84,38 +120,69 @@ float Label::LineHeight() const
     return m_Style.size * 1.25f;
 }
 
-Size Label::Measure(const Size& availableSize) {
+void Label::RebuildLines(float availableWidth) {
     m_WrappedLines.clear();
 
-    if (m_WrapText && availableSize.width > 0.0f) {
-        std::istringstream words(m_Text);
-        std::string word;
+    if (m_WrapText && availableWidth > 0.0f) {
+        size_t i = 0;
         std::string currentLine;
-
-        while (words >> word) {
-            const std::string candidate = currentLine.empty() ? word : currentLine + " " + word;
-            if (currentLine.empty()
-                || TextMetrics::MeasureWidth(candidate, m_Style.size, m_Style.bold) <= availableSize.width) {
-                currentLine = candidate;
-            } else {
+        while (i < m_Text.size()) {
+            while (i < m_Text.size() && (m_Text[i] == ' ' || m_Text[i] == '\t' || m_Text[i] == '\r')) {
+                ++i;
+            }
+            if (i >= m_Text.size()) {
+                break;
+            }
+            if (m_Text[i] == '\n') {
                 m_WrappedLines.push_back(currentLine);
-                currentLine = word;
+                currentLine.clear();
+                ++i;
+                continue;
+            }
+            const size_t wordStart = i;
+            while (i < m_Text.size() && m_Text[i] != ' ' && m_Text[i] != '\t' && m_Text[i] != '\n' && m_Text[i] !=
+                '\r') {
+                ++i;
+            }
+            const std::string_view word(m_Text.data() + wordStart, i - wordStart);
+            if (currentLine.empty()) {
+                currentLine.assign(word);
+            } else {
+                std::string candidate;
+                candidate.reserve(currentLine.size() + 1 + word.size());
+                candidate = currentLine;
+                candidate.push_back(' ');
+                candidate.append(word);
+                if (TextMetrics::MeasureWidth(candidate, m_Style.size, m_Style.bold) > availableWidth) {
+                    m_WrappedLines.push_back(std::move(currentLine));
+                    currentLine.assign(word);
+                } else {
+                    currentLine = std::move(candidate);
+                }
             }
         }
-        if (!currentLine.empty()) {
-            m_WrappedLines.push_back(currentLine);
+        if (!currentLine.empty() || m_WrappedLines.empty()) {
+            m_WrappedLines.push_back(std::move(currentLine));
         }
     } else {
-        std::istringstream stream(m_Text);
-        std::string rawLine;
-        while (std::getline(stream, rawLine, '\n')) {
-            m_WrappedLines.push_back(rawLine);
-        }
-        if (availableSize.width > 0.0f && !m_WrappedLines.empty()) {
+        SplitLines(m_Text, m_WrappedLines);
+        if (availableWidth > 0.0f) {
             for (auto& wrapped : m_WrappedLines) {
-                wrapped = EllipsizeToWidth(wrapped, m_Style.size, m_Style.bold, availableSize.width);
+                wrapped = EllipsizeToWidth(wrapped, m_Style.size, m_Style.bold, availableWidth);
             }
         }
+    }
+
+    m_CachedLayoutWidth = availableWidth;
+    m_LinesCacheValid = true;
+}
+
+Size Label::Measure(const Size& availableSize) {
+    const float layoutWidth = availableSize.width > 0.0f && availableSize.width < 1.0e8f
+        ? availableSize.width
+        : -1.0f;
+    if (!m_LinesCacheValid || m_CachedLayoutWidth != layoutWidth) {
+        RebuildLines(layoutWidth);
     }
 
     float maxWidth = 0.0f;
@@ -128,8 +195,8 @@ Size Label::Measure(const Size& availableSize) {
 
     const float lineHeight = LineHeight();
     const float height = static_cast<float>(std::max<size_t>(m_WrappedLines.size(), 1)) * lineHeight;
-    if (availableSize.width > 0.0f && !m_WrapText) {
-        maxWidth = std::min(maxWidth, availableSize.width);
+    if (layoutWidth > 0.0f && !m_WrapText) {
+        maxWidth = std::min(maxWidth, layoutWidth);
     }
     m_DesiredSize = Size{ maxWidth, height };
     return m_DesiredSize;
@@ -137,14 +204,10 @@ Size Label::Measure(const Size& availableSize) {
 
 void Label::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
-    if (!m_WrapText && allottedRect.width > 0.0f && !m_WrappedLines.empty()) {
-        // Re-ellipsize against final arranged width so labels never overflow neighbors.
-        std::istringstream stream(m_Text);
-        std::string rawLine;
-        m_WrappedLines.clear();
-        while (std::getline(stream, rawLine, '\n')) {
-            m_WrappedLines.push_back(
-                EllipsizeToWidth(rawLine, m_Style.size, m_Style.bold, allottedRect.width));
+    // Re-ellipsize only when final arranged width differs from the Measure cache key.
+    if (!m_WrapText && allottedRect.width > 0.0f) {
+        if (!m_LinesCacheValid || m_CachedLayoutWidth != allottedRect.width) {
+            RebuildLines(allottedRect.width);
         }
     }
 }
@@ -171,4 +234,3 @@ void Label::Paint(PaintContext& context) {
 }
 
 }
-

@@ -51,6 +51,13 @@ public:
         const layout::TextStyle& style,
         const layout::LayoutConstraints& constraints,
         FontHandle font = kInvalidFontHandle) = 0;
+    /// Returns a pointer into the layout cache (no glyph-vector copy).
+    /// Invalidated by InvalidateLayoutCache or a cache eviction on a later call.
+    [[nodiscard]] virtual const layout::LayoutResult* GetOrCreateLayout(
+        std::string_view utf8Text,
+        const layout::TextStyle& style,
+        const layout::LayoutConstraints& constraints,
+        FontHandle font = kInvalidFontHandle) = 0;
     [[nodiscard]] virtual MeasureResult Measure(
         std::string_view utf8Text,
         const layout::TextStyle& style,
@@ -102,6 +109,11 @@ public:
 
     [[nodiscard]] TextResult<FontHandle> LoadFont(const std::filesystem::path& assetPath) override;
     [[nodiscard]] layout::LayoutResult Layout(
+        std::string_view utf8Text,
+        const layout::TextStyle& style,
+        const layout::LayoutConstraints& constraints,
+        FontHandle font = kInvalidFontHandle) override;
+    [[nodiscard]] const layout::LayoutResult* GetOrCreateLayout(
         std::string_view utf8Text,
         const layout::TextStyle& style,
         const layout::LayoutConstraints& constraints,

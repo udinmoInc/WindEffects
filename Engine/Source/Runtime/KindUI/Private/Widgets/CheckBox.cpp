@@ -28,8 +28,12 @@ CheckBox::CheckBox(const std::string& label, bool initialState)
 
 Size CheckBox::Measure(const Size& availableSize) {
     (void)availableSize;
-    const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Checkbox);
-    m_BoxSize = role.height > 0.0f ? role.height : 14.0f;
+    if (!m_BoxStyleCacheValid || m_NeedsStyle) {
+        m_CachedBoxStyle = ThemeManager::Get().Resolve(StyleRole::Checkbox);
+        m_BoxStyleCacheValid = true;
+        ClearStyleDirty();
+    }
+    m_BoxSize = m_CachedBoxStyle.height > 0.0f ? m_CachedBoxStyle.height : 14.0f;
     const float textWidth = TextMetrics::MeasureWidth(m_Label, m_Style.size, m_Style.bold);
     const float gap = ResolveMetric(MetricToken::Space2);
     m_DesiredSize = Size{ m_BoxSize + gap + textWidth, std::max(m_BoxSize, m_Style.size + 4.0f) };
@@ -42,7 +46,8 @@ void CheckBox::Arrange(const Rect& allottedRect) {
 
 void CheckBox::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
 }
 
@@ -70,19 +75,13 @@ void CheckBox::Paint(PaintContext& context) {
         m_Style.italic);
 }
 
-void CheckBox::OnMouseMove(const MouseEvent& event) {
-    if (!m_Visible) {
-        return;
-    }
-    m_Hovered = m_Geometry.Contains(event.position);
-}
-
 void CheckBox::OnMouseDown(const MouseEvent& event) {
-    if (!m_Visible) {
+    if (!m_Visible || !IsEnabled()) {
         return;
     }
-    if (m_Hovered && event.button == MouseButton::Left) {
+    if (m_Geometry.Contains(event.position) && event.button == MouseButton::Left) {
         m_Checked = !m_Checked;
+        InvalidatePaint();
         if (m_OnChanged) {
             m_OnChanged(m_Checked);
         }
@@ -90,4 +89,3 @@ void CheckBox::OnMouseDown(const MouseEvent& event) {
 }
 
 } // namespace we::runtime::kindui
- 

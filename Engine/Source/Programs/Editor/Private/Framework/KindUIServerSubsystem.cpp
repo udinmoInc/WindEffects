@@ -40,10 +40,10 @@ void KindUIServerSubsystem::Tick(float /*deltaTime*/) {
         0);
 
     m_Host.HostUpdateUiScaleFromWindow();
-    m_LayoutOrResizeThisFrame = m_Host.HostSyncViewportFramebufferFromLayout();
+    // Layout is owned here (sole ConsumeNeedsLayout consumer for the editor).
+    // Skip Measure/Arrange when the gate is clean — widget Tick already ran.
     if (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout()) {
-        m_LayoutOrResizeThisFrame =
-            m_Host.HostSyncViewportFramebufferFromLayout() || m_LayoutOrResizeThisFrame;
+        m_LayoutOrResizeThisFrame = m_Host.HostSyncViewportFramebufferFromLayout();
     }
     ::we::editor::services::EditorPerfStats::Get().Mark("layout");
 

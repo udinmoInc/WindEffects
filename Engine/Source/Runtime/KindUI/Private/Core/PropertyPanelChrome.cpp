@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Layout/AutoAlign.h"
 
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Widget.h"
@@ -412,9 +413,10 @@ void PaintInlineIconLabelRow(
     }
 
     const float textX = rect.x + padH + (icon.IsValid() ? iconSize + gap : 0.0f);
+    const float textY = AutoAlign::AlignTextTopY(rect, fontSize);
     context.DrawText(
         text,
-        Point{ textX, centerY - fontSize * 0.5f },
+        Point{ textX, textY },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);
@@ -445,10 +447,6 @@ void PaintDetailsObjectHeader(
     const float titleRowH = ResolveMetric(MetricToken::ControlHeightCompact) * scale;
     const Rect titleRow{ rect.x, rect.y, rect.width, titleRowH };
 
-    // Keep the selected actor readable and compact. The old second "Instance"
-    // row was rendered as a full selection band but carried no additional data,
-    // which looked like an empty blue strip above the search control.
-    // Use Panel color to match active tab color
     context.DrawSurface(titleRow, SurfaceRole::Panel, 0.0f, "DetailsObjectHeader");
     PaintInlineIconLabelRow(context, titleRow, displayName, icon, true);
 }
@@ -474,24 +472,22 @@ void PaintSectionHeader(
         context.DrawSurface(rect, SurfaceRole::PanelHeader, 0.0f, "SectionHeader");
     }
 
-    // Use consistent padding equal to row padding
     const float padH = RowPaddingH() + indent;
     const float chevronSize = 16.0f;
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
-    const float centerY = rect.y + rect.height * 0.5f;
 
     const WindIconRef chevronIcon = expanded ? WindIcons::TriangleDown16 : WindIcons::TriangleRight16;
     IconPainter::Draw(context, chevronIcon, IconMetrics::CompactGlyphBand(rect, rect.x + padH));
 
     const float textX = rect.x + padH + chevronSize + ResolveMetric(MetricToken::Space1) * scale;
+    const float textY = AutoAlign::AlignTextTopY(rect, fontSize);
     context.DrawText(
         title,
-        Point{ textX, centerY - fontSize * 0.5f },
+        Point{ textX, textY },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);
 
-    // Draw horizontal divider at bottom to align with property-row grid
     const float borderW = std::max(1.0f, 1.0f * scale);
     const float snappedY = std::floor(rect.y + rect.height - borderW);
     context.DrawRect(
@@ -504,9 +500,10 @@ void PaintPropertyRowLabel(
     const Rect& labelRect,
     std::string_view label,
     bool mixed) {
+    (void)mixed;
     const float scale = UiScale();
-    const float fontSize = ResolveMetric(MetricToken::TextSizeCaption) * scale;
-    const float textY = LayoutMetrics::AlignTextTopY(labelRect, fontSize);
+    const float fontSize = ResolveMetric(MetricToken::TextSizeProperty) * scale;
+    const float textY = AutoAlign::AlignTextTopY(labelRect, fontSize);
 
     std::string display(label);
     if (labelRect.width > 0.0f) {
@@ -525,7 +522,7 @@ void PaintPropertyRowLabel(
     context.DrawText(
         display,
         Point{ labelRect.x, textY },
-        mixed ? ResolveColor(ColorToken::AccentPrimary) : ResolveColor(ColorToken::TextSecondary),
+        ResolveColor(ColorToken::TextSecondary),
         fontSize);
 }
 

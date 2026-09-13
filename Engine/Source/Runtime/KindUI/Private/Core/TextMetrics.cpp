@@ -8,13 +8,17 @@
 // ==============================================================================
 #include "KindUI/Core/TextMetrics.h"
 
-#include <mutex>
-#include <string>
-#include <unordered_map>
+#include <shared_mutex>
 
 namespace we::runtime::kindui {
 
 namespace {
+
+struct CacheKeyView {
+    std::string_view text;
+    float fontSize = 0.0f;
+    bool bold = false;
+};
 
 struct CacheKey {
     std::string text;
@@ -26,20 +30,33 @@ struct CacheKey {
             && fontSize == other.fontSize
             && text == other.text;
     }
+    bool operator==(const CacheKeyView& other) const {
+        return bold == other.bold
+            && fontSize == other.fontSize
+            && text == other.text;
+    }
 };
 
 struct CacheKeyHash {
+    using is_transparent = void;
     size_t operator()(const CacheKey& key) const noexcept {
-        size_t h = std::hash<std::string>{}(key.text);
-        h ^= std::hash<float>{}(key.fontSize) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        h ^= std::hash<bool>{}(key.bold) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return HashImpl(key.text, key.fontSize, key.bold);
+    }
+    size_t operator()(const CacheKeyView& key) const noexcept {
+        return HashImpl(key.text, key.fontSize, key.bold);
+    }
+private:
+    static size_t HashImpl(std::string_view text, float fontSize, bool bold) noexcept {
+        size_t h = std::hash<std::string_view>{}(text);
+        h ^= std::hash<float>{}(fontSize) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<bool>{}(bold) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
     }
 };
 
-std::mutex g_MeasureMutex;
+std::shared_mutex g_MeasureMutex;
 TextMetrics::MeasureFn g_MeasureProvider;
-std::unordered_map<CacheKey, float, CacheKeyHash> g_MeasureCache;
+std::unordered_map<CacheKey, float, CacheKeyHash, std::equal_to<>> g_MeasureCache;
 constexpr size_t kMaxCacheEntries = 4096;
 
 void TrimCacheIfNeeded() {
@@ -56,13 +73,13 @@ void TrimCacheIfNeeded() {
 }
 
 void TextMetrics::SetMeasureProvider(TextMetrics::MeasureFn provider) {
-    std::scoped_lock lock(g_MeasureMutex);
+    std::unique_lock lock(g_MeasureMutex);
     g_MeasureProvider = std::move(provider);
     g_MeasureCache.clear();
 }
 
 void TextMetrics::ClearCache() {
-    std::scoped_lock lock(g_MeasureMutex);
+    std::unique_lock lock(g_MeasureMutex);
     g_MeasureCache.clear();
 }
 
@@ -82,24 +99,18 @@ float TextMetrics::MeasureWidth(const std::string_view text, const float fontSiz
         return 0.0f;
     }
 
-    CacheKey key;
-    key.text.assign(text.begin(), text.end());
-    key.fontSize = fontSize;
-    key.bold = bold;
+    const CacheKeyView viewKey{ text, fontSize, bold };
+    TextMetrics::MeasureFn provider;
 
     {
-        std::scoped_lock lock(g_MeasureMutex);
-        if (const auto found = g_MeasureCache.find(key); found != g_MeasureCache.end()) {
+        std::shared_lock lock(g_MeasureMutex);
+        if (const auto found = g_MeasureCache.find(viewKey); found != g_MeasureCache.end()) {
             return found->second;
         }
-    }
-
-    TextMetrics::MeasureFn provider;
-    float width = 0.0f;
-    {
-        std::scoped_lock lock(g_MeasureMutex);
         provider = g_MeasureProvider;
     }
+
+    float width = 0.0f;
     if (provider) {
         width = provider(text, fontSize, bold);
     } else {
@@ -107,8 +118,9 @@ float TextMetrics::MeasureWidth(const std::string_view text, const float fontSiz
     }
 
     {
-        std::scoped_lock lock(g_MeasureMutex);
+        std::unique_lock lock(g_MeasureMutex);
         TrimCacheIfNeeded();
+        CacheKey key{ std::string(text), fontSize, bold };
         g_MeasureCache.emplace(std::move(key), width);
     }
     return width;

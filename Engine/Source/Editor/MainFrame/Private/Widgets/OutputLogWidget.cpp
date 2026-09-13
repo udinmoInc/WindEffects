@@ -180,7 +180,6 @@ void OutputLogWidget::Paint(PaintContext& context) {
         }
         if (y > maxY) break;
 
-        // Alternating row background accent
         if (i % 2 == 1) {
             context.DrawSurface(
                 Rect{ geometry.x, y, geometry.width, lineHeight },

@@ -50,6 +50,22 @@ public:
 
     [[nodiscard]] FlexDirection GetDirection() const { return m_Direction; }
 
+    /// Measure children with a fixed cross-axis size (toolbar / title rows).
+    [[nodiscard]] Size MeasureWithFixedCross(const Size& availableSize, float fixedCrossSize);
+
+protected:
+    struct ArrangeItem {
+        std::shared_ptr<Widget> widget;
+        Size desired{};
+        float mainSize = 0.0f;
+        float crossSize = 0.0f;
+        float marginMainStart = 0.0f;
+        float marginMainEnd = 0.0f;
+        float marginCrossStart = 0.0f;
+        float marginCrossEnd = 0.0f;
+        float grow = 0.0f;
+    };
+
 private:
     [[nodiscard]] bool IsRow() const {
         return m_Direction == FlexDirection::Row || m_Direction == FlexDirection::RowReverse;
@@ -65,6 +81,8 @@ private:
     Color m_Background{};
     bool m_HasBackground = false;
     float m_Radius = 0.0f;
+    /// Reused across Arrange calls to avoid per-layout heap churn.
+    mutable std::vector<ArrangeItem> m_ArrangeScratch;
 };
 
 class KINDUI_API Row : public Flex {

@@ -18,6 +18,7 @@
 #include <chrono>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace we::rhi::vulkan {
@@ -199,6 +200,19 @@ RHIResult<void> VulkanSwapchain::Rebuild() {
             }
         }
     }
+
+    const char* presentModeName = "FIFO";
+    if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        presentModeName = "MAILBOX";
+    } else if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        presentModeName = "IMMEDIATE";
+    } else if (presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+        presentModeName = "FIFO_RELAXED";
+    }
+    WE_LOG_INFO(we::LogCategory::Vulkan.data(),
+        std::string("Swapchain presentMode=") + presentModeName
+            + " vsync=" + (m_Desc.vsync ? "on" : "off")
+            + " extent=" + std::to_string(extent.width) + "x" + std::to_string(extent.height));
 
     // Prefer fence drains over vkDeviceWaitIdle — WaitIdle hung the editor on focus return.
     if (m_InFlight && !m_InFlight->empty()) {

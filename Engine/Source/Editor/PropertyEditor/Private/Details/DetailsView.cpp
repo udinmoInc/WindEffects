@@ -28,16 +28,12 @@ namespace detail {
 
 namespace {
 float DetailsRowHeightPx() {
-    // One shared row height keeps labels, numeric inputs, vectors, and
-    // checkboxes locked to the same compact vertical rhythm.
     return we::runtime::kindui::PropertyPanelChrome::RowHeight();
 }
 float DetailsSectionHeightPx() {
     return we::runtime::kindui::PropertyPanelChrome::SectionHeight();
 }
 float DetailsSectionGapPx() {
-    // One shared inset for the top of the list, between root sections
-    // (Actor / Transform / Light), and the bottom of the list.
     return we::runtime::kindui::PropertyPanelChrome::FormStackGap();
 }
 float DetailsWheelStepPx() {
@@ -177,8 +173,6 @@ public:
             return nullptr;
         }
 
-        // Keep trailing action / row hover in sync even when a child editor owns
-        // the pointer — chrome hover must not depend on who receives OnMouseMove.
         UpdateHoveredChrome(pos);
 
         if (!m_Tree) {
@@ -363,8 +357,6 @@ private:
                     const bool hasLockIcon = ShouldShowLockIcon(node);
                     const auto layout = PanelChrome::LayoutPropertyRow(row, node->GetDepth(), icons, hasLockIcon,
                         m_SplitterState.GetRatio());
-                    // Every editor shares the same compact value band so single
-                    // fields and XYZ strips align on one horizontal rhythm.
                     editorWidget->Arrange(PanelChrome::LayoutPropertyControlRect(layout.value));
                 }
             }
@@ -474,7 +466,6 @@ private:
                     PanelChrome::PaintPropertyRowBackground(context, row, true, false);
                 }
 
-                // Paint lock icon next to label if present
                 if (hasLockIcon) {
                     PanelChrome::PaintPropertyLockIcon(context, layout.lockIcon, IsPropertyLocked(node));
                 }
@@ -557,8 +548,6 @@ private:
         const auto layout = PanelChrome::LayoutPropertyRow(row, node->GetDepth(), icons, hasLockIcon);
         if (layout.actions.Contains(pos) || layout.label.Contains(pos) || (!layout.lockIcon.IsEmpty() &&
             layout.lockIcon.Contains(pos))) {
-            // Label, lock icon, and trailing actions belong to the Inspector chrome, not the
-            // value editor, so hover/click stay on the Details view.
             return shared_from_this();
         }
 

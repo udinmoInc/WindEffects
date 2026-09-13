@@ -32,20 +32,20 @@ inline float SnapPx(const float v) {
     return std::floor(v + 0.5f);
 }
 
-std::filesystem::path ResolveWeFontPath(const std::string& baseName) {
-    const auto candidates = we::core::PathService::Get().FontCandidates(baseName + ".wefont");
+std::filesystem::path ResolveFontPath(const std::string& baseName, const char* extension) {
+    const auto candidates = we::core::PathService::Get().FontCandidates(baseName + extension);
     if (const auto found = we::core::PathService::FindExisting(candidates)) {
         return *found;
     }
     return {};
 }
 
+std::filesystem::path ResolveWeFontPath(const std::string& baseName) {
+    return ResolveFontPath(baseName, ".wefont");
+}
+
 std::filesystem::path ResolveTtfPath(const std::string& baseName) {
-    const auto candidates = we::core::PathService::Get().FontCandidates(baseName + ".ttf");
-    if (const auto found = we::core::PathService::FindExisting(candidates)) {
-        return *found;
-    }
-    return {};
+    return ResolveFontPath(baseName, ".ttf");
 }
 
 bool NeedsFontRebake(const std::filesystem::path& wefontPath) {
@@ -93,9 +93,9 @@ std::filesystem::path EnsureWeFontAsset(const std::string& baseName) {
     return ResolveWeFontPath(baseName);
 }
 
-std::filesystem::path ResolveSemiBoldWeFontPath() {
-    const std::string names[] = {"Roboto-Bold", "Roboto-Medium"};
-    for (const auto& name : names) {
+template <size_t N>
+std::filesystem::path ResolveWeightedWeFontPath(const char* const (&names)[N]) {
+    for (const char* name : names) {
         if (const auto path = EnsureWeFontAsset(name); !path.empty()) {
             return path;
         }
@@ -103,14 +103,14 @@ std::filesystem::path ResolveSemiBoldWeFontPath() {
     return {};
 }
 
+std::filesystem::path ResolveSemiBoldWeFontPath() {
+    static constexpr const char* kNames[] = {"Roboto-Bold", "Roboto-Medium"};
+    return ResolveWeightedWeFontPath(kNames);
+}
+
 std::filesystem::path ResolveMediumWeFontPath() {
-    const std::string names[] = {"Roboto-Medium", "Roboto-Bold"};
-    for (const auto& name : names) {
-        if (const auto path = EnsureWeFontAsset(name); !path.empty()) {
-            return path;
-        }
-    }
-    return {};
+    static constexpr const char* kNames[] = {"Roboto-Medium", "Roboto-Bold"};
+    return ResolveWeightedWeFontPath(kNames);
 }
 
 we::runtime::text::layout::FontWeight EffectiveWeight(const DrawCommand& cmd) {
@@ -290,11 +290,10 @@ void TextUIService::SyncDirtyAtlasPages() {
             DumpAtlasPagesToDisk();
         }
     }
+    // Only upload pages that actually changed — TakeDirtyPages() already tracks this.
+    // Removed: redundant full O(page-count) scan that re-checked every page every call.
     for (const uint32_t pageIndex : atlas->TakeDirtyPages()) {
         (void)EnsureAtlasPageUploaded(pageIndex);
-    }
-    for (uint32_t i = 0; i < atlas->PageCount(); ++i) {
-        (void)EnsureAtlasPageUploaded(i);
     }
 }
 
@@ -398,11 +397,8 @@ float TextUIService::MeasureText(
     if (!m_TextEngine || text.empty()) {
         return 0.0f;
     }
-    TextMeasureKey key;
-    key.text.assign(text.begin(), text.end());
-    key.fontSize = fontSize;
-    key.weight = static_cast<uint16_t>(weight);
-    auto it = m_MeasureCache.find(key);
+    const TextMeasureKeyView keyView{ text, fontSize, static_cast<uint16_t>(weight) };
+    auto it = m_MeasureCache.find(keyView);
     if (it != m_MeasureCache.end()) {
         return it->second;
     }
@@ -423,6 +419,7 @@ float TextUIService::MeasureText(
         fontHandle = m_MediumFont;
     }
     float width = m_TextEngine->Measure(text, style, constraints, fontHandle).width;
+    TextMeasureKey key{ std::string(text), fontSize, static_cast<uint16_t>(weight) };
     m_MeasureCache.emplace(std::move(key), width);
     return width;
 }
@@ -474,10 +471,12 @@ bool TextUIService::GenerateTextGeometry(
     constraints.wordWrap = false;
     constraints.dpiScale = 1.0f;
 
-    auto layout = m_TextEngine->Layout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
-    if (layout.glyphs.empty()) {
+    const we::runtime::text::layout::LayoutResult* layoutPtr =
+        m_TextEngine->GetOrCreateLayout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
+    if (!layoutPtr || layoutPtr->glyphs.empty()) {
         return false;
     }
+    const we::runtime::text::layout::LayoutResult& layout = *layoutPtr;
 
     MaybeLogScaleDiagnostics(layout);
 
@@ -497,16 +496,17 @@ bool TextUIService::GenerateTextGeometry(
         }
     }
 
+    we::runtime::text::FontHandle resolvedFont = layoutFont;
     if (useDynamic) {
         outTextureSet = EnsureAtlasPageUploaded(atlasPageIndex);
     } else {
         for (const auto& glyph : layout.glyphs) {
             if (glyph.glyph.fontHandle != we::runtime::text::kInvalidFontHandle) {
-                layoutFont = glyph.glyph.fontHandle;
+                resolvedFont = glyph.glyph.fontHandle;
                 break;
             }
         }
-        outTextureSet = GetDescriptorForFont(layoutFont);
+        outTextureSet = GetDescriptorForFont(resolvedFont);
     }
 
     if (outTextureSet == we::rhi::RHIDescriptorSetHandle::Invalid
@@ -523,12 +523,11 @@ bool TextUIService::GenerateTextGeometry(
             atlasWidth = it->second.width;
             atlasHeight = it->second.height;
         }
-    } else if (const auto it = m_FontAtlases.find(layoutFont); it != m_FontAtlases.end()) {
+    } else if (const auto it = m_FontAtlases.find(resolvedFont); it != m_FontAtlases.end()) {
         atlasWidth = it->second.width;
         atlasHeight = it->second.height;
     }
 
-    // Snap the draw origin once; keep layout-relative glyph positions (and advances) intact.
     const float originX = SnapPx(cmd.rect.x);
     const float originY = SnapPx(cmd.rect.y);
     const uint64_t atlasGen = m_TextEngine->AtlasGeneration();
@@ -557,7 +556,6 @@ bool TextUIService::GenerateTextGeometry(
             m_LastDebugGlyphs.push_back(info);
         }
 
-        // Atlas texel distance range (not scaled by font size — fwidth handles scale).
         const float msdfRange = std::max(glyph.msdfPixelRange, 1.0f);
         if (vertices.size() == startVertex) {
             batchMsdfRange = msdfRange;
@@ -612,4 +610,5 @@ bool TextUIService::GenerateTextGeometry(
 }
 
 } // namespace we::runtime::kindui
- 
+
+// kindui-perf-rebuild-token

@@ -32,15 +32,7 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
 }
 
 Size PanelToolbarRow::Measure(const Size& availableSize) {
-    const float rowH = LayoutMetrics::UnifiedToolbarRowHeight();
-    Size childAvail = availableSize;
-    if (childAvail.height > rowH) {
-        childAvail.height = rowH;
-    }
-    Size size = Row::Measure(childAvail);
-    size.height = rowH;
-    m_DesiredSize = size;
-    return m_DesiredSize;
+    return MeasureWithFixedCross(availableSize, LayoutMetrics::UnifiedToolbarRowHeight());
 }
 
 void PanelToolbarRow::Arrange(const Rect& allottedRect) {

@@ -112,9 +112,6 @@ void WindowsPanelMenuButton::Tick(float deltaTime) {
         m_HoverAnim,
         targetHover,
         we::runtime::kindui::ResolveMetric(MetricToken::HoverAnimationDamping));
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 

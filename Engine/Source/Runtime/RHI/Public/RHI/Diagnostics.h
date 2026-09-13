@@ -36,7 +36,7 @@ struct RHI_API RHIFrameStats {
     uint32_t barrierCount = 0;
     uint32_t refreshRateHz = 0;
     uint32_t framesInFlight = 0;
-    bool vsyncOn = true;
+    bool vsyncOn = false;
 };
 
 struct RHI_API RHIDiagnostics {

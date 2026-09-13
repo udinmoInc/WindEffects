@@ -19,14 +19,57 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "Platform/Platform.h"
 #include "Platform/Types.h"
+#include "Core/FrameCounter.h"
+#include "Core/Logger.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdlib>
+#include <string>
 
 namespace we::runtime::kindui {
 namespace {
 std::atomic<int> g_SplitterDragCount{0};
+std::atomic<uint64_t> g_SplitterPostDragUntilFrame{0};
+constexpr uint64_t kPostDragSettleFrames = 3;
+
+void NoteSplitterDragEnded() {
+    const uint64_t until =
+        we::runtime::core::FrameCounter::GetFrameNumber() + kPostDragSettleFrames;
+    uint64_t prev = g_SplitterPostDragUntilFrame.load(std::memory_order_relaxed);
+    while (until > prev
+        && !g_SplitterPostDragUntilFrame.compare_exchange_weak(
+            prev, until, std::memory_order_relaxed)) {
+    }
+}
+
+[[nodiscard]] bool ContentBrowserSplitterLogEnabled() {
+    // Default ON for rootVertical diagnostics while stabilizing expand/collapse.
+    // Set WE_CB_SPLITTER_LOG=0 to silence.
+    const char* v = std::getenv("WE_CB_SPLITTER_LOG");
+    if (v == nullptr) {
+        return true;
+    }
+    return v[0] != '\0' && v[0] != '0';
+}
+
+[[nodiscard]] bool IsContentBrowserRootSplitter(const std::string& slotId) {
+    return slotId == "rootVertical";
+}
+
+void LogContentBrowserSplitter(const char* event, const std::string& detail) {
+    if (!ContentBrowserSplitterLogEnabled()) {
+        return;
+    }
+    HE_INFO(std::string("[CBSplitter] frame=")
+        + std::to_string(we::runtime::core::FrameCounter::GetFrameNumber())
+        + " " + event + " " + detail
+        + " gateLayout=" + (UIRepaintGate::PeekNeedsLayout() ? "1" : "0")
+        + " gatePaint=" + (UIRepaintGate::PeekNeedsPaint() ? "1" : "0")
+        + " lastLayout=" + UIRepaintGate::LastLayoutReason()
+        + " lastPaint=" + UIRepaintGate::LastPaintReason());
+}
 
 void ComputePaneExtents(
     Splitter::ResizeMode mode,
@@ -79,6 +122,17 @@ bool Splitter::AnySplitterDragging() {
     return g_SplitterDragCount.load(std::memory_order_relaxed) > 0;
 }
 
+bool Splitter::ShouldDeferHeavyGpuWork() {
+    if (AnySplitterDragging()) {
+        return true;
+    }
+    const uint64_t until = g_SplitterPostDragUntilFrame.load(std::memory_order_relaxed);
+    if (until == 0) {
+        return false;
+    }
+    return we::runtime::core::FrameCounter::GetFrameNumber() < until;
+}
+
 void Splitter::ApplyResizeCursor(bool overResizeEdge) const {
     auto& platform = we::platform::Platform::Get();
     if (!overResizeEdge) {
@@ -120,14 +174,42 @@ void Splitter::SetSplitRatio(float ratio) {
 }
 
 void Splitter::SetFixedFirstWidth(float width) {
-    m_FixedFirstWidth = std::max(0.0f, width);
+    const float next = std::max(0.0f, width);
+    if (std::abs(next - m_FixedFirstWidth) < 0.01f) {
+        return;
+    }
+    if (IsContentBrowserRootSplitter(m_SlotId)) {
+        LogContentBrowserSplitter(
+            "SetFixedFirst",
+            "from=" + std::to_string(m_FixedFirstWidth) + " to=" + std::to_string(next));
+    }
+    m_FixedFirstWidth = next;
 }
 
 void Splitter::SetFixedSecondWidth(float width) {
-    m_FixedSecondWidth = std::max(0.0f, width);
+    const float next = std::max(0.0f, width);
+    if (std::abs(next - m_FixedSecondWidth) < 0.01f) {
+        return;
+    }
+    if (IsContentBrowserRootSplitter(m_SlotId)) {
+        LogContentBrowserSplitter(
+            "SetFixedSecond",
+            "from=" + std::to_string(m_FixedSecondWidth) + " to=" + std::to_string(next)
+                + " mode=" + std::to_string(static_cast<int>(m_ResizeMode)));
+    }
+    m_FixedSecondWidth = next;
 }
 
 void Splitter::SetResizeMode(ResizeMode mode) {
+    if (m_ResizeMode == mode) {
+        return;
+    }
+    if (IsContentBrowserRootSplitter(m_SlotId)) {
+        LogContentBrowserSplitter(
+            "SetResizeMode",
+            "from=" + std::to_string(static_cast<int>(m_ResizeMode))
+                + " to=" + std::to_string(static_cast<int>(mode)));
+    }
     m_ResizeMode = mode;
 }
 
@@ -308,6 +390,46 @@ void Splitter::Arrange(const Rect& allottedRect) {
             m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availH, barThickness,
             firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, h1, h2);
         const float barY = allottedRect.y + h1;
+
+        if (IsContentBrowserRootSplitter(m_SlotId)) {
+            static float s_LastH1 = -1.0f;
+            static float s_LastH2 = -1.0f;
+            static float s_LastAvailH = -1.0f;
+            static float s_LastFixedSecond = -1.0f;
+            static bool s_LastFirstVis = false;
+            static bool s_LastSecondVis = false;
+            static uint64_t s_LastLogFrame = 0;
+            const uint64_t frame = we::runtime::core::FrameCounter::GetFrameNumber();
+            const bool changed =
+                std::abs(h1 - s_LastH1) > 0.5f
+                || std::abs(h2 - s_LastH2) > 0.5f
+                || std::abs(availH - s_LastAvailH) > 0.5f
+                || std::abs(m_FixedSecondWidth - s_LastFixedSecond) > 0.5f
+                || firstVisible != s_LastFirstVis
+                || secondVisible != s_LastSecondVis;
+            // Log on change, and at most once per frame when thrashing.
+            if (changed && frame != s_LastLogFrame) {
+                s_LastLogFrame = frame;
+                s_LastH1 = h1;
+                s_LastH2 = h2;
+                s_LastAvailH = availH;
+                s_LastFixedSecond = m_FixedSecondWidth;
+                s_LastFirstVis = firstVisible;
+                s_LastSecondVis = secondVisible;
+                LogContentBrowserSplitter(
+                    "Arrange",
+                    "geom=(" + std::to_string(allottedRect.x) + "," + std::to_string(allottedRect.y)
+                        + " " + std::to_string(allottedRect.width) + "x"
+                        + std::to_string(allottedRect.height) + ")"
+                        + " h1=" + std::to_string(h1)
+                        + " h2=" + std::to_string(h2)
+                        + " bar=" + std::to_string(barThickness)
+                        + " fixedSecond=" + std::to_string(m_FixedSecondWidth)
+                        + " firstVis=" + (firstVisible ? "1" : "0")
+                        + " secondVis=" + (secondVisible ? "1" : "0")
+                        + " needsLayout=" + (SubtreeNeedsLayout() ? "1" : "0"));
+            }
+        }
 
         m_FirstChildRect = {};
         m_SecondChildRect = {};
@@ -520,7 +642,14 @@ void Splitter::OnMouseMove(const MouseEvent& event) {
     } else if (m_ResizeMode == ResizeMode::FixedSecond) {
         const float relativeY = m_Geometry.height - (event.position.y - m_Geometry.y) - barThickness;
         const float maxSecond = std::max(m_MinSecondPx, m_Geometry.height - barThickness - m_MinFirstPx);
-        m_FixedSecondWidth = std::clamp(relativeY, m_MinSecondPx, maxSecond);
+        const float next = std::clamp(relativeY, m_MinSecondPx, maxSecond);
+        if (IsContentBrowserRootSplitter(m_SlotId)
+            && std::abs(next - m_FixedSecondWidth) > 0.5f) {
+            LogContentBrowserSplitter(
+                "DragFixedSecond",
+                "from=" + std::to_string(m_FixedSecondWidth) + " to=" + std::to_string(next));
+        }
+        m_FixedSecondWidth = next;
     } else {
         const float usable = std::max(1.0f, m_Geometry.height - barThickness);
         const float relativeY = event.position.y - m_Geometry.y;
@@ -540,12 +669,19 @@ void Splitter::OnMouseUp(const MouseEvent& event) {
         if (prev <= 0) {
             g_SplitterDragCount.store(0, std::memory_order_relaxed);
         }
+        NoteSplitterDragEnded();
         ApplyResizeCursor(GetSplitterHitRect().Contains(event.position));
-        // Dragging arranges this splitter locally for responsiveness. Commit one
-        // full tree layout on release so nested dock panels (Inspector, Asset
-        // Explorer, and Viewport) do not retain stale child geometry.
-        UIRepaintGate::RequestLayout();
-        UIRepaintGate::RequestPaint();
+        if (IsContentBrowserRootSplitter(m_SlotId)) {
+            LogContentBrowserSplitter(
+                "Release",
+                "fixedSecond=" + std::to_string(m_FixedSecondWidth)
+                    + " deferGpu=1 settleFrames=" + std::to_string(kPostDragSettleFrames));
+        }
+        // Local arrange already applied pane sizes. Commit one shell layout, but keep
+        // viewport RT recreate + UI secondary cache deferred for a few frames so mouse-up
+        // does not hitch/hang (destroy RT + rebuild UI submission in the same frame).
+        UIRepaintGate::RequestLayoutReason("Resize");
+        UIRepaintGate::RequestPaintReason("Resize");
     }
 }
 
@@ -561,10 +697,11 @@ void Splitter::OnHoverLost() {
         if (prev <= 0) {
             g_SplitterDragCount.store(0, std::memory_order_relaxed);
         }
+        NoteSplitterDragEnded();
         // A captured drag can leave the window without a mouse-up event.
         // Finalize its geometry through the same path as a normal release.
-        UIRepaintGate::RequestLayout();
-        UIRepaintGate::RequestPaint();
+        UIRepaintGate::RequestLayoutReason("Resize");
+        UIRepaintGate::RequestPaintReason("Resize");
     }
     if (!AnySplitterDragging()) {
         we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);

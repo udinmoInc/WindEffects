@@ -18,6 +18,7 @@
 #include "KindUI/Theming/StyleRole.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Input/InputEvents.h"
 #include "Text/Unicode/Grapheme.h"
 
 namespace we::runtime::kindui {
@@ -25,18 +26,51 @@ namespace we::runtime::kindui {
 TextBox::TextBox(const std::string& initialText, std::function<void(const std::string&)> onTextChanged)
     : m_Session(we::runtime::text::editing::CreateTextEditSession(initialText))
     , m_OnTextChanged(std::move(onTextChanged))
+    , m_StyleCacheValid(false)
 {
     SetFocusable(true);
     LayoutMetrics::ApplyInputMinSize(*this);
 }
 
+void TextBox::InvalidateTextLayoutCache() {
+    m_TextLayoutCacheValid = false;
+    InvalidatePaint();
+}
+
+void TextBox::EnsureTextLayoutCache(float fontSize) {
+    if (!m_Session) {
+        return;
+    }
+    const auto& text = m_Session->Text();
+    if (m_TextLayoutCacheValid &&
+        m_CachedAdvanceFontSize == fontSize &&
+        m_CachedTextSnapshot == text) {
+        return;
+    }
+
+    m_CachedTextSnapshot = text;
+    m_CachedAdvanceFontSize = fontSize;
+    m_CachedCodepoints = we::runtime::text::unicode::DecodeUtf8(text);
+    m_CachedAdvances.resize(m_CachedCodepoints.size() + 1);
+    m_CachedAdvances[0] = 0.0f;
+    for (size_t i = 0; i < m_CachedCodepoints.size(); ++i) {
+        const std::string prefix = we::runtime::text::unicode::EncodeUtf8(
+            std::span(m_CachedCodepoints.data(), i + 1));
+        m_CachedAdvances[i + 1] = TextMetrics::MeasureWidth(prefix, fontSize);
+    }
+    m_TextLayoutCacheValid = true;
+}
+
 Size TextBox::Measure(const Size& availableSize) {
-    const ResolvedStyle role = ThemeManager::Get().Resolve(StyleRole::Input);
+    if (!m_StyleCacheValid) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::Input);
+        m_StyleCacheValid = true;
+    }
     const float minW = ResolveMetric(MetricToken::Space6) * 5.0f;
     const float w = availableSize.width < 1.0e8f ? availableSize.width : minW;
     m_DesiredSize = Size{
         w,
-        role.height > 0.0f ? role.height : ResolveMetric(MetricToken::SearchBoxHeight)
+        m_CachedStyle.height > 0.0f ? m_CachedStyle.height : ResolveMetric(MetricToken::SearchBoxHeight)
     };
     return m_DesiredSize;
 }
@@ -47,8 +81,10 @@ void TextBox::Arrange(const Rect& allottedRect) {
 
 void TextBox::Tick(float deltaTime) {
     (void)deltaTime;
-    m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
-    m_FocusAnim = Animator::Damp(m_FocusAnim, m_Focused ? 1.0f : 0.0f, ControlChrome::HoverDamping());
+    const float targetHover = m_Hovered ? 1.0f : 0.0f;
+    const float targetFocus = m_Focused ? 1.0f : 0.0f;
+    m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
+    m_FocusAnim = Animator::Damp(m_FocusAnim, targetFocus, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
 }
 
@@ -60,49 +96,44 @@ void TextBox::Paint(PaintContext& context) {
     ControlChrome::InteractionState state{ m_HoverAnim, 0.0f, false, m_Focused, false };
     ControlChrome::PaintInputFrame(context, m_Geometry, state);
 
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
+    if (!m_StyleCacheValid) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::Input);
+        m_StyleCacheValid = true;
+    }
     const float pad = ResolveMetric(MetricToken::Space2);
     const float textX = m_Geometry.x + pad;
-    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, style.fontSize);
+    const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, m_CachedStyle.fontSize);
 
+    EnsureTextLayoutCache(m_CachedStyle.fontSize);
     const auto& text = m_Session->Text();
     const auto sel = m_Session->Caret().Selection();
     if (!sel.Empty()) {
-        const auto codepoints = we::runtime::text::unicode::DecodeUtf8(text);
-        const size_t start = std::min(sel.Start(), codepoints.size());
-        const size_t end = std::min(sel.End(), codepoints.size());
-        const std::string before = we::runtime::text::unicode::EncodeUtf8(
-            std::span(codepoints.data(), start));
-        const std::string selected = we::runtime::text::unicode::EncodeUtf8(
-            std::span(codepoints.data() + start, end - start));
-        const float selX0 = textX + context.GetTextWidth(before, style.fontSize);
-        const float selW = context.GetTextWidth(selected, style.fontSize);
+        const size_t start = std::min(sel.Start(), m_CachedCodepoints.size());
+        const size_t end = std::min(sel.End(), m_CachedCodepoints.size());
+        const float selX0 = textX + m_CachedAdvances[start];
+        const float selW = m_CachedAdvances[end] - m_CachedAdvances[start];
         context.DrawRect(
-            Rect{ selX0, textY, selW, style.fontSize },
+            Rect{ selX0, textY, selW, m_CachedStyle.fontSize },
             ResolveColor(ColorToken::SelectionHighlight));
     }
 
-    context.DrawText(text, Point{ textX, textY }, style.foreground, style.fontSize);
+    context.DrawText(text, Point{ textX, textY }, m_CachedStyle.foreground, m_CachedStyle.fontSize);
 
     if (m_Session->HasComposition()) {
-        const float compX = textX + context.GetTextWidth(text, style.fontSize);
+        const float compX = textX + m_CachedAdvances.back();
         context.DrawText(
             std::string(m_Session->Composition()),
             Point{ compX, textY },
             ResolveColor(ColorToken::TextSecondary),
-            style.fontSize);
+            m_CachedStyle.fontSize);
     }
 
     if (m_Focused) {
-        const size_t caret = m_Session->Caret().Offset();
-        const auto codepoints = we::runtime::text::unicode::DecodeUtf8(text);
-        const size_t clamped = std::min(caret, codepoints.size());
-        const std::string before = we::runtime::text::unicode::EncodeUtf8(
-            std::span(codepoints.data(), clamped));
-        const float cursorX = textX + context.GetTextWidth(before, style.fontSize) + 2.0f;
+        const size_t caret = std::min(m_Session->Caret().Offset(), m_CachedCodepoints.size());
+        const float cursorX = textX + m_CachedAdvances[caret] + 2.0f;
         context.DrawLine(
             Point{ cursorX, textY },
-            Point{ cursorX, textY + style.fontSize },
+            Point{ cursorX, textY + m_CachedStyle.fontSize },
             ResolveColor(ColorToken::AccentPrimary),
             1.5f);
     }
@@ -112,60 +143,57 @@ void TextBox::OnMouseDown(const MouseEvent& event) {
     if (!m_Session) {
         return;
     }
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
+    if (!m_StyleCacheValid) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::Input);
+        m_StyleCacheValid = true;
+    }
+    EnsureTextLayoutCache(m_CachedStyle.fontSize);
     const float pad = ResolveMetric(MetricToken::Space2);
     const float localX = event.position.x - (m_Geometry.x + pad);
-    const auto& text = m_Session->Text();
 
-    // Approximate hit test by scanning grapheme widths.
-    const auto codepoints = we::runtime::text::unicode::DecodeUtf8(text);
-    size_t hit = codepoints.size();
-    float x = 0.0f;
-    for (size_t i = 0; i <= codepoints.size(); ++i) {
-        const std::string prefix = we::runtime::text::unicode::EncodeUtf8(
-            std::span(codepoints.data(), i));
-        // Use character count fallback through PaintContext unavailable here — TextMetrics.
-        const float w = TextMetrics::MeasureWidth(prefix, style.fontSize);
-        if (localX <= w) {
+    size_t hit = m_CachedCodepoints.size();
+    for (size_t i = 0; i < m_CachedAdvances.size(); ++i) {
+        if (localX <= m_CachedAdvances[i]) {
             hit = i;
             break;
         }
-        x = w;
     }
-    (void)x;
 
     ++m_ClickCount;
     if (m_ClickCount >= 3) {
-        m_Session->SelectionEngine().SelectAll(codepoints.size());
+        m_Session->SelectionEngine().SelectAll(m_CachedCodepoints.size());
         m_ClickCount = 0;
         m_Dragging = false;
     } else if (m_ClickCount == 2) {
-        m_Session->SelectionEngine().SelectWordAt(codepoints, hit);
+        m_Session->SelectionEngine().SelectWordAt(m_CachedCodepoints, hit);
         m_Dragging = false;
     } else {
         m_Session->SelectionEngine().BeginDrag(hit);
         m_Dragging = true;
     }
+    InvalidatePaint();
 }
 
 void TextBox::OnMouseMove(const MouseEvent& event) {
     if (!m_Session || !m_Dragging) {
         return;
     }
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Input);
+    if (!m_StyleCacheValid) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::Input);
+        m_StyleCacheValid = true;
+    }
+    EnsureTextLayoutCache(m_CachedStyle.fontSize);
     const float pad = ResolveMetric(MetricToken::Space2);
     const float localX = event.position.x - (m_Geometry.x + pad);
-    const auto codepoints = we::runtime::text::unicode::DecodeUtf8(m_Session->Text());
-    size_t hit = codepoints.size();
-    for (size_t i = 0; i <= codepoints.size(); ++i) {
-        const std::string prefix = we::runtime::text::unicode::EncodeUtf8(
-            std::span(codepoints.data(), i));
-        if (localX <= TextMetrics::MeasureWidth(prefix, style.fontSize)) {
+    size_t hit = m_CachedCodepoints.size();
+    for (size_t i = 0; i < m_CachedAdvances.size(); ++i) {
+        if (localX <= m_CachedAdvances[i]) {
             hit = i;
             break;
         }
     }
     m_Session->SelectionEngine().DragTo(hit);
+    InvalidatePaint();
 }
 
 void TextBox::OnMouseUp(const MouseEvent&) {
@@ -180,13 +208,15 @@ void TextBox::OnKeyDown(const KeyEvent& event) {
         return;
     }
 
-    const auto codepoints = we::runtime::text::unicode::DecodeUtf8(m_Session->Text());
+    EnsureTextLayoutCache(m_StyleCacheValid ? m_CachedStyle.fontSize : 13.0f);
+    const auto& codepoints = m_CachedCodepoints;
     const bool shift = event.shiftDown;
     const bool ctrl = event.ctrlDown;
     bool changed = false;
 
     if (ctrl && event.key == we::platform::KeyCode::A) {
         m_Session->SelectionEngine().SelectAll(codepoints.size());
+        InvalidatePaint();
         return;
     }
     if (ctrl && event.key == we::platform::KeyCode::C) {
@@ -238,8 +268,13 @@ void TextBox::OnKeyDown(const KeyEvent& event) {
         }
     }
 
-    if (changed && m_OnTextChanged) {
-        m_OnTextChanged(m_Session->Text());
+    if (changed) {
+        InvalidateTextLayoutCache();
+        if (m_OnTextChanged) {
+            m_OnTextChanged(m_Session->Text());
+        }
+    } else {
+        InvalidatePaint();
     }
 }
 
@@ -248,10 +283,10 @@ void TextBox::OnTextInput(const std::string& utf8) {
         return;
     }
     m_Session->Insert(utf8);
+    InvalidateTextLayoutCache();
     if (m_OnTextChanged) {
         m_OnTextChanged(m_Session->Text());
     }
 }
 
 } // namespace we::runtime::kindui
- 

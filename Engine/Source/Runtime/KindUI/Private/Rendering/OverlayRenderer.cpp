@@ -21,6 +21,7 @@
 #include "KindUI/Rendering/UiGpuUpload.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
+#include "KindUI/Profiling/UiBuildPhaseTiming.h"
 #include "Rendering/UiImmediateRenderer.h"
 
 #include "Core/AssetRegistry.h"
@@ -32,6 +33,8 @@
 #include "KindUI/Core/Widget.h"
 
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 
@@ -168,8 +171,41 @@ void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
     m_FrameStats.height = height;
 }
 
+void OverlayRenderer::InvalidateGpuSubmissionCache() {
+    if (m_UIImmediate) {
+        m_UIImmediate->InvalidateGpuSubmissionCache();
+    }
+}
+
+void OverlayRenderer::SetSwapchainFormat(we::rhi::Format format) {
+    m_SwapchainFormat = format;
+    if (m_UIImmediate) {
+        m_UIImmediate->SetSwapchainFormat(format);
+    }
+}
+
+uint64_t OverlayRenderer::SubmissionCacheHitCount() const {
+    return m_UIImmediate ? m_UIImmediate->SubmissionCacheHitCount() : 0;
+}
+
+uint64_t OverlayRenderer::SubmissionCacheMissCount() const {
+    return m_UIImmediate ? m_UIImmediate->SubmissionCacheMissCount() : 0;
+}
+
+uint64_t OverlayRenderer::SubmissionRebuildCount() const {
+    return m_UIImmediate ? m_UIImmediate->SubmissionRebuildCount() : 0;
+}
+
+uint64_t OverlayRenderer::SubmissionInvalidationCount() const {
+    return m_UIImmediate ? m_UIImmediate->SubmissionInvalidationCount() : 0;
+}
+
 void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t frameSlot) {
     m_ActiveFrameSlot = frameSlot;
+    m_LastBuildCpuMs = 0.0f;
+    m_LastPhaseTiming = {};
+    m_BuiltGeometryThisFrame = false;
+    m_UploadedGeometryThisFrame = false;
     const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
     const uint32_t width = m_CurrentWidth;
     const uint32_t height = m_CurrentHeight;
@@ -202,49 +238,34 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     const bool compositionAudit = UiColorCompositionDiagnostic::IsEnabled()
         && !UiColorCompositionDiagnostic::Get().HasCompleted();
     const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty() || compositionAudit;
-    const bool needsLayout = forceRebuild || UIRepaintGate::ConsumeNeedsLayout();
+    // Layout Measure/Arrange is owned by the host (Editor SyncViewport / WeLauncher SyncLayout).
+    // Peek only — do not ConsumeNeedsLayout here (host is the sole consumer).
+    const bool needsLayout = forceRebuild || UIRepaintGate::PeekNeedsLayout();
     const bool needsPaint = forceRebuild
         || UIRepaintGate::ConsumeNeedsPaint()
         || needsLayout
         || compositionAudit;
 
     if (!needsLayout && !needsPaint) {
-        m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
-        m_FrameStats.indices = static_cast<uint32_t>(m_Indices.size());
-        m_FrameStats.batches = static_cast<uint32_t>(m_Batches.size());
-        m_FrameStats.drawCalls = m_FrameStats.batches;
-        m_FrameStats.opaqueBatches = 0;
-        m_FrameStats.alphaBatches = 0;
-        m_FrameStats.opaqueIndices = 0;
-        m_FrameStats.alphaIndices = 0;
-        for (const auto& batch : m_Batches) {
-            if (batch.opaqueReplace) {
-                ++m_FrameStats.opaqueBatches;
-                m_FrameStats.opaqueIndices += batch.indexCount;
-            } else {
-                ++m_FrameStats.alphaBatches;
-                m_FrameStats.alphaIndices += batch.indexCount;
-            }
-        }
         m_FrameStats.width = width;
         m_FrameStats.height = height;
         return;
     }
 
+    const auto buildStart = std::chrono::steady_clock::now();
     if (needsPaint) {
         UiInputLatencyAudit::Get().OnUiBuild();
         Widget::ResetDiagnostics();
-        if (m_WidgetAdapter) {
-            m_WidgetAdapter->ResetDiagnostics();
-            m_WidgetAdapter->ProcessWidget(root, width, height, needsLayout);
-            m_Vertices = m_WidgetAdapter->TakeVertices();
-            m_Indices = m_WidgetAdapter->TakeIndices();
-            m_Batches = m_WidgetAdapter->TakeBatches();
-        }
+            if (m_WidgetAdapter) {
+                m_WidgetAdapter->ResetDiagnostics();
+                m_WidgetAdapter->ProcessWidget(root, width, height, needsLayout);
+                m_WidgetAdapter->SwapGeometry(m_Vertices, m_Indices, m_Batches);
+                m_LastPhaseTiming = m_WidgetAdapter->LastPhaseTiming();
+            }
         m_LastBuiltWidth = width;
         m_LastBuiltHeight = height;
         ++m_GeometryGeneration;
-        m_CachedDrawListGeneration = ~uint64_t{0};
+        m_BuiltGeometryThisFrame = true;
     }
 
     m_FrameStats.vertices = static_cast<uint32_t>(m_Vertices.size());
@@ -266,6 +287,41 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     }
     m_FrameStats.width = width;
     m_FrameStats.height = height;
+    m_LastBuildCpuMs = static_cast<float>(
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count());
+
+    static const bool buildProfile = []() {
+        const char* v = std::getenv("WE_UI_BUILD_PROFILE");
+        return v != nullptr && v[0] != '\0' && v[0] != '0';
+    }();
+    if (buildProfile && m_BuiltGeometryThisFrame) {
+        static double s_LastLogMs = 0.0;
+        const double nowMs = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        if (nowMs - s_LastLogMs >= 1000.0) {
+            s_LastLogMs = nowMs;
+            const auto& p = m_LastPhaseTiming;
+            HE_INFO(
+                std::string("[UiBuildProfile] total=") + std::to_string(p.totalMs) +
+                "ms clear=" + std::to_string(p.clearMs) +
+                " layout=" + std::to_string(p.layoutMs) +
+                " paint=" + std::to_string(p.paintMs) +
+                " drawgen=" + std::to_string(p.drawgenMs) +
+                " text=" + std::to_string(p.textMs) +
+                " clearDirty=" + std::to_string(p.clearDirtyMs) +
+                " cmds=" + std::to_string(p.paintCommands) +
+                " textCmds=" + std::to_string(p.textCommands) +
+                " rectCmds=" + std::to_string(p.rectCommands) +
+                " verts=" + std::to_string(p.vertices) +
+                " batches=" + std::to_string(p.batches) +
+                " ranLayout=" + (p.ranLayout ? "1" : "0") +
+                " retain=" + (p.paintRetention ? "1" : "0") +
+                " painted=" + std::to_string(p.subtreesPainted) +
+                " replayed=" + std::to_string(p.subtreesReplayed) +
+                " replayCmds=" + std::to_string(p.commandsReplayed) +
+                " wall=" + std::to_string(m_LastBuildCpuMs));
+        }
+    }
 
     if (UiColorDebug::IsEnabled() || UiColorDebug::IsSemanticAuditEnabled()) {
         UiColorDebug::Get().EndFrame();
@@ -284,6 +340,11 @@ void OverlayRenderer::BeginOverlayPass(const we::runtime::uigfx::OverlayRenderCo
 }
 
 void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderContext& context) {
+    m_LastSubmitCpuMs = 0.0f;
+    m_SubmittedGpuThisFrame = false;
+    m_UploadedGeometryThisFrame = false;
+    m_LastSubmissionCacheHit = false;
+    m_LastSubmissionRebuilt = false;
     if (!m_UIImmediate || m_Vertices.empty() || m_Batches.empty()) {
         return;
     }
@@ -292,6 +353,8 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
             "OverlayRenderer::EndOverlayPass: no command list available; skipping UI draw.");
         return;
     }
+
+    const auto submitStart = std::chrono::steady_clock::now();
 
     we::rhi::FramePresentParams params{};
     params.commandList = context.cmd;
@@ -316,8 +379,14 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
         m_CachedDrawListFormat = targetFormat;
     }
     m_UIImmediate->SubmitDrawList(m_CachedDrawList, m_ActiveFrameSlot, m_GeometryGeneration);
+    m_UploadedGeometryThisFrame = m_UIImmediate->LastSubmitUploadedGeometry();
+    m_LastSubmissionCacheHit = m_UIImmediate->LastSubmissionCacheHit();
+    m_LastSubmissionRebuilt = m_UIImmediate->LastSubmissionRebuilt();
     UiInputLatencyAudit::Get().OnRenderSubmit();
     m_UIImmediate->EndFrame();
+    m_SubmittedGpuThisFrame = true;
+    m_LastSubmitCpuMs = static_cast<float>(
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submitStart).count());
 
     if (UiColorPipelineDiagnostic::IsEnabled()
         && !UiColorCompositionDiagnostic::IsEnabled()
@@ -391,4 +460,5 @@ IconRenderer* OverlayRenderer::GetIconRenderer() const { return m_IconRenderer.g
 IconManager* OverlayRenderer::GetIconManager() const { return m_IconManager.get(); }
 
 } // namespace we::runtime::kindui
- 
+
+// kindui-perf-rebuild-token

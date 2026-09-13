@@ -22,6 +22,7 @@
 #include <vector>
 
 namespace we::rhi {
+// vtable-layout-rev-2: BeginSecondary/ExecuteCommands
 
 class IRHICommandList;
 class IRHIDevice;
@@ -34,10 +35,17 @@ public:
     virtual ~IRHICommandList() = default;
 
     virtual void Begin() = 0;
+    /// Begin a secondary command list that will be executed inside an active BeginRendering scope.
+    /// Returns false if the backend cannot begin a secondary (caller should fall back to primary).
+    /// Backends without secondary support return false; check RHICapabilities::secondaryCommandBuffers.
+    virtual bool BeginSecondary(const SecondaryInheritanceDesc& inheritance);
     virtual void End() = 0;
 
     virtual void BeginRendering(const RenderingInfo& info) = 0;
     virtual void EndRendering() = 0;
+
+    /// Execute previously recorded secondary command lists inside the current primary rendering scope.
+    virtual void ExecuteCommands(std::span<IRHICommandList* const> secondaries);
 
     virtual void SetViewport(const Viewport& viewport) = 0;
     virtual void SetScissor(const Scissor& scissor) = 0;
@@ -182,7 +190,9 @@ public:
     [[nodiscard]] virtual RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) = 0;
     virtual RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) = 0;
     virtual RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) = 0;
-    [[nodiscard]] virtual RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) = 0;
+    [[nodiscard]] virtual RHIResult<IRHICommandList*> AllocateCommandList(
+        RHICommandPoolHandle pool,
+        CommandBufferLevel level = CommandBufferLevel::Primary) = 0;
 
     [[nodiscard]] virtual RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) = 0;
     virtual RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) = 0;

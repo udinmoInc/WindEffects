@@ -19,6 +19,7 @@
 #include "KindUI/Rendering/OverlayRenderContext.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/Animator.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Platform/PlatformSDK.h"
@@ -190,12 +191,14 @@ void WeLauncherApp::SyncLayoutFromSwapchain() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
+    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
     if (needsLayout) {
         using Size = we::runtime::kindui::Size;
         using Rect = we::runtime::kindui::Rect;
         m_UI->Measure(Size{ static_cast<float>(w), static_cast<float>(h) });
         m_UI->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
+        m_UI->ClearSubtreeLayoutDirty();
+        we::runtime::kindui::UIRepaintGate::RequestPaintReason("LayoutSizeChanged");
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
     }
@@ -313,7 +316,12 @@ void WeLauncherApp::MainLoop() {
             dt = 0.1f;
         }
 
-        m_UI->Tick(dt);
+        we::runtime::kindui::Animator::Tick(dt);
+        const bool needsWidgetTick = we::runtime::kindui::UIRepaintGate::PeekNeedsWidgetTick();
+        if (needsWidgetTick) {
+            we::runtime::kindui::UIRepaintGate::MarkSettled();
+            m_UI->Tick(dt);
+        }
         UpdateUiScaleFromWindow();
         SyncLayoutFromSwapchain();
 

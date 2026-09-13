@@ -11,6 +11,7 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/EngineWatchdog.h"
+#include "Core/FrameCounter.h"
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 #include "Core/LoopExecutionTrace.h"
@@ -52,6 +53,11 @@ uint64_t HashCameraUniform(const we::runtime::renderer::CameraUniform& camera) {
     mix(camera.position.y);
     mix(camera.position.z);
     return hash;
+}
+
+[[nodiscard]] bool EnvFlag(const char* name) {
+    const char* v = std::getenv(name);
+    return v != nullptr && v[0] != '\0' && v[0] != '0';
 }
 
 } // namespace
@@ -175,7 +181,20 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
             vp->SyncRendererViewport();
         }
 
-        if (auto* overlay = m_Host.GetHostOverlayRenderer()) {
+        if (EnvFlag("WE_UI_DISABLE")) {
+            renderer->ClearOverlayRecorder();
+            ::we::editor::services::EditorPerfStats::Get().Mark("ui");
+        } else if (auto* overlay = m_Host.GetHostOverlayRenderer()) {
+            if (EnvFlag("WE_UI_FORCE_DIRTY")
+                && we::runtime::core::FrameCounter::GetFrameNumber() > 5) {
+                // Paint-only dirty: matches hover/typing/animation rebuilds.
+                // Use WE_UI_FORCE_LAYOUT=1 to also dirty Measure/Arrange.
+                if (EnvFlag("WE_UI_FORCE_LAYOUT")) {
+                    we::runtime::kindui::UIRepaintGate::Request();
+                } else {
+                    we::runtime::kindui::UIRepaintGate::RequestPaint();
+                }
+            }
             const uint32_t imageIndex = renderer->GetCurrentImageIndex();
             const uint32_t frameSlot = renderer->GetRHIDevice()
                 ? renderer->GetRHIDevice()->GetCurrentFrameSlot()
@@ -211,6 +230,7 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
                 });
         } else {
             renderer->ClearOverlayRecorder();
+            ::we::editor::services::EditorPerfStats::Get().Mark("ui");
         }
 
         const bool pipelineColorTest =

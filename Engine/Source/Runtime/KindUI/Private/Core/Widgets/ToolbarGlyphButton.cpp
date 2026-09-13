@@ -86,12 +86,8 @@ void ToolbarGlyphButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolbarGlyphButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        const bool wasPressed = m_Pressed;
-        SetPressed(false);
-        if (IsEnabled() && (wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
-            m_OnClicked();
-        }
+    if (ShouldFireClickOnLeftUp(event) && m_OnClicked) {
+        m_OnClicked();
     }
 }
 
@@ -108,11 +104,6 @@ void ToolbarGlyphButton::Tick(float deltaTime) {
     m_PressAnim = Animator::Damp(m_PressAnim, targetPress, pressDamping);
     m_PressOffset = Animator::Damp(m_PressOffset, targetOffset, pressDamping);
 
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f ||
-        std::abs(m_PressAnim - targetPress) > 0.001f ||
-        std::abs(m_PressOffset - targetOffset) > 0.001f) {
-        InvalidatePaint();
-    }
 
     Widget::Tick(deltaTime);
 }

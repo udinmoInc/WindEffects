@@ -76,7 +76,8 @@ void ScrollContainer::OnMouseWheel(const MouseEvent& event) {
     SyncScroll();
     if (ScrollViewport::NeedsScrollbar(m_ScrollMetrics.viewport.height, m_Geometry.height)) {
         m_Scroll.ApplyWheel(event.deltaY, 36.0f, m_ScrollMetrics.viewport.height, m_Geometry.height);
-        InvalidateLayout();
+        // Scroll offset is arrangement-local — do not re-arm full shell layout.
+        Arrange(m_Geometry);
         InvalidatePaint();
     }
 }

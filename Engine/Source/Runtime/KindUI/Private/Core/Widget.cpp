@@ -19,17 +19,39 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 #include "KindUI/Tokens/DesignToken.h"
 
 namespace we::runtime::kindui {
 
 Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;
+Widget::PaintRetentionStats Widget::s_PaintRetentionStats{};
 
 void Widget::ResetDiagnostics() {
     if (s_GlobalDiagnostics) {
         s_GlobalDiagnostics->Reset();
     }
+}
+
+void Widget::InvalidateRetainedPaintUpward() {
+    for (Widget* w = this; w; ) {
+        w->m_RetainedPaintValid = false;
+        w->m_RetainedPaintStore.reset();
+        w->m_RetainedPaintBegin = 0;
+        w->m_RetainedPaintEnd = 0;
+        auto parent = w->m_Parent.lock();
+        w = parent.get();
+    }
+}
+
+void Widget::PaintSubtree(PaintContext& context) {
+    // Temporary: identity path while isolating shell-build hang.
+    if (!m_Visible) {
+        return;
+    }
+    Paint(context);
+    ClearSubtreePaintDirty();
 }
 
 void Widget::Tick(float deltaTime) {
@@ -50,13 +72,26 @@ Size Widget::ClampDesiredSize(const Size& desired) const {
     };
 }
 
+bool Widget::ShouldFireClickOnLeftUp(const MouseEvent& event) {
+    if (event.button != MouseButton::Left) {
+        return false;
+    }
+    const bool wasPressed = m_Pressed;
+    SetPressed(false);
+    return IsEnabled() && (wasPressed || m_Geometry.Contains(event.position));
+}
+
 void Widget::InvalidateLayout() {
     if (m_NeedsLayout) {
         return;
     }
     m_NeedsLayout = true;
-    if (auto parent = m_Parent.lock()) {
-        parent->InvalidateLayout();
+    m_SubtreeNeedsLayout = true;
+    auto p = m_Parent.lock();
+    while (p) {
+        p->m_NeedsLayout = true;
+        p->m_SubtreeNeedsLayout = true;
+        p = p->m_Parent.lock();
     }
     UIRepaintGate::RequestLayout();
     UiPathDiagnostics::Get().OnLayoutInvalidation();
@@ -70,6 +105,13 @@ void Widget::InvalidatePaint() {
         return;
     }
     m_NeedsPaint = true;
+    m_SubtreeNeedsPaint = true;
+    auto p = m_Parent.lock();
+    while (p) {
+        p->m_NeedsPaint = true;
+        p->m_SubtreeNeedsPaint = true;
+        p = p->m_Parent.lock();
+    }
     PaintCauseLog::Get().Push("invalidate", WE_PAINT_CALLER);
     UIRepaintGate::RequestPaint();
     UiPathDiagnostics::Get().OnPaintInvalidation();
@@ -80,31 +122,18 @@ void Widget::InvalidatePaint() {
 }
 
 bool Widget::SubtreeNeedsPaint() const {
-    if (m_NeedsPaint) {
-        return true;
-    }
-    for (const auto& child : m_Children) {
-        if (child && child->SubtreeNeedsPaint()) {
-            return true;
-        }
-    }
-    return false;
+    // O(1) check via aggregate dirty bit propagated upward in InvalidatePaint().
+    return m_SubtreeNeedsPaint;
 }
 
 bool Widget::SubtreeNeedsLayout() const {
-    if (m_NeedsLayout) {
-        return true;
-    }
-    for (const auto& child : m_Children) {
-        if (child && child->SubtreeNeedsLayout()) {
-            return true;
-        }
-    }
-    return false;
+    // O(1) check via aggregate dirty bit propagated upward in InvalidateLayout().
+    return m_SubtreeNeedsLayout;
 }
 
 void Widget::ClearSubtreePaintDirty() {
     m_NeedsPaint = false;
+    m_SubtreeNeedsPaint = false;
     for (auto& child : m_Children) {
         if (child) {
             child->ClearSubtreePaintDirty();
@@ -114,6 +143,7 @@ void Widget::ClearSubtreePaintDirty() {
 
 void Widget::ClearSubtreeLayoutDirty() {
     m_NeedsLayout = false;
+    m_SubtreeNeedsLayout = false;
     for (auto& child : m_Children) {
         if (child) {
             child->ClearSubtreeLayoutDirty();
@@ -199,12 +229,44 @@ void Widget::ClearChildren() {
     InvalidateLayout();
 }
 
+void Widget::ClearChildrenSilent() {
+    for (auto& child : m_Children) {
+        if (child) {
+            child->m_Parent.reset();
+        }
+    }
+    m_Children.clear();
+}
+
+void Widget::AddChildSilent(const std::shared_ptr<Widget>& child) {
+    if (!child) {
+        return;
+    }
+    if (auto oldParent = child->GetParent()) {
+        // Always detach silently — RemoveChild would re-arm UIRepaintGate mid-Arrange.
+        auto it = std::find(oldParent->m_Children.begin(), oldParent->m_Children.end(), child);
+        if (it != oldParent->m_Children.end()) {
+            oldParent->m_Children.erase(it);
+        }
+        child->m_Parent.reset();
+    }
+    try {
+        child->m_Parent = shared_from_this();
+    } catch (const std::bad_weak_ptr&) {
+        child->m_Parent.reset();
+    }
+    if (m_Context) {
+        child->SetContext(m_Context);
+    }
+    m_Children.push_back(child);
+}
+
 void Widget::SetContext(std::shared_ptr<IWidgetContext> context) {
     m_Context = std::move(context);
     try {
         auto self = shared_from_this();
         for (auto& child : m_Children) {
-            if (child && child->GetParent() != self) {
+            if (child) {
                 child->m_Parent = self;
             }
         }
@@ -276,8 +338,7 @@ ResolvedStyle Widget::ResolveEffectiveStyle(StyleRole fallbackRole) const {
 void Widget::SetEnabled(bool enabled) {
     if (m_Enabled == enabled) return;
     m_Enabled = enabled;
-    InvalidateStyle();
-    InvalidatePaint();
+    InvalidateStyle(); // InvalidateStyle() calls InvalidatePaint() internally.
 }
 
 void Widget::SetSelected(bool selected) {
@@ -296,8 +357,7 @@ void Widget::SetLoading(bool loading) {
 void Widget::SetCollapsed(bool collapsed) {
     if (m_Collapsed == collapsed) return;
     m_Collapsed = collapsed;
-    SetVisible(!collapsed);
-    InvalidateLayout();
+    SetVisible(!collapsed); // SetVisible calls InvalidateLayout() + InvalidatePaint() internally.
 }
 
 float Widget::Scaled(float logicalValue) const {
@@ -401,5 +461,3 @@ std::shared_ptr<Widget> Widget::HitTestPoint(const Point& pos, const Rect* clip)
 }
 
 } // namespace we::runtime::kindui
-
- 

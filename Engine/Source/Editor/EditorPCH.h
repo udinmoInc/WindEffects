@@ -10,7 +10,6 @@
 
 // -----------------------------------------------------------------------------
 // Editor Precompiled Header
-// Common standard library headers for all Editor modules
 // Engine-specific headers are included per-module to avoid dependency issues
 // -----------------------------------------------------------------------------
 

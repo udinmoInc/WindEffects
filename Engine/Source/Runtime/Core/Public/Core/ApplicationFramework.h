@@ -201,8 +201,9 @@ private:
     std::chrono::steady_clock::time_point m_LastFrameTime;
     float m_BackgroundFrameRate = 30.0f;
     float m_MinimizedFrameRate = 5.0f;
-    float m_FocusedFrameRate = 60.0f;
-    float m_CurrentTargetFrameRate = 60.0f;
+    /// 0 = uncapped when focused (no sleep). VSync/present pacing is separate.
+    float m_FocusedFrameRate = 0.0f;
+    float m_CurrentTargetFrameRate = 0.0f;
     
     void ThrottleFrame();
 };

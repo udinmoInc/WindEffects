@@ -11,11 +11,14 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include "Text/Editing/TextEditing.h"
+#include "Text/Core/Types.h"
 
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace we::runtime::kindui {
 
@@ -40,6 +43,7 @@ public:
     void SetText(const std::string& text) {
         if (m_Session) {
             m_Session->SetText(text);
+            InvalidateTextLayoutCache();
         }
     }
     [[nodiscard]] const std::string& GetText() const {
@@ -48,12 +52,26 @@ public:
     }
 
 private:
+    void InvalidateTextLayoutCache();
+    void EnsureTextLayoutCache(float fontSize);
+
     std::unique_ptr<we::runtime::text::editing::ITextEditSession> m_Session;
     std::function<void(const std::string&)> m_OnTextChanged;
     float m_HoverAnim = 0.0f;
     float m_FocusAnim = 0.0f;
     int m_ClickCount = 0;
     bool m_Dragging = false;
+
+    // Cache resolved style to avoid repeated theme lookups
+    ResolvedStyle m_CachedStyle;
+    bool m_StyleCacheValid = false;
+
+    // Cached UTF-8 decode + cumulative glyph advances for caret/selection hit-testing and paint.
+    std::vector<we::runtime::text::Codepoint> m_CachedCodepoints;
+    std::vector<float> m_CachedAdvances; // width of prefix [0..i]
+    std::string m_CachedTextSnapshot;
+    float m_CachedAdvanceFontSize = -1.0f;
+    bool m_TextLayoutCacheValid = false;
 };
 
 } // namespace we::runtime::kindui

@@ -72,7 +72,6 @@ namespace {
         (void)x;
         (void)barTop;
         (void)barBottom;
-        // Deprecated: status bar uses VerticalDivider gap-cuts instead of hairlines.
     }
 
     std::shared_ptr<we::runtime::kindui::VerticalDivider> MakeStatusDivider() {

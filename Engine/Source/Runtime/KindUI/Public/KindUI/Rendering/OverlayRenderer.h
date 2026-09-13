@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
+#include "KindUI/Profiling/UiBuildPhaseTiming.h"
 #include "KindUI/Rendering/OverlayRenderContext.h"
 #include "RHI/GpuBackends.h"
 #include "RHI/IRHI.h"
@@ -120,6 +121,25 @@ public:
     const UIFrameStats& GetFrameStats() const { return m_FrameStats; }
     [[nodiscard]] uint64_t GetGeometryGeneration() const { return m_GeometryGeneration; }
 
+    /// CPU ms spent in RenderUI (widget walk + geometry build). 0 when idle-skipped.
+    [[nodiscard]] float GetLastBuildCpuMs() const { return m_LastBuildCpuMs; }
+    [[nodiscard]] const UiBuildPhaseTiming& GetLastBuildPhases() const { return m_LastPhaseTiming; }
+    /// CPU ms spent recording UI draw commands in EndOverlayPass.
+    [[nodiscard]] float GetLastSubmitCpuMs() const { return m_LastSubmitCpuMs; }
+    [[nodiscard]] bool BuiltGeometryThisFrame() const { return m_BuiltGeometryThisFrame; }
+    [[nodiscard]] bool SubmittedGpuThisFrame() const { return m_SubmittedGpuThisFrame; }
+    [[nodiscard]] bool UploadedGeometryThisFrame() const { return m_UploadedGeometryThisFrame; }
+    [[nodiscard]] bool LastSubmissionCacheHit() const { return m_LastSubmissionCacheHit; }
+    [[nodiscard]] bool LastSubmissionRebuilt() const { return m_LastSubmissionRebuilt; }
+    [[nodiscard]] uint64_t SubmissionCacheHitCount() const;
+    [[nodiscard]] uint64_t SubmissionCacheMissCount() const;
+    [[nodiscard]] uint64_t SubmissionRebuildCount() const;
+    [[nodiscard]] uint64_t SubmissionInvalidationCount() const;
+
+    /// Hard-invalidate reusable GPU UI submissions (swapchain recreate, device loss).
+    void InvalidateGpuSubmissionCache();
+    void SetSwapchainFormat(we::rhi::Format format);
+
 private:
 #pragma warning(push)
 #pragma warning(disable : 4251)
@@ -156,6 +176,15 @@ private:
     UIFrameStats m_FrameStats;
     we::runtime::uigfx::OverlayRenderContext m_PendingContext{};
     std::mutex m_Mutex;
+
+    float m_LastBuildCpuMs = 0.0f;
+    float m_LastSubmitCpuMs = 0.0f;
+    UiBuildPhaseTiming m_LastPhaseTiming{};
+    bool m_BuiltGeometryThisFrame = false;
+    bool m_SubmittedGpuThisFrame = false;
+    bool m_UploadedGeometryThisFrame = false;
+    bool m_LastSubmissionCacheHit = false;
+    bool m_LastSubmissionRebuilt = false;
 #pragma warning(pop)
 };
 

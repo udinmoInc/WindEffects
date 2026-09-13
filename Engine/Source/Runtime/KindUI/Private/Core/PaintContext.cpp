@@ -17,6 +17,7 @@
 #include "KindUI/Tokens/ChromeSeparation.h"
 #include "KindUI/Tokens/DesignToken.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace we::runtime::kindui {
@@ -40,6 +41,22 @@ bool AllowsChromeOutline(const Color& color) {
 }
 
 } // namespace
+
+void PaintContext::AppendCommands(const std::vector<DrawCommand>& commands) {
+    if (commands.empty()) {
+        return;
+    }
+    m_Commands.insert(m_Commands.end(), commands.begin(), commands.end());
+}
+
+void PaintContext::AppendCommands(const std::vector<DrawCommand>& commands, size_t begin, size_t end) {
+    if (begin >= end || begin >= commands.size()) {
+        return;
+    }
+    end = (std::min)(end, commands.size());
+    m_Commands.insert(m_Commands.end(), commands.begin() + static_cast<std::ptrdiff_t>(begin),
+        commands.begin() + static_cast<std::ptrdiff_t>(end));
+}
 
 void PaintContext::PushSurfaceOwner(const char* widgetName, SurfaceRole role) {
     m_SurfaceOwnerStack.push_back(SurfaceOwnerScope{ widgetName, role });
@@ -393,4 +410,5 @@ void PaintContext::DrawColorTexture(const Rect& rect, we::rhi::RHIDescriptorSetH
 }
 
 } // namespace we::runtime::kindui
- 
+
+// kindui-perf-rebuild-token

@@ -41,10 +41,18 @@ float ScrollLayout::WheelStep() const {
 }
 
 void ScrollLayout::SyncScrollMetrics() {
-    m_ContentHeight = ContentHeight();
-    m_MaxScroll = ScrollViewport::MaxScroll(ViewportHeight(), m_ContentHeight);
+    const float newContentHeight = ContentHeight();
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
+    if (!m_MetricsDirty
+        && std::fabs(m_ContentHeight - newContentHeight) < 0.01f
+        && std::fabs(m_LastScale - uiScale) < 0.001f) {
+        return;
+    }
+    m_LastScale = uiScale;
+    m_ContentHeight = newContentHeight;
+    m_MaxScroll = ScrollViewport::MaxScroll(ViewportHeight(), m_ContentHeight);
     m_Metrics = m_Scroll.UpdateMetrics(m_Geometry, ViewportHeight(), m_ContentHeight, uiScale);
+    m_MetricsDirty = false;
 }
 
 Size ScrollLayout::Measure(const Size& availableSize) {
@@ -69,7 +77,10 @@ Size ScrollLayout::Measure(const Size& availableSize) {
 }
 
 void ScrollLayout::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    if (m_Geometry != allottedRect) {
+        m_Geometry = allottedRect;
+        m_MetricsDirty = true;
+    }
     SyncScrollMetrics();
 
     if (m_Content && m_Content->IsVisible()) {

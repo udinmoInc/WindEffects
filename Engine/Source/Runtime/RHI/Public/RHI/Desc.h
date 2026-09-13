@@ -62,7 +62,7 @@ struct DeviceDesc {
     uint32_t adapterIndex = 0;
     uint32_t framesInFlight = 2;
     bool enableValidation = false;
-    bool vsync = true;
+    bool vsync = false;
     bool headless = false;
     Extent2D headlessExtent{1280, 720};
     const char* debugName = "RHIDevice";
@@ -73,7 +73,7 @@ struct SwapchainDesc {
     Extent2D extent{};
     uint32_t imageCount = 3;
     Format preferredFormat = Format::B8G8R8A8_SRGB;
-    bool vsync = true;
+    bool vsync = false;
     const char* debugName = "Swapchain";
 };
 
@@ -164,6 +164,9 @@ struct RenderingInfo {
     std::vector<ColorAttachmentDesc> colorAttachments{};
     DepthAttachmentDesc depth{};
     Extent2D renderArea{};
+    /// Required by Vulkan when the primary will vkCmdExecuteCommands secondaries
+    /// inside this dynamic-rendering scope (VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT).
+    bool contentsSecondaryCommandBuffers = false;
 };
 
 struct BlendStateDesc {
@@ -412,6 +415,12 @@ struct CommandPoolDesc {
     QueueType queue = QueueType::Graphics;
     CommandPoolFlags flags = CommandPoolFlags::ResetCommandBuffer;
     const char* debugName = nullptr;
+};
+
+/// Inheritance state for secondary command lists recorded inside dynamic rendering.
+struct SecondaryInheritanceDesc {
+    Format colorFormat = Format::B8G8R8A8_SRGB;
+    Extent2D renderArea{};
 };
 
 struct QueryPoolDesc {

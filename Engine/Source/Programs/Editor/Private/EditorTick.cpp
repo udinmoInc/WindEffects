@@ -11,6 +11,7 @@
 #include "Environment/EnvironmentEditorApi.h"
 #include "Environment/EnvironmentSystem.h"
 #include "KindUI/Core/Animator.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "Terrain/Terrain.h"
 #include "Terrain/TerrainDiagnostics.h"
 #include "TerrainEditor/TerrainEditor.h"
@@ -24,8 +25,15 @@ namespace we::programs::editor {
 
 void Editor::TickSimulation(float dt) {
     we::runtime::kindui::Animator::Tick(dt);
-    if (m_RootWidget) {
-        m_RootWidget->Tick(dt);
+    // Central idle gate: skip widget-tree Tick when layout/paint/animation are clean.
+    // Sticky animating latch (from last MarkAnimating/Damp) keeps PeekNeedsWidgetTick
+    // true across ConsumeNeedsPaint; MarkSettled clears it so Tick must re-arm.
+    const bool needsWidgetTick = we::runtime::kindui::UIRepaintGate::PeekNeedsWidgetTick();
+    if (needsWidgetTick) {
+        we::runtime::kindui::UIRepaintGate::MarkSettled();
+        if (m_RootWidget) {
+            m_RootWidget->Tick(dt);
+        }
     }
     if (m_Camera) {
         m_Camera->Update(dt);
@@ -39,10 +47,12 @@ void Editor::TickSimulation(float dt) {
         env.SyncFromScene(m_Camera->GetPosition());
     }
     ::we::editor::environment::TickEditor();
-    if (m_WorldOutliner) {
+    if (needsWidgetTick && m_WorldOutliner) {
         m_WorldOutliner->Outliner().Tick(dt);
     }
-    if (m_ContentBrowser) {
+    // ContentBrowser may live outside the root tick path for service hooks; still
+    // honor the same central gate (hover alpha uses MarkAnimating).
+    if (needsWidgetTick && m_ContentBrowser) {
         m_ContentBrowser->Browser().Tick(dt);
     }
     if (m_PrefabEditor) {

@@ -70,7 +70,6 @@ void ThumbnailManager::RequestThumbnail(const ThumbnailRequest& request) {
     std::lock_guard<std::mutex> lock(m_RequestMutex);
     if (m_PendingIds.find(request.id) != m_PendingIds.end()) return;
     if (m_CancelledIds.erase(request.id) > 0) {
-        // recently cancelled, allow re-request
     }
 
     ThumbnailRequest prioritized = request;

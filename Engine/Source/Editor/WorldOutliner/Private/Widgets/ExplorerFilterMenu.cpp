@@ -20,6 +20,8 @@
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Typography/TypographySystem.h"
+#include "KindUI/Layout/AutoAlign.h"
 
 #include <algorithm>
 
@@ -164,10 +166,11 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
             }
         }
 
+        const float fontSize =
+            we::runtime::kindui::TypographySystem::GetFontSize(we::runtime::kindui::TypographyToken::Menu);
         const float textX = item.geometry.x + we::runtime::kindui::UiMetrics::MenuTextIndent();
-        const float textY = item.geometry.y + (rowH - ThemeMetric(MetricToken::TextSizeNormal)) * 0.5f;
-        context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary),
-            ThemeMetric(MetricToken::TextSizeNormal));
+        const float textY = we::runtime::kindui::AutoAlign::AlignTextTopY(item.geometry, fontSize);
+        context.DrawText(item.label, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
     }
 }
 

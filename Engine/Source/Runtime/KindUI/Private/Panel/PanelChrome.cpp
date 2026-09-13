@@ -539,6 +539,58 @@ void PaintHeaderRegion(PaintContext& context, const Rect& rect) {
     PaintSeparatorEdge(context, rect, false);
 }
 
+void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::string_view labelText) {
+    const float uiScale = UiScale();
+    const float headerTextSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * uiScale;
+    const float headerTextY = we::runtime::kindui::LayoutMetrics::AlignTextTopY(rect, headerTextSize);
+    const Color sepColor = we::runtime::kindui::ResolveColor(ColorToken::Separator);
+    const Color textColor = we::runtime::kindui::ResolveColor(ColorToken::TextSecondary);
+
+    const float borderW = (std::max)(1.0f, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth));
+    const float topBorderY = std::floor(rect.y);
+    const float botBorderY = std::floor(rect.y + rect.height - borderW);
+
+    context.DrawRect(Rect{ rect.x, topBorderY, rect.width, borderW }, sepColor);
+    context.DrawRect(Rect{ rect.x, botBorderY, rect.width, borderW }, sepColor);
+
+    const float eyeColWidth = std::floor(30.0f * uiScale);
+    const Rect eyeBand{ rect.x, rect.y, eyeColWidth, rect.height };
+    IconPainter::Draw(
+        context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u), textColor);
+
+    const float sep1X = std::floor(rect.x + eyeColWidth);
+    context.DrawRect(Rect{ sep1X, rect.y, borderW, rect.height }, sepColor);
+
+    const float dirtyColWidth = std::floor(28.0f * uiScale);
+    const float sep2X = std::floor(sep1X + dirtyColWidth);
+    const Rect starBand{ sep1X, rect.y, dirtyColWidth, rect.height };
+    IconPainter::Draw(
+        context, WindIcons::Pin16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
+
+    context.DrawRect(Rect{ sep2X, rect.y, borderW, rect.height }, sepColor);
+
+    const float labelPad = std::floor(16.0f * uiScale);
+    const float labelX = sep2X + labelPad;
+    context.DrawText(
+        std::string(labelText),
+        Point{ labelX, headerTextY },
+        textColor,
+        headerTextSize,
+        we::runtime::text::layout::FontWeight::Regular);
+
+    const float typeColWidth = std::floor(90.0f * uiScale);
+    const float sep3X = std::floor(rect.x + rect.width - typeColWidth);
+    context.DrawRect(Rect{ sep3X, rect.y, borderW, rect.height }, sepColor);
+
+    const float typeX = sep3X + labelPad;
+    context.DrawText(
+        "Type",
+        Point{ typeX, headerTextY },
+        textColor,
+        headerTextSize,
+        we::runtime::text::layout::FontWeight::Regular);
+}
+
 void PaintElevatedHeaderRegion(PaintContext& context, const Rect& rect) {
     PaintHeaderRegion(context, rect);
 }

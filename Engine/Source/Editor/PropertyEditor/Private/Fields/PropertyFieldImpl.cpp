@@ -12,6 +12,7 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/WindIcon.h"
+#include "KindUI/Layout/PropertyRowLayout.h"
 #include "KindUI/Widgets/TextBox.h"
 #include "KindUI/Widgets/Label.h"
 #include "KindUI/Widgets/ColorPicker.h"
@@ -222,56 +223,13 @@ void PropertyFieldBase::EndTransaction() {
     }
 }
 
-// Composite 2-column row widget wrapping leaf widget
 std::shared_ptr<we::runtime::kindui::Widget> PropertyFieldBase::CreateRowWidget(float labelColumnRatio) {
-    class PropertyRowWidget final : public we::runtime::kindui::Widget {
-    public:
-        PropertyRowWidget(PropertyFieldBase* owner, std::shared_ptr<we::runtime::kindui::Widget> leaf, float ratio)
-            : m_Owner(owner), m_LeafWidget(std::move(leaf)), m_Ratio(ratio) {}
-
-        we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& available) override {
-            const float h = we::runtime::kindui::LayoutMetrics::PropertyControlHeight();
-            return we::runtime::kindui::Size{ available.width, h };
-        }
-
-        void Arrange(const we::runtime::kindui::Rect& r) override {
-            m_Geometry = r;
-            const auto layout = we::runtime::kindui::PropertyPanelChrome::LayoutPropertyRow(r, 0, {}, false, m_Ratio);
-            if (m_LeafWidget) {
-                const auto controlRect = we::runtime::kindui::LayoutMetrics::LayoutPropertyControlInRow(layout.value);
-                m_LeafWidget->Arrange(controlRect);
-            }
-        }
-
-        void Paint(we::runtime::kindui::PaintContext& context) override {
-            const auto layout = we::runtime::kindui::PropertyPanelChrome::LayoutPropertyRow(m_Geometry, 0, {}, false,
-                m_Ratio);
-            we::runtime::kindui::PropertyPanelChrome::PaintPropertyRowBackground(context, m_Geometry, m_IsHovered,
-                false);
-            we::runtime::kindui::PropertyPanelChrome::PaintPropertyRowLabel(
-                context, layout.label, m_Owner->GetLabel(), false);
-            if (m_LeafWidget) {
-                m_LeafWidget->Paint(context);
-            }
-        }
-
-        void OnMouseMove(const we::runtime::kindui::MouseEvent& e) override {
-            (void)e;
-            m_IsHovered = true;
-        }
-
-        void OnHoverLost() override {
-            m_IsHovered = false;
-        }
-
-    private:
-        PropertyFieldBase* m_Owner = nullptr;
-        std::shared_ptr<we::runtime::kindui::Widget> m_LeafWidget;
-        float m_Ratio = 0.4f;
-        bool m_IsHovered = false;
-    };
-
-    return std::make_shared<PropertyRowWidget>(this, CreateWidget(), labelColumnRatio);
+    auto row = std::make_shared<we::runtime::kindui::PropertyRowLayout>(std::string(GetLabel()), CreateWidget(),
+        labelColumnRatio);
+    row->SetModified(IsModifiedFromDefault());
+    row->SetReadOnly(IsReadOnly());
+    row->SetOnResetClicked([this] { ResetToDefault(); });
+    return row;
 }
 
 // --- Bool ---

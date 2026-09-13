@@ -310,11 +310,6 @@ void ToolButton::Tick(float deltaTime) {
     m_PressAnim = Animator::Damp(m_PressAnim, targetPress, PressDamping());
     m_ActiveAnim = Animator::Damp(m_ActiveAnim, targetActive, HoverDamping());
 
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f ||
-        std::abs(m_PressAnim - targetPress) > 0.001f ||
-        std::abs(m_ActiveAnim - targetActive) > 0.001f) {
-        InvalidatePaint();
-    }
 
     Widget::Tick(deltaTime);
 }
@@ -355,7 +350,6 @@ void ToolButton::Paint(PaintContext& context) {
         PaintFloatingIcon(
             context, m_Icon, renderRect, iconSize, m_HoverAnim, pressStrength, m_Active);
     } else {
-        // Standard buttons (Inline, IconOnly, Transport, StatusBar, ViewportChip, Normal)
         const float iconSize = m_Icon.IsValid() ? static_cast<float>(m_Icon.sizePx) : IconSize(uiScale);
         const float textSize = (m_ButtonStyle == ToolButtonStyle::StatusBar)
             ? ThemeMetric(MetricToken::TextSizeSmall) * uiScale
@@ -404,8 +398,6 @@ void ToolButton::Paint(PaintContext& context) {
         }
     }
 
-    // --- Step 3: Draw Tooltip Popup ---
-
     if (m_Hovered && m_HoverAnim > 0.6f && !m_Tooltip.empty()) {
         const float tooltipPadX = 10.0f * uiScale;
         const float tooltipPadY = 5.0f * uiScale;
@@ -439,16 +431,12 @@ void ToolButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        const bool wasPressed = m_Pressed;
-        SetPressed(false);
-        if ((wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
-            std::string label = !m_Tooltip.empty() ? m_Tooltip
-                : (!m_Label.empty() ? m_Label
-                    : (!GetId().empty() ? GetId() : "ToolButton"));
-            we::runtime::kindui::UiInputDebug::OnClickInvoked("ToolButton", label);
-            m_OnClicked();
-        }
+    if (ShouldFireClickOnLeftUp(event) && m_OnClicked) {
+        std::string label = !m_Tooltip.empty() ? m_Tooltip
+            : (!m_Label.empty() ? m_Label
+                : (!GetId().empty() ? GetId() : "ToolButton"));
+        we::runtime::kindui::UiInputDebug::OnClickInvoked("ToolButton", label);
+        m_OnClicked();
     }
 }
 

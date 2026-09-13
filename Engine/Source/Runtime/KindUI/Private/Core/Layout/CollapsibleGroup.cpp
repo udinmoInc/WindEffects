@@ -9,6 +9,7 @@
 #include "KindUI/Layout/CollapsibleGroup.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
+#include "KindUI/Core/UIRepaintGate.h"
 
 namespace we::runtime::kindui {
 
@@ -34,8 +35,8 @@ void CollapsibleGroup::SetExpanded(bool expanded) {
         if (m_ContentColumn) {
             m_ContentColumn->SetVisible(m_Expanded);
         }
-        InvalidateLayout();
-        InvalidatePaint();
+        UIRepaintGate::RequestLayoutReason("PanelExpand");
+        UIRepaintGate::RequestPaintReason("PanelExpand");
         if (m_OnExpandedChanged) {
             m_OnExpandedChanged(m_Expanded);
         }

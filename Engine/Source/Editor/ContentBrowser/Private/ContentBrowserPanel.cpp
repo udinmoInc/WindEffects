@@ -295,9 +295,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     searchRow->Align(AlignItems::Center);
     searchRow->SetFlexShrink(0.0f);
 
-    auto filterBtn = std::make_shared<::we::editor::contentbrowser::ToolbarIconToggle>(WindIcons::ListFilter16,
-        "Filter");
-    filterBtn->SetFrameless(true);
+    auto filterBtn = std::make_shared<we::runtime::kindui::ToolbarIconButton>(WindIcons::ListFilter16, "Filter");
     filterBtn->SetFlexShrink(0.0f);
 
     auto searchBox = std::make_shared<::we::editor::widgets::SearchBox>();

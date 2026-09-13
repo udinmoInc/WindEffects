@@ -10,6 +10,7 @@
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
+#include "KindUI/Layout/Splitter.h"
 #include "RHI/Desc.h"
 #include "RHI/ShaderBytecode.h"
 
@@ -17,6 +18,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -188,8 +190,20 @@ bool UiImmediateRenderer::Init(
     }
 
     m_FrameGeometry.resize(m_MaxFramesInFlight);
+    // Opt-in while stabilizing secondary CB reuse (default on when supported).
+    const char* subCacheEnv = std::getenv("WE_UI_SUBMISSION_CACHE");
+    const bool subCacheDisabled = subCacheEnv && subCacheEnv[0] == '0';
+    if (!subCacheDisabled) {
+        if (!CreateSubmissionCache()) {
+            WE_LOG_WARN(we::LogCategory::Startup,
+                "UiImmediateRenderer: secondary submission cache unavailable; falling back to primary recording.");
+        }
+    }
     m_Ready = true;
-    WE_LOG_INFO(we::LogCategory::Startup, "UiImmediateRenderer ready (IRHI).");
+    WE_LOG_INFO(we::LogCategory::Startup,
+        m_SubmissionCacheEnabled
+            ? "UiImmediateRenderer ready (IRHI + secondary submission cache)."
+            : "UiImmediateRenderer ready (IRHI).");
     return true;
 }
 
@@ -234,6 +248,7 @@ void UiImmediateRenderer::Shutdown() {
         frame.indexCapacity = 0;
     }
     m_FrameGeometry.clear();
+    DestroySubmissionCache();
 
     if (m_UiPipeline != we::rhi::RHIGraphicsPipelineHandle::Invalid) {
         (void)m_Device->DestroyGraphicsPipeline(m_UiPipeline);
@@ -320,6 +335,16 @@ bool UiImmediateRenderer::LoadShaders() {
 }
 
 bool UiImmediateRenderer::CreatePipelines() {
+    auto destroyExisting = [this](we::rhi::RHIGraphicsPipelineHandle& handle) {
+        if (handle != we::rhi::RHIGraphicsPipelineHandle::Invalid) {
+            (void)m_Device->DestroyGraphicsPipeline(handle);
+            handle = we::rhi::RHIGraphicsPipelineHandle::Invalid;
+        }
+    };
+    destroyExisting(m_UiPipeline);
+    destroyExisting(m_UiOpaquePipeline);
+    destroyExisting(m_TextPipeline);
+
     we::rhi::GraphicsPipelineDesc uiPso{};
     uiPso.vertexShader = m_UiVs;
     uiPso.fragmentShader = m_UiPs;
@@ -464,6 +489,8 @@ void UiImmediateRenderer::UpdateTexture(
         return;
     }
     WriteTextureSet(set, view, sampler);
+    // Bound image/sampler inside cached secondaries may have changed.
+    InvalidateGpuSubmissionCache();
 }
 
 void UiImmediateRenderer::UnregisterTexture(we::rhi::RHIDescriptorSetHandle set) {
@@ -475,6 +502,7 @@ void UiImmediateRenderer::UnregisterTexture(we::rhi::RHIDescriptorSetHandle set)
     if (it != m_Uploaded.end()) {
         DestroyUploaded(it->second);
         m_Uploaded.erase(it);
+        InvalidateGpuSubmissionCache();
     }
 }
 
@@ -555,12 +583,17 @@ bool UiImmediateRenderer::EnsureBuffer(
     uint64_t& capacity,
     uint64_t required,
     we::rhi::BufferUsage usage,
-    const char* debugName)
+    const char* debugName,
+    bool* outReallocated)
 {
+    if (outReallocated) {
+        *outReallocated = false;
+    }
     if (required <= capacity && handle != we::rhi::RHIBufferHandle::Invalid) {
         return true;
     }
-    if (handle != we::rhi::RHIBufferHandle::Invalid) {
+    const bool hadBuffer = handle != we::rhi::RHIBufferHandle::Invalid;
+    if (hadBuffer) {
         (void)m_Device->DestroyBuffer(handle);
         handle = we::rhi::RHIBufferHandle::Invalid;
         capacity = 0;
@@ -577,6 +610,13 @@ bool UiImmediateRenderer::EnsureBuffer(
     }
     handle = *buf;
     capacity = newCapacity;
+    if (outReallocated) {
+        *outReallocated = true;
+    }
+    if (hadBuffer) {
+        // Bound buffer handles inside cached secondaries are stale.
+        InvalidateGpuSubmissionCache();
+    }
     return true;
 }
 
@@ -592,19 +632,27 @@ void UiImmediateRenderer::UpdateGeometryBuffers(
     const uint64_t vertexBytes = vertices.size() * sizeof(we::rhi::UIVertex);
     const uint64_t indexBytes = indices.size() * sizeof(uint32_t);
 
+    bool vbRealloc = false;
+    bool ibRealloc = false;
     if (!EnsureBuffer(
             frame.vertexBuffer,
             frame.vertexCapacity,
             vertexBytes,
             we::rhi::BufferUsage::Vertex,
-            "UiImmediate.VB")
+            "UiImmediate.VB",
+            &vbRealloc)
         || !EnsureBuffer(
             frame.indexBuffer,
             frame.indexCapacity,
             indexBytes,
             we::rhi::BufferUsage::Index,
-            "UiImmediate.IB")) {
+            "UiImmediate.IB",
+            &ibRealloc)) {
         return;
+    }
+    if (vbRealloc || ibRealloc) {
+        // Force a fresh upload association even if geometryGeneration matches.
+        frame.uploadedGeneration = 0;
     }
 
     (void)m_Device->UpdateBuffer(
@@ -616,6 +664,8 @@ void UiImmediateRenderer::UpdateGeometryBuffers(
 }
 
 void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) {
+    m_LastSubmissionCacheHit = false;
+    m_LastSubmissionRebuilt = false;
     if (!m_Ready || !m_Device || !params.commandList) {
         return;
     }
@@ -651,80 +701,62 @@ void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) 
     colorAtt.storeOp = we::rhi::StoreOp::Store;
     info.colorAttachments.push_back(colorAtt);
     info.renderArea = {m_CurrentWidth, m_CurrentHeight};
+    // Secondary submission cache executes reusable CBs inside this scope.
+    info.contentsSecondaryCommandBuffers = m_SubmissionCacheEnabled;
 
     m_Cmd->BeginRendering(info);
     m_InRenderPass = true;
-    m_Cmd->BindGraphicsPipeline(m_UiPipeline);
     m_BoundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
 
-    if (m_DummySet != we::rhi::RHIDescriptorSetHandle::Invalid) {
-        const we::rhi::RHIDescriptorSetHandle sets[] = {m_DummySet};
-        m_Cmd->BindDescriptorSets(
-            we::rhi::PipelineBindPoint::Graphics, m_UiLayout, 0, sets);
-        m_BoundSet = m_DummySet;
+    // With secondary cache, bind/draw state lives inside the reusable secondary.
+    // Primary only opens the rendering scope and later ExecuteCommands.
+    if (!m_SubmissionCacheEnabled) {
+        m_Cmd->BindGraphicsPipeline(m_UiPipeline);
+        if (m_DummySet != we::rhi::RHIDescriptorSetHandle::Invalid) {
+            const we::rhi::RHIDescriptorSetHandle sets[] = {m_DummySet};
+            m_Cmd->BindDescriptorSets(
+                we::rhi::PipelineBindPoint::Graphics, m_UiLayout, 0, sets);
+            m_BoundSet = m_DummySet;
+        }
+        m_Cmd->SetViewport({
+            0.0f,
+            0.0f,
+            static_cast<float>(m_CurrentWidth),
+            static_cast<float>(m_CurrentHeight),
+            0.0f,
+            1.0f});
+        m_Cmd->SetScissor({0, 0, m_CurrentWidth, m_CurrentHeight});
+        float push[4];
+        FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
+        m_Cmd->PushConstants(
+            m_UiLayout,
+            we::rhi::ShaderStageFlags::Vertex,
+            0,
+            std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
+    }
+}
+
+void UiImmediateRenderer::RecordDrawList(
+    we::rhi::IRHICommandList* cmd,
+    const we::rhi::UIDrawList& list,
+    const FrameGeometry& buffers)
+{
+    if (!cmd) {
+        return;
     }
 
-    m_Cmd->SetViewport({
+    we::rhi::RHIDescriptorSetHandle boundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
+
+    cmd->SetViewport({
         0.0f,
         0.0f,
         static_cast<float>(m_CurrentWidth),
         static_cast<float>(m_CurrentHeight),
         0.0f,
         1.0f});
-    m_Cmd->SetScissor({0, 0, m_CurrentWidth, m_CurrentHeight});
-
-    float push[4];
-    FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
-    m_Cmd->PushConstants(
-        m_UiLayout,
-        we::rhi::ShaderStageFlags::Vertex,
-        0,
-        std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
-}
-
-void UiImmediateRenderer::SubmitDrawList(
-    const we::rhi::UIDrawList& list,
-    uint32_t frameSlot,
-    const uint64_t geometryGeneration)
-{
-    if (!m_Cmd || !m_InRenderPass || m_FrameGeometry.empty()) {
-        return;
-    }
-    if (frameSlot >= m_FrameGeometry.size()) {
-        WE_LOG_WARN(we::LogCategory::Renderer.data(),
-            "UiImmediateRenderer::SubmitDrawList: frameSlot="
-                + std::to_string(frameSlot) + " >= buffers="
-                + std::to_string(m_FrameGeometry.size())
-                + " (UI framesInFlight mismatch — skipping draw to avoid flicker).");
-        return;
-    }
-    FrameGeometry& frame = m_FrameGeometry[frameSlot];
-    const bool geometryUnchanged =
-        geometryGeneration != 0
-        && frame.uploadedGeneration == geometryGeneration
-        && frame.uploadedVertexCount == list.vertices.size()
-        && frame.uploadedIndexCount == list.indices.size()
-        && !list.vertices.empty()
-        && !list.indices.empty();
-
-    if (!geometryUnchanged) {
-        if (!list.vertices.empty() && !list.indices.empty()) {
-            UpdateGeometryBuffers(frameSlot, list.vertices, list.indices);
-            frame.uploadedGeneration = geometryGeneration;
-            frame.uploadedVertexCount = static_cast<uint32_t>(list.vertices.size());
-            frame.uploadedIndexCount = static_cast<uint32_t>(list.indices.size());
-        }
-    }
-
-    const FrameGeometry& buffers = m_FrameGeometry[frameSlot];
-    if (buffers.vertexBuffer == we::rhi::RHIBufferHandle::Invalid
-        || buffers.indexBuffer == we::rhi::RHIBufferHandle::Invalid
-        || list.batches.empty()) {
-        return;
-    }
-
-    m_Cmd->BindVertexBuffer(0, buffers.vertexBuffer, 0);
-    m_Cmd->BindIndexBuffer(buffers.indexBuffer, 0, we::rhi::IndexType::UInt32);
+    cmd->SetScissor({0, 0, m_CurrentWidth, m_CurrentHeight});
+    cmd->BindVertexBuffer(0, buffers.vertexBuffer, 0);
+    cmd->BindIndexBuffer(buffers.indexBuffer, 0, we::rhi::IndexType::UInt32);
 
     const we::rhi::Scissor fullScissor{0, 0, m_CurrentWidth, m_CurrentHeight};
 
@@ -756,7 +788,7 @@ void UiImmediateRenderer::SubmitDrawList(
         if (batchScissor.width == 0 || batchScissor.height == 0) {
             batchScissor = fullScissor;
         }
-        m_Cmd->SetScissor(batchScissor);
+        cmd->SetScissor(batchScissor);
 
         const we::rhi::RHIPipelineLayoutHandle layout =
             useTextPipeline ? m_TextLayout : m_UiLayout;
@@ -770,21 +802,21 @@ void UiImmediateRenderer::SubmitDrawList(
                 batch.atlasHeight,
                 batch.msdfPixelRange,
                 textPush);
-            m_Cmd->PushConstants(
+            cmd->PushConstants(
                 m_TextLayout,
                 we::rhi::ShaderStageFlags::Vertex | we::rhi::ShaderStageFlags::Fragment,
                 0,
                 std::span(reinterpret_cast<const uint8_t*>(&textPush), sizeof(textPush)));
         }
 
-        if (batch.texture != m_BoundSet) {
+        if (batch.texture != boundSet) {
             const we::rhi::RHIDescriptorSetHandle sets[] = {batch.texture};
-            m_Cmd->BindDescriptorSets(
+            cmd->BindDescriptorSets(
                 we::rhi::PipelineBindPoint::Graphics, layout, 0, sets);
-            m_BoundSet = batch.texture;
+            boundSet = batch.texture;
         }
 
-        m_Cmd->DrawIndexed(batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
+        cmd->DrawIndexed(batch.indexCount, 1, batch.firstIndex, batch.vertexOffset, 0);
         return true;
     };
 
@@ -794,31 +826,203 @@ void UiImmediateRenderer::SubmitDrawList(
         const int requiredPipeline = batch.isText ? 1 : (batch.opaqueReplace ? 2 : 0);
         if (requiredPipeline != currentPipelineType) {
             if (requiredPipeline == 1) {
-                m_Cmd->BindGraphicsPipeline(m_TextPipeline);
+                cmd->BindGraphicsPipeline(m_TextPipeline);
             } else if (requiredPipeline == 2) {
-                m_Cmd->BindGraphicsPipeline(m_UiOpaquePipeline);
+                cmd->BindGraphicsPipeline(m_UiOpaquePipeline);
                 float push[4];
                 FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
-                m_Cmd->PushConstants(
+                cmd->PushConstants(
                     m_UiLayout,
                     we::rhi::ShaderStageFlags::Vertex,
                     0,
                     std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
             } else {
-                m_Cmd->BindGraphicsPipeline(m_UiPipeline);
+                cmd->BindGraphicsPipeline(m_UiPipeline);
                 float push[4];
                 FillUiTransform(m_CurrentWidth, m_CurrentHeight, push);
-                m_Cmd->PushConstants(
+                cmd->PushConstants(
                     m_UiLayout,
                     we::rhi::ShaderStageFlags::Vertex,
                     0,
                     std::span(reinterpret_cast<const uint8_t*>(push), sizeof(push)));
             }
-            m_BoundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
+            boundSet = we::rhi::RHIDescriptorSetHandle::Invalid;
             currentPipelineType = requiredPipeline;
         }
 
         (void)tryDrawBatch(batch, batch.isText);
+    }
+}
+
+void UiImmediateRenderer::SubmitDrawList(
+    const we::rhi::UIDrawList& list,
+    uint32_t frameSlot,
+    const uint64_t geometryGeneration)
+{
+    m_LastSubmitUploadedGeometry = false;
+    m_LastSubmissionCacheHit = false;
+    m_LastSubmissionRebuilt = false;
+    if (!m_Cmd || !m_InRenderPass || m_FrameGeometry.empty()) {
+        return;
+    }
+    if (frameSlot >= m_FrameGeometry.size()) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "UiImmediateRenderer::SubmitDrawList: frameSlot="
+                + std::to_string(frameSlot) + " >= buffers="
+                + std::to_string(m_FrameGeometry.size())
+                + " (UI framesInFlight mismatch — skipping draw to avoid flicker).");
+        return;
+    }
+    FrameGeometry& frame = m_FrameGeometry[frameSlot];
+    const bool geometryUnchanged =
+        geometryGeneration != 0
+        && frame.uploadedGeneration == geometryGeneration
+        && frame.uploadedVertexCount == list.vertices.size()
+        && frame.uploadedIndexCount == list.indices.size()
+        && !list.vertices.empty()
+        && !list.indices.empty();
+
+    if (!geometryUnchanged) {
+        if (!list.vertices.empty() && !list.indices.empty()) {
+            UpdateGeometryBuffers(frameSlot, list.vertices, list.indices);
+            frame.uploadedGeneration = geometryGeneration;
+            frame.uploadedVertexCount = static_cast<uint32_t>(list.vertices.size());
+            frame.uploadedIndexCount = static_cast<uint32_t>(list.indices.size());
+            m_LastSubmitUploadedGeometry = true;
+        }
+    }
+
+    const FrameGeometry& buffers = m_FrameGeometry[frameSlot];
+    if (buffers.vertexBuffer == we::rhi::RHIBufferHandle::Invalid
+        || buffers.indexBuffer == we::rhi::RHIBufferHandle::Invalid
+        || list.batches.empty()) {
+        return;
+    }
+
+    if (m_SubmissionCacheEnabled
+        && !Splitter::ShouldDeferHeavyGpuWork()
+        && frameSlot < m_SubmissionSlots.size()
+        && m_SubmissionSlots[frameSlot].secondary) {
+        SubmissionSlot& slot = m_SubmissionSlots[frameSlot];
+        const bool cacheHit = slot.valid
+            && slot.recordedGeometryGeneration == geometryGeneration
+            && slot.recordedInvalidationGeneration == m_SubmissionInvalidationGeneration
+            && slot.recordedWidth == m_CurrentWidth
+            && slot.recordedHeight == m_CurrentHeight
+            && slot.recordedFormat == m_SwapchainFormat;
+
+        if (cacheHit) {
+            // This FIF slot's fence was already waited in BeginFrame — secondary is not in flight.
+            we::rhi::IRHICommandList* secondaries[] = {slot.secondary};
+            m_Cmd->ExecuteCommands(secondaries);
+            m_LastSubmissionCacheHit = true;
+            ++m_SubmissionCacheHitCount;
+            return;
+        }
+
+        we::rhi::SecondaryInheritanceDesc inheritance{};
+        inheritance.colorFormat = m_SwapchainFormat;
+        inheritance.renderArea = {m_CurrentWidth, m_CurrentHeight};
+        if (!slot.secondary->BeginSecondary(inheritance)) {
+            slot.valid = false;
+            RecordDrawList(m_Cmd, list, buffers);
+            ++m_SubmissionCacheMissCount;
+            return;
+        }
+        RecordDrawList(slot.secondary, list, buffers);
+        slot.secondary->End();
+
+        we::rhi::IRHICommandList* secondaries[] = {slot.secondary};
+        m_Cmd->ExecuteCommands(secondaries);
+
+        slot.valid = true;
+        slot.recordedGeometryGeneration = geometryGeneration;
+        slot.recordedInvalidationGeneration = m_SubmissionInvalidationGeneration;
+        slot.recordedWidth = m_CurrentWidth;
+        slot.recordedHeight = m_CurrentHeight;
+        slot.recordedFormat = m_SwapchainFormat;
+        m_LastSubmissionRebuilt = true;
+        ++m_SubmissionCacheMissCount;
+        ++m_SubmissionRebuildCount;
+        return;
+    }
+
+    // Fallback: record draws directly into the primary frame command list.
+    RecordDrawList(m_Cmd, list, buffers);
+    ++m_SubmissionCacheMissCount;
+}
+
+bool UiImmediateRenderer::CreateSubmissionCache() {
+    DestroySubmissionCache();
+    m_SubmissionCacheEnabled = false;
+    if (!m_Device || !m_Device->GetCapabilities().SupportsSecondaryCommandBuffers()) {
+        return false;
+    }
+
+    we::rhi::CommandPoolDesc poolDesc{};
+    poolDesc.queue = we::rhi::QueueType::Graphics;
+    poolDesc.flags = we::rhi::CommandPoolFlags::ResetCommandBuffer;
+    poolDesc.debugName = "UiImmediate.SecondaryPool";
+    auto pool = m_Device->CreateCommandPool(poolDesc);
+    if (!pool) {
+        WE_LOG_WARN(we::LogCategory::Startup, "UiImmediateRenderer: CreateCommandPool failed for secondary cache.");
+        return false;
+    }
+    m_SecondaryPool = *pool;
+
+    m_SubmissionSlots.resize(m_MaxFramesInFlight);
+    for (uint32_t i = 0; i < m_MaxFramesInFlight; ++i) {
+        auto list = m_Device->AllocateCommandList(m_SecondaryPool, we::rhi::CommandBufferLevel::Secondary);
+        if (!list) {
+            WE_LOG_WARN(we::LogCategory::Startup,
+                "UiImmediateRenderer: AllocateCommandList(Secondary) failed for slot "
+                    + std::to_string(i) + ".");
+            DestroySubmissionCache();
+            return false;
+        }
+        we::rhi::IRHICommandList* secondary = *list;
+        if (!secondary) {
+            WE_LOG_WARN(we::LogCategory::Startup,
+                "UiImmediateRenderer: secondary command list null for slot " + std::to_string(i) + ".");
+            DestroySubmissionCache();
+            return false;
+        }
+        m_SubmissionSlots[i].secondary = secondary;
+        m_SubmissionSlots[i].valid = false;
+    }
+
+    m_SubmissionCacheEnabled = true;
+    WE_LOG_INFO(we::LogCategory::Startup,
+        "UiImmediateRenderer: secondary submission cache created ("
+            + std::to_string(m_MaxFramesInFlight) + " FIF slots).");
+    return true;
+}
+
+void UiImmediateRenderer::DestroySubmissionCache() {
+    // Command lists are owned by the pool; destroying the pool frees them.
+    m_SubmissionSlots.clear();
+    if (m_Device && m_SecondaryPool != we::rhi::RHICommandPoolHandle::Invalid) {
+        (void)m_Device->DestroyCommandPool(m_SecondaryPool);
+        m_SecondaryPool = we::rhi::RHICommandPoolHandle::Invalid;
+    }
+    m_SubmissionCacheEnabled = false;
+}
+
+void UiImmediateRenderer::InvalidateGpuSubmissionCache() {
+    ++m_SubmissionInvalidationGeneration;
+    ++m_SubmissionInvalidationCount;
+    for (auto& slot : m_SubmissionSlots) {
+        slot.valid = false;
+    }
+}
+
+void UiImmediateRenderer::SetSwapchainFormat(we::rhi::Format format) {
+    if (format == we::rhi::Format::Unknown || format == m_SwapchainFormat) {
+        return;
+    }
+    m_SwapchainFormat = format;
+    if (CreatePipelines()) {
+        InvalidateGpuSubmissionCache();
     }
 }
 

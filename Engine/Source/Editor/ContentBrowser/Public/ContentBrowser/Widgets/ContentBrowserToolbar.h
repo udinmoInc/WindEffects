@@ -37,39 +37,10 @@ using ::we::runtime::kindui::WidgetStyle;
 using ::we::runtime::kindui::PrimaryButton;
 using ::we::runtime::kindui::SecondaryButton;
 using ::we::runtime::kindui::ToolbarNavigationButton;
+using ::we::runtime::kindui::ToolbarIconButton;
+using ::we::runtime::kindui::ToolbarButton;
 
 class Breadcrumb;
-
-// Square icon toggle for view modes deriving from KindUI::IconButton.
-class ToolbarIconToggle : public we::runtime::kindui::IconButton {
-public:
-    explicit ToolbarIconToggle(we::runtime::kindui::WindIconRef icon, const char* tooltip = nullptr)
-        : we::runtime::kindui::IconButton(icon) {
-        SetBorderless(true);
-    }
-
-    void SetSelected(bool selected) { SetActive(selected); }
-    [[nodiscard]] bool IsSelected() const { return IsActive(); }
-    void SetFrameless(bool frameless) { SetBorderless(frameless); }
-    [[nodiscard]] bool IsFrameless() const { return true; }
-    void SetCustomColor(Color color) { }
-};
-
-// Icon + label button deriving from KindUI::ToolbarButton.
-class ToolbarLabeledButton : public we::runtime::kindui::ToolbarButton {
-public:
-    enum class Variant { Standard, Primary, AddAction };
-
-    ToolbarLabeledButton(const std::string& label, we::runtime::kindui::WindIconRef icon =
-        we::runtime::kindui::kWindIconNone,
-        bool showChevron = false, Variant variant = Variant::Standard, float horizontalPadding = 8.0f)
-        : we::runtime::kindui::ToolbarButton(label, icon) {
-
-    }
-
-    void SetFrameless(bool frameless) { }
-    [[nodiscard]] bool IsFrameless() const { return false; }
-};
 
 // Premium AAA toolbar with reusable components.
 class ContentBrowserToolbarControls : public we::runtime::kindui::Row {
@@ -91,9 +62,9 @@ public:
 
     std::shared_ptr<::we::editor::widgets::SearchBox> GetSearchBox() const { return m_SearchBox; }
     std::shared_ptr<Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
-    std::shared_ptr<ToolbarIconToggle> GetBackBtn() const { return m_BackBtn; }
-    std::shared_ptr<ToolbarIconToggle> GetForwardBtn() const { return m_ForwardBtn; }
-    std::shared_ptr<ToolbarIconToggle> GetFolderBtn() const { return m_FolderBtn; }
+    std::shared_ptr<ToolbarIconButton> GetBackBtn() const { return m_BackBtn; }
+    std::shared_ptr<ToolbarIconButton> GetForwardBtn() const { return m_ForwardBtn; }
+    std::shared_ptr<ToolbarIconButton> GetFolderBtn() const { return m_FolderBtn; }
 
     void SetOnFilterClicked(std::function<void()> callback);
     void SetOnSortClicked(std::function<void()> callback);
@@ -117,22 +88,22 @@ private:
     std::shared_ptr<Breadcrumb> m_Breadcrumb;
     std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
 
-    std::shared_ptr<ToolbarLabeledButton> m_CreateBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_ImportBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_SaveBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_FabBtn;
-    std::shared_ptr<ToolbarIconToggle> m_BackBtn;
-    std::shared_ptr<ToolbarIconToggle> m_ForwardBtn;
-    std::shared_ptr<ToolbarIconToggle> m_FolderBtn;
+    std::shared_ptr<ToolbarButton> m_CreateBtn;
+    std::shared_ptr<ToolbarButton> m_ImportBtn;
+    std::shared_ptr<ToolbarButton> m_SaveBtn;
+    std::shared_ptr<ToolbarButton> m_FabBtn;
+    std::shared_ptr<ToolbarIconButton> m_BackBtn;
+    std::shared_ptr<ToolbarIconButton> m_ForwardBtn;
+    std::shared_ptr<ToolbarIconButton> m_FolderBtn;
 
     // Legacy / secondary controls (for AssetPane mode)
-    std::shared_ptr<ToolbarIconToggle> m_GridViewBtn;
-    std::shared_ptr<ToolbarIconToggle> m_ListViewBtn;
-    std::shared_ptr<ToolbarIconToggle> m_SettingsBtn;
-    std::shared_ptr<ToolbarIconToggle> m_MoreBtn;
-    std::shared_ptr<ToolbarIconToggle> m_FilterIconBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_SortBtn;
-    std::shared_ptr<ToolbarLabeledButton> m_FilterBtn;
+    std::shared_ptr<ToolbarIconButton> m_GridViewBtn;
+    std::shared_ptr<ToolbarIconButton> m_ListViewBtn;
+    std::shared_ptr<ToolbarIconButton> m_SettingsBtn;
+    std::shared_ptr<ToolbarIconButton> m_MoreBtn;
+    std::shared_ptr<ToolbarIconButton> m_FilterIconBtn;
+    std::shared_ptr<ToolbarButton> m_SortBtn;
+    std::shared_ptr<ToolbarButton> m_FilterBtn;
 
     std::function<void(ContentViewMode)> m_OnViewModeChanged;
     std::function<void()> m_OnSettingsClicked;

@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Typography/TypographySystem.h"
 #include "KindUI/Theming/PaletteRuntime.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Theming/StyleResolve.h"
@@ -196,18 +197,18 @@ float GraphiteDarkTheme::ResolveMetric(MetricToken token) const {
     case MetricToken::CornerRadiusMedium: return 4.0f;
     case MetricToken::CornerRadiusLarge:
     case MetricToken::WindowCornerRadius: return 10.0f;
-    case MetricToken::TextSizeMenu: return 13.0f;
-    case MetricToken::TextSizeToolbar: return 13.0f;
-    case MetricToken::TextSizeTabs: return 13.0f;
-    case MetricToken::TextSizeNormal: return 13.0f;
-    case MetricToken::TextSizeProperty: return 13.0f;
-    case MetricToken::TextSizeCaption: return 12.0f;
-    case MetricToken::TextSizeWindow: return 13.0f;
-    case MetricToken::TextSizeHeader: return 14.0f;
-    case MetricToken::TextSizeBody: return 13.0f;
-    case MetricToken::TextSizeSmall: return 12.0f;
-    case MetricToken::TextSizeCategory: return 13.0f;
-    case MetricToken::TextSizeTitle: return 33.0f;
+    case MetricToken::TextSizeMenu: return TypographySystem::GetFontSize(TypographyToken::Menu);
+    case MetricToken::TextSizeToolbar: return TypographySystem::GetFontSize(TypographyToken::Toolbar);
+    case MetricToken::TextSizeTabs: return TypographySystem::GetFontSize(TypographyToken::Title);
+    case MetricToken::TextSizeNormal: return TypographySystem::GetFontSize(TypographyToken::Label);
+    case MetricToken::TextSizeProperty: return TypographySystem::GetFontSize(TypographyToken::PropertyValue);
+    case MetricToken::TextSizeCaption: return TypographySystem::GetFontSize(TypographyToken::Caption);
+    case MetricToken::TextSizeWindow: return TypographySystem::GetFontSize(TypographyToken::WindowTitle);
+    case MetricToken::TextSizeHeader: return TypographySystem::GetFontSize(TypographyToken::SectionTitle);
+    case MetricToken::TextSizeBody: return TypographySystem::GetFontSize(TypographyToken::Body);
+    case MetricToken::TextSizeSmall: return TypographySystem::GetFontSize(TypographyToken::Caption);
+    case MetricToken::TextSizeCategory: return TypographySystem::GetFontSize(TypographyToken::SectionTitle);
+    case MetricToken::TextSizeTitle: return TypographySystem::GetFontSize(TypographyToken::PageTitle);
     case MetricToken::TextCharWidthRatio: return 0.56f;
     case MetricToken::BorderWidth: return 1.0f;
     case MetricToken::PanelDividerWidth: return 1.0f;
@@ -379,64 +380,7 @@ float GraphiteDarkTheme::ResolveRadius(RadiusToken token) const {
 }
 
 float GraphiteDarkTheme::ResolveFontSize(TypographyToken token) const {
-    switch (token) {
-    case TypographyToken::WindowTitle:
-    case TypographyToken::Display:
-        return ResolveMetric(MetricToken::TextSizeTitle) + 4.0f;
-    case TypographyToken::PageTitle:
-    case TypographyToken::Heading1:
-        return ResolveMetric(MetricToken::TextSizeTitle);
-    case TypographyToken::SectionTitle:
-    case TypographyToken::DialogTitle:
-    case TypographyToken::Heading:
-    case TypographyToken::Heading2:
-        return ResolveMetric(MetricToken::TextSizeHeader);
-    case TypographyToken::CardTitle:
-    case TypographyToken::Heading3:
-        return ResolveMetric(MetricToken::TextSizeHeader);
-    case TypographyToken::Heading4:
-    case TypographyToken::Title:
-        return ResolveMetric(MetricToken::TextSizeBody);
-    case TypographyToken::Heading5:
-    case TypographyToken::Subtitle:
-        return ResolveMetric(MetricToken::TextSizeBody);
-    case TypographyToken::Heading6:
-    case TypographyToken::Body:
-    case TypographyToken::BodyStrong:
-    case TypographyToken::Link:
-        return ResolveMetric(MetricToken::TextSizeBody);
-    case TypographyToken::Button:
-        return ResolveMetric(MetricToken::TextSizeNormal);
-    case TypographyToken::Label:
-        return ResolveMetric(MetricToken::TextSizeNormal);
-    case TypographyToken::Menu:
-        return ResolveMetric(MetricToken::TextSizeMenu);
-    case TypographyToken::Toolbar:
-    case TypographyToken::Navigation:
-        return ResolveMetric(MetricToken::TextSizeToolbar);
-    case TypographyToken::Caption:
-    case TypographyToken::Status:
-    case TypographyToken::StatusBar:
-    case TypographyToken::Error:
-    case TypographyToken::Warning:
-    case TypographyToken::Success:
-        return ResolveMetric(MetricToken::TextSizeSmall);
-    case TypographyToken::Hint:
-    case TypographyToken::Tooltip:
-    case TypographyToken::Disabled:
-    case TypographyToken::CaptionSmall:
-        return ResolveMetric(MetricToken::TextSizeCaption);
-    case TypographyToken::Code:
-    case TypographyToken::Console:
-    case TypographyToken::Monospace:
-    case TypographyToken::PropertyValue:
-    case TypographyToken::TableHeader:
-        return ResolveMetric(MetricToken::TextSizeProperty);
-    case TypographyToken::PropertyLabel:
-        return ResolveMetric(MetricToken::TextSizeCaption);
-    default:
-        return ResolveMetric(MetricToken::TextSizeBody);
-    }
+    return TypographySystem::GetFontSize(token);
 }
 
 int GraphiteDarkTheme::ResolveElevation(ElevationToken token) const {

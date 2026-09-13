@@ -13,6 +13,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 
 #include <functional>
 #include <string>
@@ -45,6 +46,10 @@ protected:
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
+
+    // Cache resolved style to avoid repeated theme lookups
+    ResolvedStyle m_CachedStyle;
+    bool m_StyleCacheValid = false;
 };
 
 class KINDUI_API PrimaryButton : public DesignButton {
@@ -101,6 +106,8 @@ private:
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     std::function<void()> m_OnClicked;
+    ResolvedStyle m_CachedStyle;
+    bool m_StyleCacheValid = false;
 };
 
 class KINDUI_API Card : public Widget {

@@ -33,7 +33,6 @@ ViewportOverlay::ViewportOverlay()
     m_StatsPadding = ThemeMetric(MetricToken::Space2);
     m_NavButtonSize = ThemeMetric(MetricToken::NavigationButtonSize);
     m_NavSpacing = ThemeMetric(MetricToken::Space1);
-    // Initialize navigation buttons
     m_NavButtons = {
         { WindIcons::Plus16, "zoom-in", Rect{} },
         { WindIcons::Minus16, "zoom-out", Rect{} },
@@ -158,10 +157,8 @@ void ViewportOverlay::OnMouseDown(const MouseEvent& event) {
 }
 
 void ViewportOverlay::OnMouseMove(const MouseEvent& event) {
-    // Update hover states for navigation buttons
     for (auto& btn : m_NavButtons) {
         bool hovered = btn.geometry.Contains(event.position);
-        // Hover state could trigger visual feedback
     }
 }
 

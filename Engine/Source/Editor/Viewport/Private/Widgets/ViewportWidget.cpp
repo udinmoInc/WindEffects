@@ -121,9 +121,9 @@ bool ViewportWidget::FlushPendingResize() {
     m_Camera->SetViewportSize(static_cast<float>(m_PendingWidth), static_cast<float>(m_PendingHeight));
     SyncRendererViewport();
 
-    // While dragging splitters, stretch the last good RT into the new panel rect.
-    // Recreating GPU targets every mouse-move blanks the viewport and forces full scene.
-    if (we::runtime::kindui::Splitter::AnySplitterDragging()) {
+    // While dragging (or settling after mouse-up), stretch the last good RT into the
+    // new panel rect. Recreating GPU targets on the release frame blanks/hangs.
+    if (we::runtime::kindui::Splitter::ShouldDeferHeavyGpuWork()) {
         return false;
     }
 

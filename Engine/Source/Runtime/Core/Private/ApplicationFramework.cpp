@@ -14,6 +14,7 @@
 #include <thread>
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -281,10 +282,16 @@ ThrottlingSubsystem::ThrottlingSubsystem() {
 }
 
 void ThrottlingSubsystem::Initialize() {
+    if (const char* env = std::getenv("WE_TARGET_FPS")) {
+        const float fps = static_cast<float>(std::atof(env));
+        // Explicit 0 keeps uncapped; positive values cap focused frames.
+        m_FocusedFrameRate = fps;
+        m_CurrentTargetFrameRate = fps;
+    }
     HE_INFO("[ThrottlingSubsystem] Initialized");
     HE_INFO(std::string("[ThrottlingSubsystem] Background FPS: ") + std::to_string(m_BackgroundFrameRate) +
             ", Minimized FPS: " + std::to_string(m_MinimizedFrameRate) +
-            ", Focused FPS: " + std::to_string(m_FocusedFrameRate));
+            ", Focused FPS: " + (m_FocusedFrameRate <= 0.0f ? "uncapped" : std::to_string(m_FocusedFrameRate)));
 }
 
 void ThrottlingSubsystem::Tick(float deltaTime) {

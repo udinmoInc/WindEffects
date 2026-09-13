@@ -15,6 +15,7 @@
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widget.h"
+#include "KindUI/Profiling/UiBuildPhaseTiming.h"
 #include <memory>
 #include <vector>
 
@@ -41,9 +42,24 @@ public:
     const std::vector<UIRenderBatch>& GetBatches() const { return m_Batches; }
 
     // Steal built geometry into the overlay cache (avoids a full vector copy each rebuild).
+    // Prefer SwapGeometry: preserves capacity on both sides across frames.
     std::vector<UIVertex2> TakeVertices() { return std::move(m_Vertices); }
     std::vector<uint32_t> TakeIndices() { return std::move(m_Indices); }
     std::vector<UIRenderBatch> TakeBatches() { return std::move(m_Batches); }
+
+    void SwapGeometry(
+        std::vector<UIVertex2>& vertices,
+        std::vector<uint32_t>& indices,
+        std::vector<UIRenderBatch>& batches) {
+        vertices.swap(m_Vertices);
+        indices.swap(m_Indices);
+        batches.swap(m_Batches);
+        m_Vertices.clear();
+        m_Indices.clear();
+        m_Batches.clear();
+    }
+
+    [[nodiscard]] const UiBuildPhaseTiming& LastPhaseTiming() const { return m_LastPhaseTiming; }
 
     // Diagnostics (moved from static to instance-level to avoid global state)
     struct Diagnostics {
@@ -121,6 +137,8 @@ private:
     std::vector<UIVertex2> m_Vertices;
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
+    PaintContext m_PaintContext;
+    UiBuildPhaseTiming m_LastPhaseTiming{};
     
     uint32_t m_Width;
     uint32_t m_Height;

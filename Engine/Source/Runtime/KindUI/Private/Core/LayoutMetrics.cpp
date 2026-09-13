@@ -148,13 +148,14 @@ std::shared_ptr<Row> MakeFormRow(const std::string& label, const std::shared_ptr
     ApplyFormRowMinSize(*row);
 
     auto lbl = std::make_shared<Label>(label, TypographyToken::PropertyLabel);
-    PropertyPanelChrome::ConfigureFormRowChildren(*lbl, nullptr, 0);
-    row->AddChild(lbl);
-
     if (control) {
         ApplyInputMinSize(*control);
         PropertyPanelChrome::ConfigureFormRowChildren(*lbl, control.get(), 0);
+        row->AddChild(lbl);
         row->AddChild(control);
+    } else {
+        PropertyPanelChrome::ConfigureFormRowChildren(*lbl, nullptr, 0);
+        row->AddChild(lbl);
     }
 
     return row;

@@ -275,6 +275,7 @@ void VulkanDevice::FillCapabilities() {
     vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProps);
 
     m_Caps.dynamicRendering = true;
+    m_Caps.secondaryCommandBuffers = true;
     m_Caps.timestamps = true; // query pools + WriteTimestamp
     m_Caps.pipelineStatistics = false;
     m_Caps.timelineSemaphores = false;

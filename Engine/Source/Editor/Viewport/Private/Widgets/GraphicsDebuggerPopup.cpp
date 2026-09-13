@@ -16,6 +16,8 @@
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Tokens/SurfaceRole.h"
 #include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Typography/TypographySystem.h"
+#include "KindUI/Layout/AutoAlign.h"
 #include "Core/Logger.h"
 #include "Core/Math/Types.h"
 #include <iomanip>
@@ -49,7 +51,9 @@ Size GraphicsDebuggerPopup::Measure(const Size& /*availableSize*/) {
     BuildLines(lines);
     const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
     const float padding = ResolveMetric(MetricToken::Space2);
-    const float lineH = ResolveMetric(MetricToken::TextSizeCaption) + ResolveMetric(MetricToken::Space1);
+    const float bodySize =
+        we::runtime::kindui::TypographySystem::GetFontSize(we::runtime::kindui::TypographyToken::Caption);
+    const float lineH = bodySize + ResolveMetric(MetricToken::Space1);
     const float height = headerH + padding * 2.0f + static_cast<float>(lines.size()) * lineH;
     m_DesiredSize = Size{ ResolveMetric(MetricToken::PopupMaxWidth), height };
     return m_DesiredSize;
@@ -123,16 +127,19 @@ void GraphicsDebuggerPopup::Paint(PaintContext& context) {
         ResolveMetric(MetricToken::CornerRadiusSmall));
     context.DrawSurface(m_HeaderRect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "GraphicsDebuggerHeader");
     const float padding = ResolveMetric(MetricToken::Space2);
-    const float headerH = ResolveMetric(MetricToken::PanelToolbarHeight);
-    const float titleSize = ResolveMetric(MetricToken::TextSizeToolbar);
-    const float lineH = ResolveMetric(MetricToken::TextSizeCaption) + ResolveMetric(MetricToken::Space1);
-    const float bodySize = ResolveMetric(MetricToken::TextSizeCaption);
+    const float titleSize =
+        we::runtime::kindui::TypographySystem::GetFontSize(we::runtime::kindui::TypographyToken::Toolbar);
+    const float bodySize =
+        we::runtime::kindui::TypographySystem::GetFontSize(we::runtime::kindui::TypographyToken::Caption);
+    const float titleY = we::runtime::kindui::AutoAlign::AlignTextTopY(m_HeaderRect, titleSize);
     context.DrawText("Graphics Debugger",
-        Point{ m_Geometry.x + padding, m_Geometry.y + (headerH - titleSize) * 0.5f },
-        ThemeColor(ColorToken::TextPrimary), titleSize, true);
+        Point{ m_Geometry.x + padding, titleY },
+        ThemeColor(ColorToken::TextPrimary), titleSize);
 
     std::vector<std::string> lines;
     BuildLines(lines);
+    const float headerH = m_HeaderRect.height;
+    const float lineH = bodySize + ResolveMetric(MetricToken::Space1);
     float lineY = m_Geometry.y + headerH + padding;
     const Color textColor = ThemeColor(ColorToken::TextSecondary);
     const Color accentColor = ThemeColor(ColorToken::TextPrimary);

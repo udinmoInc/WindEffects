@@ -48,10 +48,12 @@ we::rhi::RHIBackend PreferBackendFromEnvironment(we::rhi::RHIBackend fallback) {
 }
 
 bool VsyncFromEnvironment() {
+    // Default OFF: FIFO present otherwise caps the whole editor loop at the
+    // display refresh (often exactly 60 FPS). Opt in with WE_VSYNC=1.
     if (const char* env = std::getenv("WE_VSYNC")) {
         return env[0] != '\0' && env[0] != '0';
     }
-    return true;
+    return false;
 }
 
 uint32_t FramesInFlightFromEnvironment() {
@@ -121,7 +123,9 @@ void Renderer::Init(we::platform::WindowId window) {
     m_Initialized = true;
     WE_LOG_INFO(we::LogCategory::Renderer.data(),
         std::string("Renderer initialized via RHI backend: ") +
-        we::rhi::ToString(m_RHIDevice->GetBackend()));
+        we::rhi::ToString(m_RHIDevice->GetBackend()) +
+        " vsync=" + (deviceDesc.vsync ? "on" : "off") +
+        " framesInFlight=" + std::to_string(framesInFlight));
 }
 
 void Renderer::Shutdown() {

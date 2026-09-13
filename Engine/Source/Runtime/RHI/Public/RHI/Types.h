@@ -189,6 +189,11 @@ enum class CommandPoolFlags : uint32_t {
     ResetCommandBuffer = 1u << 1
 };
 
+enum class CommandBufferLevel : uint8_t {
+    Primary = 0,
+    Secondary
+};
+
 [[nodiscard]] constexpr CommandPoolFlags operator|(CommandPoolFlags a, CommandPoolFlags b) noexcept {
     return static_cast<CommandPoolFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
 }

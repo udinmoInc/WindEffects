@@ -50,13 +50,17 @@ public:
     explicit VulkanCommandList(VulkanDevice* device);
 
     void SetCommandBuffer(VkCommandBuffer cmd) { m_Cmd = cmd; }
+    void SetCommandBufferLevel(CommandBufferLevel level) { m_Level = level; }
     [[nodiscard]] VkCommandBuffer GetVkCommandBuffer() const { return m_Cmd; }
+    [[nodiscard]] CommandBufferLevel GetCommandBufferLevel() const { return m_Level; }
     [[nodiscard]] bool IsRecording() const { return m_Recording; }
 
     void Begin() override;
+    bool BeginSecondary(const SecondaryInheritanceDesc& inheritance) override;
     void End() override;
     void BeginRendering(const RenderingInfo& info) override;
     void EndRendering() override;
+    void ExecuteCommands(std::span<IRHICommandList* const> secondaries) override;
     void SetViewport(const Viewport& viewport) override;
     void SetScissor(const Scissor& scissor) override;
     void BindGraphicsPipeline(RHIGraphicsPipelineHandle pipeline) override;
@@ -101,8 +105,10 @@ public:
 private:
     VulkanDevice* m_Device = nullptr;
     VkCommandBuffer m_Cmd = VK_NULL_HANDLE;
+    CommandBufferLevel m_Level = CommandBufferLevel::Primary;
     bool m_Recording = false;
     bool m_InRendering = false;
+    bool m_OwnsVkBegin = false; // true when this list called vkBeginCommandBuffer (secondaries)
 };
 
 class VulkanSwapchain final : public IRHISwapchain {
@@ -345,7 +351,9 @@ public:
     [[nodiscard]] RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) override;
     RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) override;
     RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) override;
-    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override;
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(
+        RHICommandPoolHandle pool,
+        CommandBufferLevel level = CommandBufferLevel::Primary) override;
 
     [[nodiscard]] RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) override;
     RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) override;

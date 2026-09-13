@@ -101,7 +101,9 @@ bool PlatformInputSubsystem::ProcessFrameEvents() {
 
     // Keep hit-test geometry current before routing pointer/keyboard input.
     m_Host.HostUpdateUiScaleFromWindow();
-    m_Host.HostSyncViewportFramebufferFromLayout();
+    if (UI::UIRepaintGate::PeekNeedsLayout()) {
+        m_Host.HostSyncViewportFramebufferFromLayout();
+    }
 
     // Two-pass routing: deliver all pointer/keyboard events before lifecycle side
     // effects (focus clear / swapchain arm). Windows often queues WM_SETFOCUS with

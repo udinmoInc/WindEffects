@@ -134,6 +134,25 @@ Size Flex::Measure(const Size& availableSize) {
     return m_DesiredSize;
 }
 
+Size Flex::MeasureWithFixedCross(const Size& availableSize, float fixedCrossSize) {
+    Size childAvail = availableSize;
+    if (IsRow()) {
+        if (childAvail.height > fixedCrossSize) {
+            childAvail.height = fixedCrossSize;
+        }
+    } else if (childAvail.width > fixedCrossSize) {
+        childAvail.width = fixedCrossSize;
+    }
+    Size size = Flex::Measure(childAvail);
+    if (IsRow()) {
+        size.height = fixedCrossSize;
+    } else {
+        size.width = fixedCrossSize;
+    }
+    m_DesiredSize = size;
+    return m_DesiredSize;
+}
+
 void Flex::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     ClearLayoutDirty();
@@ -143,26 +162,19 @@ void Flex::Arrange(const Rect& allottedRect) {
     const float contentW = std::max(0.0f, allottedRect.width - padW);
     const float contentH = std::max(0.0f, allottedRect.height - padH);
     const bool row = IsRow();
+    const Size contentSize{ contentW, contentH };
 
     for (const auto& child : m_Children) {
         if (!child || !child->IsVisible()) continue;
-        child->Measure(Size{ contentW, contentH });
+        // Final arrange constraints can differ from the prior Measure pass (e.g. grow/shrink).
+        child->Measure(contentSize);
     }
 
-    struct Item {
-        std::shared_ptr<Widget> widget;
-        Size desired{};
-        float mainSize = 0.0f;
-        float crossSize = 0.0f;
-        float marginMainStart = 0.0f;
-        float marginMainEnd = 0.0f;
-        float marginCrossStart = 0.0f;
-        float marginCrossEnd = 0.0f;
-        float grow = 0.0f;
-    };
-
-    std::vector<Item> items;
-    items.reserve(m_Children.size());
+    auto& items = m_ArrangeScratch;
+    items.clear();
+    if (items.capacity() < m_Children.size()) {
+        items.reserve(m_Children.size());
+    }
     float totalFixedMain = 0.0f;
     float totalGrow = 0.0f;
     float totalShrink = 0.0f;
@@ -172,7 +184,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         if (!child || !child->IsVisible()) continue;
         ++visibleCount;
 
-        Item item;
+        ArrangeItem item;
         item.widget = child;
         item.desired = child->ClampDesiredSize(child->GetDesiredSize());
         item.grow = EffectiveFlexGrow(*child, row);
@@ -197,7 +209,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         totalFixedMain += item.mainSize + item.marginMainStart + item.marginMainEnd;
         totalGrow += item.grow;
         totalShrink += child->GetFlexShrink();
-        items.push_back(item);
+        items.push_back(std::move(item));
     }
 
     const float gaps = visibleCount > 1 ? m_Gap * static_cast<float>(visibleCount - 1) : 0.0f;
@@ -338,6 +350,9 @@ void Flex::Arrange(const Rect& allottedRect) {
             : item.widget->GetMinSize().width;
         if (minCross > 0.0f) {
             crossSize = std::max(crossSize, minCross);
+        }
+        if (crossAvail > 0.0f) {
+            crossSize = std::min(crossSize, crossAvail);
         }
 
         Rect childRect;
