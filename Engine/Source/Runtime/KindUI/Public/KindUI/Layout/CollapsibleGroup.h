@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
+#include "KindUI/Core/Expansion.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Layout/Flex.h"
 #include <functional>
@@ -18,14 +19,15 @@
 namespace we::runtime::kindui {
 
 /// Reusable collapsible group container with header, expand chevron, and content stack.
-class KINDUI_API CollapsibleGroup : public Column {
+class KINDUI_API CollapsibleGroup : public Column, public IExpansionNode {
 public:
     CollapsibleGroup(std::string title = "", bool expanded = true);
     ~CollapsibleGroup() override;
 
     void SetTitle(std::string title);
     void SetExpanded(bool expanded);
-    [[nodiscard]] bool IsExpanded() const { return m_Expanded; }
+    [[nodiscard]] bool IsExpanded() const override { return m_Expanded; }
+    void ApplyExpanded(bool expanded) override;
 
     void SetOnExpandedChanged(std::function<void(bool expanded)> cb);
 

@@ -8,8 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/WindIcon.h"
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <string>
 #include <vector>

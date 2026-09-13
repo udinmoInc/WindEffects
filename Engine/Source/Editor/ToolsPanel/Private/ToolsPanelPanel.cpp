@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
-#include "KindUI/EditorWidgets.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/ToolsPanel.h"
 
 namespace we::programs::editor {

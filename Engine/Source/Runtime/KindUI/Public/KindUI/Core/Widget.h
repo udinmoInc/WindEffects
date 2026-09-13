@@ -163,6 +163,8 @@ public:
         InvalidateLayout();
         InvalidatePaint();
     }
+    /// Visibility change without invalidation — for batched Expansion transactions.
+    void SetVisibleSilent(bool visible) { m_Visible = visible; }
 
     HorizontalAlignment GetHorizontalAlignment() const { return m_HAlign; }
     void SetHorizontalAlignment(HorizontalAlignment align) { if (m_HAlign != align) { m_HAlign = align;

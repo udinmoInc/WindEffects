@@ -11,13 +11,9 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
-#include "KindUI/Panel/Panel.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Docking/DockContainer.h"
 #include "KindUI/Docking/FloatingPanelFrame.h"
-#include "KindUI/Layout/IPopupHost.h"
-#include "KindUI/Layout/OverlayManager.h"
-#include "KindUI/Layout/Splitter.h"
-
 #include <functional>
 #include <memory>
 #include <string>

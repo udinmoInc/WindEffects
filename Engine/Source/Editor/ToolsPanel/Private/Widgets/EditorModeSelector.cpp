@@ -10,18 +10,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/ToolbarButtonChrome.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/MenuBar.h"
 
 #include <algorithm>

@@ -20,12 +20,8 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
-#include "KindUI/Core/WindIcon.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/ScreenRecorder.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
 #include <functional>
 #include <memory>
 #include <string>

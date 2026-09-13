@@ -7,13 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Widgets/ViewportOverlay.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

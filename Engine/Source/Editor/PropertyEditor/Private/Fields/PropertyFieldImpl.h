@@ -11,9 +11,7 @@
 #include "PropertyEditor/IPropertyField.h"
 #include "PropertyEditor/PropertyFieldFactory.h"
 #include "PropertyEditor/PropertyFieldTypes.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>

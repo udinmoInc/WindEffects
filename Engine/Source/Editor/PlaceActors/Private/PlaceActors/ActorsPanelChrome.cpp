@@ -9,15 +9,7 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 
 #include "PlaceActors/ActorsPanelLayout.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/IconMetrics.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor::ActorsPanelChrome {
 
 using ::we::runtime::kindui::Color;

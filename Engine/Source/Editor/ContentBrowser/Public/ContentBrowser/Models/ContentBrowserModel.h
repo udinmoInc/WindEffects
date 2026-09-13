@@ -12,8 +12,7 @@
 #include <vector>
 #include <functional>
 #include "RHI/Types.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::contentbrowser {
 
 struct ContentItem {

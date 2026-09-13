@@ -10,7 +10,7 @@
 
 #include "ViewportEdit/Export.h"
 
-#include "KindUI/Core/WindIcon.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Math/Types.h"
 
 #include <cstdint>

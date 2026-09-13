@@ -12,15 +12,12 @@
 #include "RHI/Types.h"
 
 #include "Viewport/Export.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Input/InputEvents.h"
+#include <KindUI/EditorUI.h>
 #include "ViewportNavigation.h"
 #include "Platform/Types.h"
 
 #include <functional>
 #include <memory>
-#include "KindUI/Core/Style.h"
-
 namespace we::runtime::renderer { class ISceneViewportController; }
 namespace we::runtime::engine { class EditorCamera; }
 namespace we::runtime::scene { class Scene; }

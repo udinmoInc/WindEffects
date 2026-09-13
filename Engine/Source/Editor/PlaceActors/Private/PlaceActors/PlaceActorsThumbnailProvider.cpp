@@ -9,12 +9,7 @@
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "PlaceActors/PlaceActorsIconProvider.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 namespace we::programs::editor {

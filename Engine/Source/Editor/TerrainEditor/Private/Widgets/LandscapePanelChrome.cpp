@@ -6,21 +6,8 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Core/ControlChrome.h"
+#include <KindUI/EditorUI.h>
 #include "LandscapePanelChrome.h"
-
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/Types.h"
-
 #include <algorithm>
 
 namespace we::editor::terrain::LandscapePanelChrome {

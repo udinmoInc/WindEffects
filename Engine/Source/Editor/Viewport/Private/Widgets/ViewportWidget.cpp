@@ -13,11 +13,8 @@
 #include "RHI/Types.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Layout/Splitter.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Rendering/OverlayRenderer.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
 #include "Rendering/ViewportRenderTarget.h"
 #include "Core/LogCategory.h"
 #include "Core/DiagnosticMacros.h"
@@ -117,7 +114,7 @@ bool ViewportWidget::FlushPendingResize() {
         return false;
     }
 
-
+    // Keep camera aspect + blit rect in sync with the live panel geometry immediately.
     m_Camera->SetViewportSize(static_cast<float>(m_PendingWidth), static_cast<float>(m_PendingHeight));
     SyncRendererViewport();
 

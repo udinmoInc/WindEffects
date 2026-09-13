@@ -10,7 +10,7 @@
 
 #include "MainFrame/Export.h"
 
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 #include <deque>
 #include <mutex>

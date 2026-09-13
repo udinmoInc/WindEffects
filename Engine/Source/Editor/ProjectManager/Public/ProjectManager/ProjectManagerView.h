@@ -11,8 +11,7 @@
 #include "ProjectManager/Export.h"
 #include "ProjectManager/IProjectManagerHost.h"
 
-#include "KindUI/Core/Widget.h"
-
+#include <KindUI/EditorUI.h>
 #include <memory>
 
 namespace we::editor::projectmanager {

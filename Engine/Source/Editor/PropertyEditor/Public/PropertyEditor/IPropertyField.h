@@ -11,8 +11,7 @@
 #include "PropertyEditor/Export.h"
 #include "PropertyEditor/IPropertyHandle.h"
 #include "PropertyEditor/PropertyFieldTypes.h"
-#include "KindUI/Core/Widget.h"
-
+#include <KindUI/EditorUI.h>
 #include <cstddef>
 #include <functional>
 #include <memory>

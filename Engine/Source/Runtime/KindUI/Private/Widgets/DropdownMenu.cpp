@@ -1,12 +1,12 @@
 // ==============================================================================
-// WindEffects — Menus — DropdownMenu
-// UI widget used by the Menus module.
+// WindEffects — KindUI — DropdownMenu
+// UI widget used by the KindUI module.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "Widgets/DropdownMenu.h"
+#include "KindUI/Widgets/DropdownMenu.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/WindIcon.h"
@@ -27,9 +27,7 @@ using ::we::runtime::kindui::IconPainter;
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
-namespace we::editor::menus {
-using ::we::runtime::kindui::MouseButton;
-namespace ControlChrome = ::we::runtime::kindui::ControlChrome;
+namespace we::runtime::kindui {
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
@@ -226,5 +224,4 @@ void DropdownMenu::OnMouseDown(const MouseEvent& event) {
     }
 }
 
-} // namespace we::editor::menus
-
+} // namespace we::runtime::kindui

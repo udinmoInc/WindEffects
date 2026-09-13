@@ -70,4 +70,4 @@
 // KindUI/Rendering/OverlayRenderer.h — shell GPU integration
 
 // --- Editor-specific widgets (single entry point) ---------------------------
-#include "KindUI/EditorWidgets.h"
+#include "KindUI/EditorUI.h"

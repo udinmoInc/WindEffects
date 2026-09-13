@@ -8,9 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Input/InputEvents.h"
+#include <KindUI/EditorUI.h>
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include "Platform/Types.h"

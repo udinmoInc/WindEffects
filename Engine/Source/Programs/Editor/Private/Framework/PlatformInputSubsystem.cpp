@@ -9,10 +9,7 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LoopExecutionTrace.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "Platform/Events.h"
 #include "Platform/InputTypes.h"

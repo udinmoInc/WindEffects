@@ -9,7 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include <cstdint>
 #include <functional>
 #include <string>

@@ -11,8 +11,7 @@
 #include "Toolbar/Export.h"
 #include "Widgets/Toolbar.h"
 #include "Widgets/ToolButton.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>

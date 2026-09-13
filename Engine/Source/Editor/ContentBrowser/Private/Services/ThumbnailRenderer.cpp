@@ -9,7 +9,7 @@
 #include "Services/ThumbnailRenderer.h"
 #include "Registry/AssetTypeResolver.h"
 #include "KindUI/Rendering/Icons/SvgRasterizer.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 
@@ -24,8 +24,6 @@
 #include <functional>
 #include <sstream>
 #include <vector>
-#include "KindUI/Tokens/DesignToken.h"
-
 namespace we::editor::contentbrowser {
 namespace Icons = ::we::runtime::kindui::Icons;
 

@@ -16,8 +16,7 @@
 #include "Widgets/ExplorerPanelHeader.h"
 #include "Widgets/ExplorerFilterMenu.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "KindUI/EditorWidgets.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;

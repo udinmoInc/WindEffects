@@ -14,9 +14,7 @@
 #include "PropertyEditor/PropertyChangeEvent.h"
 #include "PropertyEditor/PropertyEditorTypes.h"
 #include "Reflection/TypeId.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Widget.h"
-
+#include <KindUI/EditorUI.h>
 #include <memory>
 #include <string>
 #include <string_view>

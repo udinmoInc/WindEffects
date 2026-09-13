@@ -8,22 +8,9 @@
 // ==============================================================================
 #include "Platform/Platform.h"
 #include "Widgets/ToolsPanel.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Panel/PanelBodyLayout.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Core/UiMetrics.h"
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
 

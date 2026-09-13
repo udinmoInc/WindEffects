@@ -13,7 +13,7 @@
 #include "KindUI/Rendering/IconRenderer.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include <filesystem>
 
 namespace we::editor::contentbrowser {

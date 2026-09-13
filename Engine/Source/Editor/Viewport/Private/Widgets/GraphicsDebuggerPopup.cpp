@@ -9,15 +9,8 @@
 #include "Widgets/GraphicsDebuggerPopup.h"
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Typography/TypographySystem.h"
-#include "KindUI/Layout/AutoAlign.h"
 #include "Core/Logger.h"
 #include "Core/Math/Types.h"
 #include <iomanip>

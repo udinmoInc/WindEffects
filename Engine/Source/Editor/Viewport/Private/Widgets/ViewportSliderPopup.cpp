@@ -7,13 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Widgets/ViewportSliderPopup.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <cmath>
 

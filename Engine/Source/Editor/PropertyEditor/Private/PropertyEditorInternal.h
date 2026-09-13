@@ -24,16 +24,7 @@
 #include "Serialization/Delta.h"
 #include "Serialization/ISerializer.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Layout/ScrollViewport.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/DSL/EditorDSL.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <cstring>
 #include <memory>

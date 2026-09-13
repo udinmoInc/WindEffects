@@ -7,7 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 
 #include <chrono>

@@ -22,16 +22,7 @@
 #include "WorldOutliner/WorldOutlinerSession.h"
 #include "Widgets/MenuBar.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/ToolbarButtonChrome.h"
-#include "KindUI/Rendering/IconMetrics.h"
-
+#include <KindUI/EditorUI.h>
 #include <glm/glm.hpp>
 
 #include <algorithm>

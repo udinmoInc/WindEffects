@@ -8,17 +8,7 @@
 // ==============================================================================
 #include "Platform/Platform.h"
 #include "Widgets/CommandInput.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

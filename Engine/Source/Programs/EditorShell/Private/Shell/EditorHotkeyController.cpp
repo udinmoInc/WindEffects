@@ -7,7 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/UI/Shell/EditorHotkeyController.h"
-#include "KindUI/Input/HotkeyManager.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
 

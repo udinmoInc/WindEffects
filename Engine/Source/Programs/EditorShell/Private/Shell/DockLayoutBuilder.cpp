@@ -8,15 +8,9 @@
 // ==============================================================================
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelBuilder.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Docking/DockContainer.h"
-#include "KindUI/Layout/Splitter.h"
-#include "KindUI/Core/DPIContext.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Orientation;
 using ::we::runtime::kindui::MetricToken;

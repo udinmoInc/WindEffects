@@ -10,9 +10,7 @@
 #include "PropertyEditor/IDetailsView.h"
 #include "PropertyEditorInternal.h"
 
-#include "KindUI/EditorWidgets.h"
-#include "KindUI/Widgets/ObjectTitleBar.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <string>
 #include <utility>

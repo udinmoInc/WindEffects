@@ -11,9 +11,7 @@
 #include "PlaceActors/Export.h"
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "PlaceActors/PlaceActorsItem.h"
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Core/PaintContext.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 
 // Compact asset-browser card: large preview, centered icon/thumbnail, name beneath.

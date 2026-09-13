@@ -7,17 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Fields/PropertyFieldImpl.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Layout/PropertyRowLayout.h"
-#include "KindUI/Widgets/TextBox.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Widgets/ColorPicker.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

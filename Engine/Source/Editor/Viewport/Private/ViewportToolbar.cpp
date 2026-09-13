@@ -22,11 +22,7 @@
 #include "Widgets/DropdownMenu.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>

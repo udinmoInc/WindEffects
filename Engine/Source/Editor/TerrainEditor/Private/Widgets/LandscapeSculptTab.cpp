@@ -9,8 +9,7 @@
 #include "LandscapeWorkspaceInternal.h"
 #include "LandscapeFormLayout.h"
 #include "ViewportEdit/ViewportEditSession.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::terrain {
 namespace {
 using we::runtime::kindui::kWindIconNone;

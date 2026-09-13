@@ -9,8 +9,7 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LoopExecutionTrace.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/ViewportWidget.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 

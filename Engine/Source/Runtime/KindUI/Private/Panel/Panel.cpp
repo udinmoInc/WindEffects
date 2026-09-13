@@ -8,13 +8,13 @@
 // ==============================================================================
 #include "KindUI/Panel/Panel.h"
 #include "KindUI/Panel/PanelChrome.h"
+#include "KindUI/Core/Expansion.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/UIRepaintGate.h"
 #include <functional>
 #include <algorithm>
 
@@ -293,15 +293,15 @@ std::shared_ptr<Widget> Panel::GetContent() const {
 }
 
 void Panel::SetExpanded(bool expanded) {
-    if (m_Expanded == expanded) return;
-    
+    if (m_Expanded == expanded) {
+        return;
+    }
+    // Batched through the shared Expansion gate transaction (no per-call layout/paint).
+    ::we::runtime::kindui::Expansion::ScopedTransaction transaction("PanelExpand");
     m_Expanded = expanded;
     if (m_BodyLayout) {
-        m_BodyLayout->SetVisible(expanded);
+        m_BodyLayout->SetVisibleSilent(expanded);
     }
-    // One-shot expand/collapse invalidation — no animation; settle to cache hits after rebuild.
-    we::runtime::kindui::UIRepaintGate::RequestLayoutReason("PanelExpand");
-    we::runtime::kindui::UIRepaintGate::RequestPaintReason("PanelExpand");
 }
 
 void Panel::AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {

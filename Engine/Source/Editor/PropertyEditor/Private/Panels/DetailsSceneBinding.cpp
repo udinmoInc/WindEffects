@@ -14,8 +14,7 @@
 #include "PropertyEditor/PropertyEditorTypes.h"
 #include "Reflection/TypeId.h"
 #include "Scene/Entity.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::property {
 namespace {
 

@@ -10,8 +10,7 @@
 
 #include "PlaceActors/Export.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include <KindUI/EditorUI.h>
 #include "PlaceActors/PlaceActorsTypes.h"
 #include "PlaceActors/PlaceActorsResponsiveGrid.h"
 #include <functional>
@@ -19,17 +18,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "KindUI/Input/InputEvents.h"
-
 namespace we::editor::placeactors {
 using ::we::runtime::kindui::KeyEvent;
 using ::we::runtime::kindui::ScrollViewport;
 using ::we::runtime::kindui::ScrollViewportMetrics;
 }
-
-#include "KindUI/Panel/PanelBodyLayout.h"
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-
 namespace we::programs::editor {
 
 class PLACEACTORS_API PlaceActorsPanel : public we::runtime::kindui::Widget {

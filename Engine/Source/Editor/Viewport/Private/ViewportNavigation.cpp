@@ -19,7 +19,7 @@
 
 #include "Core/Math/GlmInterop.h"
 
-#include "KindUI/Input/InputEvents.h"
+#include <KindUI/EditorUI.h>
 #include "Platform/Platform.h"
 
 namespace we::editor::viewport {

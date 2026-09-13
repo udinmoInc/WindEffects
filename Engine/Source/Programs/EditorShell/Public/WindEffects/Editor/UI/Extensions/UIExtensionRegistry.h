@@ -10,10 +10,8 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "KindUI/Commands/ICommandRegistry.h"
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
-#include "KindUI/Panel/Panel.h"
-
 #include <functional>
 #include <memory>
 #include <string>
@@ -22,7 +20,7 @@
 #include <vector>
 
 namespace we::editor::menus {
-struct MenuItem;
+using MenuItem = ::we::runtime::kindui::MenuItem;
 }
 
 namespace we::editor::extensions {

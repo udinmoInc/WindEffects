@@ -8,10 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Geometry.h"
-
+#include <KindUI/EditorUI.h>
 #include <string>
 #include <string_view>
 

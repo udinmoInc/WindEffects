@@ -9,9 +9,7 @@
 #include "PlaceActors/PlaceActorsConfig.h"
 
 #include "Core/EditorConfigPaths.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <cctype>
 #include <fstream>

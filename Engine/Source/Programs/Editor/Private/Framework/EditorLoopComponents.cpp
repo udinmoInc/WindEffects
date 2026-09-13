@@ -13,7 +13,7 @@
 #include "KindUI/Profiling/ScreenRecorder.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "Renderer/Renderer.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"

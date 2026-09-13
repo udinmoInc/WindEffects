@@ -8,8 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 #include <string_view>
 
 namespace we::editor::services {

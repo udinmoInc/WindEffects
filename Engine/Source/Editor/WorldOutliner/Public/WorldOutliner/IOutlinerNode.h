@@ -10,8 +10,7 @@
 
 #include "WorldOutliner/Export.h"
 #include "WorldOutliner/OutlinerTypes.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 #include <span>
 #include <string>
 #include <string_view>

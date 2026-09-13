@@ -8,76 +8,12 @@
 // ==============================================================================
 #include "LandscapeFormLayout.h"
 
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Widgets/Components.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
-#include "KindUI/Core/TextMetrics.h"
-#include "Text/Layout/TextStyle.h"
-
+#include <KindUI/EditorUI.h>
 #include <cstdio>
 
 namespace we::editor::terrain {
-namespace {
 
 using namespace we::runtime::kindui;
-namespace PanelChrome = we::runtime::kindui::panels::PanelChrome;
-
-class FormSectionTitleWidget final : public Widget {
-public:
-    explicit FormSectionTitleWidget(std::string title, bool leadingGap)
-        : m_Title(std::move(title))
-        , m_LeadingGap(leadingGap) {}
-
-    Size Measure(const Size& availableSize) override {
-        const float gap = m_LeadingGap ? ChromeSeparation::GapWide() : 0.0f;
-        const float bandH = LayoutMetrics::UnifiedSectionHeaderHeight();
-        m_DesiredSize = Size{ availableSize.width, gap + bandH };
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-        const float gap = m_LeadingGap ? ChromeSeparation::GapWide() : 0.0f;
-        m_TitleBand = Rect{
-            allottedRect.x,
-            allottedRect.y + gap,
-            allottedRect.width,
-            std::max(0.0f, allottedRect.height - gap)
-        };
-    }
-
-    void Paint(PaintContext& context) override {
-        if (m_TitleBand.IsEmpty()) {
-            return;
-        }
-        PanelChrome::PaintListLabelBand(context, m_TitleBand);
-        const float scale = std::max(1.0f, DPIContext::GetScale());
-        const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
-
-        const float textY = LayoutMetrics::AlignTextTopY(m_TitleBand, fontSize);
-        context.DrawText(
-            m_Title,
-            Point{ m_TitleBand.x, textY },
-            ResolveColor(ColorToken::TextPrimary),
-            fontSize,
-            we::runtime::text::layout::FontWeight::Regular);
-    }
-
-private:
-    std::string m_Title;
-    bool m_LeadingGap = false;
-    Rect m_TitleBand;
-};
-
-}
 
 void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
     if (!layout) {
@@ -88,7 +24,7 @@ void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
 
 void AddFormSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
     const bool leadingGap = layout && !layout->GetChildren().empty();
-    layout->AddChild(std::make_shared<FormSectionTitleWidget>(std::string(title), leadingGap));
+    layout->AddChild(std::make_shared<FormSectionTitle>(std::string(title), leadingGap));
 }
 
 void AddFormField(
@@ -190,5 +126,4 @@ int FormParseInt(std::string_view text, int fallback) {
     }
 }
 
-}
-
+} // namespace we::editor::terrain

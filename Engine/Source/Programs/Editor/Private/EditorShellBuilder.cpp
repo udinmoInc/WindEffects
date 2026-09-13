@@ -20,9 +20,7 @@
 #include "Environment/EnvironmentEditorApi.h"
 #include "MainEditorToolbar.h"
 #include "Widgets/WindowsPanelMenuButton.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
-#include "KindUI/Panel/Panel.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Docking/DockContainer.h"
 #include "Widgets/TitleBar.h"
 #include "Projects/EngineContext.h"
@@ -31,12 +29,8 @@
 #include "Widgets/MenuBar.h"
 #include "Widgets/ViewportWidget.h"
 #include "ContentBrowser/Widgets/TreeView.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/OverlayManager.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/WidgetContext.h"
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "KindUI/Rendering/IconRenderer.h"
 #include "Renderer/Renderer.h"
@@ -45,9 +39,6 @@
 
 #include <algorithm>
 #include <vector>
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/DesignToken.h"
-
 using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::MetricToken;
 using we::runtime::kindui::Margin;

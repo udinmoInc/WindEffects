@@ -9,16 +9,12 @@
 #include "EditorCompositionProbes.h"
 
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/Toolbar.h"
 #include "Widgets/StatusBar.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/TreeView.h"
 #include "KindUI/Docking/DockContainer.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Panel/PanelChrome.h"
-
 #include <algorithm>
 #include <cmath>
 

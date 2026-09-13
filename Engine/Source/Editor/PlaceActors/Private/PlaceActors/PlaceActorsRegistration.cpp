@@ -10,9 +10,7 @@
 #include "PlaceActors/PlaceActorsPanel.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-
+#include <KindUI/EditorUI.h>
 #include <memory>
 #include <string>
 #include <vector>

@@ -7,32 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "ContentBrowser/Widgets/SearchBox.h"
-#include "ContentBrowser/Widgets/ContentBrowser.h"
-#include "Widgets/DropdownMenu.h"
-#include "Widgets/MenuBar.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/ToolbarButtonChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/ColorSpace.h"
-#include "KindUI/Theming/Palette.h"
-#include "KindUI/Theming/PaletteRuntime.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Core/Widgets/VerticalDivider.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/Spacer.h"
-#include "KindUI/Layout/IPopupHost.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include <algorithm>
@@ -58,7 +33,8 @@ using ::we::runtime::kindui::MakePrimaryAction;
 using ::we::runtime::kindui::MakeSecondaryAction;
 using ::we::runtime::kindui::Animator;
 using ::we::runtime::kindui::IconColorRole;
-using ::we::editor::widgets::SearchBox;
+using ::we::runtime::kindui::SearchBoxControl;
+using ::we::runtime::kindui::Breadcrumb;
 namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 namespace {
@@ -155,9 +131,9 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         if (overlay) {
             overlay->CloseAllPopups();
             const Rect geom = anchor->GetGeometry();
-            std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> menuItems;
+            std::vector<std::shared_ptr<::we::runtime::kindui::MenuItem>> menuItems;
             for (const auto& item : items) {
-                auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+                auto mi = std::make_shared<::we::runtime::kindui::MenuItem>();
                 if (item.isSeparator) {
                     mi->label = "";
                 } else {
@@ -169,7 +145,7 @@ void ContentBrowserToolbarControls::InitializeChildren() {
                 }
                 menuItems.push_back(mi);
             }
-            auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(menuItems);
+            auto menu = std::make_shared<::we::runtime::kindui::DropdownMenu>(menuItems);
             overlay->ShowPopup(menu, Point{ geom.x, geom.y + geom.height + 2.0f });
         }
     };
@@ -240,8 +216,12 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     m_MoreBtn->SetOnClicked([this, showMenuBelow]() {
         std::vector<ToolbarMenuItem> items;
         items.push_back({ "Refresh", false, false, WindIcons::Refresh16, true, nullptr });
-        items.push_back({ "Expand All", false, false, WindIcons::ChevronDown16, true, nullptr });
-        items.push_back({ "Collapse All", false, false, WindIcons::ChevronUp16, true, nullptr });
+        items.push_back({ "Expand All", false, false, WindIcons::ChevronDown16, true, [this]() {
+            if (m_OnExpandAllClicked) m_OnExpandAllClicked();
+        }});
+        items.push_back({ "Collapse All", false, false, WindIcons::ChevronUp16, true, [this]() {
+            if (m_OnCollapseAllClicked) m_OnCollapseAllClicked();
+        }});
         items.push_back({ "", true, false, kWindIconNone, true, nullptr });
         items.push_back({ "Dock in Layout", false, false, WindIcons::Window16, true, nullptr });
         items.push_back({ "Open in New Tab", false, false, WindIcons::Plus16, true, nullptr });
@@ -372,6 +352,14 @@ void ContentBrowserToolbarControls::SetOnSettingsClicked(std::function<void()> c
 
 void ContentBrowserToolbarControls::SetOnMoreClicked(std::function<void()> callback) {
     m_OnMoreClicked = std::move(callback);
+}
+
+void ContentBrowserToolbarControls::SetOnExpandAllClicked(std::function<void()> callback) {
+    m_OnExpandAllClicked = std::move(callback);
+}
+
+void ContentBrowserToolbarControls::SetOnCollapseAllClicked(std::function<void()> callback) {
+    m_OnCollapseAllClicked = std::move(callback);
 }
 
 void ContentBrowserToolbarControls::SetOnSaveClicked(std::function<void()> callback) {

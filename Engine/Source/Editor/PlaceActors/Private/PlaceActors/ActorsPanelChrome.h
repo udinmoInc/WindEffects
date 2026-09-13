@@ -8,8 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Geometry.h"
+#include <KindUI/EditorUI.h>
 #include <string>
 
 namespace we::programs::editor::ActorsPanelChrome {

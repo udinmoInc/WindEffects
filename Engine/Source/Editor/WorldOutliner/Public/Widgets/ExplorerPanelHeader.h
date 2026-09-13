@@ -8,9 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "KindUI/Core/Types.h"
-#include "KindUI/Core/LayoutMetrics.h"
+#include <KindUI/EditorUI.h>
 #include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
