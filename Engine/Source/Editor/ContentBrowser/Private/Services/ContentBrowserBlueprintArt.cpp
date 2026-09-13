@@ -8,8 +8,7 @@
 // ==============================================================================
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Services/ThumbnailRenderer.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/PaintContext.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Rendering/IconRenderer.h"
 #include <algorithm>
 #include <cmath>

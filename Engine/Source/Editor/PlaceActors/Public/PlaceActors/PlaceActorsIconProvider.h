@@ -10,8 +10,7 @@
 
 #include "PlaceActors/Export.h"
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 
 class PLACEACTORS_API PlaceActorsIconProvider {

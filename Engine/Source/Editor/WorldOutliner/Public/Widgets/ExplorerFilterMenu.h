@@ -8,13 +8,11 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include "ContentBrowser/Widgets/TreeView.h"
 #include <functional>
 #include <string>
 #include <vector>
-#include "KindUI/Core/Style.h"
-
 namespace we::editor::outliner {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::Size;

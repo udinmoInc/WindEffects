@@ -9,10 +9,12 @@
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
 
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/Expansion.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/Widgets/DesignSystemControls.h"
 #include "KindUI/Input/InputEvents.h"
+#include "KindUI/Layout/CollapsibleGroup.h"
 #include "KindUI/Layout/Flex.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Layout/ScrollLayout.h"
@@ -22,6 +24,8 @@
 #include "KindUI/Theming/DefaultTheme.h"
 #include "KindUI/Theming/ThemeManager.h"
 #include "KindUI/Widgets/Label.h"
+#include "Core/Logger.h"
+#include "Core/DiagnosticMacros.h"
 
 #include <algorithm>
 #include <chrono>
@@ -242,6 +246,105 @@ KindUIInteractionReport RunKindUIInteractionBenchmark(const uint32_t dragSteps) 
     });
     panelResize.rootCause = "SetFixedFirstWidth + full relayout";
     report.scenarios.push_back(panelResize);
+
+    auto expandAll = RunScenario("expand_all", 1u, [](EditorLikeShell& shell, float, float, uint32_t) {
+        auto column = std::make_shared<Column>();
+        for (int i = 0; i < 64; ++i) {
+            auto group = std::make_shared<CollapsibleGroup>("Section " + std::to_string(i), false);
+            for (int r = 0; r < 4; ++r) {
+                group->AddContentChild(std::make_shared<PropertyRow>(
+                    "Prop " + std::to_string(i) + "." + std::to_string(r), "0"));
+            }
+            column->AddChild(group);
+        }
+        // Scroll host keeps overflow layout valid while measuring expansion cost.
+        auto scroll = std::make_shared<ScrollLayout>();
+        scroll->SetContent(column);
+        shell.host->SetBaseWidget(scroll);
+        FullUiFrame(shell, 1280.0f, 720.0f);
+
+        const uint64_t layoutBefore = UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = UIRepaintGate::PaintRebuildCount();
+        const uint64_t invBefore = Widget::s_GlobalDiagnostics
+            ? Widget::s_GlobalDiagnostics->invalidateCount : 0;
+        const double t0 = NowMs();
+        Expansion::ExpandAllUnder(*column);
+        ProcessInteractionFrame(shell, 1280.0f, 720.0f);
+        const double dt = NowMs() - t0;
+        const uint64_t layoutDelta = UIRepaintGate::LayoutRebuildCount() - layoutBefore;
+        const uint64_t paintDelta = UIRepaintGate::PaintRebuildCount() - paintBefore;
+        const uint64_t invDelta = Widget::s_GlobalDiagnostics
+            ? (Widget::s_GlobalDiagnostics->invalidateCount - invBefore) : 0;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[ExpandBench] batched ExpandAllUnder groups=64 dtMs=" + std::to_string(dt)
+            + " layoutDelta=" + std::to_string(layoutDelta)
+            + " paintDelta=" + std::to_string(paintDelta)
+            + " invDelta=" + std::to_string(invDelta));
+    });
+    expandAll.rootCause = "Expansion::ExpandAllUnder batches gate invalidation (one layout/paint)";
+    report.scenarios.push_back(expandAll);
+
+    auto expandAllNaive = RunScenario("expand_all_naive", 1u, [](EditorLikeShell& shell, float, float, uint32_t) {
+        auto column = std::make_shared<Column>();
+        std::vector<std::shared_ptr<CollapsibleGroup>> groups;
+        for (int i = 0; i < 64; ++i) {
+            auto group = std::make_shared<CollapsibleGroup>("Section " + std::to_string(i), false);
+            for (int r = 0; r < 4; ++r) {
+                group->AddContentChild(std::make_shared<PropertyRow>(
+                    "Prop " + std::to_string(i) + "." + std::to_string(r), "0"));
+            }
+            groups.push_back(group);
+            column->AddChild(group);
+        }
+        auto scroll = std::make_shared<ScrollLayout>();
+        scroll->SetContent(column);
+        shell.host->SetBaseWidget(scroll);
+        FullUiFrame(shell, 1280.0f, 720.0f);
+
+        const uint64_t layoutBefore = UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = UIRepaintGate::PaintRebuildCount();
+        const double t0 = NowMs();
+        // OLD pattern: per-section expansion without a shared Expansion transaction.
+        for (auto& group : groups) {
+            group->ApplyExpanded(true);
+            UIRepaintGate::RequestLayoutReason("PanelExpand");
+            UIRepaintGate::RequestPaintReason("PanelExpand");
+            ProcessInteractionFrame(shell, 1280.0f, 720.0f);
+        }
+        const double dt = NowMs() - t0;
+        const uint64_t layoutDelta = UIRepaintGate::LayoutRebuildCount() - layoutBefore;
+        const uint64_t paintDelta = UIRepaintGate::PaintRebuildCount() - paintBefore;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[ExpandBench] naive per-section Expand groups=64 dtMs=" + std::to_string(dt)
+            + " layoutDelta=" + std::to_string(layoutDelta)
+            + " paintDelta=" + std::to_string(paintDelta));
+    });
+    expandAllNaive.rootCause = "OLD: RequestLayout/Paint + rebuild per section";
+    report.scenarios.push_back(expandAllNaive);
+
+    auto collapseAll = RunScenario("collapse_all", 1u, [](EditorLikeShell& shell, float, float, uint32_t) {
+        auto column = std::make_shared<Column>();
+        for (int i = 0; i < 64; ++i) {
+            auto group = std::make_shared<CollapsibleGroup>("Section " + std::to_string(i), true);
+            group->AddContentChild(std::make_shared<PropertyRow>("Prop " + std::to_string(i), "0"));
+            column->AddChild(group);
+        }
+        auto scroll = std::make_shared<ScrollLayout>();
+        scroll->SetContent(column);
+        shell.host->SetBaseWidget(scroll);
+        FullUiFrame(shell, 1280.0f, 720.0f);
+        const uint64_t layoutBefore = UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = UIRepaintGate::PaintRebuildCount();
+        const double t0 = NowMs();
+        Expansion::CollapseAllUnder(*column);
+        ProcessInteractionFrame(shell, 1280.0f, 720.0f);
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[ExpandBench] batched CollapseAllUnder groups=64 dtMs=" + std::to_string(NowMs() - t0)
+            + " layoutDelta=" + std::to_string(UIRepaintGate::LayoutRebuildCount() - layoutBefore)
+            + " paintDelta=" + std::to_string(UIRepaintGate::PaintRebuildCount() - paintBefore));
+    });
+    collapseAll.rootCause = "Expansion::CollapseAllUnder batched transaction";
+    report.scenarios.push_back(collapseAll);
 
     auto popupOpen = RunScenario("popup_open", std::min(8u, dragSteps), [](EditorLikeShell& shell, float, float,
         uint32_t) {

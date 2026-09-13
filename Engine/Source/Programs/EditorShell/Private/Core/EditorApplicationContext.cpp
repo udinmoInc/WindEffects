@@ -9,15 +9,12 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 
 #include "WindEffects/Editor/UI/Theming/EditorTheme.h"
-#include "KindUI/Theming/ThemeManager.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Resources/ModuleResourceRegistry.h"
 #include "KindUI/Events/EventBus.h"
 #include "KindUI/Commands/CommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
-
-#include "KindUI/Core/DPIContext.h"
-
 using ::we::runtime::kindui::ThemeManager;
 using ::we::runtime::kindui::ModuleResourceRegistry;
 using ::we::runtime::kindui::EventBus;

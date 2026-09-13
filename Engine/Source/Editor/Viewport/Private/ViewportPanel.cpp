@@ -10,8 +10,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "ViewportToolbar.h"
 #include "ViewportToolbarState.h"
-#include "KindUI/EditorWidgets.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 using ::we::runtime::kindui::panels::Panel;
 using ::we::runtime::kindui::panels::PanelBuilder;

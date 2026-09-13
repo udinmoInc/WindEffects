@@ -7,19 +7,8 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Widgets/Toolbar.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/ToolbarButtonChrome.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/UiGeometryDebug.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
 #include "Widgets/ToolButton.h"
 #include <algorithm>
 #include <functional>

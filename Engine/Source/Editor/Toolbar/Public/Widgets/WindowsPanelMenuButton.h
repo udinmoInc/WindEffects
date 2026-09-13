@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Toolbar/Export.h"
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>

@@ -10,12 +10,7 @@
 
 #include "Toolbar/Export.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/Spacer.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Tokens/SurfaceRole.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/ToolButton.h"
 #include <string>
 #include <functional>

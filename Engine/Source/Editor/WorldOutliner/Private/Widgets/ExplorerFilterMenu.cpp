@@ -8,21 +8,8 @@
 // ==============================================================================
 #include "Widgets/ExplorerFilterMenu.h"
 
-#include "KindUI/Core/UiMetrics.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Layout/OverlayManager.h"
-#include "KindUI/Core/LayoutMetrics.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Typography/TypographySystem.h"
-#include "KindUI/Layout/AutoAlign.h"
-
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

@@ -9,7 +9,7 @@
 #pragma once
 
 #include "PlaceActors/Export.h"
-#include "KindUI/Core/Geometry.h"
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 #include <cmath>
 

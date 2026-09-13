@@ -11,7 +11,7 @@
 
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/ActorsPanelChrome.h"
-#include "KindUI/Panel/PanelBodyLayout.h"
+#include <KindUI/EditorUI.h>
 #include "PlaceActors/PlaceActorsCatalog.h"
 #include "PlaceActors/PlaceActorsConfig.h"
 #include "PlaceActors/PlaceActorsSearch.h"
@@ -25,19 +25,7 @@
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "ContentBrowser/Widgets/SearchBox.h"
 #include "Widgets/ToolButton.h"
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/ScrollViewport.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Animator.h"
 #include "Core/EditorConfigPaths.h"
 
 #include <algorithm>

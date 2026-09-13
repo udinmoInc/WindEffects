@@ -10,7 +10,7 @@
 
 #include "Environment/Export.h"
 
-#include "KindUI/Core/Widget.h"
+#include <KindUI/EditorUI.h>
 #include <memory>
 
 namespace we::runtime::scene {

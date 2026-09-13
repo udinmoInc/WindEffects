@@ -10,9 +10,7 @@
 
 #include "PlaceActors/Export.h"
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Core/PaintContext.h"
+#include <KindUI/EditorUI.h>
 #include <string>
 #include <unordered_map>
 

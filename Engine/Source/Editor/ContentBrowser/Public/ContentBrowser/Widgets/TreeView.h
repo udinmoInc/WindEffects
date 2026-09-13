@@ -10,19 +10,13 @@
 
 #include "ContentBrowser/Export.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 #include "RHI/Types.h"
-#include "KindUI/Input/InputEvents.h"
-
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::Widget;
 using ::we::runtime::kindui::Size;
@@ -116,6 +110,10 @@ public:
 
     void SetSearchQuery(const std::string& query);
     std::string GetSearchQuery() const { return m_SearchQuery; }
+
+    void ExpandAll();
+    void CollapseAll();
+
     struct FilterOptions {
         bool showFolders = true;
         bool showAssets = true;

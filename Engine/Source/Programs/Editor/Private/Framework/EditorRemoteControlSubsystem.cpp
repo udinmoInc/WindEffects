@@ -14,8 +14,7 @@
 #include "Core/EngineRemoteProtocol.h"
 #include "Core/FrameCounter.h"
 #include "Core/Paths.h"
-#include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Theming/PaletteRuntime.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 
 #include <chrono>

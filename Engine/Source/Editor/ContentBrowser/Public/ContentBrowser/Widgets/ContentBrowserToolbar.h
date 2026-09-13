@@ -9,21 +9,11 @@
 #pragma once
 
 #include "ContentBrowser/Models/ContentBrowserModel.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Core/Widgets/ToolbarIconButton.h"
-#include "KindUI/Core/Widgets/ToolbarNavigationButton.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
+#include <KindUI/EditorUI.h>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-
-namespace we::editor::widgets { class SearchBox; }
 
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::Widget;
@@ -39,10 +29,8 @@ using ::we::runtime::kindui::SecondaryButton;
 using ::we::runtime::kindui::ToolbarNavigationButton;
 using ::we::runtime::kindui::ToolbarIconButton;
 using ::we::runtime::kindui::ToolbarButton;
+using ::we::runtime::kindui::SearchBoxControl;
 
-class Breadcrumb;
-
-// Premium AAA toolbar with reusable components.
 class ContentBrowserToolbarControls : public we::runtime::kindui::Row {
 public:
     enum class ToolbarMode {
@@ -60,8 +48,8 @@ public:
     void OnMouseUp(const MouseEvent& event) override;
     void OnMouseMove(const MouseEvent& event) override;
 
-    std::shared_ptr<::we::editor::widgets::SearchBox> GetSearchBox() const { return m_SearchBox; }
-    std::shared_ptr<Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
+    std::shared_ptr<SearchBoxControl> GetSearchBox() const { return m_SearchBox; }
+    std::shared_ptr<::we::runtime::kindui::Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
     std::shared_ptr<ToolbarIconButton> GetBackBtn() const { return m_BackBtn; }
     std::shared_ptr<ToolbarIconButton> GetForwardBtn() const { return m_ForwardBtn; }
     std::shared_ptr<ToolbarIconButton> GetFolderBtn() const { return m_FolderBtn; }
@@ -78,6 +66,8 @@ public:
     void SetOnViewModeChanged(std::function<void(ContentViewMode)> callback);
     void SetOnSettingsClicked(std::function<void()> callback);
     void SetOnMoreClicked(std::function<void()> callback);
+    void SetOnExpandAllClicked(std::function<void()> callback);
+    void SetOnCollapseAllClicked(std::function<void()> callback);
 
 private:
     ContentBrowserToolbarControls(ToolbarMode mode);
@@ -85,8 +75,8 @@ private:
     void ArrangeControlRow(const Rect& row, float contentLeft, float contentRight);
 
     ToolbarMode m_Mode;
-    std::shared_ptr<Breadcrumb> m_Breadcrumb;
-    std::shared_ptr<::we::editor::widgets::SearchBox> m_SearchBox;
+    std::shared_ptr<::we::runtime::kindui::Breadcrumb> m_Breadcrumb;
+    std::shared_ptr<SearchBoxControl> m_SearchBox;
 
     std::shared_ptr<ToolbarButton> m_CreateBtn;
     std::shared_ptr<ToolbarButton> m_ImportBtn;
@@ -108,6 +98,8 @@ private:
     std::function<void(ContentViewMode)> m_OnViewModeChanged;
     std::function<void()> m_OnSettingsClicked;
     std::function<void()> m_OnMoreClicked;
+    std::function<void()> m_OnExpandAllClicked;
+    std::function<void()> m_OnCollapseAllClicked;
     std::function<void()> m_OnCreateClicked;
     std::function<void()> m_OnImportClicked;
     std::function<void()> m_OnSaveClicked;

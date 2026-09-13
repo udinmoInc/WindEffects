@@ -38,4 +38,8 @@ struct PROPERTYEDITOR_API PropertyEditorBenchmarkReport {
 [[nodiscard]] PROPERTYEDITOR_API PropertyEditorBenchmarkReport RunPropertyEditorBenchmarks(
     const PropertyEditorBenchmarkConfig& config = {});
 
+/// A/B Inspector section expand/collapse: legacy clear-all editors vs kept-editors path.
+/// Logs `[SectionExpandBench]` lines and returns a short summary string.
+[[nodiscard]] PROPERTYEDITOR_API std::string RunDetailsSectionExpandInteractionBenchmark();
+
 } // namespace we::editor::property

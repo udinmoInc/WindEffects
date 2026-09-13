@@ -9,8 +9,7 @@
 #include "PlaceActors/PlaceActorsIconProvider.h"
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 using ::we::runtime::kindui::kWindIconNone;
 using ::we::runtime::kindui::WindIconRef;

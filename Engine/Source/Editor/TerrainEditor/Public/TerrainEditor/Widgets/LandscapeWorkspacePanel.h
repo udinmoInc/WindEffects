@@ -11,20 +11,13 @@
 #include "TerrainEditor/Export.h"
 #include "TerrainEditor/ILandscapeEditor.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/ScrollLayout.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-
+#include <KindUI/EditorUI.h>
 #include <cstdint>
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include "KindUI/Panel/PanelBodyLayout.h"
-#include "KindUI/Panel/PanelModeTabs.h"
-
 namespace we::editor::terrain {
 using ::we::runtime::kindui::panels::PanelBodyLayout;
 using ::we::runtime::kindui::panels::PanelModeTabs;

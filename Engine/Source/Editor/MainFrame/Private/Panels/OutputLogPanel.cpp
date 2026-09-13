@@ -9,8 +9,7 @@
 #include "WindEffects/Editor/EditorSDK.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "Widgets/OutputLogWidget.h"
-#include "KindUI/EditorWidgets.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;

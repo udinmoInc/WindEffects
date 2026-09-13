@@ -12,8 +12,7 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "Core/Localization.h"
-#include "KindUI/EditorWidgets.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor {
 namespace WindIcons = ::we::runtime::kindui::WindIcons;
 

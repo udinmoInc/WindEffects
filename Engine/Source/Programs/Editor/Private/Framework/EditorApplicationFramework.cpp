@@ -12,7 +12,7 @@
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/FrameCounter.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 
 #include <chrono>

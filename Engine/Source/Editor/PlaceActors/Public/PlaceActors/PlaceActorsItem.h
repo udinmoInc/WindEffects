@@ -11,8 +11,7 @@
 #include "PlaceActors/Export.h"
 
 #include "PlaceActors/PlaceActorsTypes.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Geometry.h"
+#include <KindUI/EditorUI.h>
 #include <string>
 
 namespace we::programs::editor {

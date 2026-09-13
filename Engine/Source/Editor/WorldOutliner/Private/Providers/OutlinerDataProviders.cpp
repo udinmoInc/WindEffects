@@ -8,9 +8,7 @@
 // ==============================================================================
 #include "OutlinerInternal.h"
 
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 namespace we::editor::outliner {

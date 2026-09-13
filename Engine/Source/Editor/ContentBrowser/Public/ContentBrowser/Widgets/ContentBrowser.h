@@ -8,11 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include <KindUI/EditorUI.h>
 #include <string>
 #include <vector>
 #include <functional>
@@ -20,8 +16,6 @@
 #include <unordered_set>
 #include "ContentBrowser/Models/ContentBrowserModel.h"
 #include "ContentBrowser/Controllers/ContentBrowserController.h"
-#include "KindUI/Input/InputEvents.h"
-
 namespace we::runtime::kindui {
 class EmptyState;
 }
@@ -184,52 +178,6 @@ private:
     std::function<void(const std::unordered_set<std::string>&)> m_OnVisibleItemsChanged;
 
     WidgetStyle m_Style;
-};
-
-class Breadcrumb : public Widget {
-public:
-    Breadcrumb();
-    virtual ~Breadcrumb() = default;
-
-    Size Measure(const Size& availableSize) override;
-    void Arrange(const Rect& allottedRect) override;
-    void Paint(PaintContext& context) override;
-
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
-    bool ShowsPointerCursor(const Point& position) const override;
-    void OnHoverLost() override;
-
-    void SetPath(const std::vector<std::string>& path);
-    const std::vector<std::string>& GetPath() const { return m_PathSegments; }
-    void AddCrumb(const std::string& crumb);
-    void Clear();
-
-    using OnCrumbClicked = std::function<void(size_t index)>;
-    void SetOnCrumbClicked(OnCrumbClicked callback) { m_OnCrumbClicked = callback; }
-
-private:
-    struct CrumbInfo {
-        std::string text;
-        Rect geometry;
-        float textWidth = 0.0f;
-        bool hovered = false;
-    };
-
-    void UpdateCrumbMetrics();
-    void CalculateLayout();
-    CrumbInfo* GetCrumbAtPosition(const Point& pos);
-
-    std::vector<CrumbInfo> m_Crumbs;
-    float m_SeparatorSpacing = 8.0f;
-    float m_CrumbSpacing = 4.0f;
-    int m_HoveredCrumb = -1;
-    float m_LastTextSize = -1.0f;
-    float m_LastUiScale = -1.0f;
-    bool m_CrumbMetricsDirty = true;
-
-    OnCrumbClicked m_OnCrumbClicked;
-    std::vector<std::string> m_PathSegments;
 };
 
 class ContentBrowserStatusBar : public Widget {

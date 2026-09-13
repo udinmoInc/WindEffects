@@ -9,14 +9,13 @@
 #include "KindUI/Layout/CollapsibleGroup.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/UIRepaintGate.h"
 
 namespace we::runtime::kindui {
 
 CollapsibleGroup::CollapsibleGroup(std::string title, bool expanded)
     : m_Title(std::move(title)), m_Expanded(expanded) {
     m_ContentColumn = std::make_shared<Column>();
-    m_ContentColumn->SetVisible(m_Expanded);
+    m_ContentColumn->SetVisibleSilent(m_Expanded);
     AddChild(m_ContentColumn);
 }
 
@@ -29,18 +28,21 @@ void CollapsibleGroup::SetTitle(std::string title) {
     }
 }
 
-void CollapsibleGroup::SetExpanded(bool expanded) {
-    if (m_Expanded != expanded) {
-        m_Expanded = expanded;
-        if (m_ContentColumn) {
-            m_ContentColumn->SetVisible(m_Expanded);
-        }
-        UIRepaintGate::RequestLayoutReason("PanelExpand");
-        UIRepaintGate::RequestPaintReason("PanelExpand");
-        if (m_OnExpandedChanged) {
-            m_OnExpandedChanged(m_Expanded);
-        }
+void CollapsibleGroup::ApplyExpanded(bool expanded) {
+    if (m_Expanded == expanded) {
+        return;
     }
+    m_Expanded = expanded;
+    if (m_ContentColumn) {
+        m_ContentColumn->SetVisibleSilent(m_Expanded);
+    }
+    if (m_OnExpandedChanged) {
+        m_OnExpandedChanged(m_Expanded);
+    }
+}
+
+void CollapsibleGroup::SetExpanded(bool expanded) {
+    Expansion::SetExpanded(*this, expanded);
 }
 
 void CollapsibleGroup::SetOnExpandedChanged(std::function<void(bool expanded)> cb) {

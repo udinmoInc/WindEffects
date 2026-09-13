@@ -1,13 +1,13 @@
 // ==============================================================================
-// WindEffects — Menus — MenuBar
-// UI widget used by the Menus module.
+// WindEffects — KindUI — MenuBar
+// UI widget used by the KindUI module.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "Widgets/MenuBar.h"
-#include "Widgets/DropdownMenu.h"
+#include "KindUI/Widgets/MenuBar.h"
+#include "KindUI/Widgets/DropdownMenu.h"
 #include "KindUI/Layout/OverlayManager.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
@@ -25,11 +25,7 @@ using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::TextMetrics;
 
-namespace we::editor::menus {
-using ::we::runtime::kindui::DPIContext;
-using ::we::runtime::kindui::IconPainter;
-namespace WindIcons = ::we::runtime::kindui::WindIcons;
-using ::we::runtime::kindui::kWindIconNone;
+namespace we::runtime::kindui {
 
 MenuBar::MenuBar()
     : m_Style(WidgetStyle::Panel())
@@ -288,4 +284,4 @@ MenuBar::MenuInfo* MenuBar::GetMenuAtPosition(const Point& pos) {
     return nullptr;
 }
 
-} // namespace we::editor::menus
+} // namespace we::runtime::kindui

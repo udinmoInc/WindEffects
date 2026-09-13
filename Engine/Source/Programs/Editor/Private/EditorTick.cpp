@@ -10,8 +10,7 @@
 #include "Core/Logger.h"
 #include "Environment/EnvironmentEditorApi.h"
 #include "Environment/EnvironmentSystem.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "Terrain/Terrain.h"
 #include "Terrain/TerrainDiagnostics.h"
 #include "TerrainEditor/TerrainEditor.h"

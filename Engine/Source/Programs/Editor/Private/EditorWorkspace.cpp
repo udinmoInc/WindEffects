@@ -17,8 +17,7 @@
 #include "DefaultScene/DefaultSceneBuilder.h"
 #include "Environment/EnvironmentSystem.h"
 #include "Explorer/WorldOutlinerApi.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include <KindUI/EditorUI.h>
 #include "Platform/PlatformSDK.h"
 #include "Prefab/Prefab.h"
 #include "PrefabEditor/PrefabEditor.h"

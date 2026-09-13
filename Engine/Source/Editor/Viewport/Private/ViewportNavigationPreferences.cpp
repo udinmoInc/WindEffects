@@ -13,7 +13,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include "WindEffects/Editor/EditorSDK.h"
 
-#include "KindUI/EditorWidgets.h"
+#include <KindUI/EditorUI.h>
 #include "Widgets/ToolButton.h"
 #include "Widgets/ViewportSliderPopup.h"
 

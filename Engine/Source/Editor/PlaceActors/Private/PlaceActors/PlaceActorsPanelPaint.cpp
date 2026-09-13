@@ -27,19 +27,7 @@
 #include <chrono>
 
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Layout/ScrollViewport.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Animator.h"
-#include "KindUI/Core/UiMetrics.h"
-#include "KindUI/Input/InputEvents.h"
+#include <KindUI/EditorUI.h>
 #include "Core/EditorConfigPaths.h"
 
 #include <algorithm>

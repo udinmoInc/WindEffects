@@ -10,12 +10,7 @@
 #include "FirstRunAgreementPopup.h"
 #include "FirstRunAgreementInternal.h"
 #include "Core/EditorConfigPaths.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/DPIContext.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 
 #include <algorithm>

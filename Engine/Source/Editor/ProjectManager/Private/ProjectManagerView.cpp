@@ -12,14 +12,7 @@
 #include "Projects/ProjectLifecycle.h"
 #include "Projects/RecentProjectsStore.h"
 
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/Spacer.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/Types.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Widgets/Label.h"
+#include <KindUI/EditorUI.h>
 #include "Platform/PlatformSDK.h"
 
 #include "Core/Logger.h"

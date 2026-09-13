@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Core/IApplicationContext.h"
-#include "KindUI/Core/ServiceContainer.h"
-#include "KindUI/Theming/IKindUITheme.h"
-#include "KindUI/Theming/ResolvedStyle.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Resources/IResourceRegistry.h"
 #include "KindUI/Events/IEventBus.h"
 #include "KindUI/Commands/ICommandRegistry.h"

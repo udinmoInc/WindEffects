@@ -9,18 +9,19 @@
 #include "PropertyEditorInternal.h"
 #include "PropertyEditor/IDetailsView.h"
 #include "PropertyEditor/PropertyChangeEvent.h"
+#include "PropertyEditor/PropertyEditorBenchmark.h"
+#include "PropertyEditor/IPropertyEditorRuntime.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
+#include "Reflection/BuiltinTypes.h"
+#include "Reflection/Registration.h"
 
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/PropertyColumnSplitter.h"
-#include "KindUI/Core/Style.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <sstream>
 #include <vector>
 
 namespace we::editor::property {
@@ -68,6 +69,62 @@ public:
     void SetFactory(IPropertyEditorFactory* factory) { m_Factory = factory; }
 
     void InvalidateEditors() { m_EditorWidgets.clear(); }
+    [[nodiscard]] std::size_t EditorWidgetCount() const { return m_EditorWidgets.size(); }
+
+    /// Section expand/collapse: keep editor widgets alive, refresh scroll-local layout only.
+    /// Parent Measure is viewport-sized, so shell-wide InvalidateLayout is unnecessary.
+    void RefreshAfterExpansionChange() {
+        const std::size_t editorsAlive = m_EditorWidgets.size();
+        const uint64_t layoutBefore = we::runtime::kindui::UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = we::runtime::kindui::UIRepaintGate::PaintRebuildCount();
+        const double t0 = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+
+        SyncScroll();
+        LayoutEditors();
+        // Tall editors created for newly visible rows can change content height.
+        const float heightBefore = m_ContentHeight;
+        SyncScroll();
+        if (m_ContentHeight != heightBefore) {
+            LayoutEditors();
+        }
+        InvalidatePaint();
+
+        const char* perf = std::getenv("WE_DETAILS_SECTION_PERF");
+        if (perf != nullptr && perf[0] != '\0' && perf[0] != '0') {
+            const double dt = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now().time_since_epoch()).count() - t0;
+            WE_LOG_INFO(we::LogCategory::General.data(),
+                "[SectionExpandBench] path=kept_editors dtMs=" + std::to_string(dt)
+                + " editorsAlive=" + std::to_string(editorsAlive)
+                + " editorsAfter=" + std::to_string(m_EditorWidgets.size())
+                + " layoutReq=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout() ? "1" : "0")
+                + " paintReq=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsPaint() ? "1" : "0")
+                + " layoutCountDelta=" + std::to_string(
+                    we::runtime::kindui::UIRepaintGate::LayoutRebuildCount() - layoutBefore)
+                + " paintCountDelta=" + std::to_string(
+                    we::runtime::kindui::UIRepaintGate::PaintRebuildCount() - paintBefore));
+        }
+    }
+
+    /// Legacy path kept for A/B measurement only (destroys all editors + shell layout).
+    void RefreshAfterExpansionChangeLegacy() {
+        const std::size_t editorsBefore = m_EditorWidgets.size();
+        const double t0 = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        InvalidateEditors();
+        InvalidateLayout();
+        InvalidatePaint();
+        const char* perf = std::getenv("WE_DETAILS_SECTION_PERF");
+        if (perf != nullptr && perf[0] != '\0' && perf[0] != '0') {
+            const double dt = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now().time_since_epoch()).count() - t0;
+            WE_LOG_INFO(we::LogCategory::General.data(),
+                "[SectionExpandBench] path=legacy_clear_all dtMs=" + std::to_string(dt)
+                + " editorsCleared=" + std::to_string(editorsBefore)
+                + " layoutReq=1 paintReq=1");
+        }
+    }
 
     void OnTreeRebuilt() {
         CaptureBaselines();
@@ -230,9 +287,7 @@ public:
                 return;
             }
             if (ToggleCategoryAt(root, event.position, y)) {
-                InvalidateEditors();
-                InvalidateLayout();
-                InvalidatePaint();
+                RefreshAfterExpansionChange();
                 return;
             }
             firstRoot = false;
@@ -297,7 +352,7 @@ private:
         }
     }
 
-    [[nodiscard]] float GetNodeRowHeight(const PropertyNodePtr& node) const {
+    [[nodiscard]] float GetNodeRowHeight(const PropertyNodePtr& node, bool allowCreate) const {
         if (!node) {
             return 0.0f;
         }
@@ -311,7 +366,7 @@ private:
             std::shared_ptr<Widget> widget;
             if (it != m_EditorWidgets.end() && it->second) {
                 widget = it->second;
-            } else {
+            } else if (allowCreate) {
                 if (auto editor = m_Factory->CreateEditor(*node->GetPropertyInfo(), node->GetHandle())) {
                     widget = editor->CreateWidget();
                     m_EditorWidgets[path] = widget;
@@ -337,7 +392,7 @@ private:
             return y;
         }
 
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, true);
         if (y + height >= viewTop && y <= viewBottom && !node->IsCategoryNode()) {
             if (m_Factory && node->GetHandle() && node->GetPropertyInfo()) {
                 auto& editorWidget = m_EditorWidgets[std::string(node->GetPath())];
@@ -357,7 +412,14 @@ private:
                     const bool hasLockIcon = ShouldShowLockIcon(node);
                     const auto layout = PanelChrome::LayoutPropertyRow(row, node->GetDepth(), icons, hasLockIcon,
                         m_SplitterState.GetRatio());
-                    editorWidget->Arrange(PanelChrome::LayoutPropertyControlRect(layout.value));
+                    const Rect controlRect = PanelChrome::LayoutPropertyControlRect(layout.value);
+                    const Rect prev = editorWidget->GetGeometry();
+                    editorWidget->Arrange(controlRect);
+                    // Only dirty editors that actually moved; unchanged rows keep retained paint.
+                    if (prev.x != controlRect.x || prev.y != controlRect.y
+                        || prev.width != controlRect.width || prev.height != controlRect.height) {
+                        editorWidget->InvalidatePaint();
+                    }
                 }
             }
         }
@@ -413,7 +475,7 @@ private:
         if (!node) {
             return 0.f;
         }
-        float h = GetNodeRowHeight(node);
+        float h = GetNodeRowHeight(node, false);
         if (node->IsExpanded()) {
             for (const auto& child : node->GetChildren()) {
                 h += MeasureNodeHeight(child);
@@ -434,7 +496,7 @@ private:
             return y;
         }
 
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, true);
         if (y + height >= viewTop && y <= viewBottom) {
             Rect row{
                 m_ScrollMetrics.viewport.x,
@@ -493,7 +555,7 @@ private:
                         }
                     }
                     if (editorWidget) {
-                        editorWidget->Paint(context);
+                        editorWidget->PaintSubtree(context);
                     }
                 }
 
@@ -525,7 +587,7 @@ private:
             return nullptr;
         }
 
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, false);
         Rect row{m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height};
         if (!row.Contains(pos)) {
             y += height;
@@ -571,7 +633,7 @@ private:
             return false;
         }
 
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, false);
         Rect row{ m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height };
 
         if (!node->IsCategoryNode()) {
@@ -603,7 +665,7 @@ private:
             return false;
         }
 
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, false);
         Rect row{m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height};
         if (row.Contains(pos) && (node->IsCategoryNode() || !node->GetChildren().empty())) {
             node->SetExpanded(!node->IsExpanded());
@@ -660,7 +722,7 @@ private:
         if (!node) {
             return false;
         }
-        const float height = GetNodeRowHeight(node);
+        const float height = GetNodeRowHeight(node, false);
         Rect row{ m_ScrollMetrics.viewport.x, y, m_ScrollMetrics.viewport.width, height };
         if (row.Contains(pos)) {
             if (node->IsCategoryNode()) {
@@ -1026,12 +1088,30 @@ public:
 
     void ExpandAll() override {
         WE_LOG_INFO(we::LogCategory::General.data(), "[DetailsViewDebug] ExpandAll requested");
-        SetExpandedRecursive(m_Tree->GetRootNodes(), true);
+        we::runtime::kindui::Expansion::ScopedTransaction transaction("ExpandAll");
+        we::runtime::kindui::Expansion::ExpandAll(
+            m_Tree->GetRootNodes(),
+            [](const PropertyNodePtr& node) -> const std::vector<PropertyNodePtr>& {
+                return node->GetChildren();
+            },
+            [](const PropertyNodePtr& node, bool expanded) {
+                node->SetExpanded(expanded);
+            });
+        m_Widget->RefreshAfterExpansionChange();
     }
 
     void CollapseAll() override {
         WE_LOG_INFO(we::LogCategory::General.data(), "[DetailsViewDebug] CollapseAll requested");
-        SetExpandedRecursive(m_Tree->GetRootNodes(), false);
+        we::runtime::kindui::Expansion::ScopedTransaction transaction("CollapseAll");
+        we::runtime::kindui::Expansion::CollapseAll(
+            m_Tree->GetRootNodes(),
+            [](const PropertyNodePtr& node) -> const std::vector<PropertyNodePtr>& {
+                return node->GetChildren();
+            },
+            [](const PropertyNodePtr& node, bool expanded) {
+                node->SetExpanded(expanded);
+            });
+        m_Widget->RefreshAfterExpansionChange();
     }
 
     void SetCategoryExpanded(std::string_view category, bool expanded) override {
@@ -1043,6 +1123,7 @@ public:
                 root->SetExpanded(expanded);
             }
         }
+        m_Widget->RefreshAfterExpansionChange();
     }
 
     [[nodiscard]] IPropertyTree& GetTree() noexcept override { return *m_Tree; }
@@ -1065,16 +1146,6 @@ private:
         m_Widget->InvalidateEditors();
         m_Widget->InvalidateLayout();
         m_Widget->InvalidatePaint();
-    }
-
-    void SetExpandedRecursive(const std::vector<PropertyNodePtr>& nodes, bool expanded) {
-        for (const auto& node : nodes) {
-            if (!node) {
-                continue;
-            }
-            node->SetExpanded(expanded);
-            SetExpandedRecursive(node->GetChildren(), expanded);
-        }
     }
 
     void ApplyCustomizations(TypeId typeId) {
@@ -1136,5 +1207,219 @@ std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services) {
     return std::make_unique<DetailsViewImpl>(std::move(services));
 }
 
+} // namespace detail
+
+namespace {
+
+struct SectionExpandBenchItem {
+    std::int32_t nameId = 1;
+    float posX = 0.f;
+    float posY = 24.f;
+    float posZ = 0.f;
+    float intensity = 10.f;
+    float temperature = 6500.f;
+    bool castShadows = true;
+    bool atmosphereSun = true;
+};
+
+reflection::PropertyInfo WithCategory(reflection::PropertyInfo property, const char* category) {
+    property.attributes.Add(reflection::AttributeInfo::MakeString("Category", category));
+    return property;
 }
+
+void ProcessDetailsFrame(we::runtime::kindui::Widget& root, float width, float height) {
+    using we::runtime::kindui::UIRepaintGate;
+    using we::runtime::kindui::PaintContext;
+    using we::runtime::kindui::Size;
+    using we::runtime::kindui::Rect;
+    if (UIRepaintGate::ConsumeNeedsLayout()) {
+        root.Measure(Size{width, height});
+        root.Arrange(Rect{0.0f, 0.0f, width, height});
+        root.ClearSubtreeLayoutDirty();
+    }
+    if (UIRepaintGate::ConsumeNeedsPaint()) {
+        PaintContext ctx;
+        root.PaintSubtree(ctx);
+        root.ClearSubtreePaintDirty();
+    }
 }
+
+} // namespace
+
+std::string RunDetailsSectionExpandInteractionBenchmark() {
+    using clock = std::chrono::steady_clock;
+    using we::runtime::kindui::UIRepaintGate;
+    using we::runtime::kindui::PaintContext;
+    using we::runtime::kindui::Size;
+    using we::runtime::kindui::Rect;
+
+    auto registry = reflection::CreateTypeRegistry({});
+    reflection::RegisterBuiltinTypes(*registry);
+
+    reflection::TypeBuilder builder("we::editor::property::bench::SectionExpandItem");
+    builder.Kind(reflection::TypeKind::Struct)
+        .Size(static_cast<std::uint32_t>(sizeof(SectionExpandBenchItem)))
+        .Alignment(static_cast<std::uint32_t>(alignof(SectionExpandBenchItem)))
+        .Ops(reflection::MakeTypeOpsFor<SectionExpandBenchItem>())
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "Name", reflection::BuiltinTypeId::Int32(), offsetof(SectionExpandBenchItem, nameId),
+            sizeof(std::int32_t), alignof(std::int32_t)), "Actor"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "PositionX", reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posX),
+            sizeof(float), alignof(float)), "Transform"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "PositionY", reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posY),
+            sizeof(float), alignof(float)), "Transform"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "PositionZ", reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posZ),
+            sizeof(float), alignof(float)), "Transform"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "Intensity", reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, intensity),
+            sizeof(float), alignof(float)), "Light"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "TemperatureKelvin", reflection::BuiltinTypeId::Float(),
+            offsetof(SectionExpandBenchItem, temperature), sizeof(float), alignof(float)), "Light"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "CastDynamicShadows", reflection::BuiltinTypeId::Bool(),
+            offsetof(SectionExpandBenchItem, castShadows), sizeof(bool), alignof(bool)), "Light"))
+        .Property(WithCategory(reflection::MakeOffsetProperty(
+            "AtmosphereSun", reflection::BuiltinTypeId::Bool(),
+            offsetof(SectionExpandBenchItem, atmosphereSun), sizeof(bool), alignof(bool)), "Light"));
+    // Duplicate Light/Transform-like fields so recreation cost resembles a real Inspector object.
+    for (int i = 0; i < 12; ++i) {
+        const std::string px = "ExtraPosX" + std::to_string(i);
+        const std::string py = "ExtraPosY" + std::to_string(i);
+        const std::string pz = "ExtraPosZ" + std::to_string(i);
+        const std::string inten = "ExtraIntensity" + std::to_string(i);
+        builder
+            .Property(WithCategory(reflection::MakeOffsetProperty(
+                px, reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posX),
+                sizeof(float), alignof(float)), "Transform"))
+            .Property(WithCategory(reflection::MakeOffsetProperty(
+                py, reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posY),
+                sizeof(float), alignof(float)), "Transform"))
+            .Property(WithCategory(reflection::MakeOffsetProperty(
+                pz, reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, posZ),
+                sizeof(float), alignof(float)), "Transform"))
+            .Property(WithCategory(reflection::MakeOffsetProperty(
+                inten, reflection::BuiltinTypeId::Float(), offsetof(SectionExpandBenchItem, intensity),
+                sizeof(float), alignof(float)), "Light"));
+    }
+    builder.Register(*registry, reflection::RegisterMode::Replace);
+    const auto typeId = reflection::MakeTypeId("we::editor::property::bench::SectionExpandItem");
+
+    PropertyEditorDependencies deps;
+    deps.typeRegistry = registry.get();
+    auto runtime = CreatePropertyEditorRuntime(deps);
+    if (!runtime) {
+        return "SectionExpandBench failed: no runtime";
+    }
+
+    SectionExpandBenchItem item{};
+    auto details = runtime->MakeDetailsView();
+    details->SetObject(typeId, &item);
+
+    auto widget = std::static_pointer_cast<detail::DetailsViewWidget>(details->GetWidget());
+    constexpr float kW = 420.0f;
+    constexpr float kH = 720.0f;
+    widget->Measure(Size{kW, kH});
+    widget->Arrange(Rect{0.0f, 0.0f, kW, kH});
+    {
+        PaintContext ctx;
+        widget->PaintSubtree(ctx);
+        widget->ClearSubtreePaintDirty();
+    }
+    (void)UIRepaintGate::ConsumeNeedsLayout();
+    (void)UIRepaintGate::ConsumeNeedsPaint();
+
+    auto toggleCategory = [&](bool legacy) {
+        const auto names = details->GetCategoryNames();
+        if (names.empty()) {
+            return;
+        }
+        const std::string& cat = names.size() > 1 ? names[1] : names[0];
+        PropertyNodePtr target;
+        for (const auto& root : details->GetTree().GetRootNodes()) {
+            if (root && root->IsCategoryNode() && root->GetDisplayName() == cat) {
+                target = root;
+                break;
+            }
+        }
+        if (!target) {
+            return;
+        }
+        target->SetExpanded(!target->IsExpanded());
+        if (legacy) {
+            widget->RefreshAfterExpansionChangeLegacy();
+        } else {
+            widget->RefreshAfterExpansionChange();
+        }
+    };
+
+    const int iters = 16;
+    double legacyAvg = 0.0;
+    uint64_t legacyLayout = 0;
+    uint64_t legacyPaint = 0;
+    {
+        details->ExpandAll();
+        ProcessDetailsFrame(*widget, kW, kH);
+        const uint64_t layoutBefore = UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = UIRepaintGate::PaintRebuildCount();
+        const double t0 = std::chrono::duration<double, std::milli>(
+            clock::now().time_since_epoch()).count();
+        for (int i = 0; i < iters; ++i) {
+            toggleCategory(true);
+            ProcessDetailsFrame(*widget, kW, kH);
+        }
+        legacyAvg = (std::chrono::duration<double, std::milli>(
+            clock::now().time_since_epoch()).count() - t0) / static_cast<double>(iters);
+        legacyLayout = UIRepaintGate::LayoutRebuildCount() - layoutBefore;
+        legacyPaint = UIRepaintGate::PaintRebuildCount() - paintBefore;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[SectionExpandBench] summary legacy avgMs=" + std::to_string(legacyAvg)
+            + " layoutDelta=" + std::to_string(legacyLayout)
+            + " paintDelta=" + std::to_string(legacyPaint)
+            + " editorsEnd=" + std::to_string(widget->EditorWidgetCount()));
+    }
+
+    double keptAvg = 0.0;
+    uint64_t keptLayout = 0;
+    uint64_t keptPaint = 0;
+    {
+        details->ExpandAll();
+        ProcessDetailsFrame(*widget, kW, kH);
+        const std::size_t editorsWarm = widget->EditorWidgetCount();
+        const uint64_t layoutBefore = UIRepaintGate::LayoutRebuildCount();
+        const uint64_t paintBefore = UIRepaintGate::PaintRebuildCount();
+        const double t0 = std::chrono::duration<double, std::milli>(
+            clock::now().time_since_epoch()).count();
+        for (int i = 0; i < iters; ++i) {
+            toggleCategory(false);
+            ProcessDetailsFrame(*widget, kW, kH);
+        }
+        keptAvg = (std::chrono::duration<double, std::milli>(
+            clock::now().time_since_epoch()).count() - t0) / static_cast<double>(iters);
+        keptLayout = UIRepaintGate::LayoutRebuildCount() - layoutBefore;
+        keptPaint = UIRepaintGate::PaintRebuildCount() - paintBefore;
+        WE_LOG_INFO(we::LogCategory::General.data(),
+            "[SectionExpandBench] summary kept_editors avgMs=" + std::to_string(keptAvg)
+            + " layoutDelta=" + std::to_string(keptLayout)
+            + " paintDelta=" + std::to_string(keptPaint)
+            + " editorsWarm=" + std::to_string(editorsWarm)
+            + " editorsEnd=" + std::to_string(widget->EditorWidgetCount()));
+    }
+
+    runtime->Shutdown();
+    std::ostringstream oss;
+    oss << "SectionExpandBench legacyAvgMs=" << legacyAvg
+        << " keptAvgMs=" << keptAvg
+        << " speedup=" << (keptAvg > 0.0 ? (legacyAvg / keptAvg) : 0.0)
+        << " legacyLayout=" << legacyLayout
+        << " keptLayout=" << keptLayout
+        << " legacyPaint=" << legacyPaint
+        << " keptPaint=" << keptPaint;
+    WE_LOG_INFO(we::LogCategory::General.data(), std::string("[SectionExpandBench] ") + oss.str());
+    return oss.str();
+}
+
+} // namespace we::editor::property

@@ -14,25 +14,7 @@
 #include "PropertyEditor/PropertyFieldTypes.h"
 #include "Core/Logger.h"
 
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Layout/AutoAlign.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/PropertyColumnSplitter.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Widgets/TextBox.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Widgets/ColorPicker.h"
-#include "KindUI/Layout/IPopupHost.h"
-#include "KindUI/Widgets/ModalHost.h"
-#include "KindUI/Panel/PanelBuilder.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Core/Types.h"
-
+#include <KindUI/EditorUI.h>
 // Forward declaration for the popup host function
 namespace we::programs::editor {
     ::we::runtime::kindui::IPopupHost* GetEditorPopupHost();

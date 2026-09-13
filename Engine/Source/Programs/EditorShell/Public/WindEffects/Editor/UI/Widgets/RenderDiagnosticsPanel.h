@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/ScrollLayout.h"
-#include "KindUI/Widgets/Label.h"
-
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Renderer/EditorRenderDebugStub.h"
 
 namespace we::editor::panels {

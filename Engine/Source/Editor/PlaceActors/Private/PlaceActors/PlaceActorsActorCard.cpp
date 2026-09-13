@@ -11,15 +11,7 @@
 #include "PlaceActors/ActorsPanelChrome.h"
 #include "PlaceActors/ActorsPanelLayout.h"
 #include "PlaceActors/PlaceActorsThumbnailProvider.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 namespace we::programs::editor {

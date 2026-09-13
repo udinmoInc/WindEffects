@@ -12,13 +12,12 @@
 #include "Core/ProductMetadata.h"
 #include "KindUI/Benchmark/KindUIBenchmark.h"
 #include "KindUI/Benchmark/KindUIInteractionBenchmark.h"
+#include "PropertyEditor/PropertyEditorBenchmark.h"
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
 #include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"
 #include "EditorCompositionProbes.h"
-#include "KindUI/Core/ColorSpace.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include <KindUI/EditorUI.h>
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
 #include "Core/PluginManager.h"
@@ -27,9 +26,6 @@
 #include "ContentBrowser/ContentBrowserApi.h"
 #include "EditorGridRenderer.h"
 #include "Environment/EnvironmentSystem.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Layout/OverlayManager.h"
 #include "PlaceActors/PlaceActorsPlacement.h"
 #include "Platform/PlatformSDK.h"
 #include "ViewportToolbarState.h"
@@ -40,8 +36,6 @@
 #include "KindUI/Profiling/ScreenRecorder.h"
 #include "WindEffects/Editor/UI/Shell/EditorModeController.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
-#include "KindUI/Widgets/ScreenDebugOverlay.h"
-
 #include <cstdlib>
 
 namespace we::programs::editor {
@@ -107,6 +101,11 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
                 + " cmds=" + std::to_string(scenario.paintCommands)
                 + " cause=" + scenario.rootCause);
         }
+    }
+    if (const char* sectionBench = std::getenv("WE_DETAILS_SECTION_BENCH");
+        sectionBench != nullptr && sectionBench[0] != '\0' && sectionBench[0] != '0') {
+        const std::string summary = we::editor::property::RunDetailsSectionExpandInteractionBenchmark();
+        HE_INFO("[SectionExpandBench] " + summary);
     }
     if (const char* latencyBench = std::getenv("WE_UI_LATENCY_BENCH");
         latencyBench != nullptr && latencyBench[0] != '\0' && latencyBench[0] != '0') {

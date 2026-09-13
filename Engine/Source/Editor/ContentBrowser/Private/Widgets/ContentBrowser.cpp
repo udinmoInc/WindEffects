@@ -8,27 +8,12 @@
 // ==============================================================================
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
-#include "KindUI/Layout/AutoAlign.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include <KindUI/EditorUI.h>
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"
 #include "Services/ContentBrowserService.h"
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Types.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Widgets/Components.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -568,7 +553,7 @@ void ContentBrowser::Paint(PaintContext& context) {
 
     context.PopClipRect();
 
-
+    // Keep the browser canvas and its themed chrome in place. The shared KindUI
     // component is only an overlay, not a replacement for this widget.
     if (m_RenderList.empty() && m_EmptyState) {
         m_EmptyState->Arrange(m_ScrollMetrics.viewport);
@@ -757,8 +742,8 @@ void ContentBrowser::OnMouseMove(const MouseEvent& event) {
         const float minY = std::min(m_SelectStart.y, m_SelectEnd.y);
         const float maxY = std::max(m_SelectStart.y, m_SelectEnd.y);
         Rect selectBox{ minX, minY, maxX - minX, maxY - minY };
-
-
+        // Batch the selection into one model update: per-item NotifyChanged
+        // here used to rebuild the whole render list N times per mouse move.
         std::vector<std::string> boxedIds;
         for (const auto& renderItem : m_RenderList) {
             Rect intersection = renderItem.geometry.Intersect(selectBox);
@@ -965,7 +950,7 @@ void ContentBrowser::CalculateDetailsLayout() {
 }
 
 ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) {
-
+    // Visible window first: keeps hover/drag hit-testing flat cost on huge
     const int last = static_cast<int>(m_RenderList.size()) - 1;
     const int visFirst = std::max(0, std::min(m_FirstVisibleIndex, last));
     const int visLast = std::max(-1, std::min(m_LastVisibleIndex, last));
@@ -973,7 +958,7 @@ ContentBrowser::RenderItem* ContentBrowser::GetItemAtPosition(const Point& pos) 
         auto& renderItem = m_RenderList[static_cast<size_t>(i)];
         if (renderItem.geometry.Contains(pos)) return &renderItem;
     }
-
+    // Fallback: full scan covers stale visible ranges (layout not yet synced).
     for (auto& renderItem : m_RenderList) {
         if (renderItem.geometry.Contains(pos)) return &renderItem;
     }
@@ -1010,152 +995,6 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
     const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
     context.DrawText(m_CachedText, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY },
         ThemeColor(ColorToken::TextSecondary), textSize);
-}
-
-Breadcrumb::Breadcrumb() = default;
-
-Size Breadcrumb::Measure(const Size& availableSize) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float chevronW = 12.0f * uiScale;
-    const float space = 4.0f * uiScale;
-
-    UpdateCrumbMetrics();
-    float totalW = 0.0f;
-    for (size_t i = 0; i < m_Crumbs.size(); ++i) {
-        float textW = m_Crumbs[i].textWidth;
-        totalW += textW + space + chevronW + space;
-    }
-    const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
-    m_DesiredSize = Size{ totalW, h };
-    return m_DesiredSize;
-}
-
-void Breadcrumb::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
-    UpdateCrumbMetrics();
-    CalculateLayout();
-}
-
-void Breadcrumb::Paint(PaintContext& context) {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-    const float chevronSize = 12.0f * uiScale;
-    const Color kHighlightColor = we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
-
-    for (size_t i = 0; i < m_Crumbs.size(); ++i) {
-        const auto& crumb = m_Crumbs[i];
-        const Color textColor = (static_cast<int>(i) == m_HoveredCrumb)
-            ? kHighlightColor
-            : ((i == m_Crumbs.size() - 1)
-                ? kHighlightColor
-                : ThemeColor(ColorToken::TextSecondary));
-
-        const Rect crumbArea{ crumb.geometry.x, m_Geometry.y, crumb.geometry.width, m_Geometry.height };
-        auto crumbLayout = we::runtime::kindui::AutoAlign::ComputeIconTextLayout(
-            crumbArea, 0.0f, false, crumb.text, textSize);
-
-        context.DrawText(crumb.text, crumbLayout.textPos, textColor, textSize, false);
-
-        // Draw chevron separator '>' after each crumb
-        const float chevronX = crumb.geometry.x + crumb.geometry.width + 3.0f * uiScale;
-        const Rect chevronBand{ chevronX, m_Geometry.y, chevronSize, m_Geometry.height };
-        const Rect chevronRect = we::runtime::kindui::AutoAlign::NormalizeIconBounds(chevronBand, chevronSize);
-        IconPainter::Draw(context, WindIcons::ChevronRight16, chevronRect, ThemeColor(ColorToken::IconSecondary));
-    }
-}
-
-void Breadcrumb::OnMouseDown(const MouseEvent& event) {
-    if (event.button != MouseButton::Left) return;
-    CrumbInfo* crumb = GetCrumbAtPosition(event.position);
-    if (crumb && m_OnCrumbClicked) {
-        const size_t index = static_cast<size_t>(crumb - &m_Crumbs[0]);
-        m_OnCrumbClicked(index);
-    }
-}
-
-void Breadcrumb::OnHoverLost() {
-    m_HoveredCrumb = -1;
-    for (auto& crumb : m_Crumbs) crumb.hovered = false;
-}
-
-void Breadcrumb::OnMouseMove(const MouseEvent& event) {
-    m_HoveredCrumb = -1;
-    for (size_t i = 0; i < m_Crumbs.size(); ++i) m_Crumbs[i].hovered = false;
-    if (CrumbInfo* crumb = GetCrumbAtPosition(event.position)) {
-        m_HoveredCrumb = static_cast<int>(crumb - &m_Crumbs[0]);
-        m_Crumbs[static_cast<size_t>(m_HoveredCrumb)].hovered = true;
-    }
-}
-
-bool Breadcrumb::ShowsPointerCursor(const Point& position) const {
-    for (const auto& crumb : m_Crumbs) {
-        if (crumb.geometry.Contains(position)) return true;
-    }
-    return false;
-}
-
-void Breadcrumb::SetPath(const std::vector<std::string>& path) {
-    m_PathSegments = path;
-    m_Crumbs.clear();
-    for (const auto& crumb : path) {
-        CrumbInfo info;
-        info.text = crumb;
-        m_Crumbs.push_back(info);
-    }
-    m_CrumbMetricsDirty = true;
-    CalculateLayout();
-}
-
-void Breadcrumb::AddCrumb(const std::string& crumb) {
-    CrumbInfo info;
-    info.text = crumb;
-    m_Crumbs.push_back(info);
-    m_CrumbMetricsDirty = true;
-    CalculateLayout();
-}
-
-void Breadcrumb::Clear() {
-    m_Crumbs.clear();
-    m_CrumbMetricsDirty = true;
-}
-
-void Breadcrumb::UpdateCrumbMetrics() {
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-    if (!m_CrumbMetricsDirty && m_LastTextSize == textSize && m_LastUiScale == uiScale) {
-        return;
-    }
-
-    PaintContext ctx;
-    for (auto& crumb : m_Crumbs) {
-        crumb.textWidth = ctx.GetTextWidth(crumb.text, textSize);
-    }
-    m_LastTextSize = textSize;
-    m_LastUiScale = uiScale;
-    m_CrumbMetricsDirty = false;
-}
-
-void Breadcrumb::CalculateLayout() {
-    UpdateCrumbMetrics();
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float chevronW = 12.0f * uiScale;
-    const float space = 4.0f * uiScale;
-    float x = m_Geometry.x;
-    const float crumbH = m_Geometry.height;
-    const float y = m_Geometry.y;
-
-    for (size_t i = 0; i < m_Crumbs.size(); ++i) {
-        float textW = m_Crumbs[i].textWidth;
-        m_Crumbs[i].geometry = Rect{ x, y, textW, crumbH };
-        x += textW + space + chevronW + space;
-    }
-}
-
-Breadcrumb::CrumbInfo* Breadcrumb::GetCrumbAtPosition(const Point& pos) {
-    for (auto& crumb : m_Crumbs) {
-        if (crumb.geometry.Contains(pos)) return &crumb;
-    }
-    return nullptr;
 }
 
 }

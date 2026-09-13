@@ -10,28 +10,10 @@
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
 #include "ContentBrowser/Widgets/TreeView.h"
-#include "Widgets/MenuBar.h"
-#include "Widgets/DropdownMenu.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Layout/OverlayManager.h"
-#include "KindUI/Layout/ScrollViewport.h"
+#include <KindUI/EditorUI.h>
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Panel/PanelChrome.h"
 #include "KindUI/Profiling/ScreenRecorder.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Input/HotkeyManager.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Profiling/UiGeometryDebug.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>
@@ -1026,6 +1008,51 @@ void TreeView::ToggleExpand(const std::string& id) {
         " duration=" + std::to_string(durationMs) + "ms");
 }
 
+void TreeView::ExpandAll() {
+    if (!m_Root) {
+        return;
+    }
+    we::runtime::kindui::Expansion::ScopedTransaction transaction("ExpandAll");
+    std::vector<std::shared_ptr<TreeNode>> roots{ m_Root };
+    we::runtime::kindui::Expansion::ExpandAll(
+        roots,
+        [](const std::shared_ptr<TreeNode>& node) -> const std::vector<std::shared_ptr<TreeNode>>& {
+            return node->children;
+        },
+        [](const std::shared_ptr<TreeNode>& node, bool expanded) {
+            node->expanded = expanded;
+        });
+    MarkRenderListDirty();
+    BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
+}
+
+void TreeView::CollapseAll() {
+    if (!m_Root) {
+        return;
+    }
+    we::runtime::kindui::Expansion::ScopedTransaction transaction("CollapseAll");
+    std::vector<std::shared_ptr<TreeNode>> roots{ m_Root };
+    we::runtime::kindui::Expansion::CollapseAll(
+        roots,
+        [](const std::shared_ptr<TreeNode>& node) -> const std::vector<std::shared_ptr<TreeNode>>& {
+            return node->children;
+        },
+        [](const std::shared_ptr<TreeNode>& node, bool expanded) {
+            // Keep the true root expanded so the tree remains usable.
+            if (node->id == "root" || node->id == "/Game") {
+                node->expanded = true;
+                return;
+            }
+            node->expanded = expanded;
+        });
+    MarkRenderListDirty();
+    BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
+}
+
 void TreeView::BeginRename(const std::string& id) {
     if (auto node = FindNode(id)) {
         m_RenamingId = id;
@@ -1056,36 +1083,36 @@ void TreeView::CancelRename() {
 }
 
 void TreeView::ShowContextMenu(const std::string& id, const Point& position) {
-    std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> menuItems;
+    std::vector<std::shared_ptr<::we::runtime::kindui::MenuItem>> menuItems;
     menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
-        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        auto mi = std::make_shared<::we::runtime::kindui::MenuItem>();
         mi->label = lbl;
         mi->onClick = std::move(fn);
         return mi;
     }("Rename", [this, id]() { BeginRename(id); }));
 
     menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
-        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        auto mi = std::make_shared<::we::runtime::kindui::MenuItem>();
         mi->label = lbl;
         mi->onClick = std::move(fn);
         return mi;
     }("Duplicate", []() {}));
 
     menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
-        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        auto mi = std::make_shared<::we::runtime::kindui::MenuItem>();
         mi->label = lbl;
         mi->onClick = std::move(fn);
         return mi;
     }("Delete", []() {}));
 
     menuItems.push_back([](const std::string& lbl, std::function<void()> fn) {
-        auto mi = std::make_shared<::we::editor::menus::MenuItem>();
+        auto mi = std::make_shared<::we::runtime::kindui::MenuItem>();
         mi->label = lbl;
         mi->onClick = std::move(fn);
         return mi;
     }("Create Child Actor", []() {}));
 
-    auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(menuItems);
+    auto menu = std::make_shared<::we::runtime::kindui::DropdownMenu>(menuItems);
     if (auto* overlay = GetPopupHost()) {
         overlay->CloseAllPopups();
         overlay->ShowPopup(menu, position);

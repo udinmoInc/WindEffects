@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Theming/GraphiteDarkTheme.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::services {
 
 // Editor product theme: GraphiteDark surfaces + orange accent for editing tools.

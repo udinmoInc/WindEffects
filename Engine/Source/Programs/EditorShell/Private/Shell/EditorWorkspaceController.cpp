@@ -12,17 +12,10 @@
 #include "Core/EditorConfigPaths.h"
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
-#include "KindUI/Panel/Panel.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Docking/DockContainer.h"
 #include "KindUI/Docking/FloatingPanelFrame.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Layout/Splitter.h"
-#include "KindUI/Layout/OverlayManager.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Profiling/PaintCauseLog.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include "Widgets/DropdownMenu.h"
 
 #include <filesystem>

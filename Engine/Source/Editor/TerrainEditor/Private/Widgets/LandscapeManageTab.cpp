@@ -10,9 +10,7 @@
 #include "LandscapeWorkspaceInternal.h"
 #include "LandscapeFormLayout.h"
 
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Widgets/Components.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::terrain {
 namespace {
 

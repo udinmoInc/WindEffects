@@ -18,8 +18,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/EventSystem.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/TitleBar.h"

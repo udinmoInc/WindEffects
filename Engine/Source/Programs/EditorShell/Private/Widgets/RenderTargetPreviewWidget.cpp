@@ -7,11 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "WindEffects/Editor/UI/Widgets/RenderTargetPreviewWidget.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/PaintContext.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 using ::we::runtime::kindui::PaddingToken;

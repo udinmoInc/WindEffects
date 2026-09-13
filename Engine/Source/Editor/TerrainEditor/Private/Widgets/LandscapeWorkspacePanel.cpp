@@ -8,19 +8,7 @@
 // ==============================================================================
 #include "TerrainEditor/Widgets/LandscapeWorkspacePanel.h"
 #include "LandscapeWorkspaceInternal.h"
-#include "KindUI/Widgets/Components.h"
-#include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Core/PropertyPanelChrome.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Panel/PanelBodyLayout.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Core/WindIcon.h"
-
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Core/DPIContext.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::terrain {
 
 using we::runtime::kindui::DPIContext;

@@ -8,13 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Rendering/IconMetrics.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::programs::editor::ActorsPanelLayout {
 
 using MetricToken = we::runtime::kindui::MetricToken;

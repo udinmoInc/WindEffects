@@ -10,18 +10,13 @@
 
 #include "ToolsPanel/Export.h"
 
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/PaintContext.h"
-#include "KindUI/Core/Widgets/PanelToolbarRow.h"
-#include "KindUI/Panel/PanelBodyLayout.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "ToolsPanelState.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-#include "KindUI/Input/InputEvents.h"
-
 namespace we::programs::editor {
 using ::we::editor::toolspanel::EditorToolAction;
 

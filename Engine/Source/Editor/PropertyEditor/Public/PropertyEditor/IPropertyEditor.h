@@ -12,8 +12,7 @@
 #include "PropertyEditor/IPropertyHandle.h"
 #include "Reflection/PropertyInfo.h"
 #include "Reflection/TypeKinds.h"
-#include "KindUI/Core/Widget.h"
-
+#include <KindUI/EditorUI.h>
 #include <memory>
 
 namespace we::editor::property {

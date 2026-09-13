@@ -9,8 +9,7 @@
 #pragma warning(disable: 4505)
 #include "LandscapeWorkspaceInternal.h"
 #include "LandscapeFormLayout.h"
-#include "KindUI/Core/WindIcon.h"
-
+#include <KindUI/EditorUI.h>
 #include <algorithm>
 
 namespace we::editor::terrain {

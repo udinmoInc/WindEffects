@@ -11,9 +11,7 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
-#include "KindUI/Panel/Panel.h"
-#include "KindUI/Core/EventSystem.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Rendering/OverlayRenderer.h"
 #include "Widgets/TitleBar.h"
 #include "Widgets/StatusBar.h"

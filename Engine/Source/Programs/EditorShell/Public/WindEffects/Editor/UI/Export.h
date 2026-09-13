@@ -9,7 +9,6 @@
 #pragma once
 
 #include "KindUI/Export.h"
-
 #if defined(_WIN32)
 #if defined(EDITORSHELL_EXPORTS)
 #define EDITORSHELL_API __declspec(dllexport)

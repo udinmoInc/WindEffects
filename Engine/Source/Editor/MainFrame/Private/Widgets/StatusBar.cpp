@@ -10,18 +10,8 @@
 #include "Widgets/StatusBar.h"
 #include "Widgets/CommandInput.h"
 #include "Widgets/ToolButton.h"
-#include "KindUI/Core/Widgets/VerticalDivider.h"
-#include "KindUI/Layout/Spacer.h"
-#include "KindUI/Core/PaintContext.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/UiGeometryDebug.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Core/WindIcon.h"
-#include "KindUI/Core/Icon.h"
-#include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/ControlChrome.h"
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Theming/ThemeAccess.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

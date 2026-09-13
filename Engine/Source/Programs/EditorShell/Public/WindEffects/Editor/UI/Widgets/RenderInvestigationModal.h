@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Input/InputEvents.h"
+#include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Renderer/EditorRenderDebugStub.h"
 #include <functional>
 #include <memory>

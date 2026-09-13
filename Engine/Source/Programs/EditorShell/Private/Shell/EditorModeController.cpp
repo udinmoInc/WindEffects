@@ -11,9 +11,7 @@
 #include "WindEffects/Editor/UI/Shell/EditorToolsRegistry.h"
 #include "Core/Logger.h"
 #include "Core/EditorConfigPaths.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-
+#include <KindUI/EditorUI.h>
 #include <filesystem>
 #include <fstream>
 #include <algorithm>

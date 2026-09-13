@@ -19,7 +19,7 @@
 #include "EditorCamera.h"
 #include "Environment/EnvironmentLighting.h"
 #include "Environment/EnvironmentSystem.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
 #include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
 #include "KindUI/Profiling/UiInputLatencyAudit.h"

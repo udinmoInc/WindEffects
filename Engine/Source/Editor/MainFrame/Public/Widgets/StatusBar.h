@@ -10,11 +10,9 @@
 
 #include "MainFrame/Export.h"
 
-#include "KindUI/Layout/Flex.h"
+#include <KindUI/EditorUI.h>
 #include <string>
 #include <functional>
-#include "KindUI/Core/Style.h"
-
 namespace we::editor::toolbar { class ToolButton; }
 
 namespace we::editor::shell {

@@ -11,9 +11,7 @@
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/Splitter.h"
-#include "KindUI/Panel/Panel.h"
+#include <KindUI/EditorUI.h>
 #include "KindUI/Docking/DockContainer.h"
 
 #include <unordered_map>

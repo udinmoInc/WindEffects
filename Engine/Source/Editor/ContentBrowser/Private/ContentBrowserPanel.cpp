@@ -14,16 +14,14 @@
 #include "KindUI/Rendering/FontImportService.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
-#include "ContentBrowser/Widgets/SearchBox.h"
 #include "ContentBrowser/Widgets/TreeView.h"
+#include <KindUI/EditorUI.h>
 #include "Core/Localization.h"
 #include "Core/Paths.h"
 #include "Services/ContentBrowserService.h"
 #include "Registry/ContentAssetRegistry.h"
 #include "Controllers/FilterController.h"
 #include "ContentBrowser/Models/ContentBrowserModel.h"
-#include "KindUI/EditorWidgets.h"
-#include "KindUI/Layout/Splitter.h"
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -139,7 +137,7 @@ void RefreshFolderTree(const std::shared_ptr<::we::editor::contentbrowser::TreeV
     SyncFolderTreeSelection(tree, selectedId);
 }
 
-void UpdateBreadcrumb(const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb, const std::string&
+void UpdateBreadcrumb(const std::shared_ptr<::we::runtime::kindui::Breadcrumb>& breadcrumb, const std::string&
     virtualPath) {
     if (!breadcrumb) return;
     std::vector<std::string> crumbs;
@@ -191,8 +189,8 @@ std::string GetPathFromCrumbIndex(const std::vector<std::string>& crumbs, size_t
 
 void NavigateToFolder(const std::string& virtualPath,
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox = nullptr)
+    const std::shared_ptr<::we::runtime::kindui::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<::we::runtime::kindui::SearchBoxControl>& searchBox = nullptr)
 {
     ContentBrowserService::Get().SetCurrentFolder(virtualPath);
     if (breadcrumb) {
@@ -215,8 +213,8 @@ void NavigateToFolder(const std::string& virtualPath,
 
 void WireContentBrowser(
     const std::shared_ptr<::we::editor::contentbrowser::ContentBrowser>& browser,
-    const std::shared_ptr<::we::editor::contentbrowser::Breadcrumb>& breadcrumb,
-    const std::shared_ptr<::we::editor::widgets::SearchBox>& searchBox,
+    const std::shared_ptr<::we::runtime::kindui::Breadcrumb>& breadcrumb,
+    const std::shared_ptr<::we::runtime::kindui::SearchBoxControl>& searchBox,
     std::function<void(const std::string&, bool)> onNavigateFolder)
 {
     auto& service = ContentBrowserService::Get();
@@ -298,7 +296,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     auto filterBtn = std::make_shared<we::runtime::kindui::ToolbarIconButton>(WindIcons::ListFilter16, "Filter");
     filterBtn->SetFlexShrink(0.0f);
 
-    auto searchBox = std::make_shared<::we::editor::widgets::SearchBox>();
+    auto searchBox = std::make_shared<::we::runtime::kindui::SearchBoxControl>();
     searchBox->SetPlaceholder("Search Assets...");
     searchBox->SetToolbarInset(true);
     searchBox->SetFillWidth(false);
@@ -326,6 +324,13 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
 
     mainColumn->AddChild(assetToolbar);
     mainColumn->AddChild(contentSplitter);
+
+    assetToolbar->SetOnExpandAllClicked([folderTree]() {
+        folderTree->ExpandAll();
+    });
+    assetToolbar->SetOnCollapseAllClicked([folderTree]() {
+        folderTree->CollapseAll();
+    });
 
     auto panel = we::editor::dsl::Panel(std::string(title), [&](we::editor::dsl::PanelContext& p) {
         p.TabIcon(WindIcons::FolderSearch16)

@@ -1,6 +1,6 @@
 // ==============================================================================
 // WindEffects — ContentBrowser — TreeColumnHeader
-// Public API surface for the ContentBrowser module.
+// Compatibility shim — implementation lives in KindUI.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
@@ -8,18 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "ContentBrowser/Export.h"
-#include "KindUI/Core/Widget.h"
-#include "KindUI/Core/PaintContext.h"
-
+#include <KindUI/EditorUI.h>
 namespace we::editor::contentbrowser {
-
-/// Explorer tree column header row (Item Label / Type) as its own layout slot.
-class CONTENTBROWSER_API TreeColumnHeader : public we::runtime::kindui::Widget {
-public:
-    we::runtime::kindui::Size Measure(const we::runtime::kindui::Size& availableSize) override;
-    void Arrange(const we::runtime::kindui::Rect& allottedRect) override;
-    void Paint(we::runtime::kindui::PaintContext& context) override;
-};
-
+using TreeColumnHeader = ::we::runtime::kindui::TreeColumnHeader;
 } // namespace we::editor::contentbrowser
