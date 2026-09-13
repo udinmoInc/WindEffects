@@ -6,10 +6,10 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Host/IconMetrics.h"
 
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/DesignToken.h"
 
 #include <algorithm>
 #include <cmath>

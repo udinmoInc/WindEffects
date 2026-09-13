@@ -8,14 +8,14 @@
 // ==============================================================================
 #include "KindUI/Core/LayoutMetrics.h"
 
-#include "KindUI/Layout/AutoAlign.h"
+#include "KindUI/UI/AutoAlign.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Widgets/Label.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/UI/Flex.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/UI/Label.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/UI/TextBox.h"
 
 #include "KindUI/Core/PropertyPanelChrome.h"
 

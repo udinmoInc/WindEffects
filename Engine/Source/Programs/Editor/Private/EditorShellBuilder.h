@@ -12,7 +12,7 @@
 #include "WindEffects/Editor/UI/Core/EditorApplicationContext.h"
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Widgets/TitleBar.h"
 #include "Widgets/StatusBar.h"
 #include "Platform/Types.h"

@@ -9,7 +9,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Host/IconMetrics.h"
 
 #include <algorithm>
 

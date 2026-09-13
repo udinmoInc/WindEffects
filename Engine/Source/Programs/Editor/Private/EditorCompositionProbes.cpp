@@ -8,13 +8,13 @@
 // ==============================================================================
 #include "EditorCompositionProbes.h"
 
-#include "KindUI/Profiling/UiColorCompositionDiagnostic.h"
+#include "KindUI/Diagnostics/UiColorCompositionDiagnostic.h"
 #include <KindUI/EditorUI.h>
 #include "Widgets/Toolbar.h"
 #include "Widgets/StatusBar.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/TreeView.h"
-#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Host/DockContainer.h"
 #include <algorithm>
 #include <cmath>
 

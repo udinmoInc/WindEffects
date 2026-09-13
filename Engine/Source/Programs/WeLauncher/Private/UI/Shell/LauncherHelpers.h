@@ -9,12 +9,12 @@
 #pragma once
 
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/Types.h"
 #include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 #include "Platform/PlatformSDK.h"
 

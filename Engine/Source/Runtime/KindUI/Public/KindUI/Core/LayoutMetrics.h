@@ -10,8 +10,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 #include <functional>
 #include <memory>

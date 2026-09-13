@@ -13,9 +13,9 @@
 
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Declarative/UI.h"
-#include "KindUI/Widgets/VirtualList.h"
+#include "KindUI/UI/DesignSystemControls.h"
+#include "KindUI/Compose/UI.h"
+#include "KindUI/UI/VirtualList.h"
 #include "UI/Pages/Projects/ProjectsResources.h"
 #include "UI/Pages/Projects/ProjectsStyles.h"
 #include "UI/Controls/LauncherControls.h"

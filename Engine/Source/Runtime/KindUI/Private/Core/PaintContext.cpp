@@ -10,12 +10,12 @@
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Profiling/UiColorDebug.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Rendering/TextUIService.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "Profiling/UiColorDebug.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "Rendering/TextUIService.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/ChromeSeparation.h"
+#include "KindUI/Theme/DesignToken.h"
 
 #include <algorithm>
 #include <cmath>

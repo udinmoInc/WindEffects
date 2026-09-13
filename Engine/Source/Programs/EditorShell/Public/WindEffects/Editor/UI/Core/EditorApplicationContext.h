@@ -10,9 +10,9 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Resources/IResourceRegistry.h"
-#include "KindUI/Events/IEventBus.h"
-#include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/IResourceRegistry.h"
+#include "KindUI/Core/IEventBus.h"
+#include "KindUI/Core/ICommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 

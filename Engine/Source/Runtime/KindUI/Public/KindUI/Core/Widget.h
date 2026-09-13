@@ -10,12 +10,12 @@
 
 #include "KindUI/Export.h"
 
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Input/InputEvents.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Theming/IKindUITheme.h"
-#include "KindUI/Theming/ResolvedStyle.h"
+#include "KindUI/Core/Types.h"
+#include "KindUI/Core/InputEvents.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/ResolvedStyle.h"
 
 #include <memory>
 #include <optional>

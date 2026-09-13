@@ -9,7 +9,7 @@
 #include "WindEffects/Editor/UI/Shell/DockLayoutBuilder.h"
 
 #include <KindUI/EditorUI.h>
-#include "KindUI/Docking/DockContainer.h"
+#include "KindUI/Host/DockContainer.h"
 #include "WindEffects/Editor/UI/Core/PanelIconResolver.h"
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Orientation;

@@ -8,7 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Declarative/Element.h"
+#include "KindUI/Compose/Element.h"
 
 #include <functional>
 #include <string>

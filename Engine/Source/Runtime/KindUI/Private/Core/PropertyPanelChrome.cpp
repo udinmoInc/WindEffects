@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Layout/AutoAlign.h"
+#include "KindUI/UI/AutoAlign.h"
 
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Widget.h"
@@ -16,11 +16,11 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Tokens/TypographySpec.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/SurfaceRole.h"
+#include "KindUI/Theme/TypographySpec.h"
 #include "Text/Layout/TextStyle.h"
 
 #include <algorithm>

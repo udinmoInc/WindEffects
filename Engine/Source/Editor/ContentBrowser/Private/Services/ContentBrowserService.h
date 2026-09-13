@@ -15,7 +15,7 @@
 #include "Services/FolderPreviewGenerator.h"
 #include "Services/ThumbnailManager.h"
 #include "ContentBrowser/Models/ContentBrowserModel.h"
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
 #include <functional>
 #include <memory>
 #include <string>

@@ -9,7 +9,7 @@
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Services/ThumbnailRenderer.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
 #include <algorithm>
 #include <cmath>
 

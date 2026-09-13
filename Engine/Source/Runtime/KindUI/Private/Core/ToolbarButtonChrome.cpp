@@ -9,13 +9,13 @@
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Host/IconMetrics.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Core/ColorSpace.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theme/DesignToken.h"
 
-#include "KindUI/Theming/PaletteRuntime.h"
+#include "KindUI/Theme/PaletteRuntime.h"
 
 #include <algorithm>
 #include <string_view>

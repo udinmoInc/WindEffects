@@ -10,7 +10,7 @@
 #include "Core/DiagnosticMacros.h"
 #include "Core/LoopExecutionTrace.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/UiInputLatencyAudit.h"
+#include "KindUI/Diagnostics/UiInputLatencyAudit.h"
 #include "Platform/Events.h"
 #include "Platform/InputTypes.h"
 #include "Platform/PlatformSDK.h"

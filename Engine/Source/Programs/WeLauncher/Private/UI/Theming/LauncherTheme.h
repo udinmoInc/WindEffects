@@ -8,9 +8,9 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Theming/GraphiteDarkTheme.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 namespace we::programs::welauncher {
 

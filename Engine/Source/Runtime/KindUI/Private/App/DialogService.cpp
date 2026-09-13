@@ -6,9 +6,9 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/App/DialogService.h"
+#include "KindUI/Host/DialogService.h"
 
-#include "KindUI/Declarative/UI.h"
+#include "KindUI/Compose/UI.h"
 
 namespace we::runtime::kindui {
 

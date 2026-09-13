@@ -13,8 +13,8 @@
 #include <KindUI/EditorUI.h>
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
-#include "KindUI/Profiling/ScreenRecorder.h"
-#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Diagnostics/ScreenRecorder.h"
+#include "KindUI/Diagnostics/UiGeometryDebug.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>
 #include <chrono>

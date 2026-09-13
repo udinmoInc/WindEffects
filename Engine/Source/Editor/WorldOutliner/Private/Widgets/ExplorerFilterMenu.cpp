@@ -9,7 +9,7 @@
 #include "Widgets/ExplorerFilterMenu.h"
 
 #include <KindUI/EditorUI.h>
-#include "KindUI/Typography/TypographySystem.h"
+#include "KindUI/Theme/TypographySystem.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

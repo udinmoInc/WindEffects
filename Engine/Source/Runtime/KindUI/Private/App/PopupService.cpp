@@ -6,9 +6,9 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/App/PopupService.h"
+#include "App/PopupService.h"
 
-#include "KindUI/Declarative/ViewBuilder.h"
+#include "KindUI/Compose/ViewBuilder.h"
 
 namespace we::runtime::kindui {
 

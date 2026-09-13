@@ -9,18 +9,18 @@
 #pragma once
 
 #include "App/LauncherContext.h"
-#include "KindUI/App/ApplicationServices.h"
-#include "KindUI/App/ViewHost.h"
+#include "KindUI/Host/ViewHost.h"
+#include "KindUI/Host/ViewHost.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/WidgetContext.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/UI/OverlayManager.h"
 #include "RHI/Types.h"
 #include "UI/Dialogs/RenameProject/RenameProjectDialog.h"
 #include "UI/Pages/LauncherPages.h"
 #include "UI/Pages/Projects/IProjectsHostActions.h"
 #include "UI/Pages/Projects/ProjectsPage.h"
 #include "UI/Pages/PageState.h"
-#include "KindUI/Widgets/ModalHost.h"
+#include "KindUI/UI/ModalHost.h"
 #include "UI/Controls/LauncherControls.h"
 #include "UI/Pages/Settings/SettingsViews.h"
 

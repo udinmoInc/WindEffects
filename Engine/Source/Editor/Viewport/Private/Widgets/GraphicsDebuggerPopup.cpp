@@ -10,7 +10,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Typography/TypographySystem.h"
+#include "KindUI/Theme/TypographySystem.h"
 #include "Core/Logger.h"
 #include "Core/Math/Types.h"
 #include <iomanip>

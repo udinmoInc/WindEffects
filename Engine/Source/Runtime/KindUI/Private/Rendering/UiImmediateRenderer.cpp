@@ -10,7 +10,7 @@
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
-#include "KindUI/Layout/Splitter.h"
+#include "KindUI/UI/Splitter.h"
 #include "RHI/Desc.h"
 #include "RHI/ShaderBytecode.h"
 

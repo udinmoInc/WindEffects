@@ -8,7 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Declarative/Element.h"
+#include "KindUI/Compose/Element.h"
 #include "UI/Pages/Projects/ProjectsViewModel.h"
 
 namespace we::programs::welauncher::projects {

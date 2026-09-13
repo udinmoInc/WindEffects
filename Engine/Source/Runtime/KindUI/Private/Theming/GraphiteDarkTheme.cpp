@@ -6,13 +6,13 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/GraphiteDarkTheme.h"
-#include "KindUI/Typography/TypographySystem.h"
-#include "KindUI/Theming/PaletteRuntime.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
+#include "KindUI/Theme/TypographySystem.h"
+#include "KindUI/Theme/PaletteRuntime.h"
 #include "KindUI/Core/ColorSpace.h"
-#include "KindUI/Theming/StyleResolve.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include "Theming/StyleClass.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Host/IconMetrics.h"
 
 #include <algorithm>
 #include <array>

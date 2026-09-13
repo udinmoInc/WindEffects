@@ -10,12 +10,12 @@
 
 #include "UI/Pages/Projects/ProjectsView.h"
 
-#include "KindUI/App/ViewHost.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Widgets/VirtualList.h"
+#include "KindUI/Host/ViewHost.h"
+#include "KindUI/UI/Flex.h"
+#include "KindUI/UI/VirtualList.h"
 #include "UI/Shell/LauncherHelpers.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 namespace we::programs::welauncher {
 

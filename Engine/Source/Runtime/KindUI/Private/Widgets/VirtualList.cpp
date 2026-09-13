@@ -6,9 +6,9 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Widgets/VirtualList.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/UI/VirtualList.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>

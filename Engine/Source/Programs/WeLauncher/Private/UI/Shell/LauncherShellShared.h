@@ -11,10 +11,10 @@
 #include "Model/WeProjectDescriptor.h"
 #include "UI/Shell/LauncherHelpers.h"
 
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Layout/Flex.h"
-#include "KindUI/Layout/ScrollLayout.h"
-#include "KindUI/Widgets/Label.h"
+#include "KindUI/UI/DesignSystemControls.h"
+#include "KindUI/UI/Flex.h"
+#include "KindUI/UI/ScrollLayout.h"
+#include "KindUI/UI/Label.h"
 
 #include <memory>
 #include <string>

@@ -8,7 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/App/DialogService.h"
+#include "KindUI/Host/DialogService.h"
 #include "KindUI/Core/Observable.h"
 #include "Model/WeProjectDescriptor.h"
 

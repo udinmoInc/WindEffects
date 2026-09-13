@@ -6,8 +6,8 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/StyleClass.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "Theming/StyleClass.h"
 #include "KindUI/Core/DPIContext.h"
 
 #include <algorithm>

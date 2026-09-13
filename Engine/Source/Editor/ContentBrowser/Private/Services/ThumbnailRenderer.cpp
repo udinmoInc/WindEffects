@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "Services/ThumbnailRenderer.h"
 #include "Registry/AssetTypeResolver.h"
-#include "KindUI/Rendering/Icons/SvgRasterizer.h"
+#include "KindUI/Host/SvgRasterizer.h"
 #include <KindUI/EditorUI.h>
 #include "Core/Logger.h"
 #include "Core/Paths.h"

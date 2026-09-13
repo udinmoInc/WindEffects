@@ -11,16 +11,16 @@
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/SurfaceRole.h"
-#include "KindUI/Tokens/TypographySpec.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/SurfaceRole.h"
+#include "KindUI/Theme/TypographySpec.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/Theme/DesignSystem.h"
 
 #include <algorithm>
 #include <string>

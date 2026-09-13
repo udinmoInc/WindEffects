@@ -15,10 +15,10 @@
 #include <vector>
 #include <string>
 #include <string_view>
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Tokens/SurfaceRole.h"
+#include "KindUI/Core/Types.h"
+#include "KindUI/Theme/SurfaceRole.h"
 #include "KindUI/Core/WindIcon.h"
-#include "KindUI/Theming/Palette.h"
+#include "KindUI/Theme/Palette.h"
 
 namespace we::runtime::kindui {
 

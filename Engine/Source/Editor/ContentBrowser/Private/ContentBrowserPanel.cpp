@@ -11,7 +11,7 @@
 #include "ContentBrowser/ContentBrowserApi.h"
 #include "ContentBrowser/ContentBrowserRuntime.h"
 #include "ContentBrowser/ContentBrowserSession.h"
-#include "KindUI/Rendering/FontImportService.h"
+#include "KindUI/Host/FontImportService.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
 #include "ContentBrowser/Widgets/TreeView.h"

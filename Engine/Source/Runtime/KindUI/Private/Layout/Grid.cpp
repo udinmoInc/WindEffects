@@ -6,7 +6,7 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Layout/Grid.h"
+#include "KindUI/UI/Grid.h"
 
 #include <algorithm>
 #include <cmath>

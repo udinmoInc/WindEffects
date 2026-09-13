@@ -6,9 +6,9 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/PaletteRuntime.h"
-#include "KindUI/Theming/Palette.h"
-#include "KindUI/Theming/ThemeManager.h"
+#include "KindUI/Theme/PaletteRuntime.h"
+#include "KindUI/Theme/Palette.h"
+#include "KindUI/Theme/ThemeManager.h"
 #include "Core/AssetCatalog.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"

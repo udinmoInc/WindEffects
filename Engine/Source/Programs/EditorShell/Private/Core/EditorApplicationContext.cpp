@@ -10,9 +10,9 @@
 
 #include "WindEffects/Editor/UI/Theming/EditorTheme.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Resources/ModuleResourceRegistry.h"
-#include "KindUI/Events/EventBus.h"
-#include "KindUI/Commands/CommandRegistry.h"
+#include "KindUI/Core/ModuleResourceRegistry.h"
+#include "KindUI/Core/EventBus.h"
+#include "KindUI/Core/CommandRegistry.h"
 #include "WindEffects/Editor/UI/Docking/DockManager.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
 using ::we::runtime::kindui::ThemeManager;

@@ -16,8 +16,8 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>

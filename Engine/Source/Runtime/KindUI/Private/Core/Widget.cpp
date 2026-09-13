@@ -9,20 +9,19 @@
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Profiling/PaintCauseLog.h"
+#include "KindUI/Diagnostics/PaintCauseLog.h"
 #include "KindUI/Core/WidgetContext.h"
-#include "KindUI/Layout/IPopupHost.h"
-#include "KindUI/Profiling/UiPathDiagnostics.h"
-#include "KindUI/Profiling/UiInputLatencyAudit.h"
-#include "KindUI/Theming/StyleResolve.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Theming/StyleClass.h"
+#include "KindUI/UI/IPopupHost.h"
+#include "KindUI/Diagnostics/UiPathDiagnostics.h"
+#include "KindUI/Diagnostics/UiInputLatencyAudit.h"
+#include "Theming/StyleClass.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 #include <algorithm>
 #include <cmath>
 #include <memory>
 #include <stdexcept>
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/Theme/DesignToken.h"
 
 namespace we::runtime::kindui {
 

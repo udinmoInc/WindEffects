@@ -6,9 +6,9 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/IKindUITheme.h"
-#include "KindUI/Typography/TypographySystem.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/TypographySystem.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 namespace we::runtime::kindui {
 

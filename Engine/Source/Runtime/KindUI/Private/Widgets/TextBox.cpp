@@ -7,18 +7,18 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Platform/Platform.h"
-#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/UI/TextBox.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/InputEvents.h"
 #include "Text/Unicode/Grapheme.h"
 
 namespace we::runtime::kindui {

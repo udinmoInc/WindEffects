@@ -9,7 +9,7 @@
 #pragma once
 
 #include "WindEffects/Editor/UI/Export.h"
-#include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/ICommandRegistry.h"
 #include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Docking/IDockManager.h"
 #include <functional>

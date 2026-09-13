@@ -6,15 +6,15 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Widgets/FormSectionTitle.h"
+#include "KindUI/UI/FormSectionTitle.h"
 
 #include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PaintContext.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "KindUI/UI/PanelChrome.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/ChromeSeparation.h"
+#include "KindUI/Theme/DesignToken.h"
 #include "Text/Layout/TextStyle.h"
 
 #include <algorithm>

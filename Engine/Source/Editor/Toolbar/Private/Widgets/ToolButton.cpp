@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "Widgets/ToolButton.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/UiInputDebug.h"
+#include "KindUI/Diagnostics/UiInputDebug.h"
 #include "Text/Layout/TextStyle.h"
 
 #include <algorithm>

@@ -6,16 +6,16 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Docking/DockContainer.h"
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Host/DockContainer.h"
+#include "KindUI/UI/PanelChrome.h"
+#include "KindUI/Diagnostics/UiGeometryDebug.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Layout/LayoutAssert.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "Layout/LayoutAssert.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/DesignSystem.h"
+#include "KindUI/Theme/StyleRole.h"
 #include "KindUI/Core/UiMetrics.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/UIRepaintGate.h"

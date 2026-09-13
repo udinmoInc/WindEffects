@@ -9,8 +9,8 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 namespace we::runtime::kindui {
 

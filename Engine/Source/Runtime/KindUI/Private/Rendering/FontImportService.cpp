@@ -6,7 +6,7 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Rendering/FontImportService.h"
+#include "KindUI/Host/FontImportService.h"
 
 #include "Core/Logger.h"
 #include "Text/Assets/FontAsset.h"

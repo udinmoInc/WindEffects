@@ -1,0 +1,70 @@
+// ==============================================================================
+// WindEffects — KindUI — ThemeManager
+// Public API surface for the KindUI module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
+#pragma once
+
+#include "KindUI/Export.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
+#include "KindUI/Theme/ResolvedStyle.h"
+#include "KindUI/Theme/StyleRole.h"
+
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+namespace we::runtime::kindui {
+
+// Single source of truth for the active theme + style resolver.
+// Apps call Initialize once at startup; ThemeAccess and widgets read from here.
+class KINDUI_API ThemeManager {
+public:
+    using ChangeListener = std::function<void()>;
+
+    static ThemeManager& Get();
+
+    // Creates StyleResolver from theme. Safe to call multiple times (replaces theme).
+    void Initialize(std::shared_ptr<IKindUITheme> theme, float dpiScale = 1.0f);
+
+    // Swap theme pack at runtime (notifies listeners).
+    void SetTheme(std::shared_ptr<IKindUITheme> theme);
+
+    [[nodiscard]] bool IsInitialized() const { return m_Theme != nullptr; }
+    [[nodiscard]] std::string_view GetThemeId() const;
+
+    [[nodiscard]] IKindUITheme& Theme();
+    [[nodiscard]] const IKindUITheme& Theme() const;
+    [[nodiscard]] IStyleResolver& Styles();
+    [[nodiscard]] const IStyleResolver& Styles() const;
+
+    [[nodiscard]] std::shared_ptr<IKindUITheme> SharedTheme() const { return m_Theme; }
+    [[nodiscard]] std::shared_ptr<IStyleResolver> SharedResolver() const { return m_Resolver; }
+
+    void SetDpiScale(float scale);
+    [[nodiscard]] float GetDpiScale() const;
+
+    void AddChangeListener(ChangeListener listener);
+    void ClearChangeListeners();
+
+    /// Notify listeners after live palette / theme data changes.
+    void NotifyChanged();
+
+    // Convenience: resolve a role through the active resolver.
+    [[nodiscard]] ResolvedStyle Resolve(StyleRole role) const;
+
+private:
+    ThemeManager() = default;
+
+    std::shared_ptr<IKindUITheme> m_Theme;
+    std::shared_ptr<StyleResolver> m_Resolver;
+    std::vector<ChangeListener> m_Listeners;
+    mutable std::mutex m_Mutex;
+};
+
+} // namespace we::runtime::kindui

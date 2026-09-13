@@ -6,7 +6,7 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Rendering/UiGpuUpload.h"
+#include "Rendering/UiGpuUpload.h"
 #include "RHI/IRHI.h"
 
 namespace we::runtime::kindui {

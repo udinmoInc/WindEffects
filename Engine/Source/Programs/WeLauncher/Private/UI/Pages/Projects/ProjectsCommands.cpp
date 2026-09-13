@@ -10,7 +10,7 @@
 
 #include "UI/Pages/Projects/ProjectsViewModel.h"
 
-#include "KindUI/Commands/LambdaCommand.h"
+#include "KindUI/Core/LambdaCommand.h"
 
 namespace we::programs::welauncher {
 

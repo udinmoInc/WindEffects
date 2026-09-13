@@ -21,7 +21,7 @@
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/ScreenRecorder.h"
+#include "KindUI/Diagnostics/ScreenRecorder.h"
 #include <functional>
 #include <memory>
 #include <string>

@@ -7,7 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/Types.h"
-#include "KindUI/Theming/PaletteRuntime.h"
+#include "KindUI/Theme/PaletteRuntime.h"
 
 namespace we::runtime::kindui {
 

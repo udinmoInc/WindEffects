@@ -9,7 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Input/InputEvents.h"
+#include "KindUI/Core/InputEvents.h"
 
 #include <cstdint>
 #include <memory>

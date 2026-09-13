@@ -6,10 +6,10 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/StyleResolve.h"
-#include "KindUI/Tokens/DesignToken.h"
+#include "Theming/StyleClass.h"
+#include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Core/ColorSpace.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 
 namespace we::runtime::kindui {

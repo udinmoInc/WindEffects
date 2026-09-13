@@ -1,0 +1,70 @@
+// ==============================================================================
+// WindEffects — KindUI — ThemeAccess
+// Public API surface for the KindUI module.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
+#pragma once
+
+#include "KindUI/Export.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/SurfaceRole.h"
+#include "KindUI/Theme/TypographySpec.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Core/Types.h"
+
+namespace we::runtime::kindui {
+
+KINDUI_API IKindUITheme& ResolveDefaultTheme();
+KINDUI_API Color ResolveColor(ColorToken token);
+KINDUI_API float ResolveMetric(MetricToken token);
+KINDUI_API Margin ResolvePadding(PaddingToken token);
+KINDUI_API float ResolveSpacing(SpacingToken token);
+KINDUI_API float ResolveRadius(RadiusToken token);
+KINDUI_API float ResolveFontSize(TypographyToken token);
+KINDUI_API TypographySpec ResolveTypography(TypographyToken token);
+/// Maps ControlSize → theme metric height (logical px, before DPI).
+KINDUI_API float ResolveControlHeight(ControlSize size);
+KINDUI_API Color ResolveInteractiveBackground(float hoverAnim, float pressAnim, bool selected = false);
+/// Opaque sRGB blend from a surface token — no alpha stacking over parents.
+KINDUI_API Color ResolveInteractiveBackground(
+    float hoverAnim,
+    float pressAnim,
+    bool selected,
+    ColorToken surfaceToken);
+/// Subtle hover/press mix on an existing fill. Rest state returns `base` unchanged.
+/// When `base` is transparent and `opaqueUnderlay` is opaque, hover/press overlays are
+/// pre-composited onto the underlay so the result stays on the opaque-replace path.
+KINDUI_API Color MixInteractiveSurface(
+    Color base,
+    float hoverAnim,
+    float pressAnim,
+    bool selected = false,
+    bool disabled = false,
+    Color opaqueUnderlay = Color::Transparent());
+KINDUI_API Color ResolveTextForState(bool hovered, bool active = false);
+KINDUI_API Color ResolveIconForState(bool hovered, bool active = false);
+
+enum class IconColorRole {
+    Primary,
+    Secondary,
+    Accent,
+    Disabled,
+};
+
+// Resolve mono icon tint: Secondary (gray) at rest; brightens on hover; Accent only when active.
+[[nodiscard]] KINDUI_API Color ResolveIconColor(
+    IconColorRole role,
+    float hoverAnim = 0.0f,
+    float pressStrength = 0.0f,
+    bool accent = false);
+
+[[nodiscard]] KINDUI_API Color ResolveIconColorForState(
+    bool hovered,
+    bool accent,
+    bool disabled = false,
+    bool secondary = false);
+
+} // namespace we::runtime::kindui

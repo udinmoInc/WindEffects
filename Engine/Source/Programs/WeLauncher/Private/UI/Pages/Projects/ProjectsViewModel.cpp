@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "UI/Pages/Projects/ProjectsViewModel.h"
 
-#include "KindUI/App/ViewHost.h"
+#include "KindUI/Host/ViewHost.h"
 #include "UI/Shell/LauncherHelpers.h"
 #include "UI/Pages/Projects/ProjectsCommands.h"
 #include "UI/Pages/Projects/ProjectsView.h"

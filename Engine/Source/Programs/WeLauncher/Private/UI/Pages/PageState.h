@@ -8,9 +8,9 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/App/ViewHost.h"
+#include "KindUI/Host/ViewHost.h"
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/ScrollLayout.h"
+#include "KindUI/UI/ScrollLayout.h"
 
 #include <memory>
 

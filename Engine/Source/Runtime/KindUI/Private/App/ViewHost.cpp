@@ -6,10 +6,12 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/App/ViewHost.h"
+#include "KindUI/Host/ViewHost.h"
 
+#include "KindUI/Host/DialogService.h"
+#include "App/PopupService.h"
 #include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Declarative/ViewBuilder.h"
+#include "KindUI/Compose/ViewBuilder.h"
 
 namespace we::runtime::kindui {
 namespace {
@@ -22,6 +24,18 @@ void MarkViewDirty(const std::shared_ptr<Widget>& root) {
 }
 
 } // namespace
+
+ApplicationServices::ApplicationServices() = default;
+ApplicationServices::~ApplicationServices() = default;
+ApplicationServices::ApplicationServices(ApplicationServices&&) noexcept = default;
+ApplicationServices& ApplicationServices::operator=(ApplicationServices&&) noexcept = default;
+
+void ApplicationServices::Initialize(std::shared_ptr<IWidgetContext> widgetContext, IPopupHost* host) {
+    context = std::move(widgetContext);
+    popupHost = host;
+    dialogs = std::make_unique<DialogService>(context);
+    popups = std::make_unique<PopupService>(host, context);
+}
 
 ViewHost::ViewHost(IApplicationContext& app, IPopupHost* popupHost)
     : m_Context(std::make_shared<WidgetContext>(app, popupHost))

@@ -6,24 +6,24 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Panel/PanelChrome.h"
+#include "KindUI/UI/PanelChrome.h"
 
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Core/ToolbarButtonChrome.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 
-#include "KindUI/Tokens/DesignSystem.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/SurfaceRole.h"
+#include "KindUI/Theme/DesignSystem.h"
+#include "KindUI/Theme/ChromeSeparation.h"
+#include "KindUI/Theme/SurfaceRole.h"
 #include "KindUI/Core/LayoutMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
+#include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Profiling/UiGeometryDebug.h"
-#include "KindUI/Layout/LayoutAssert.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/Diagnostics/UiGeometryDebug.h"
+#include "Layout/LayoutAssert.h"
 #include "Text/Layout/TextStyle.h"
 #include <algorithm>
 #include <cmath>

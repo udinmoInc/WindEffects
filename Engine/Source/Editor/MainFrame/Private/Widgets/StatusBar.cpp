@@ -11,7 +11,7 @@
 #include "Widgets/CommandInput.h"
 #include "Widgets/ToolButton.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Diagnostics/UiGeometryDebug.h"
 #include <algorithm>
 
 using ::we::runtime::kindui::ColorToken;

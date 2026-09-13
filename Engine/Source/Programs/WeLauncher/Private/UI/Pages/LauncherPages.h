@@ -8,7 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Declarative/Element.h"
+#include "KindUI/Compose/Element.h"
 #include "KindUI/Core/WindIcon.h"
 #include "UI/Shell/LauncherHelpers.h"
 

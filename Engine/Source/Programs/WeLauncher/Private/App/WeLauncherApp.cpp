@@ -15,8 +15,8 @@
 #include "Util/PathUtils.h"
 
 #include "Renderer/Renderer.h"
-#include "KindUI/Rendering/OverlayRenderer.h"
-#include "KindUI/Rendering/OverlayRenderContext.h"
+#include "KindUI/Host/OverlayRenderer.h"
+#include "KindUI/Host/OverlayRenderContext.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Core/Animator.h"

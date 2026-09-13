@@ -8,8 +8,8 @@
 // ==============================================================================
 #include "UI/Shell/LauncherLogo.h"
 
-#include "KindUI/Rendering/IconRenderer.h"
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Util/PathUtils.h"
 
 #include "Core/Logger.h"

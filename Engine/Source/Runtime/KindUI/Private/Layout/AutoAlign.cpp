@@ -6,10 +6,10 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Layout/AutoAlign.h"
+#include "KindUI/UI/AutoAlign.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Rendering/IconMetrics.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Host/IconMetrics.h"
 
 #include <algorithm>
 #include <cmath>

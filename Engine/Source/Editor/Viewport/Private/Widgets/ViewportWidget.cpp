@@ -14,7 +14,7 @@
 #include "EditorCamera.h"
 #include "Scene/Scene.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Rendering/ViewportRenderTarget.h"
 #include "Core/LogCategory.h"
 #include "Core/DiagnosticMacros.h"

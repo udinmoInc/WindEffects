@@ -7,7 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/UIRepaintGate.h"
-#include "KindUI/Profiling/PaintCauseLog.h"
+#include "KindUI/Diagnostics/PaintCauseLog.h"
 
 #include "Core/Logger.h"
 

@@ -12,9 +12,9 @@
 #include "Environment/EnvironmentEditorApi.h"
 #include "Environment/EnvironmentSystem.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/ScreenRecorder.h"
-#include "KindUI/Profiling/UiInputLatencyAudit.h"
-#include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Diagnostics/ScreenRecorder.h"
+#include "KindUI/Diagnostics/UiInputLatencyAudit.h"
+#include "KindUI/Diagnostics/UiPathDiagnostics.h"
 #include "Platform/InputTypes.h"
 #include "Platform/PlatformSDK.h"
 #include "Widgets/ViewportWidget.h"

@@ -6,14 +6,14 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Panel/PanelBodyLayout.h"
+#include "KindUI/UI/PanelBodyLayout.h"
 
-#include "KindUI/Panel/PanelChrome.h"
-#include "KindUI/Layout/LayoutAssert.h"
+#include "KindUI/UI/PanelChrome.h"
+#include "Layout/LayoutAssert.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
-#include "KindUI/Tokens/ChromeSeparation.h"
-#include "KindUI/Tokens/DesignSystem.h"
+#include "KindUI/Theme/ChromeSeparation.h"
+#include "KindUI/Theme/DesignSystem.h"
 
 #include <algorithm>
 

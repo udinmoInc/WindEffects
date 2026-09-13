@@ -8,10 +8,10 @@
 // ==============================================================================
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/Widget.h"
-#include "KindUI/Layout/OverlayManager.h"
-#include "KindUI/Layout/ScrollLayout.h"
-#include "KindUI/Profiling/UiInputDebug.h"
-#include "KindUI/Profiling/UiInputLatencyAudit.h"
+#include "KindUI/UI/OverlayManager.h"
+#include "KindUI/UI/ScrollLayout.h"
+#include "KindUI/Diagnostics/UiInputDebug.h"
+#include "KindUI/Diagnostics/UiInputLatencyAudit.h"
 #include "Platform/Platform.h"
 
 #include <cmath>

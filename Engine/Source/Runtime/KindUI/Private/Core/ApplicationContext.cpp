@@ -8,11 +8,11 @@
 // ==============================================================================
 #include "KindUI/Core/ApplicationContext.h"
 
-#include "KindUI/Theming/GraphiteDarkTheme.h"
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Resources/ModuleResourceRegistry.h"
-#include "KindUI/Events/EventBus.h"
-#include "KindUI/Commands/CommandRegistry.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Core/ModuleResourceRegistry.h"
+#include "KindUI/Core/EventBus.h"
+#include "KindUI/Core/CommandRegistry.h"
 #include "KindUI/Core/DPIContext.h"
 
 namespace we::runtime::kindui {

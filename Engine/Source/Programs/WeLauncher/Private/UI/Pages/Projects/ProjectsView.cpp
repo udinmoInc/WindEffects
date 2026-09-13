@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "UI/Pages/Projects/ProjectsView.h"
 
-#include "KindUI/Declarative/UI.h"
+#include "KindUI/Compose/UI.h"
 #include "UI/Shell/LauncherHelpers.h"
 #include "UI/Pages/Projects/ProjectsComponents.h"
 #include "UI/Pages/Projects/ProjectsStyles.h"

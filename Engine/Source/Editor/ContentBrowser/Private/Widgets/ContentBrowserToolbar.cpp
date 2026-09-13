@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "ContentBrowser/Widgets/ContentBrowserToolbar.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Profiling/UiGeometryDebug.h"
+#include "KindUI/Diagnostics/UiGeometryDebug.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 #include <algorithm>
 

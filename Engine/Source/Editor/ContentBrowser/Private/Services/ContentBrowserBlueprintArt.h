@@ -9,7 +9,7 @@
 #pragma once
 
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
 #include <cstdint>
 #include <string>
 #include <unordered_map>

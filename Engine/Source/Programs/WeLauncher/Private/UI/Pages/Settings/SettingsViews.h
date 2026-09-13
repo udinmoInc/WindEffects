@@ -10,8 +10,8 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/WindIcon.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 #include <cstdint>
 #include <functional>

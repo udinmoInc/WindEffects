@@ -10,11 +10,11 @@
 
 #include "Core/Logger.h"
 #include "Core/DiagnosticMacros.h"
-#include "KindUI/Profiling/ScreenRecorder.h"
-#include "KindUI/Profiling/UiInputLatencyAudit.h"
-#include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Diagnostics/ScreenRecorder.h"
+#include "KindUI/Diagnostics/UiInputLatencyAudit.h"
+#include "KindUI/Diagnostics/UiPathDiagnostics.h"
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Renderer/Renderer.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"

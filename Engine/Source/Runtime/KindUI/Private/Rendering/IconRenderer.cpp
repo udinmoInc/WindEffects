@@ -6,7 +6,7 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
 
 namespace we::runtime::kindui {
 

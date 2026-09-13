@@ -10,7 +10,7 @@
 
 #include "WindEffects/Editor/UI/Export.h"
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
-#include "KindUI/Commands/LambdaCommand.h"
+#include "KindUI/Core/LambdaCommand.h"
 
 namespace we::editor::extensions {
 using ::we::runtime::kindui::ICommand;

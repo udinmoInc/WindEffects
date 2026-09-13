@@ -8,7 +8,7 @@
 // ==============================================================================
 #pragma once
 
-#include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/ICommandRegistry.h"
 #include "UI/Pages/Projects/IProjectsHostActions.h"
 #include "UI/Pages/Projects/ProjectsModel.h"
 #include "UI/Pages/Projects/ProjectsTypes.h"

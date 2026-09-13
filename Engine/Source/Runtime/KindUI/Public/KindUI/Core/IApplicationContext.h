@@ -10,11 +10,11 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Core/IServiceProvider.h"
-#include "KindUI/Theming/IKindUITheme.h"
-#include "KindUI/Theming/ResolvedStyle.h"
-#include "KindUI/Resources/IResourceRegistry.h"
-#include "KindUI/Events/IEventBus.h"
-#include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/ResolvedStyle.h"
+#include "KindUI/Core/IResourceRegistry.h"
+#include "KindUI/Core/IEventBus.h"
+#include "KindUI/Core/ICommandRegistry.h"
 
 namespace we::runtime::kindui {
 

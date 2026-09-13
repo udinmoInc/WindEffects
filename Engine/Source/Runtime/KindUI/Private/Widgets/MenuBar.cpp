@@ -6,13 +6,13 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Widgets/MenuBar.h"
-#include "KindUI/Widgets/DropdownMenu.h"
-#include "KindUI/Layout/OverlayManager.h"
+#include "KindUI/UI/MenuBar.h"
+#include "KindUI/UI/DropdownMenu.h"
+#include "KindUI/UI/OverlayManager.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/DPIContext.h"

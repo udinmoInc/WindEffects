@@ -16,11 +16,11 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Rendering/IconMetrics.h"
-#include "KindUI/Theming/PaletteRuntime.h"
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Host/IconMetrics.h"
+#include "KindUI/Theme/PaletteRuntime.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 #include <algorithm>
 #include <cmath>

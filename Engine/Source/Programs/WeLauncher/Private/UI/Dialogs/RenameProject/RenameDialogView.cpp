@@ -13,11 +13,11 @@
 
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
-#include "KindUI/Declarative/UI.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
-#include "KindUI/Widgets/TextBox.h"
+#include "KindUI/UI/DesignSystemControls.h"
+#include "KindUI/Compose/UI.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
+#include "KindUI/UI/TextBox.h"
 
 namespace we::programs::welauncher {
 namespace UI = we::runtime::kindui::UI;

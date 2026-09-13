@@ -10,7 +10,7 @@
 #include "Services/ContentBrowserFolderArt.h"
 #include "Services/ContentBrowserBlueprintArt.h"
 #include "Registry/AssetTypeResolver.h"
-#include "KindUI/Rendering/IconRenderer.h"
+#include "KindUI/Host/IconRenderer.h"
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 #include <KindUI/EditorUI.h>

@@ -12,7 +12,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Core/Types.h"
-#include "KindUI/Theming/PaletteRuntime.h"
+#include "KindUI/Theme/PaletteRuntime.h"
 
 #include <algorithm>
 #include <cctype>

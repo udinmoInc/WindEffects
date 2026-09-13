@@ -19,7 +19,7 @@
 #include "Scene/Scene.h"
 
 #include <KindUI/EditorUI.h>
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Widgets/StatusBar.h"
 #include "Widgets/TitleBar.h"
 #include "EditorWindowHitTest.h"

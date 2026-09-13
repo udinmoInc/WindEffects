@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "WindEffects/BuildSDK.h"
 #include "WindEffects/Editor/UI/Extensions/ExtensionBootstrap.h"
-#include "KindUI/Commands/LambdaCommand.h"
+#include "KindUI/Core/LambdaCommand.h"
 
 REGISTER_COMMAND("build.compile", "Compile",
     [](const we::runtime::kindui::CommandContext&) {

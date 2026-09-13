@@ -6,15 +6,46 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Theming/StyleFactory.h"
+#include "KindUI/Core/Style.h"
 
-#include "KindUI/Theming/ThemeManager.h"
-#include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Tokens/DesignToken.h"
-#include "KindUI/Theming/StyleRole.h"
+#include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/ResolvedStyle.h"
+#include "KindUI/Theme/DesignToken.h"
+#include "KindUI/Theme/StyleRole.h"
 
 namespace we::runtime::kindui {
 namespace {
+
+class StyleFactory {
+public:
+    static BorderStyle BorderNone();
+    static BorderStyle BorderThin(const IStyleResolver& styles);
+    static BorderStyle BorderSelected(const IStyleResolver& styles);
+
+    static BackgroundStyle BackgroundNone();
+    static BackgroundStyle BackgroundPanel(const IStyleResolver& styles);
+    static BackgroundStyle BackgroundToolbar(const IStyleResolver& styles);
+    static BackgroundStyle BackgroundHover(const IStyleResolver& styles);
+    static BackgroundStyle BackgroundSelected(const IStyleResolver& styles);
+    static BackgroundStyle BackgroundInput(const IStyleResolver& styles);
+
+    static TextStyle TextMenu(const IStyleResolver& styles);
+    static TextStyle TextToolbar(const IStyleResolver& styles);
+    static TextStyle TextHeader(const IStyleResolver& styles);
+    static TextStyle TextBody(const IStyleResolver& styles);
+    static TextStyle TextSmall(const IStyleResolver& styles);
+
+    static WidgetStyle Panel(const IStyleResolver& styles);
+    static WidgetStyle Button(const IStyleResolver& styles);
+    static WidgetStyle ToolButton(const IStyleResolver& styles);
+    static WidgetStyle TextBox(const IStyleResolver& styles);
+    static WidgetStyle TreeItem(const IStyleResolver& styles);
+    static WidgetStyle PropertyLabel(const IStyleResolver& styles);
+    static WidgetStyle Tab(const IStyleResolver& styles);
+    static WidgetStyle TabActive(const IStyleResolver& styles);
+};
 
 ShadowStyle ElevationToShadow(int elevation) {
     switch (elevation) {
@@ -58,8 +89,6 @@ WidgetStyle FromRole(StyleRole role, StyleRole hoverRole, StyleRole pressRole) {
     };
     return style;
 }
-
-} // namespace
 
 BorderStyle StyleFactory::BorderNone() {
     return BorderStyle{0.0f, Color::Transparent(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -196,6 +225,8 @@ WidgetStyle StyleFactory::TabActive(const IStyleResolver& styles) {
     style.text.bold = false;
     return style;
 }
+
+} // namespace
 
 WidgetStyle WidgetStyle::Panel() {
     return StyleFactory::Panel(ThemeManager::Get().Styles());

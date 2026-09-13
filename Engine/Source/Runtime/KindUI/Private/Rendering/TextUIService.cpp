@@ -6,11 +6,11 @@
 // This file is part of WindEffects Engine and is governed by the
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
-#include "KindUI/Rendering/TextUIService.h"
+#include "Rendering/TextUIService.h"
 
 #include "KindUI/Core/TextMetrics.h"
-#include "KindUI/Rendering/FontImportService.h"
-#include "KindUI/Rendering/OverlayRenderer.h"
+#include "KindUI/Host/FontImportService.h"
+#include "KindUI/Host/OverlayRenderer.h"
 #include "Rendering/UiDebugImageWriter.h"
 #include "Text/Assets/FontAsset.h"
 #include "Core/AssetRegistry.h"
@@ -404,7 +404,7 @@ float TextUIService::MeasureText(
     }
 
     we::runtime::text::layout::TextStyle style{};
-    // fontSize is in final layout pixels (themes/StylePipeline apply DPI before draw/measure).
+    // fontSize is in final layout pixels (themes apply DPI before draw/measure).
     style.sizePx = fontSize;
     style.weight = weight;
 

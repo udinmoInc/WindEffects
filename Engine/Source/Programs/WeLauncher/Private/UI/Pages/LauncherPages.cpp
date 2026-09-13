@@ -8,8 +8,8 @@
 // ==============================================================================
 #include "UI/Pages/LauncherPages.h"
 
-#include "KindUI/Declarative/UI.h"
-#include "KindUI/Core/Widgets/DesignSystemControls.h"
+#include "KindUI/Compose/UI.h"
+#include "KindUI/UI/DesignSystemControls.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
 #include "UI/Controls/LauncherControls.h"

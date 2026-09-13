@@ -9,10 +9,10 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Theming/IKindUITheme.h"
-#include "KindUI/Theming/ResolvedStyle.h"
-#include "KindUI/Core/Geometry.h"
-#include "KindUI/Tokens/SurfaceRole.h"
+#include "KindUI/Theme/IKindUITheme.h"
+#include "KindUI/Theme/ResolvedStyle.h"
+#include "KindUI/Core/Types.h"
+#include "KindUI/Theme/SurfaceRole.h"
 
 #include <string>
 

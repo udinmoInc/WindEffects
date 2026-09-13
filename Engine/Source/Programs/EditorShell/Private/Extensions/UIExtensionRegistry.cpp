@@ -8,7 +8,7 @@
 // ==============================================================================
 #include "WindEffects/Editor/UI/Extensions/UIExtensionRegistry.h"
 
-#include "KindUI/Commands/ICommandRegistry.h"
+#include "KindUI/Core/ICommandRegistry.h"
 
 namespace we::editor::extensions {
 

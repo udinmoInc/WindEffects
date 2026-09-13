@@ -9,7 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Core/Geometry.h"
+#include "KindUI/Core/Types.h"
 #include "KindUI/Core/WindIcon.h"
 
 namespace we::runtime::kindui {

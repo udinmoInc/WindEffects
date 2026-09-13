@@ -7,7 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "UI/Theming/LauncherTheme.h"
-#include "KindUI/Theming/GraphiteDarkTheme.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
 
 namespace we::programs::welauncher {
 
