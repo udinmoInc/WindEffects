@@ -46,7 +46,6 @@ public:
             return AssetType::Script;
         if (lower == ".mp4" || lower == ".avi" || lower == ".mov" || lower == ".webm") return AssetType::Video;
         if (lower == ".wetex" || lower == ".weasset") {
-            // Cooked packages — treat generic .weasset as Unknown until metadata is read.
             if (lower == ".wetex") return AssetType::Texture;
             return AssetType::Unknown;
         }

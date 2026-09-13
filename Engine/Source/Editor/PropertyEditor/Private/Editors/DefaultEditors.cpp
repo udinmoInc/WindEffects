@@ -1684,7 +1684,7 @@ public:
 
                 Read();
 
-                // Dedicated prominent 64x64px asset preview area box on the left
+
                 const float thumbSize = std::min(frame.height - pad * 2.0f, 64.0f * scale);
                 m_ThumbRect = Rect{ frame.x, frame.y + (frame.height - thumbSize) * 0.5f, thumbSize, thumbSize };
 
@@ -1724,7 +1724,7 @@ public:
                     basename = (lastSlash != std::string::npos) ? m_Path.substr(lastSlash + 1) : m_Path;
                 }
 
-                // 1. Inset / Recessed Dedicated Preview Area Container (Left)
+
                 Chrome::InteractionState thumbState;
                 thumbState.hoverAnim = m_Hovered ? 0.4f : 0.0f;
                 Chrome::PaintInputFrame(context, m_ThumbRect, thumbState);

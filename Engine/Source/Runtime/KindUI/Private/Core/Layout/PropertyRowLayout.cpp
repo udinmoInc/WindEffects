@@ -88,7 +88,7 @@ void PropertyRowLayout::Paint(PaintContext& context) {
     PropertyPanelChrome::PaintPropertyRowBackground(context, m_Geometry, m_Hovered, false);
     PropertyPanelChrome::PaintPropertyRowLabel(context, layout.label, m_Label, false);
     if (m_ValueWidget) {
-        m_ValueWidget->Paint(context);
+        m_ValueWidget->PaintSubtree(context);
     }
 }
 

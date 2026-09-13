@@ -14,7 +14,7 @@
 
 namespace we::editor::contentbrowser {
 
-// Folders use dedicated filled artwork via ContentBrowserFolderArt.
+
 class FolderPreviewGenerator {
 public:
     BitmapRGBA Generate(const std::string& folderVirtualPath, uint32_t folderVersion);

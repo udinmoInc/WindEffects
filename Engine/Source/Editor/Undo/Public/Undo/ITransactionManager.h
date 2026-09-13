@@ -50,7 +50,7 @@ public:
     /// Execute a command inside the active transaction (or auto-wrap as a single txn).
     [[nodiscard]] virtual bool Execute(TransactionCommandPtr command) = 0;
 
-    /// Convenience: record a property change that already happened (or apply + record).
+
     [[nodiscard]] virtual bool RecordPropertyChange(
         reflection::TypeId typeId,
         std::span<void* const> instances,

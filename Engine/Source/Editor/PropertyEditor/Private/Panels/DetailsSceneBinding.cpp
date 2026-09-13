@@ -55,7 +55,7 @@ void ResetCategoryFilter(IDetailsView& details) {
 // The EnvironmentSystem discovers actor ids asynchronously as scenes are
 // attached or rebuilt. During that short window GetActorKind can report its
 // Folder fallback even for a fully typed environment actor. The entity type is
-// stable, so use it to keep the Inspector populated with the component that
+
 // actually owns the editable settings.
 EnvironmentActorKind ResolveActorKind(EnvironmentSystem& system, const Entity& entity) {
     const EnvironmentActorKind discovered = system.GetActorKind(entity.Id);

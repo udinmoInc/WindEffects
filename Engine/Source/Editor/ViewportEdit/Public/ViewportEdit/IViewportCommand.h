@@ -45,7 +45,7 @@ public:
     /// Create, execute, and record Undo. Returns false if unknown or execute failed.
     [[nodiscard]] virtual bool Execute(std::string_view commandId) = 0;
 
-    /// Record an already-applied custom op through Undo (brush stroke, spawn, etc.).
+
     [[nodiscard]] virtual bool RecordCustom(
         std::string_view label,
         std::function<bool()> undoFn,

@@ -15,7 +15,6 @@
 #include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
-#include "KindUI/Rendering/IconMetrics.h"
 #include "KindUI/Core/ControlChrome.h"
 #include "KindUI/Input/InputEvents.h"
 #include "KindUI/Core/WindIcon.h"

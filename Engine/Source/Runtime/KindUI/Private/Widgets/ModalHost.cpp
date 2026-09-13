@@ -83,7 +83,7 @@ void ModalHost::Paint(PaintContext& context) {
         context.DrawRect(m_Geometry, scrim);
     }
     if (m_Content && m_Content->IsVisible()) {
-        m_Content->Paint(context);
+        m_Content->PaintSubtree(context);
     }
 }
 

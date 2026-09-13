@@ -61,7 +61,7 @@ public:
         PanelChrome::PaintListLabelBand(context, m_TitleBand);
         const float scale = std::max(1.0f, DPIContext::GetScale());
         const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
-        // Match form-row label left edge (column padding already applied).
+
         const float textY = LayoutMetrics::AlignTextTopY(m_TitleBand, fontSize);
         context.DrawText(
             m_Title,

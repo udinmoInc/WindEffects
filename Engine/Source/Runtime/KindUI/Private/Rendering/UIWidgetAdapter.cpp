@@ -198,6 +198,11 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     if (TextUIService* textService = m_Renderer->GetTextUIService()) {
         m_PaintContext.SetTextUIService(textService);
     }
+    // Paint-only rebuilds may replay retained DrawCommands for clean subtrees.
+    // Layout frames change geometry — disable replay (still refresh retention after Paint).
+    const bool paintRetention = !m_LastPhaseTiming.ranLayout;
+    m_PaintContext.SetPaintRetentionEnabled(paintRetention);
+    Widget::s_PaintRetentionStats = {};
     if (Widget::s_GlobalDiagnostics) {
         Widget::s_GlobalDiagnostics->paintCalls++;
         UiPathDiagnostics::Get().SetWidgetsVisited(Widget::s_GlobalDiagnostics->totalWidgetCount);
@@ -212,7 +217,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         SurfaceRole::Workspace,
         0.0f,
         "WorkspaceBackdrop");
-    root->Paint(m_PaintContext);
+    root->PaintSubtree(m_PaintContext);
 
     auto& compositionDiag = UiColorCompositionDiagnostic::Get();
     if (compositionDiag.ShouldInjectPanelFlatOverride()) {
@@ -238,6 +243,10 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     }
     const auto tPaintEnd = clock::now();
     m_LastPhaseTiming.paintMs = msSince(tPaintStart, tPaintEnd);
+    m_LastPhaseTiming.paintRetention = paintRetention;
+    m_LastPhaseTiming.subtreesPainted = Widget::s_PaintRetentionStats.subtreesPainted;
+    m_LastPhaseTiming.subtreesReplayed = Widget::s_PaintRetentionStats.subtreesReplayed;
+    m_LastPhaseTiming.commandsReplayed = Widget::s_PaintRetentionStats.commandsReplayed;
 
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(m_PaintContext.GetCommands().size());
     UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);

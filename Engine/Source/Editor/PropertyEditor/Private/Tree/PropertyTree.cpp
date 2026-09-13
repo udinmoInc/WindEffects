@@ -402,7 +402,7 @@ private:
                 cat->categoryNode = true;
                 cat->depth = 0;
                 cat->expanded = true;
-                // Reuse existing category root if already present from another binding
+
                 bool found = false;
                 for (const auto& root : m_Roots) {
                     if (root && root->IsCategoryNode() && root->GetDisplayName() == categoryName) {
@@ -422,7 +422,7 @@ private:
             if (node) {
                 // An actor binding and its component binding can expose the
                 // same field (for example the Sun's transform rotation). The
-                // actor owns the canonical transform row; do not render a
+
                 // second, indistinguishable editor in the same group.
                 const bool alreadyRepresented = std::any_of(
                     catIt->second->children.begin(),
@@ -481,7 +481,7 @@ private:
         }
 
         if (!PassesSearch(impl->displayName, impl->category, m_Filter.searchText)) {
-            // Keep if any child matches
+
             bool anyChild = false;
             for (const auto& child : impl->children) {
                 if (FilterNode(child)) {

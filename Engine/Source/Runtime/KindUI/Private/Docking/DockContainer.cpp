@@ -390,7 +390,7 @@ void DockContainer::Paint(PaintContext& context) {
         stripLayout,
         state,
         [&](PaintContext& paintContext) {
-            activePanel->Paint(paintContext);
+            activePanel->PaintSubtree(paintContext);
         },
         // Floating window frames own the ambient shadow for the whole section.
         m_LeadingReservedWidth <= 0.5f && m_TrailingReservedWidth <= 0.5f);

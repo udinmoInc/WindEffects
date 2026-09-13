@@ -66,7 +66,7 @@ void ScrollContainer::Paint(PaintContext& context) {
     SyncScroll();
     context.PushClipRect(m_ScrollMetrics.viewport);
     if (m_ContentWidget) {
-        m_ContentWidget->Paint(context);
+        m_ContentWidget->PaintSubtree(context);
     }
     context.PopClipRect();
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());

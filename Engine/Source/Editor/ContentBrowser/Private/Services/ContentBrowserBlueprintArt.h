@@ -21,7 +21,7 @@ using ::we::runtime::kindui::IconRenderer;
 using ::we::runtime::kindui::PaintContext;
 using ::we::runtime::kindui::Rect;
 
-// Dedicated blueprint artwork for Content Browser (Assets/Editor/Visual_Graph.svg).
+
 class ContentBrowserBlueprintArt {
 public:
     static ContentBrowserBlueprintArt& Get();
@@ -31,7 +31,7 @@ public:
 
     static constexpr float kThumbnailWidthFill = 0.84f;
     static constexpr float kThumbnailHeightFill = 0.80f;
-    static constexpr float kBlueprintAspectRatio = 0.947f; // Assets/Editor/Visual_Graph.svg viewBox
+    static constexpr float kBlueprintAspectRatio = 0.947f;
 
     void PaintThumbnail(PaintContext& context, const Rect& thumbRect, bool hovered) const;
     void PaintSmallIcon(PaintContext& context, const Rect& iconRect, bool hovered) const;

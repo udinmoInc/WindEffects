@@ -360,7 +360,7 @@ void PanelBodyLayout::Paint(PaintContext& context) {
             PaintRegionBackground(region, context, slot.geometry);
         }
 
-        slot.widget->Paint(context);
+        slot.widget->PaintSubtree(context);
 
         if (!skipRegionChrome) {
             PaintRegionChrome(region, context, slot.geometry);

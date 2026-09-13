@@ -553,10 +553,10 @@ void Splitter::Paint(PaintContext& context) {
     const bool secondVisible = m_SecondChild && m_SecondChild->IsVisible();
 
     if (m_FirstChild && firstVisible) {
-        m_FirstChild->Paint(context);
+        m_FirstChild->PaintSubtree(context);
     }
     if (m_SecondChild && secondVisible) {
-        m_SecondChild->Paint(context);
+        m_SecondChild->PaintSubtree(context);
     }
 
     if (!firstVisible || !secondVisible) {

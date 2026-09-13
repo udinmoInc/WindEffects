@@ -86,13 +86,13 @@ public:
             other->m_Instances != m_Instances) {
             return false;
         }
-        // Keep original before; adopt newest after.
+
         m_After = other->m_After;
         return true;
     }
 
     void Compress() override {
-        // Leaf bytes are already minimal; nothing further unless equal.
+
         if (m_Before == m_After) {
             m_Before.clear();
             m_After.clear();
@@ -180,7 +180,7 @@ private:
         if (m_Serializer) {
             return serialization::RestoreSnapshot(*m_Serializer, m_TypeId, m_Instance, snap);
         }
-        // Without serializer, treat bytes as a Reflection full-object patch is not available;
+
         // require serializer for snapshot commands.
         (void)m_Registry;
         return false;

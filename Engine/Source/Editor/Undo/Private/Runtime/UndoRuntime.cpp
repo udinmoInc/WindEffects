@@ -77,7 +77,7 @@ public:
 
     void OnUndoRedoBoundary(world::IWorld& world) override {
         (void)world;
-        // Hosts may call SuspendRecording around external batch restores.
+
         m_Manager.SuspendRecording(false);
     }
 

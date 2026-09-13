@@ -156,7 +156,7 @@ UndoTestReport RunUndoRuntimeTests() {
                 return true;
             },
             path.size());
-        // Redo already "applied" by caller convention for RecordCustom — apply manually:
+
         path = "Assets/New.asset";
         AddCase(report, "RecordCustom", ok, "custom recorded");
         (void)manager.Undo();

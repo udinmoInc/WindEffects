@@ -64,7 +64,7 @@ void ContentBrowserFolderArt::PaintFolderIcon(
     bool hovered,
     bool opened) const
 {
-    // Sidebar / list: compact folder / folder-open glyphs with CB amber tint.
+
     const kindui::WindIconRef icon = opened ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
     if (!icon.IsValid()) {
         return;
@@ -90,7 +90,7 @@ void ContentBrowserFolderArt::PaintThumbnail(
     }
 
     // content-folder_512.png is a clean white luminance-alpha mask (no baked shadows).
-    // DrawWindIcon multiplies FolderTint against the white pixels to produce the correct
+
     // amber folder color. Alpha encodes the shading so the tab is slightly darker amber.
     context.DrawWindIcon(WindIcons::ContentFolder512, folderRect, FolderTint(hovered));
 }
