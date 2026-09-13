@@ -107,6 +107,10 @@ public:
     CORE_API static const std::string& GetActiveLogFilePath();
 
     CORE_API static void Flush();
+    CORE_API static void SetupCrashHandler();
+#if defined(_WIN32)
+    CORE_API static long __stdcall EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionInfo);
+#endif
 
 private:
     static std::string GetCurrentTimestamp();
@@ -116,10 +120,6 @@ private:
     static void WriterThreadMain();
     static void WriteRecordToOutputs(const LogRecord& record);
     static void RotateLogFilesIfNeeded();
-    static void SetupCrashHandler();
-#if defined(_WIN32)
-    static long __stdcall EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionInfo);
-#endif
     static void SignalHandler(int signal);
 
     static std::recursive_mutex s_Mutex;

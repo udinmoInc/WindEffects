@@ -53,6 +53,7 @@ public:
 
 private:
     void RebuildVisible();
+    void ComputeVisibleWindow(size_t& firstVisible, size_t& visibleCount) const;
 
     size_t m_ItemCount = 0;
     float m_ItemHeight = 0.0f;

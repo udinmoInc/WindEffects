@@ -375,7 +375,7 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
     for (size_t i = 0; i < m_Popups.size(); ++i) {
         auto& popup = m_Popups[i];
         if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
-            if (hostResized || popup->NeedsLayout()) {
+            if (hostResized || popup->SubtreeNeedsLayout()) {
                 popup->Measure(Size{allottedRect.width, allottedRect.height});
             }
             popup->Arrange(allottedRect);
@@ -413,12 +413,12 @@ void OverlayHost::Arrange(const Rect& allottedRect) {
             if (size.width <= 0.0f || size.height <= 0.0f) {
                 size = Size{ geom.width, geom.height };
             }
-            if (popup->NeedsLayout()) {
+            if (popup->SubtreeNeedsLayout()) {
                 popup->Measure(size);
             }
         } else {
             const bool needsRemeasure =
-                popup->NeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
+                popup->SubtreeNeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
             if (needsRemeasure) {
                 const float availH = (std::max)(minPopupDim, allottedRect.height - geom.y -
                     ResolveMetric(MetricToken::Space2));

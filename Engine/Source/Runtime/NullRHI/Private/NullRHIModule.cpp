@@ -400,7 +400,9 @@ public:
         return RHIResult<void>::Success();
     }
 
-    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override {
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(
+        RHICommandPoolHandle pool,
+        CommandBufferLevel /*level*/ = CommandBufferLevel::Primary) override {
         auto it = m_CommandPools.find(static_cast<uint64_t>(pool));
         if (it == m_CommandPools.end()) {
             return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");

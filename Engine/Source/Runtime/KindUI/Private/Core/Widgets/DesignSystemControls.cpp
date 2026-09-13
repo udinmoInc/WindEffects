@@ -59,7 +59,13 @@ void DesignButton::SetLabel(std::string label) {
 }
 
 Size DesignButton::Measure(const Size& availableSize) {
-    const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
+    (void)availableSize;
+    if (!m_StyleCacheValid || m_NeedsStyle) {
+        m_CachedStyle = ThemeManager::Get().Resolve(m_Role);
+        m_StyleCacheValid = true;
+        ClearStyleDirty();
+    }
+    const ResolvedStyle& style = m_CachedStyle;
     const float pad = ResolveMetric(MetricToken::Space2);
     const float textW = TextMetrics::MeasureWidth(m_Label, style.fontSize);
     const float iconW = m_Icon.IsValid() ? (style.iconSize + ResolveMetric(MetricToken::Space1)) : 0.0f;
@@ -76,7 +82,12 @@ void DesignButton::Paint(PaintContext& context) {
     if (!m_Visible) {
         return;
     }
-    const ResolvedStyle style = ThemeManager::Get().Resolve(m_Role);
+    if (!m_StyleCacheValid || m_NeedsStyle) {
+        m_CachedStyle = ThemeManager::Get().Resolve(m_Role);
+        m_StyleCacheValid = true;
+        ClearStyleDirty();
+    }
+    const ResolvedStyle& style = m_CachedStyle;
     ControlChrome::InteractionState state{
         m_HoverAnim,
         m_PressAnim,
@@ -118,8 +129,7 @@ void DesignButton::Paint(PaintContext& context) {
                 groupLayout.textPos,
                 fg,
                 style.fontSize,
-                style.bold ? we::runtime::text::layout::FontWeight::Medium
-                           : we::runtime::text::layout::FontWeight::Regular);
+                we::runtime::text::layout::FontWeight::Regular);
         }
     } else {
         const Rect contentBox{ m_Geometry.x + pad, m_Geometry.y, m_Geometry.width - pad * 2.0f, m_Geometry.height };
@@ -134,8 +144,7 @@ void DesignButton::Paint(PaintContext& context) {
                 iconTextLayout.textPos,
                 fg,
                 style.fontSize,
-                style.bold ? we::runtime::text::layout::FontWeight::Medium
-                           : we::runtime::text::layout::FontWeight::Regular);
+                we::runtime::text::layout::FontWeight::Regular);
         }
     }
 }
@@ -147,12 +156,8 @@ void DesignButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void DesignButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        const bool wasPressed = m_Pressed;
-        SetPressed(false);
-        if (IsEnabled() && (wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
-            m_OnClicked();
-        }
+    if (ShouldFireClickOnLeftUp(event) && m_OnClicked) {
+        m_OnClicked();
     }
 }
 
@@ -161,9 +166,6 @@ void DesignButton::Tick(float deltaTime) {
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     m_PressAnim = Animator::Damp(m_PressAnim, targetPress, ControlChrome::PressDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f || std::abs(m_PressAnim - targetPress) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -178,13 +180,24 @@ void IconButton::SetOnClicked(std::function<void()> cb) {
 }
 
 Size IconButton::Measure(const Size& availableSize) {
-    const float s = ThemeManager::Get().Resolve(StyleRole::IconButton).height;
+    (void)availableSize;
+    if (!m_StyleCacheValid || m_NeedsStyle) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::IconButton);
+        m_StyleCacheValid = true;
+        ClearStyleDirty();
+    }
+    const float s = m_CachedStyle.height;
     m_DesiredSize = Size{ s, s };
     return m_DesiredSize;
 }
 
 void IconButton::Arrange(const Rect& allottedRect) {
-    const float size = ThemeManager::Get().Resolve(StyleRole::IconButton).height;
+    if (!m_StyleCacheValid || m_NeedsStyle) {
+        m_CachedStyle = ThemeManager::Get().Resolve(StyleRole::IconButton);
+        m_StyleCacheValid = true;
+        ClearStyleDirty();
+    }
+    const float size = m_CachedStyle.height;
     m_Geometry = Rect{
         allottedRect.x,
         allottedRect.y + (allottedRect.height - size) * 0.5f,
@@ -198,8 +211,11 @@ void IconButton::Paint(PaintContext& context) {
         return;
     }
     if (m_Icon.IsValid()) {
-        const ResolvedStyle style = ThemeManager::Get().Resolve(
-            m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton);
+        const StyleRole role = m_Active ? StyleRole::IconButtonPressed : StyleRole::IconButton;
+        // Active/pressed role can differ from the cached IconButton size role.
+        const ResolvedStyle style = (role == StyleRole::IconButton && m_StyleCacheValid && !m_NeedsStyle)
+            ? m_CachedStyle
+            : ThemeManager::Get().Resolve(role);
         const float iconPx = style.iconSize;
         we::runtime::kindui::ToolbarButtonChrome::PaintFloatingIcon(
             context,
@@ -219,12 +235,8 @@ void IconButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void IconButton::OnMouseUp(const MouseEvent& event) {
-    if (event.button == MouseButton::Left) {
-        const bool wasPressed = m_Pressed;
-        SetPressed(false);
-        if ((wasPressed || m_Geometry.Contains(event.position)) && m_OnClicked) {
-            m_OnClicked();
-        }
+    if (ShouldFireClickOnLeftUp(event) && m_OnClicked) {
+        m_OnClicked();
     }
 }
 
@@ -233,9 +245,6 @@ void IconButton::Tick(float deltaTime) {
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     m_PressAnim = Animator::Damp(m_PressAnim, targetPress, ControlChrome::PressDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f || std::abs(m_PressAnim - targetPress) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -290,9 +299,6 @@ void Card::Paint(PaintContext& context) {
 void Card::Tick(float deltaTime) {
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -454,9 +460,6 @@ void SearchBoxControl::Paint(PaintContext& context) {
 void SearchBoxControl::Tick(float deltaTime) {
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -559,9 +562,6 @@ void PanelTab::OnMouseUp(const MouseEvent& event) {
 void PanelTab::Tick(float deltaTime) {
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -649,9 +649,6 @@ void SidebarItem::OnMouseUp(const MouseEvent& event) {
 void SidebarItem::Tick(float deltaTime) {
     const float targetHover = m_Hovered && !m_Active ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 
@@ -712,9 +709,6 @@ void TableRowBase::Paint(PaintContext& context) {
 void TableRowBase::Tick(float deltaTime) {
     const float targetHover = m_Hovered && !m_Selected ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
-    if (std::abs(m_HoverAnim - targetHover) > 0.001f) {
-        InvalidatePaint();
-    }
     Widget::Tick(deltaTime);
 }
 

@@ -1,11 +1,5 @@
-// ==============================================================================
-// WindEffects — ContentBrowser — SearchBox
-// Public API surface for the ContentBrowser module.
-//
-// Copyright (c) 2026 WindEffects. All rights reserved.
-// This file is part of WindEffects Engine and is governed by the
-// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
-// ==============================================================================
+// DEPRECATED: This file has been removed. Use KindUI::SearchBoxControl directly.
+// This file is kept for build compatibility and will be removed in a future update.
 #pragma once
 
 #include "ContentBrowser/Export.h"
@@ -15,7 +9,7 @@
 
 namespace we::editor::widgets {
 
-/// Search box control derived directly from KindUI's shared SearchBoxControl.
+// DEPRECATED: Use KindUI::SearchBoxControl directly
 class CONTENTBROWSER_API SearchBox : public we::runtime::kindui::SearchBoxControl {
 public:
     using OnTextChanged = std::function<void(const std::string&)>;

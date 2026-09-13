@@ -43,6 +43,10 @@ public:
     virtual void Arrange(const Rect& allottedRect) = 0;
     virtual void Paint(PaintContext& context) = 0;
 
+    /// Shared dirty-subtree paint entry. On paint-only rebuilds, clean subtrees replay
+    /// retained commands (no widget traversal). Dirty subtrees call Paint() and refresh retention.
+    void PaintSubtree(PaintContext& context);
+
     virtual void OnMouseDown(const MouseEvent&) {}
     virtual void OnMouseMove(const MouseEvent&) {}
     virtual void OnMouseUp(const MouseEvent&) {}
@@ -208,6 +212,15 @@ public:
     void ClearSubtreePaintDirty();
     void ClearSubtreeLayoutDirty();
 
+    /// Frame counters for paint-retention (reset by UIWidgetAdapter each rebuild).
+    struct PaintRetentionStats {
+        uint32_t subtreesPainted = 0;
+        uint32_t subtreesReplayed = 0;
+        uint32_t commandsReplayed = 0;
+        uint32_t commandsRecorded = 0;
+    };
+    static PaintRetentionStats s_PaintRetentionStats;
+
     void SetContext(std::shared_ptr<IWidgetContext> context);
     [[nodiscard]] IWidgetContext* GetContext() const { return m_Context.get(); }
     [[nodiscard]] IStyleResolver& Styles() const;
@@ -227,6 +240,17 @@ public:
 
 protected:
     [[nodiscard]] std::shared_ptr<Widget> HitTestChildren(const Point& pos, const Rect* clip) const;
+
+    /// Shared left-button click-on-release: clears pressed state and returns true when a click should fire.
+    [[nodiscard]] bool ShouldFireClickOnLeftUp(const MouseEvent& event);
+
+    /// Structural child edits that must not re-arm UIRepaintGate during an active Measure/Arrange.
+    /// Callers are responsible for arranging/painting the new children in the current pass.
+    void ClearChildrenSilent();
+    void AddChildSilent(const std::shared_ptr<Widget>& child);
+
+    /// Marks retained paint streams invalid on this widget and all ancestors.
+    void InvalidateRetainedPaintUpward();
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
@@ -252,6 +276,19 @@ protected:
     bool m_NeedsLayout = false;
     bool m_NeedsPaint = false;
     bool m_NeedsStyle = true;
+    // Aggregate dirty bits — set whenever any descendant (or self) is dirty.
+    // Propagated upward in InvalidateLayout/InvalidatePaint; cleared in ClearSubtree*.
+    // Enables O(1) SubtreeNeedsLayout/SubtreeNeedsPaint checks.
+    bool m_SubtreeNeedsLayout = false;
+    bool m_SubtreeNeedsPaint = false;
+    /// Opaque retained-paint slice (defined in Widget.cpp).
+    bool m_RetainedPaintValid = false;
+    uint32_t m_RetainedPaintBegin = 0;
+    uint32_t m_RetainedPaintEnd = 0;
+#pragma warning(push)
+#pragma warning(disable: 4251)
+    std::shared_ptr<void> m_RetainedPaintStore;
+#pragma warning(pop)
 
     HorizontalAlignment m_HAlign = HorizontalAlignment::Fill;
     VerticalAlignment m_VAlign = VerticalAlignment::Center;
@@ -272,3 +309,5 @@ protected:
 #pragma warning(pop)
 
 } // namespace we::runtime::kindui
+
+// widget-abi-rebuild

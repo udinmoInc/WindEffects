@@ -231,18 +231,32 @@ IRHICommandList* VulkanDevice::BeginFrame() {
             + " waitMs=" + std::to_string(fenceWaitMs));
     if (waitResult != VK_SUCCESS) {
         if (waitResult == VK_TIMEOUT) {
+            // Fence is still associated with an in-flight queue submit. Vulkan forbids
+            // vkResetFences until the fence is signaled — resetting here caused
+            // VK_ERROR_DEVICE_LOST storms after splitter-drag GPU hitch.
             WE_LOG_WARN(we::LogCategory::Vulkan.data(),
                 "vkWaitForFences timed out (slot=" + std::to_string(m_FrameSlot)
-                + " waitMs=" + std::to_string(fenceWaitMs) + "). Recovering GPU queue and resetting fence.");
+                + " waitMs=" + std::to_string(fenceWaitMs)
+                + "). Waiting for GPU idle before reset (required for valid fence reuse).");
             vkQueueWaitIdle(m_GraphicsQueue.GetVkQueue());
             vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
             if (m_Swapchain) {
                 m_Swapchain->SetNeedsRebuild();
             }
             m_FrameSlot = (m_FrameSlot + 1) % m_FramesInFlight;
+        } else if (waitResult == VK_ERROR_DEVICE_LOST) {
+            WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                "vkWaitForFences: VK_ERROR_DEVICE_LOST (slot="
+                    + std::to_string(m_FrameSlot) + "). Device unusable; skipping frame.");
+            // Do not reset fences on a lost device.
+            if (m_Swapchain) {
+                m_Swapchain->SetNeedsRebuild();
+            }
         } else {
             WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
                 "vkWaitForFences failed with VkResult=" + std::to_string(static_cast<int>(waitResult)));
+            // Only reset if the fence is known signaled; after unknown errors prefer idle.
+            vkQueueWaitIdle(m_GraphicsQueue.GetVkQueue());
             vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
             m_FrameSlot = (m_FrameSlot + 1) % m_FramesInFlight;
         }
@@ -277,6 +291,9 @@ IRHICommandList* VulkanDevice::BeginFrame() {
     m_FrameCmd.Begin();
     m_FrameActive = true;
     m_ActiveCmd = &m_FrameCmd;
+    m_Diagnostics.lastFrame.beginFrameFenceWaitMs = fenceWaitMs;
+    m_Diagnostics.lastFrame.framesInFlight = m_FramesInFlight;
+    m_Diagnostics.lastFrame.vsyncOn = m_Desc.vsync;
     return &m_FrameCmd;
 }
 
@@ -373,17 +390,28 @@ void VulkanDevice::SetResourceName(RHITextureHandle handle, std::string_view nam
 }
 
 void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
+    if (!m_Device) return;
+
     switch (kind) {
     case DeferredKind::Buffer: {
         auto it = m_Buffers.find(handle);
         if (it == m_Buffers.end()) {
             break;
         }
-        if (it->second.mapped) {
+        if (it->second.mapped && it->second.memory != VK_NULL_HANDLE) {
             vkUnmapMemory(m_Device, it->second.memory);
+            it->second.mapped = nullptr;
         }
-        vkDestroyBuffer(m_Device, it->second.buffer, nullptr);
-        vkFreeMemory(m_Device, it->second.memory, nullptr);
+        if (it->second.buffer != VK_NULL_HANDLE) {
+            VkBuffer b = it->second.buffer;
+            it->second.buffer = VK_NULL_HANDLE;
+            vkDestroyBuffer(m_Device, b, nullptr);
+        }
+        if (it->second.memory != VK_NULL_HANDLE) {
+            VkDeviceMemory mem = it->second.memory;
+            it->second.memory = VK_NULL_HANDLE;
+            vkFreeMemory(m_Device, mem, nullptr);
+        }
         m_Buffers.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -393,14 +421,20 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_Textures.end() || it->second.isSwapchain) {
             break;
         }
-        if (it->second.view) {
-            vkDestroyImageView(m_Device, it->second.view, nullptr);
+        if (it->second.view != VK_NULL_HANDLE) {
+            VkImageView v = it->second.view;
+            it->second.view = VK_NULL_HANDLE;
+            vkDestroyImageView(m_Device, v, nullptr);
         }
-        if (it->second.ownsImage && it->second.image) {
-            vkDestroyImage(m_Device, it->second.image, nullptr);
+        if (it->second.ownsImage && it->second.image != VK_NULL_HANDLE) {
+            VkImage img = it->second.image;
+            it->second.image = VK_NULL_HANDLE;
+            vkDestroyImage(m_Device, img, nullptr);
         }
-        if (it->second.memory) {
-            vkFreeMemory(m_Device, it->second.memory, nullptr);
+        if (it->second.memory != VK_NULL_HANDLE) {
+            VkDeviceMemory mem = it->second.memory;
+            it->second.memory = VK_NULL_HANDLE;
+            vkFreeMemory(m_Device, mem, nullptr);
         }
         m_Textures.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
@@ -411,7 +445,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_TextureViews.end()) {
             break;
         }
-        vkDestroyImageView(m_Device, it->second.view, nullptr);
+        if (it->second.view != VK_NULL_HANDLE) {
+            VkImageView v = it->second.view;
+            it->second.view = VK_NULL_HANDLE;
+            vkDestroyImageView(m_Device, v, nullptr);
+        }
         m_TextureViews.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -421,7 +459,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_Samplers.end()) {
             break;
         }
-        vkDestroySampler(m_Device, it->second.sampler, nullptr);
+        if (it->second.sampler != VK_NULL_HANDLE) {
+            VkSampler s = it->second.sampler;
+            it->second.sampler = VK_NULL_HANDLE;
+            vkDestroySampler(m_Device, s, nullptr);
+        }
         m_Samplers.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -431,7 +473,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_Shaders.end()) {
             break;
         }
-        vkDestroyShaderModule(m_Device, it->second.module, nullptr);
+        if (it->second.module != VK_NULL_HANDLE) {
+            VkShaderModule m = it->second.module;
+            it->second.module = VK_NULL_HANDLE;
+            vkDestroyShaderModule(m_Device, m, nullptr);
+        }
         m_Shaders.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -441,7 +487,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_DescriptorSetLayouts.end()) {
             break;
         }
-        vkDestroyDescriptorSetLayout(m_Device, it->second.layout, nullptr);
+        if (it->second.layout != VK_NULL_HANDLE) {
+            VkDescriptorSetLayout l = it->second.layout;
+            it->second.layout = VK_NULL_HANDLE;
+            vkDestroyDescriptorSetLayout(m_Device, l, nullptr);
+        }
         m_DescriptorSetLayouts.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -458,7 +508,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
                 ++setIt;
             }
         }
-        vkDestroyDescriptorPool(m_Device, it->second.pool, nullptr);
+        if (it->second.pool != VK_NULL_HANDLE) {
+            VkDescriptorPool p = it->second.pool;
+            it->second.pool = VK_NULL_HANDLE;
+            vkDestroyDescriptorPool(m_Device, p, nullptr);
+        }
         m_DescriptorPools.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -468,7 +522,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_PipelineLayouts.end()) {
             break;
         }
-        vkDestroyPipelineLayout(m_Device, it->second.layout, nullptr);
+        if (it->second.layout != VK_NULL_HANDLE) {
+            VkPipelineLayout l = it->second.layout;
+            it->second.layout = VK_NULL_HANDLE;
+            vkDestroyPipelineLayout(m_Device, l, nullptr);
+        }
         m_PipelineLayouts.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -478,8 +536,10 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_GraphicsPipelines.end()) {
             break;
         }
-        if (it->second.pipeline) {
-            vkDestroyPipeline(m_Device, it->second.pipeline, nullptr);
+        if (it->second.pipeline != VK_NULL_HANDLE) {
+            VkPipeline p = it->second.pipeline;
+            it->second.pipeline = VK_NULL_HANDLE;
+            vkDestroyPipeline(m_Device, p, nullptr);
         }
         m_GraphicsPipelines.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
@@ -490,8 +550,10 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_ComputePipelines.end()) {
             break;
         }
-        if (it->second.pipeline) {
-            vkDestroyPipeline(m_Device, it->second.pipeline, nullptr);
+        if (it->second.pipeline != VK_NULL_HANDLE) {
+            VkPipeline p = it->second.pipeline;
+            it->second.pipeline = VK_NULL_HANDLE;
+            vkDestroyPipeline(m_Device, p, nullptr);
         }
         m_ComputePipelines.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
@@ -502,7 +564,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_Fences.end()) {
             break;
         }
-        vkDestroyFence(m_Device, it->second.fence, nullptr);
+        if (it->second.fence != VK_NULL_HANDLE) {
+            VkFence f = it->second.fence;
+            it->second.fence = VK_NULL_HANDLE;
+            vkDestroyFence(m_Device, f, nullptr);
+        }
         m_Fences.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -512,7 +578,11 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_Semaphores.end()) {
             break;
         }
-        vkDestroySemaphore(m_Device, it->second.semaphore, nullptr);
+        if (it->second.semaphore != VK_NULL_HANDLE) {
+            VkSemaphore s = it->second.semaphore;
+            it->second.semaphore = VK_NULL_HANDLE;
+            vkDestroySemaphore(m_Device, s, nullptr);
+        }
         m_Semaphores.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
         break;
@@ -522,8 +592,10 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_UserCommandPools.end()) {
             break;
         }
-        if (it->second.pool) {
-            vkDestroyCommandPool(m_Device, it->second.pool, nullptr);
+        if (it->second.pool != VK_NULL_HANDLE) {
+            VkCommandPool p = it->second.pool;
+            it->second.pool = VK_NULL_HANDLE;
+            vkDestroyCommandPool(m_Device, p, nullptr);
         }
         m_UserCommandPools.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
@@ -534,8 +606,10 @@ void VulkanDevice::DestroyImmediate(DeferredKind kind, uint64_t handle) {
         if (it == m_QueryPools.end()) {
             break;
         }
-        if (it->second.pool) {
-            vkDestroyQueryPool(m_Device, it->second.pool, nullptr);
+        if (it->second.pool != VK_NULL_HANDLE) {
+            VkQueryPool p = it->second.pool;
+            it->second.pool = VK_NULL_HANDLE;
+            vkDestroyQueryPool(m_Device, p, nullptr);
         }
         m_QueryPools.erase(it);
         ++m_Diagnostics.resourcesDestroyed;
@@ -593,7 +667,11 @@ RHIResult<void> VulkanDevice::ResetCommandPool(RHICommandPoolHandle handle) {
     return RHIResult<void>::Success();
 }
 
-RHIResult<IRHICommandList*> VulkanDevice::AllocateCommandList(RHICommandPoolHandle poolHandle) {
+RHIResult<IRHICommandList*> VulkanDevice::AllocateCommandList(
+    RHICommandPoolHandle poolHandle,
+    CommandBufferLevel level)
+{
+    // User pools may allocate primary or secondary buffers (KindUI submission cache).
     auto it = m_UserCommandPools.find(static_cast<uint64_t>(poolHandle));
     if (it == m_UserCommandPools.end() || !it->second.pool) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");
@@ -601,7 +679,9 @@ RHIResult<IRHICommandList*> VulkanDevice::AllocateCommandList(RHICommandPoolHand
     VkCommandBufferAllocateInfo alloc{};
     alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc.commandPool = it->second.pool;
-    alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc.level = level == CommandBufferLevel::Secondary
+        ? VK_COMMAND_BUFFER_LEVEL_SECONDARY
+        : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     alloc.commandBufferCount = 1;
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     if (vkAllocateCommandBuffers(m_Device, &alloc, &cmd) != VK_SUCCESS) {
@@ -609,6 +689,7 @@ RHIResult<IRHICommandList*> VulkanDevice::AllocateCommandList(RHICommandPoolHand
     }
     auto list = std::make_unique<VulkanCommandList>(this);
     list->SetCommandBuffer(cmd);
+    list->SetCommandBufferLevel(level);
     IRHICommandList* raw = list.get();
     it->second.lists.push_back(std::move(list));
     it->second.buffers.push_back(cmd);

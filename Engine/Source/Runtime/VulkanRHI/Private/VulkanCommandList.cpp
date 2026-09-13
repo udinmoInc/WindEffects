@@ -9,6 +9,7 @@
 #include "VulkanDevice.h"
 #include "VulkanFormats.h"
 
+#include <span>
 #include <string>
 #include <vector>
 
@@ -118,10 +119,73 @@ VulkanCommandList::VulkanCommandList(VulkanDevice* device)
 
 void VulkanCommandList::Begin() {
     m_Recording = true;
+    m_OwnsVkBegin = false;
+}
+
+bool VulkanCommandList::BeginSecondary(const SecondaryInheritanceDesc& inheritance) {
+    if (!m_Cmd || m_Level != CommandBufferLevel::Secondary) {
+        m_Recording = false;
+        m_OwnsVkBegin = false;
+        return false;
+    }
+
+    // Dynamic-rendering inheritance for KindUI reusable secondary submissions.
+    const VkFormat colorFormat = ToVkFormat(inheritance.colorFormat);
+    VkCommandBufferInheritanceRenderingInfo renderingInheritance{};
+    renderingInheritance.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO;
+    renderingInheritance.colorAttachmentCount = 1;
+    renderingInheritance.pColorAttachmentFormats = &colorFormat;
+    renderingInheritance.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkCommandBufferInheritanceInfo inheritanceInfo{};
+    inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inheritanceInfo.pNext = &renderingInheritance;
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // Omit ONE_TIME_SUBMIT so KindUI can re-Execute the same recorded secondary across
+    // frames until geometry/invalidation generations force a re-record.
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+    beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+    vkResetCommandBuffer(m_Cmd, 0);
+    if (vkBeginCommandBuffer(m_Cmd, &beginInfo) != VK_SUCCESS) {
+        m_Recording = false;
+        m_OwnsVkBegin = false;
+        return false;
+    }
+    m_Recording = true;
+    m_OwnsVkBegin = true;
+    m_InRendering = true; // draws are legal inside inherited dynamic rendering
+    return true;
 }
 
 void VulkanCommandList::End() {
+    if (m_Cmd && m_OwnsVkBegin && m_Recording) {
+        vkEndCommandBuffer(m_Cmd);
+        m_OwnsVkBegin = false;
+    }
+    m_InRendering = false;
     m_Recording = false;
+}
+
+void VulkanCommandList::ExecuteCommands(std::span<IRHICommandList* const> secondaries) {
+    if (!m_Cmd || m_Level != CommandBufferLevel::Primary || !m_InRendering || secondaries.empty()) {
+        return;
+    }
+    std::vector<VkCommandBuffer> buffers;
+    buffers.reserve(secondaries.size());
+    for (IRHICommandList* list : secondaries) {
+        auto* vkList = static_cast<VulkanCommandList*>(list);
+        if (!vkList || !vkList->GetVkCommandBuffer()
+            || vkList->GetCommandBufferLevel() != CommandBufferLevel::Secondary) {
+            continue;
+        }
+        buffers.push_back(vkList->GetVkCommandBuffer());
+    }
+    if (!buffers.empty()) {
+        vkCmdExecuteCommands(m_Cmd, static_cast<uint32_t>(buffers.size()), buffers.data());
+    }
 }
 
 void VulkanCommandList::BeginRendering(const RenderingInfo& info) {
@@ -177,6 +241,11 @@ void VulkanCommandList::BeginRendering(const RenderingInfo& info) {
     rendering.colorAttachmentCount = static_cast<uint32_t>(colors.size());
     rendering.pColorAttachments = colors.data();
     rendering.pDepthAttachment = depthPtr;
+    // Without this bit, ExecuteCommands inside dynamic rendering is invalid and can
+    // hang the GPU (then BeginFrame's QueueWaitIdle recovery trips the watchdog ~2s).
+    if (info.contentsSecondaryCommandBuffers) {
+        rendering.flags |= VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
+    }
 
     vkCmdBeginRendering(m_Cmd, &rendering);
     m_InRendering = true;

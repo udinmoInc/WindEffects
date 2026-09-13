@@ -69,6 +69,8 @@ public:
     [[nodiscard]] bool IsDragging() const { return m_Dragging; }
     /// True while any splitter bar is being dragged (viewport RT recreate should wait).
     [[nodiscard]] static bool AnySplitterDragging();
+    /// True during drag or for a few frames after mouse-up — defer RT recreate + secondary UI submit.
+    [[nodiscard]] static bool ShouldDeferHeavyGpuWork();
 
     void SetSlotId(std::string id) { m_SlotId = std::move(id); }
     [[nodiscard]] const std::string& GetSlotId() const { return m_SlotId; }

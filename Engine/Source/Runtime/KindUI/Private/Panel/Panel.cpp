@@ -174,7 +174,8 @@ void Panel::Paint(PaintContext& context) {
     }
 
     if (m_HeaderHeight > 0.0f) {
-        std::vector<Chrome::FloatingHeaderAction> chromeActions;
+        static thread_local std::vector<Chrome::FloatingHeaderAction> chromeActions;
+        chromeActions.clear();
         chromeActions.reserve(m_HeaderActions.size());
         for (size_t i = 0; i < m_HeaderActions.size(); ++i) {
             Chrome::FloatingHeaderAction action{};
@@ -298,11 +299,9 @@ void Panel::SetExpanded(bool expanded) {
     if (m_BodyLayout) {
         m_BodyLayout->SetVisible(expanded);
     }
-    if (!m_Geometry.IsEmpty()) {
-        Arrange(m_Geometry);
-    }
-    we::runtime::kindui::UIRepaintGate::RequestLayout();
-    we::runtime::kindui::UIRepaintGate::RequestPaint();
+    // One-shot expand/collapse invalidation — no animation; settle to cache hits after rebuild.
+    we::runtime::kindui::UIRepaintGate::RequestLayoutReason("PanelExpand");
+    we::runtime::kindui::UIRepaintGate::RequestPaintReason("PanelExpand");
 }
 
 void Panel::AddHeaderAction(we::runtime::kindui::WindIconRef icon, std::function<void()> onClick) {

@@ -190,20 +190,17 @@ void TreeView::Arrange(const Rect& allottedRect) {
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
     const float indentOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
-    const int first = std::max(0, m_FirstVisibleIndex - 2);
-    const int last = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
-    float y = m_ScrollMetrics.viewport.y - m_Scroll.offset
-        + static_cast<float>(first) * rowHeight;
-    for (int i = first; i <= last && i < static_cast<int>(m_RenderList.size()); ++i) {
-        auto& item = m_RenderList[static_cast<size_t>(i)];
-        item.flatIndex = i;
+
+    for (size_t i = 0; i < m_RenderList.size(); ++i) {
+        auto& item = m_RenderList[i];
+        item.flatIndex = static_cast<int>(i);
+        const float itemY = m_ScrollMetrics.viewport.y - m_Scroll.offset + static_cast<float>(i) * rowHeight;
         item.geometry = Rect{
             viewportX + indentOffset + item.depth * m_IndentWidth,
-            y,
+            itemY,
             std::max(0.0f, viewportWidth - indentOffset - item.depth * m_IndentWidth),
             rowHeight
         };
-        y += rowHeight;
     }
 }
 
@@ -289,60 +286,7 @@ void TreeView::Paint(PaintContext& context) {
         const Rect headerRect{ m_Geometry.x, m_Geometry.y, m_Geometry.width, headerHeight };
 
         PanelChrome::PaintHeaderRegion(context, headerRect);
-
-        const float headerTextSize = ThemeMetric(MetricToken::TextSizeCaption) * uiScale;
-        const float headerTextY = LayoutMetrics::AlignTextTopY(headerRect, headerTextSize);
-        const Color sepColor = ThemeColor(ColorToken::Separator);
-        const Color textColor = ThemeColor(ColorToken::TextSecondary);
-
-        const float borderW = std::max(1.0f, ThemeMetric(MetricToken::BorderWidth));
-        const float topBorderY = std::floor(m_Geometry.y);
-        const float botBorderY = std::floor(m_Geometry.y + headerHeight - borderW);
-
-        // Top & Bottom horizontal border lines
-        context.DrawRect(Rect{ m_Geometry.x, topBorderY, m_Geometry.width, borderW }, sepColor);
-        context.DrawRect(Rect{ m_Geometry.x, botBorderY, m_Geometry.width, borderW }, sepColor);
-
-        // Column 0: Eye icon column header (spacious 30px cell)
-        const float eyeColWidth = std::floor(30.0f * uiScale);
-        Rect eyeBand{ m_Geometry.x, m_Geometry.y, eyeColWidth, headerHeight };
-        IconPainter::Draw(context, WindIcons::Eye16, IconMetrics::PlaceGlyphCentered(eyeBand, 16u), textColor);
-
-        // Vertical Separator after Eye Column
-        const float sep1X = std::floor(m_Geometry.x + eyeColWidth);
-        context.DrawRect(Rect{ sep1X, m_Geometry.y, borderW, headerHeight }, sepColor);
-
-        // Column 1: Pin / Dirty column (spacious 28px cell with crisp 16u Pin icon)
-        const float dirtyColWidth = std::floor(28.0f * uiScale);
-        const float sep2X = std::floor(sep1X + dirtyColWidth);
-        Rect starBand{ sep1X, m_Geometry.y, dirtyColWidth, headerHeight };
-        IconPainter::Draw(context, WindIcons::Pin16, IconMetrics::PlaceGlyphCentered(starBand, 16u), textColor);
-
-        // Vertical Separator after Star Column
-        context.DrawRect(Rect{ sep2X, m_Geometry.y, borderW, headerHeight }, sepColor);
-
-        // Item Label header (generous 16px gap after separator)
-        const float labelPad = std::floor(16.0f * uiScale);
-        const float labelX = sep2X + labelPad;
-        context.DrawText(
-            "Item Label ▲",
-            Point{ labelX, headerTextY },
-            textColor,
-            headerTextSize,
-            we::runtime::text::layout::FontWeight::Regular);
-
-        // Type column header
-        const float typeColWidth = std::floor(90.0f * uiScale);
-        const float sep3X = std::floor(m_Geometry.x + m_Geometry.width - typeColWidth);
-        context.DrawRect(Rect{ sep3X, m_Geometry.y, borderW, headerHeight }, sepColor);
-
-        const float typeX = sep3X + labelPad;
-        context.DrawText(
-            "Type",
-            Point{ typeX, headerTextY },
-            textColor,
-            headerTextSize,
-            we::runtime::text::layout::FontWeight::Regular);
+        PanelChrome::PaintExplorerColumnHeader(context, headerRect, "Item Label ▲");
     }
 
     SyncScrollMetrics();
@@ -358,9 +302,15 @@ void TreeView::Paint(PaintContext& context) {
 
     context.PushClipRect(m_ScrollMetrics.viewport);
 
-    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex && i < static_cast<int>(m_RenderList.size()); ++i) {
+    const int firstVisible = std::max(0, m_FirstVisibleIndex);
+    const int lastVisible = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex);
+
+    for (int i = firstVisible; i <= lastVisible && i < static_cast<int>(m_RenderList.size()); ++i) {
         const auto& item = m_RenderList[static_cast<size_t>(i)];
         const auto& node = item.node;
+        if (!node) {
+            continue;
+        }
         const float rowHeight = item.geometry.height;
 
         if (item.geometry.y + item.geometry.height < viewTop ||
@@ -372,7 +322,6 @@ void TreeView::Paint(PaintContext& context) {
         const bool selected = IsSelected(node->id);
         const bool hovered = node->id == m_HoveredId;
 
-        // Full-Width Row Background
         if (m_ShowRowHighlight && (selected || hovered)) {
             PanelChrome::PaintListRowBackground(
                 context, layout.rowBounds, hovered, selected, IsFocused());
@@ -381,7 +330,6 @@ void TreeView::Paint(PaintContext& context) {
                 context, layout.rowBounds, item.flatIndex);
         }
 
-        // Drop Target Indicator Line (Only when actively dragging over a valid drop target)
         if (m_Dragging && !m_DropTargetId.empty() && node->id == m_DropTargetId && m_DropTargetId != m_DragSourceId) {
             Rect dropLine{
                 m_ScrollMetrics.viewport.x + 2.0f,
@@ -392,7 +340,6 @@ void TreeView::Paint(PaintContext& context) {
             context.DrawRect(dropLine, ThemeColor(ColorToken::AccentPrimary));
         }
 
-        // Left Controls (ExplorerStyle)
         if (m_ExplorerStyle) {
             if (hovered || selected || !node->visible) {
                 const Color eyeColor = node->visible ? ThemeColor(ColorToken::TextSecondary) :
@@ -415,7 +362,6 @@ void TreeView::Paint(PaintContext& context) {
             PaintTreeNodeIcon(context, *node, iconRect, hovered);
         }
 
-        // Node Label Text (With Search Highlighting & Text Clipping)
         const float textY = LayoutMetrics::AlignTextTopY(layout.rowBounds, fontSize);
         Color textColor = ThemeColor(ColorToken::TextSecondary);
         if (!node->visible) {
@@ -485,7 +431,6 @@ void TreeView::Paint(PaintContext& context) {
             }
         }
 
-        // Trailing Type Column (Right-Aligned)
         if (!node->typeName.empty()) {
             const float typeFontSize = fontSize * 0.9f;
             const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
@@ -496,7 +441,6 @@ void TreeView::Paint(PaintContext& context) {
                 ThemeColor(ColorToken::TextSecondary), typeFontSize);
         }
 
-        // Trailing Row Controls (Non-ExplorerStyle)
         if (m_ShowRowControls && !m_ExplorerStyle) {
             (void)(node->visible ? ThemeColor(ColorToken::TextSecondary) : ThemeColor(ColorToken::TextDisabled));
             const WindIconRef eyeIcon = node->visible ? WindIcons::Eye16 : kWindIconNone;
@@ -508,10 +452,6 @@ void TreeView::Paint(PaintContext& context) {
         }
     }
 
-    // Filler rows: keep faint striped rows running through empty viewport
-    // space below the last item (and when the list is empty), continuing
-    // flatIndex so the void never reads as a flat unpainted gap.
-    // Kept at low opacity on purpose — ghost rows, not highlights.
     if (m_ShowAlternatingRowBackground) {
         const float fillerRowHeight = m_ItemHeight * uiScale;
         if (fillerRowHeight > 0.0f) {
@@ -796,24 +736,32 @@ void TreeView::OnKeyDown(const KeyEvent& event) {
 void TreeView::SetRoot(const std::shared_ptr<TreeNode>& root) {
     m_Root = root;
     m_SelectedIds.clear();
+    m_SelectedSet.clear();
     MarkRenderListDirty();
     BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
 }
 
 void TreeView::AddItem(const std::shared_ptr<TreeNode>& item, const std::string& parentId) {
+    if (!item) return;
     if (parentId.empty()) {
-        m_Root->children.push_back(item);
+        if (m_Root) m_Root->children.push_back(item);
     } else if (auto parent = FindNode(parentId)) {
         parent->children.push_back(item);
     }
     MarkRenderListDirty();
     BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
 }
 
 void TreeView::RemoveItem(const std::string& id) {
+    if (!m_Root) return;
     std::function<bool(std::vector<std::shared_ptr<TreeNode>>&)> removeRecursive =
         [&](std::vector<std::shared_ptr<TreeNode>>& nodes) -> bool {
             for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+                if (!*it) continue;
                 if ((*it)->id == id) {
                     nodes.erase(it);
                     return true;
@@ -827,6 +775,8 @@ void TreeView::RemoveItem(const std::string& id) {
     removeRecursive(m_Root->children);
     MarkRenderListDirty();
     BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
 }
 
 void TreeView::SyncSelectedSet() {
@@ -835,11 +785,13 @@ void TreeView::SyncSelectedSet() {
 }
 
 void TreeView::Clear() {
-    m_Root->children.clear();
+    if (m_Root) m_Root->children.clear();
     m_SelectedIds.clear();
     m_SelectedSet.clear();
     MarkRenderListDirty();
     BuildRenderList();
+    InvalidateLayout();
+    InvalidatePaint();
 }
 
 void TreeView::SetSelectedId(const std::string& id) {
@@ -864,6 +816,13 @@ void TreeView::BuildRenderList() {
     }
 
     m_RenderList.clear();
+    if (!m_Root) {
+        m_ContentHeight = 0.0f;
+        m_RenderListDirty = false;
+        m_FirstVisibleIndex = 0;
+        m_LastVisibleIndex = -1;
+        return;
+    }
 
     // Fuzzy match helper function
     auto fuzzyMatch = [](const std::string& text, const std::string& pattern) -> bool {
@@ -882,14 +841,12 @@ void TreeView::BuildRenderList() {
         return patternIdx == pattern.size();
     };
 
-    // Check if node matches filter options
     auto matchesFilter = [this, fuzzyMatch](const std::shared_ptr<TreeNode>& node) -> bool {
-        // Search query filter
+        if (!node) return false;
         if (!m_SearchQuery.empty() && !fuzzyMatch(node->label, m_SearchQuery)) {
             return false;
         }
 
-        // Hidden items filter
         if (!m_FilterOptions.showHidden && !node->visible) {
             return false;
         }
@@ -909,6 +866,7 @@ void TreeView::BuildRenderList() {
 
     std::function<void(const std::shared_ptr<TreeNode>&, int, bool)> buildRecursive =
         [&](const std::shared_ptr<TreeNode>& node, int depth, bool parentMatches) {
+            if (!node) return;
             if (node->id != "root") {
                 const bool nodeMatches = matchesFilter(node);
                 const bool shouldShow = nodeMatches || parentMatches;
@@ -920,17 +878,17 @@ void TreeView::BuildRenderList() {
                 // Always expand children if searching or if parent matches
                 if (nodeMatches || parentMatches || !m_SearchQuery.empty()) {
                     for (const auto& child : node->children) {
-                        buildRecursive(child, depth + 1, shouldShow);
+                        if (child) buildRecursive(child, depth + 1, shouldShow);
                     }
                 } else if (node->expanded) {
                     for (const auto& child : node->children) {
-                        buildRecursive(child, depth + 1, false);
+                        if (child) buildRecursive(child, depth + 1, false);
                     }
                 }
             } else {
                 // Root node - process children
                 for (const auto& child : node->children) {
-                    buildRecursive(child, 0, false);
+                    if (child) buildRecursive(child, 0, false);
                 }
             }
         };
@@ -940,6 +898,8 @@ void TreeView::BuildRenderList() {
 
     m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
     m_RenderListDirty = false;
+    m_Scroll.Sync(m_Geometry.height, m_ContentHeight);
+    UpdateVisibleRange();
 
     const auto endTime = std::chrono::high_resolution_clock::now();
     const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
@@ -957,16 +917,18 @@ void TreeView::UpdateVisibleRange() {
     }
 
     const float rowHeight = m_ItemHeight * TreeUiScale();
-    const float viewTop = m_Geometry.y;
-    const float viewBottom = m_Geometry.y + m_Geometry.height;
-    const int overscan = 2;
+    if (rowHeight <= 0.0f) {
+        m_FirstVisibleIndex = 0;
+        m_LastVisibleIndex = 0;
+        return;
+    }
 
-    m_FirstVisibleIndex = static_cast<int>(std::floor(m_Scroll.offset / rowHeight));
-    m_FirstVisibleIndex = std::max(0, m_FirstVisibleIndex - overscan);
+    const int overscan = 2;
+    const int rawFirst = static_cast<int>(std::floor(m_Scroll.offset / rowHeight));
+    m_FirstVisibleIndex = std::clamp(rawFirst - overscan, 0, std::max(0, static_cast<int>(m_RenderList.size()) - 1));
 
     const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / rowHeight)) + overscan * 2;
-    m_LastVisibleIndex = std::min(static_cast<int>(m_RenderList.size()) - 1, m_FirstVisibleIndex + visibleCount);
-
+    m_LastVisibleIndex = std::clamp(m_FirstVisibleIndex + visibleCount, 0, static_cast<int>(m_RenderList.size()) - 1);
 }
 
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
@@ -980,20 +942,18 @@ TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
             const size_t index = static_cast<size_t>(relY / rowHeight);
             if (index < m_RenderList.size()) {
                 auto& item = m_RenderList[index];
-                if (item.geometry.Contains(pos)) {
+                if (item.node && item.geometry.Contains(pos)) {
                     return &item;
                 }
             }
         }
     }
 
-    // Slow path: bound the scan to the visible window instead of the whole
-    // list so hover/drag hit-testing stays flat cost on huge trees.
     const int slowFirst = std::max(0, m_FirstVisibleIndex - 2);
     const int slowLast = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex + 2);
-    for (int i = slowFirst; i <= slowLast; ++i) {
+    for (int i = slowFirst; i <= slowLast && i < static_cast<int>(m_RenderList.size()); ++i) {
         auto& item = m_RenderList[static_cast<size_t>(i)];
-        if (item.geometry.Contains(pos)) {
+        if (item.node && item.geometry.Contains(pos)) {
             return &item;
         }
     }
@@ -1001,14 +961,19 @@ TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
 }
 
 std::shared_ptr<TreeNode> TreeView::FindNode(const std::string& id) {
+    if (!m_Root) return nullptr;
+
     std::function<std::shared_ptr<TreeNode>(const std::shared_ptr<TreeNode>&)> findRecursive =
         [&](const std::shared_ptr<TreeNode>& node) -> std::shared_ptr<TreeNode> {
+            if (!node) return nullptr;
             if (node->id == id) {
                 return node;
             }
             for (const auto& child : node->children) {
-                if (auto found = findRecursive(child)) {
-                    return found;
+                if (child) {
+                    if (auto found = findRecursive(child)) {
+                        return found;
+                    }
                 }
             }
             return nullptr;
@@ -1018,8 +983,10 @@ std::shared_ptr<TreeNode> TreeView::FindNode(const std::string& id) {
         return m_Root;
     }
     for (const auto& child : m_Root->children) {
-        if (auto found = findRecursive(child)) {
-            return found;
+        if (child) {
+            if (auto found = findRecursive(child)) {
+                return found;
+            }
         }
     }
     return nullptr;

@@ -28,6 +28,7 @@
 #include <windows.h>
 #include <dbghelp.h>
 #include <psapi.h>
+#include <crtdbg.h>
 #endif
 
 namespace we::runtime::core {
@@ -393,11 +394,38 @@ std::string Logger::FormatRecord(const LogRecord& record) {
     return ss.str();
 }
 
+#if defined(_WIN32)
+static void InvalidParameterHandler(const wchar_t* expression, const wchar_t* function, const wchar_t* file,
+    unsigned int line, uintptr_t pReserved) {
+    (void)expression; (void)function; (void)file; (void)line; (void)pReserved;
+    EXCEPTION_RECORD er{};
+    CONTEXT context{};
+    RtlCaptureContext(&context);
+    er.ExceptionCode = STATUS_INVALID_PARAMETER;
+    EXCEPTION_POINTERS ep = { &er, &context };
+    we::runtime::core::Logger::EngineCrashHandler(&ep);
+    std::exit(1);
+}
+
+static void PureCallHandler() {
+    EXCEPTION_RECORD er{};
+    CONTEXT context{};
+    RtlCaptureContext(&context);
+    er.ExceptionCode = STATUS_NONCONTINUABLE_EXCEPTION;
+    EXCEPTION_POINTERS ep = { &er, &context };
+    we::runtime::core::Logger::EngineCrashHandler(&ep);
+    std::exit(1);
+}
+#endif
+
 void Logger::SetupCrashHandler() {
     std::signal(SIGFPE, SignalHandler);
     std::signal(SIGILL, SignalHandler);
     std::signal(SIGABRT, SignalHandler);
 #if defined(_WIN32)
+    _set_invalid_parameter_handler(InvalidParameterHandler);
+    _set_purecall_handler(PureCallHandler);
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     SetUnhandledExceptionFilter(EngineCrashHandler);
     WriteCrashMetadata();
 #endif
@@ -521,13 +549,21 @@ long __stdcall Logger::EngineCrashHandler(struct _EXCEPTION_POINTERS* exceptionI
             ec);
     }
 
-    STARTUPINFOA si{};
+    STARTUPINFOW si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
     const auto reporterPath = we::core::PathService::Get().ResolveSiblingExecutable("WECrashReporter.exe");
-    std::string reporterCmd = we::core::PathService::ToUtf8(reporterPath);
-    CreateProcessA(nullptr, reporterCmd.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
-    if (pi.hProcess) {
+    const auto metadataFile = std::filesystem::path(crashesRoot) / "crashed_app_metadata.json";
+
+    std::wstring exePathW = reporterPath.wstring();
+    std::wstring cmdLineW = L"\"" + exePathW + L"\" --dump \"" + dumpPath.wstring() + L"\" --metadata \"" +
+        metadataFile.wstring() + L"\"";
+
+    std::vector<wchar_t> cmdBuffer(cmdLineW.begin(), cmdLineW.end());
+    cmdBuffer.push_back(L'\0');
+
+    if (CreateProcessW(exePathW.c_str(), cmdBuffer.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr,
+        &si, &pi)) {
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }

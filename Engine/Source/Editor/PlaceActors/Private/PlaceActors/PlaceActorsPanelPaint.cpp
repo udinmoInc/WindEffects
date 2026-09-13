@@ -81,7 +81,6 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
     metrics.listRowHeight = ActorsPanelLayout::ActorRowHeight();
     metrics.cornerRadius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
-    // Warm thumbnail cache lazily for visible grid items.
     (void)PlaceActorsThumbnailProvider::Get();
 
     SyncScrollMetrics();
@@ -433,20 +432,11 @@ void PlaceActorsPanel::OnMouseDown(const MouseEvent& event) {
             if (IsPinnedCategory(entry->categoryId)) {
                 return;
             }
-            const auto startTime = std::chrono::high_resolution_clock::now();
             const bool newState = !m_CategoryExpanded[entry->categoryId];
             m_CategoryExpanded[entry->categoryId] = newState;
             SaveCategoryState();
             m_NeedsLayout = true;
             RebuildLayout();
-            const auto endTime = std::chrono::high_resolution_clock::now();
-            const double durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-
-            WE_LOG_INFO(we::LogCategory::General.data(),
-                "[PlaceActorsDebug] ToggleCategory: category='" + entry->categoryId + "' expanded=" +
-                    (newState ? "true" : "false") +
-                " layoutEntries=" + std::to_string(m_Layout.size()) +
-                " duration=" + std::to_string(durationMs) + "ms");
             return;
         }
 

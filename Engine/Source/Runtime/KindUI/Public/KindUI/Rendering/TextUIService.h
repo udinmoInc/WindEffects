@@ -86,6 +86,12 @@ private:
     we::runtime::text::FontHandle m_MediumFont = we::runtime::text::kInvalidFontHandle;
     we::runtime::text::FontHandle m_SemiBoldFont = we::runtime::text::kInvalidFontHandle;
 
+    struct TextMeasureKeyView {
+        std::string_view text;
+        float fontSize = 0.0f;
+        uint16_t weight = 0;
+    };
+
     struct TextMeasureKey {
         std::string text;
         float fontSize = 0.0f;
@@ -93,18 +99,29 @@ private:
         bool operator==(const TextMeasureKey& o) const {
             return fontSize == o.fontSize && weight == o.weight && text == o.text;
         }
+        bool operator==(const TextMeasureKeyView& o) const {
+            return fontSize == o.fontSize && weight == o.weight && text == o.text;
+        }
     };
 
     struct TextMeasureHash {
+        using is_transparent = void;
         size_t operator()(const TextMeasureKey& k) const {
-            size_t h = std::hash<std::string>{}(k.text);
-            h ^= std::hash<float>{}(k.fontSize) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<uint16_t>{}(k.weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            return HashImpl(k.text, k.fontSize, k.weight);
+        }
+        size_t operator()(const TextMeasureKeyView& k) const {
+            return HashImpl(k.text, k.fontSize, k.weight);
+        }
+    private:
+        static size_t HashImpl(std::string_view text, float fontSize, uint16_t weight) {
+            size_t h = std::hash<std::string_view>{}(text);
+            h ^= std::hash<float>{}(fontSize) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= std::hash<uint16_t>{}(weight) + 0x9e3779b9 + (h << 6) + (h >> 2);
             return h;
         }
     };
 
-    mutable std::unordered_map<TextMeasureKey, float, TextMeasureHash> m_MeasureCache;
+    mutable std::unordered_map<TextMeasureKey, float, TextMeasureHash, std::equal_to<>> m_MeasureCache;
 
     bool m_DebugEnabled = false;
     bool m_LoggedScaleDiagnostics = false;

@@ -195,7 +195,6 @@ public:
             std::move(beforeBytes),
             std::move(afterBytes),
             std::string(label));
-        // Change already applied by caller (PropertyEditor) — do not Redo again.
         const bool autoWrap = m_Open.empty();
         if (autoWrap) {
             TransactionDescriptor desc;

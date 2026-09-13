@@ -15,6 +15,7 @@
 #include "KindUI/Input/InputEvents.h"
 #include "RHI/Types.h"
 #include <string>
+#include <string_view>
 #include <vector>
 #include <functional>
 
@@ -75,6 +76,12 @@ KINDUI_API void PaintContentRegion(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintDockTabStripDivider(PaintContext& context, const Rect& headerRect);
 KINDUI_API void PaintDockFooterDivider(PaintContext& context, const Rect& footerRect);
 KINDUI_API void PaintDockHeaderBand(PaintContext& context, const Rect& headerRect);
+
+/// Shared explorer/content-browser column header (eye, pin, label, type).
+KINDUI_API void PaintExplorerColumnHeader(
+    PaintContext& context,
+    const Rect& rect,
+    std::string_view labelText = "Item Label");
 
 struct DockTabDescriptor {
     std::string title;

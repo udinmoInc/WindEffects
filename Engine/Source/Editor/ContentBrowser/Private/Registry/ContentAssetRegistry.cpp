@@ -50,9 +50,6 @@ void ContentAssetRegistry::Initialize(const std::string& contentRoot) {
         m_ContentRoot = contentRoot;
     }
 
-    // Never seed demo/sample content. Empty projects stay empty until the user adds assets.
-
-    // Refresh acquires m_Mutex internally; do not hold the lock here (std::mutex is not recursive).
     Refresh();
 
     {
@@ -85,7 +82,6 @@ void ContentAssetRegistry::Refresh() {
         m_PathIndex.clear();
         m_FolderVersions.clear();
 
-        // Project Content/ mounts as virtual /Game. Never hardcode a project path.
         const fs::path contentRoot = fs::path(m_ContentRoot);
         if (!fs::exists(contentRoot)) {
             refreshedCallback = m_OnRegistryRefreshed;
@@ -178,15 +174,11 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     }
     if (!initialized) return;
     m_WatchTimer += deltaTime;
-    // Idle editor should not recursively walk the content tree often — 5s is enough
-    // for external file drops without competing with mouse navigation.
     constexpr float kMinWatchInterval = 5.0f;
     const float interval = (std::max)(m_WatchInterval, kMinWatchInterval);
     if (m_WatchTimer < interval) return;
     m_WatchTimer = 0.0f;
 
-    // Prefer OS directory watchers when the platform has already polled them.
-    // Fall back to a shallow (non-recursive) signature of the content root entries.
     const fs::path contentRoot = fs::path(m_ContentRoot);
     if (!fs::exists(contentRoot)) return;
 
@@ -197,7 +189,6 @@ void ContentAssetRegistry::Tick(float deltaTime) {
         signature += static_cast<uint64_t>(entry.file_size(ec));
         auto ftime = fs::last_write_time(entry, ec);
         signature ^= static_cast<uint64_t>(ftime.time_since_epoch().count());
-        // One level deep is enough to catch common /Game/<Asset> drops without a full tree walk.
         if (entry.is_directory(ec)) {
             for (const auto& child : fs::directory_iterator(entry.path(), ec)) {
                 signature += static_cast<uint64_t>(child.file_size(ec));

@@ -101,7 +101,18 @@ public:
             stats.opaqueBatches,
             stats.alphaBatches,
             stats.opaqueIndices,
-            stats.alphaIndices);
+            stats.alphaIndices,
+            overlay ? overlay->GetLastBuildCpuMs() : 0.0f,
+            overlay ? overlay->GetLastSubmitCpuMs() : 0.0f,
+            overlay && overlay->BuiltGeometryThisFrame(),
+            overlay && overlay->SubmittedGpuThisFrame(),
+            overlay && overlay->UploadedGeometryThisFrame(),
+            overlay && overlay->LastSubmissionCacheHit(),
+            overlay && overlay->LastSubmissionRebuilt(),
+            overlay ? overlay->SubmissionCacheHitCount() : 0,
+            overlay ? overlay->SubmissionCacheMissCount() : 0,
+            overlay ? overlay->SubmissionRebuildCount() : 0,
+            overlay ? overlay->SubmissionInvalidationCount() : 0);
         we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
         we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
 

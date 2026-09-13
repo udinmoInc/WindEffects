@@ -197,6 +197,7 @@ enum class TypographyToken : uint32_t {
 
     Label,
     Button,
+    Tab,
     Toolbar,
     Menu,
     Tooltip,

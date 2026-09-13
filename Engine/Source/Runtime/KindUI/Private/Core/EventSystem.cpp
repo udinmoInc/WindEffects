@@ -113,45 +113,49 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
     if (hitWidget != oldHovered) {
         UiInputDebug::OnHoverChanged(oldHovered, hitWidget, event.position);
 
-        std::vector<std::shared_ptr<Widget>> newChain;
-        for (auto curr = hitWidget; curr; curr = curr->GetParent()) {
-            newChain.push_back(curr);
-        }
+        if (m_HoveredWidget.lock() != hitWidget) {
+            m_HoveredWidget = hitWidget;
 
-        // Determine widgets that lost hover: in m_HoverChain but not in newChain
-        for (auto& weakOld : m_HoverChain) {
-            if (auto old = weakOld.lock()) {
-                bool stillHovered = false;
-                for (const auto& nw : newChain) {
-                    if (nw == old) {
-                        stillHovered = true;
+            std::vector<std::shared_ptr<Widget>> newChain;
+            for (auto curr = hitWidget; curr; curr = curr->GetParent()) {
+                newChain.push_back(curr);
+            }
+
+            // Determine widgets that lost hover: in m_HoverChain but not in newChain
+            for (auto& weakOld : m_HoverChain) {
+                if (auto old = weakOld.lock()) {
+                    bool stillHovered = false;
+                    for (const auto& nw : newChain) {
+                        if (nw == old) {
+                            stillHovered = true;
+                            break;
+                        }
+                    }
+                    if (!stillHovered) {
+                        old->SetHovered(false);
+                    }
+                }
+            }
+
+            // Determine widgets that gained hover: in newChain but not in m_HoverChain
+            for (const auto& nw : newChain) {
+                bool wasHovered = false;
+                for (const auto& weakOld : m_HoverChain) {
+                    if (weakOld.lock() == nw) {
+                        wasHovered = true;
                         break;
                     }
                 }
-                if (!stillHovered) {
-                    old->SetHovered(false);
+                if (!wasHovered) {
+                    nw->SetHovered(true);
                 }
             }
-        }
 
-        // Determine widgets that gained hover: in newChain but not in m_HoverChain
-        for (const auto& nw : newChain) {
-            bool wasHovered = false;
-            for (const auto& weakOld : m_HoverChain) {
-                if (weakOld.lock() == nw) {
-                    wasHovered = true;
-                    break;
-                }
+            m_HoverChain.clear();
+            m_HoverChain.reserve(newChain.size());
+            for (const auto& nw : newChain) {
+                m_HoverChain.push_back(nw);
             }
-            if (!wasHovered) {
-                nw->SetHovered(true);
-            }
-        }
-
-        m_HoverChain.clear();
-        m_HoverChain.reserve(newChain.size());
-        for (const auto& nw : newChain) {
-            m_HoverChain.push_back(nw);
         }
 
         if (oldHovered && !m_SuppressSystemCursor) {
@@ -312,8 +316,10 @@ void EventSystem::ProcessKeyEvent(const KeyEvent& event) {
 
 void EventSystem::CollectFocusable(const std::shared_ptr<Widget>& node, std::vector<std::shared_ptr<Widget>>& out)
     const {
-    if (!node || !node->IsVisible() || !node->IsActive() || !node->IsFocusable()) return;
-    out.push_back(node);
+    if (!node || !node->IsVisible() || !node->IsActive()) return;
+    if (node->IsFocusable()) {
+        out.push_back(node);
+    }
     for (const auto& child : node->GetChildren()) {
         CollectFocusable(child, out);
     }

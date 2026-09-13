@@ -15,6 +15,10 @@
 #include "KindUI/Core/UIRepaintGate.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 
+#include <chrono>
+#include <cstdlib>
+#include <string>
+
 namespace we::programs::editor {
 
 EditorApplicationFramework::EditorApplicationFramework(IEditorLoopHost& host)
@@ -57,6 +61,22 @@ void EditorApplicationFramework::TickApplication(float deltaTime) {
         m_Host.RequestHostStop();
         RequestExit();
         return;
+    }
+
+    // Timed exit for automated FPS / perf measurement (seconds).
+    if (const char* autoExit = std::getenv("WE_AUTO_EXIT_SECONDS")) {
+        const double limitSec = std::atof(autoExit);
+        if (limitSec > 0.0) {
+            using clock = std::chrono::steady_clock;
+            static const auto s_Start = clock::now();
+            const double elapsed = std::chrono::duration<double>(clock::now() - s_Start).count();
+            if (elapsed >= limitSec) {
+                HE_INFO(std::string("[Startup] WE_AUTO_EXIT_SECONDS=") + autoExit + " reached; exiting.");
+                m_Host.RequestHostStop();
+                RequestExit();
+                return;
+            }
+        }
     }
 
     m_Host.HostProcessLateInputMouse();

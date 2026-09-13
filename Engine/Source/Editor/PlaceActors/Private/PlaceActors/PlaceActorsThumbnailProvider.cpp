@@ -68,7 +68,6 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
     const float radius = we::runtime::kindui::ResolveMetric(MetricToken::CornerRadiusSmall);
     const PlaceActorsThumbnail thumb = Resolve(item);
 
-    // Shared preview frame — identical layout for placeholder, atlas icon, and future thumbnails.
     Color frame = we::runtime::kindui::ResolveColor(ColorToken::HoverBackground);
     frame = Color::Pick(frame, we::runtime::kindui::ResolveColor(ColorToken::PanelBackground), 0.35f);
     if (hoverAnim > 0.01f) {
@@ -77,7 +76,6 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
     context.DrawRoundedRect(previewRect, frame, radius);
 
     if (thumb.kind == PlaceActorsThumbnailKind::CachedTexture && thumb.cachedTexture != nullptr) {
-        // Future path: generated thumbnails drawn into the same preview rect.
         return;
     }
 
@@ -93,7 +91,6 @@ void PlaceActorsThumbnailProvider::Paint(PaintContext& context,
         return;
     }
 
-    // Neutral placeholder: centered muted icon when no thumbnail exists yet.
     const float iconSize = std::clamp(previewRect.width * 0.38f, 14.0f, 28.0f);
     const Rect iconRect{
         previewRect.x + (previewRect.width - iconSize) * 0.5f,

@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/Rendering/UIWidgetAdapter.h"
 #include "KindUI/Profiling/UiPathDiagnostics.h"
+#include "KindUI/Profiling/UiBuildPhaseTiming.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Profiling/UiColorDebug.h"
 #include "KindUI/Profiling/UiColorPipelineDiagnostic.h"
@@ -24,6 +25,7 @@
 #include "Core/Logger.h"
 #include "Core/FrameCounter.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
@@ -98,18 +100,30 @@ void UIWidgetAdapter::Shutdown() {
 void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
                                      uint32_t width, uint32_t height,
                                      bool runLayout) {
+    m_LastPhaseTiming = {};
     if (!root || !m_Renderer) {
         return;
     }
+
+    using clock = std::chrono::steady_clock;
+    const auto t0 = clock::now();
+    auto msSince = [](clock::time_point a, clock::time_point b) {
+        return static_cast<float>(std::chrono::duration<double, std::milli>(b - a).count());
+    };
 
     m_Width = width;
     m_Height = height;
     m_DefaultTextureSet = m_Renderer->GetDummyDescriptorSet();
 
-    // Clear previous frame data
+    // Clear previous frame data (retaining vector capacity)
+    if (m_Vertices.capacity() < 1024) m_Vertices.reserve(1024);
+    if (m_Indices.capacity() < 2048) m_Indices.reserve(2048);
+    if (m_Batches.capacity() < 64) m_Batches.reserve(64);
     m_Vertices.clear();
     m_Indices.clear();
     m_Batches.clear();
+    const auto tClear = clock::now();
+    m_LastPhaseTiming.clearMs = msSince(t0, tClear);
 
     if (UiColorPipelineDiagnostic::IsEnabled()
         && !UiColorCompositionDiagnostic::IsEnabled()) {
@@ -127,6 +141,7 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         }
         m_LastBuiltWidth = width;
         m_LastBuiltHeight = height;
+        m_LastPhaseTiming.totalMs = msSince(t0, clock::now());
         return;
     }
 
@@ -154,13 +169,17 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         existing.x == 0.0f && existing.y == 0.0f &&
         std::abs(existing.width - static_cast<float>(width)) < 0.5f &&
         std::abs(existing.height - static_cast<float>(height)) < 0.5f;
-    const bool alreadyLaidOut = sizeMatches && !root->NeedsLayout();
+    const bool alreadyLaidOut = sizeMatches && !root->SubtreeNeedsLayout();
+    const auto tLayoutStart = clock::now();
     if (runLayout && !alreadyLaidOut) {
         UiPathDiagnostics::Get().OnLayoutPass();
         root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
         root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
         root->ClearSubtreeLayoutDirty();
+        m_LastPhaseTiming.ranLayout = true;
     }
+    const auto tLayoutEnd = clock::now();
+    m_LastPhaseTiming.layoutMs = msSince(tLayoutStart, tLayoutEnd);
 
     if (IsEnvEnabled("WE_KINDUI_DUMP_LAYOUT")) {
         static uint64_t s_LastDumpFrame = 0;
@@ -175,9 +194,9 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         }
     }
 
-    PaintContext paintCtx;
+    m_PaintContext.Clear();
     if (TextUIService* textService = m_Renderer->GetTextUIService()) {
-        paintCtx.SetTextUIService(textService);
+        m_PaintContext.SetTextUIService(textService);
     }
     if (Widget::s_GlobalDiagnostics) {
         Widget::s_GlobalDiagnostics->paintCalls++;
@@ -186,13 +205,14 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     UiColorCompositionDiagnostic::InvokeProbeRegistrar(root);
 
     UiPathDiagnostics::Get().OnPaintPass();
+    const auto tPaintStart = clock::now();
     // Opaque full-frame base: type-5 replace compositing, never alpha-blend against swapchain clear.
-    paintCtx.DrawSurface(
+    m_PaintContext.DrawSurface(
         Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)},
         SurfaceRole::Workspace,
         0.0f,
         "WorkspaceBackdrop");
-    root->Paint(paintCtx);
+    root->Paint(m_PaintContext);
 
     auto& compositionDiag = UiColorCompositionDiagnostic::Get();
     if (compositionDiag.ShouldInjectPanelFlatOverride()) {
@@ -204,28 +224,48 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
             std::max(0.0f, overrideRect.height - 16.0f)
         };
         if (inner.width >= 4.0f && inner.height >= 4.0f) {
-            paintCtx.DrawSurface(inner, SurfaceRole::Panel, 0.0f, "CompositionFlatOverride");
+            m_PaintContext.DrawSurface(inner, SurfaceRole::Panel, 0.0f, "CompositionFlatOverride");
             compositionDiag.NotifyPanelFlatOverrideInjected();
         }
     }
 
     if (UiColorDebug::IsSemanticAuditEnabled()) {
-        UiColorDebug::Get().AuditPaintCommands(paintCtx.GetCommands());
+        UiColorDebug::Get().AuditPaintCommands(m_PaintContext.GetCommands());
     }
 
     if (UiColorCompositionDiagnostic::IsEnabled() && !compositionDiag.HasCompleted()) {
-        compositionDiag.RecordDrawCommands(paintCtx.GetCommands());
+        compositionDiag.RecordDrawCommands(m_PaintContext.GetCommands());
     }
+    const auto tPaintEnd = clock::now();
+    m_LastPhaseTiming.paintMs = msSince(tPaintStart, tPaintEnd);
 
-    m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(paintCtx.GetCommands().size());
+    m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(m_PaintContext.GetCommands().size());
     UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);
+    m_LastPhaseTiming.paintCommands = m_Diagnostics.paintCommandsRecorded;
+
+    const auto tClearDirtyStart = clock::now();
     root->ClearSubtreePaintDirty();
+    const auto tClearDirtyEnd = clock::now();
+    m_LastPhaseTiming.clearDirtyMs = msSince(tClearDirtyStart, tClearDirtyEnd);
 
     // Convert paint commands to geometry
-    const auto& commands = paintCtx.GetCommands();
+    const auto& commands = m_PaintContext.GetCommands();
+    const auto tDrawgenStart = clock::now();
+    float textAccumMs = 0.0f;
     for (const auto& cmd : commands) {
-        ConvertDrawCommand(cmd);
+        if (cmd.type == DrawCommandType::Text) {
+            const auto tText0 = clock::now();
+            ConvertDrawCommand(cmd);
+            textAccumMs += msSince(tText0, clock::now());
+        } else {
+            ConvertDrawCommand(cmd);
+        }
     }
+    const auto tDrawgenEnd = clock::now();
+    m_LastPhaseTiming.drawgenMs = msSince(tDrawgenStart, tDrawgenEnd);
+    m_LastPhaseTiming.textMs = textAccumMs;
+    m_LastPhaseTiming.textCommands = m_Diagnostics.textCommands;
+    m_LastPhaseTiming.rectCommands = m_Diagnostics.rectangleCommands;
 
     if (UiColorDebug::IsOverlayEnabled()) {
         m_CurrentTextureSet = m_DefaultTextureSet;
@@ -244,6 +284,9 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
 
     m_LastBuiltWidth = width;
     m_LastBuiltHeight = height;
+    m_LastPhaseTiming.vertices = static_cast<uint32_t>(m_Vertices.size());
+    m_LastPhaseTiming.batches = static_cast<uint32_t>(m_Batches.size());
+    m_LastPhaseTiming.totalMs = msSince(t0, clock::now());
 }
 
 void UIWidgetAdapter::AddOrMergeBatch(
@@ -297,8 +340,8 @@ void UIWidgetAdapter::AddOrMergeBatch(
 }
 
 void UIWidgetAdapter::ConvertDrawCommand(const DrawCommand& cmd) {
-    const bool textOnly = IsEnvEnabled("WE_UI_AB_TEXT_ONLY");
-    const bool noText = IsEnvEnabled("WE_UI_AB_NO_TEXT");
+    static const bool textOnly = IsEnvEnabled("WE_UI_AB_TEXT_ONLY");
+    static const bool noText = IsEnvEnabled("WE_UI_AB_NO_TEXT");
     if (textOnly && cmd.type != DrawCommandType::Text) {
         return;
     }
@@ -1068,3 +1111,4 @@ void UIWidgetAdapter::GenerateRoundedOutlineGeometry(const DrawCommand& cmd) {
 
 }
 
+// kindui-perf-rebuild-token

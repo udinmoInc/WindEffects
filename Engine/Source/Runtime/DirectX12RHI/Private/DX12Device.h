@@ -334,7 +334,9 @@ public:
     [[nodiscard]] RHIResult<RHICommandPoolHandle> CreateCommandPool(const CommandPoolDesc& desc = {}) override;
     RHIResult<void> DestroyCommandPool(RHICommandPoolHandle handle) override;
     RHIResult<void> ResetCommandPool(RHICommandPoolHandle handle) override;
-    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(RHICommandPoolHandle pool) override;
+    [[nodiscard]] RHIResult<IRHICommandList*> AllocateCommandList(
+        RHICommandPoolHandle pool,
+        CommandBufferLevel level = CommandBufferLevel::Primary) override;
 
     [[nodiscard]] RHIResult<RHIQueryPoolHandle> CreateQueryPool(const QueryPoolDesc& desc) override;
     RHIResult<void> DestroyQueryPool(RHIQueryPoolHandle handle) override;

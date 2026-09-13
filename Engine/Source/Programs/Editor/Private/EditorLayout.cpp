@@ -110,15 +110,27 @@ void Editor::EnsureVisibleSwapchain() {
         const bool forceRecreate = m_ForceSwapchainRecreate;
 
         if (sizeChanged || forceRecreate) {
-            HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
-                std::to_string(height) + ") force=" + std::to_string(forceRecreate ? 1 : 0) + "...");
-            m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-            HE_INFO("[Render] Swapchain recreated for visible window.");
-            m_HasRenderedScene = false;
-            m_LastLayoutSwapchainW = 0;
-            m_LastLayoutSwapchainH = 0;
-            m_ForceSwapchainRecreate = false;
-            we::runtime::kindui::UIRepaintGate::Request();
+            if (!sizeChanged && forceRecreate) {
+                // Focus/restore with identical extent — avoid a full swapchain rebuild
+                // (AMD drivers have been flaky on no-op Rebuild). Images unchanged, so
+                // cached UI secondaries remain valid; do not invalidate or Request().
+                HE_INFO("[Render] Skipping no-op swapchain recreate (extent unchanged, force=1).");
+                m_ForceSwapchainRecreate = false;
+            } else {
+                HE_INFO("[Render] Ensuring swapchain matches visible window (" + std::to_string(width) + "x" +
+                    std::to_string(height) + ") force=" + std::to_string(forceRecreate ? 1 : 0) + "...");
+                m_Renderer->RecreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+                HE_INFO("[Render] Swapchain recreated for visible window.");
+                m_HasRenderedScene = false;
+                m_LastLayoutSwapchainW = 0;
+                m_LastLayoutSwapchainH = 0;
+                m_ForceSwapchainRecreate = false;
+                // Cached secondary CBs inherit swapchain image/format/extent — hard invalidate.
+                if (m_OverlayRenderer) {
+                    m_OverlayRenderer->InvalidateGpuSubmissionCache();
+                }
+                we::runtime::kindui::UIRepaintGate::Request();
+            }
         } else {
             // Duplicate focus/tab activation with identical extent — skip recreate.
             m_ForceSwapchainRecreate = false;
@@ -153,7 +165,10 @@ bool Editor::SyncViewportFramebufferFromLayout() {
         m_RootWidget->Measure(UI::Size{ clientRect.width, clientRect.height });
         m_RootWidget->Arrange(clientRect);
         m_RootWidget->ClearSubtreeLayoutDirty();
-        we::runtime::kindui::UIRepaintGate::RequestPaint();
+        // Layout completed for this frame — one paint/geometry rebuild, then submission cache.
+        // Do not re-arm layout here; Arrange must not write calculated sizes back as requests.
+        we::runtime::kindui::UIRepaintGate::RequestPaintReason(
+            sizeChanged ? "Resize" : "LayoutSizeChanged");
         we::runtime::kindui::UiInputLatencyAudit::Get().OnLayout();
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
@@ -176,6 +191,10 @@ bool Editor::SyncViewportFramebufferFromLayout() {
 void Editor::LogWidgetTreeLayout(const std::shared_ptr<UI::Widget>& widget, const std::string& name, int depth) {
     if (!widget) {
         HE_ERROR("[UI] Widget tree node '" + name + "' is null.");
+        return;
+    }
+
+    if (!m_Renderer || m_Renderer->GetSwapchainWidth() == 0 || m_Renderer->GetSwapchainHeight() == 0) {
         return;
     }
 

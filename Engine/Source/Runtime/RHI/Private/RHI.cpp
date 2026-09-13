@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "RHI/RHI.h"
 #include "RHI/RHIFactory.h"
+#include "RHI/IRHI.h"
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"
@@ -82,6 +83,16 @@ void RHI::Shutdown() {
         g_RHI->Shutdown();
         g_RHI.reset();
     }
+}
+
+bool IRHICommandList::BeginSecondary(const SecondaryInheritanceDesc& /*inheritance*/) {
+    // Backends without secondary support: fall back to a normal Begin() and report failure
+    // so callers can record into the primary list instead of ExecuteCommands.
+    Begin();
+    return false;
+}
+
+void IRHICommandList::ExecuteCommands(std::span<IRHICommandList* const> /*secondaries*/) {
 }
 
 } // namespace we::rhi

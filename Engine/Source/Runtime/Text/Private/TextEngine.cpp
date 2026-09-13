@@ -160,6 +160,28 @@ layout::LayoutResult TextEngine::Layout(
     return LayoutCached(utf8Text, style, constraints, font);
 }
 
+const layout::LayoutResult* TextEngine::GetOrCreateLayout(
+    const std::string_view utf8Text,
+    const layout::TextStyle& style,
+    const layout::LayoutConstraints& constraints,
+    const FontHandle font)
+{
+    const uint64_t atlasGen = AtlasGeneration();
+    const uint64_t key = HashLayoutKey(utf8Text, style, constraints, font);
+    for (const auto& entry : m_LayoutCache) {
+        if (entry.key == key && entry.atlasGeneration == atlasGen) {
+            return &entry.result;
+        }
+    }
+    (void)LayoutCached(utf8Text, style, constraints, font);
+    for (const auto& entry : m_LayoutCache) {
+        if (entry.key == key && entry.atlasGeneration == atlasGen) {
+            return &entry.result;
+        }
+    }
+    return nullptr;
+}
+
 MeasureResult TextEngine::Measure(
     const std::string_view utf8Text,
     const layout::TextStyle& style,
@@ -317,3 +339,5 @@ std::unique_ptr<ITextEngine> CreateTextEngine(const TextEngineConfig& config)
 }
 
 } // namespace we::runtime::text
+
+// kindui-perf-rebuild-token

@@ -25,6 +25,7 @@ struct RHI_API RHICapabilities {
     bool conservativeRasterization = false;
     bool samplerFeedback = false;
     bool dynamicRendering = true;
+    bool secondaryCommandBuffers = false;
     bool multiview = false;
     bool multiDrawIndirect = false;
     bool geometryShaders = false;
@@ -68,6 +69,7 @@ struct RHI_API RHICapabilities {
     [[nodiscard]] bool SupportsAsyncCompute() const noexcept { return asyncCompute; }
     [[nodiscard]] bool SupportsSparseResources() const noexcept { return sparseResources; }
     [[nodiscard]] bool SupportsDynamicRendering() const noexcept { return dynamicRendering; }
+    [[nodiscard]] bool SupportsSecondaryCommandBuffers() const noexcept { return secondaryCommandBuffers; }
     [[nodiscard]] bool SupportsMultiDrawIndirect() const noexcept { return multiDrawIndirect; }
     [[nodiscard]] bool SupportsAnisotropy() const noexcept { return samplerAnisotropy; }
 };

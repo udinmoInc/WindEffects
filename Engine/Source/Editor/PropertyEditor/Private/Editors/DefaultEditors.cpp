@@ -681,7 +681,6 @@ public:
                 if (event.button != MouseButton::Left || !m_Handle || m_Handle->IsReadOnly()) {
                     return;
                 }
-                // Only process clicks within our geometry for opening the picker
                 if (!m_Geometry.Contains(event.position)) {
                     return;
                 }
@@ -1417,7 +1416,6 @@ public:
                 if (const auto* prop = m_Handle->GetPropertyInfo()) {
                     const std::size_t count = prop->primitive == PrimitiveKind::Vec3 ? 3 : 4;
                     (void)m_Handle->GetRaw(m_Values, sizeof(float) * count);
-                    // Set default alpha for Vec3 colors
                     if (count == 3) {
                         m_Values[3] = 1.0f;
                     }
@@ -2076,10 +2074,8 @@ public:
                     const PrimitiveKind primitive =
                         property.primitive != PrimitiveKind::None ? property.primitive : info->primitive;
 
-                    // Special handling for Vec3/Vec4 color properties
                     if (primitive == PrimitiveKind::Vec3 || primitive == PrimitiveKind::Vec4) {
                         const std::string& name = property.name;
-                        // Check for common color property naming patterns
                         if (name.find("Color") != std::string::npos ||
                             name.find("color") != std::string::npos ||
                             name == "Tint" || name == "tint" ||

@@ -31,7 +31,7 @@ public class ContentBrowser : ModuleRules
         PublicDependencies.Add("Reflection");
         PublicDependencies.Add("Serialization");
         // Undo is NOT a module dependency — Editor injects transaction callbacks to avoid
-        // ContentBrowser ↔ PropertyEditor ↔ Undo cycles (PE uses CB SearchBox).
+        // ContentBrowser ↔ PropertyEditor ↔ Undo cycles.
 
         PrivateDependencies.Add("RHI");
         PrivateDependencies.Add("Renderer");

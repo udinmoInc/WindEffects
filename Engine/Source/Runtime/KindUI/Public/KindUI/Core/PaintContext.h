@@ -151,7 +151,24 @@ public:
         bool italic = false) const;
 
     const std::vector<DrawCommand>& GetCommands() const { return m_Commands; }
-    void Clear() { m_Commands.clear(); m_ClipStack.clear(); }
+    [[nodiscard]] size_t CommandCount() const { return m_Commands.size(); }
+    void AppendCommands(const std::vector<DrawCommand>& commands);
+    void AppendCommands(const std::vector<DrawCommand>& commands, size_t begin, size_t end);
+
+    /// When true, PaintSubtree may replay/update per-widget retained command lists.
+    /// Disabled on layout frames (geometry changed).
+    void SetPaintRetentionEnabled(bool enabled) { m_PaintRetentionEnabled = enabled; }
+    [[nodiscard]] bool IsPaintRetentionEnabled() const { return m_PaintRetentionEnabled; }
+
+    void Clear() {
+        m_Commands.clear();
+        m_ClipStack.clear();
+        m_SurfaceOwnerStack.clear();
+        m_LayerCounter = 0;
+        if (m_Commands.capacity() < 512) {
+            m_Commands.reserve(512);
+        }
+    }
 
 private:
 #pragma warning(push)
@@ -161,6 +178,7 @@ private:
     std::vector<Rect> m_ClipStack;
     std::vector<SurfaceOwnerScope> m_SurfaceOwnerStack;
     uint32_t m_LayerCounter = 0;
+    bool m_PaintRetentionEnabled = false;
 #pragma warning(pop)
     Rect GetCurrentClipRect() const;
     [[nodiscard]] const char* CurrentWidgetName() const;

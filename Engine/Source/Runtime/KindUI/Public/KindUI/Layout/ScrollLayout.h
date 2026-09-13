@@ -59,6 +59,8 @@ private:
     ScrollViewportMetrics m_Metrics{};
     float m_ContentHeight = 0.0f;
     float m_MaxScroll = 0.0f;
+    float m_LastScale = 1.0f;
+    bool m_MetricsDirty = true;
 };
 
 } // namespace we::runtime::kindui

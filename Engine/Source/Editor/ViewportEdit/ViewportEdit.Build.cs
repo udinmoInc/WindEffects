@@ -18,8 +18,7 @@ public class ViewportEdit : ModuleRules
         PrivateIncludePaths.Add("Private");
 
         // Interaction layer only — World/Scene own objects; Undo owns history; Renderer owns pixels.
-        // Intentionally does NOT depend on Viewport widget (Viewport→PlaceActors→TerrainEditor
-        // would cycle once TerrainEditor hosts Landscape mode on ViewportEdit).
+        // Does NOT depend on Viewport widget (Viewport→PlaceActors→TerrainEditor would cycle).
         PublicDependencies.Add("Core");
         PublicDependencies.Add("Platform");
         PublicDependencies.Add("Engine");

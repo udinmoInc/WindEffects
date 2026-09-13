@@ -9,6 +9,7 @@
 #include "KindUI/Widgets/Components.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/UIRepaintGate.h"
 #include "KindUI/Tokens/DesignToken.h"
 #include "KindUI/Theming/ThemeAccess.h"
 #include "KindUI/Theming/StyleRole.h"
@@ -115,7 +116,8 @@ void SkeletonBlock::Arrange(const Rect& allottedRect) {
 
 void SkeletonBlock::Tick(float deltaTime) {
     m_Pulse += deltaTime * 2.5f;
-    InvalidatePaint();
+    // Keep the central gate awake for the pulse; do not invent a local idle check.
+    UIRepaintGate::MarkAnimating();
     Widget::Tick(deltaTime);
 }
 

@@ -12,6 +12,7 @@
 
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
+#include "KindUI/Theming/ResolvedStyle.h"
 #include <string>
 #include <functional>
 
@@ -27,11 +28,16 @@ public:
     void Paint(PaintContext& context) override;
     void Tick(float deltaTime) override;
     void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
     bool ShowsPointerCursor(const Point& position) const override { return m_Geometry.Contains(position); }
 
     bool IsChecked() const { return m_Checked; }
-    void SetChecked(bool checked) { m_Checked = checked; }
+    void SetChecked(bool checked) {
+        if (m_Checked == checked) {
+            return;
+        }
+        m_Checked = checked;
+        InvalidatePaint();
+    }
 
     void SetOnChanged(std::function<void(bool)> callback) { m_OnChanged = callback; }
 
@@ -42,6 +48,8 @@ private:
     TextStyle m_Style;
     float m_BoxSize = 14.0f;
     float m_HoverAnim = 0.0f;
+    ResolvedStyle m_CachedBoxStyle;
+    bool m_BoxStyleCacheValid = false;
 };
 
 } // namespace we::runtime::kindui

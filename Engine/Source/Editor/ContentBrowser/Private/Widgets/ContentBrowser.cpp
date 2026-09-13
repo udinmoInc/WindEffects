@@ -78,11 +78,6 @@ ContentBrowser::ContentBrowser()
     m_EmptyState = ::we::runtime::kindui::MakeEmptyState(
         "This folder is empty");
     m_Model->onModelChanged = [this]() {
-        // Do NOT call BuildRenderList() here — it resets all geometry to Rect{}
-        // before Arrange() can re-lay items out. Paint() then calls
-        // UpdateVisibleRange() with zero rects → nothing in viewport → blank screen.
-        // RecalculateLayout() (called from Arrange on the next layout pass) will
-        // call BuildRenderList() with correct positions. Just flag dirty + repaint.
         MarkLayoutDirty();
         InvalidatePaint();
     };
@@ -95,7 +90,6 @@ void ContentBrowser::SetModel(std::shared_ptr<ContentBrowserModel> model) {
             MarkLayoutDirty();
             InvalidatePaint();
         };
-        // Initial build is fine here — SetModel is called before first layout.
         MarkLayoutDirty();
         BuildRenderList();
     }
@@ -211,7 +205,6 @@ void ContentBrowser::RecalculateLayout() {
     m_ContentHeight = ComputeContentHeight();
     SyncScrollMetrics();
 
-    // Second pass only when scrollbar/content feedback can change tile placement.
     const float contentAfter = ComputeContentHeight();
     if (std::abs(contentAfter - m_ContentHeight) > 0.5f
         || m_ScrollMetrics.showsScrollbar) {
@@ -244,8 +237,6 @@ void ContentBrowser::Arrange(const Rect& allottedRect) {
 
 void ContentBrowser::Tick(float deltaTime) {
     Widget::Tick(deltaTime);
-    // Service/registry ticking is owned by IContentBrowser::Tick in the editor loop —
-    // do not call ContentBrowserService::Tick here (that double-processed thumbnails).
 
     constexpr float kHoverDuration = 0.135f;
     const float hoverSpeed = 1.0f / kHoverDuration;
@@ -257,7 +248,7 @@ void ContentBrowser::Tick(float deltaTime) {
         m_ItemHoverAlpha = std::max(target, m_ItemHoverAlpha - hoverSpeed * deltaTime);
     }
     if (std::abs(m_ItemHoverAlpha - prev) > 0.0005f) {
-        UIRepaintGate::RequestPaint();
+        UIRepaintGate::MarkAnimating();
     }
 }
 
@@ -334,9 +325,6 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
     }
 
     if (selected) {
-        // A full opaque primary-blue card hides the thumbnail and is especially
-        // harsh when a range is selected. Keep the asset readable and use the
-        // border as the primary selected-state affordance instead.
         Color selectionFill = ThemeColor(ColorToken::AccentPrimary);
         selectionFill.a = 0.16f;
         context.DrawRoundedRect(cell, selectionFill, radius);
@@ -346,8 +334,6 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
         const float borderWidth = std::max(1.0f, ThemeMetric(MetricToken::BorderWidth));
         context.DrawRoundedRectOutline(cell, selectionBorder, borderWidth, radius);
 
-        // A compact top rail stays recognizable at a glance when tile labels
-        // are close together or the browser contains a large multi-selection.
         const float railHeight = std::max(2.0f, borderWidth);
         context.DrawRoundedRect(
             Rect{ cell.x + radius, cell.y, std::max(0.0f, cell.width - radius * 2.0f), railHeight },
@@ -466,7 +452,6 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const bool hovered = item.id == m_HoveredId;
     const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
 
-    // Chrome the full card so selection wraps thumbnail and label evenly
     PaintTileChrome(context, renderItem.geometry, selected, hoverAlpha);
     PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
 

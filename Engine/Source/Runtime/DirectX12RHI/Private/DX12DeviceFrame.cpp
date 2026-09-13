@@ -380,11 +380,15 @@ RHIResult<void> DX12Device::ResetCommandPool(RHICommandPoolHandle handle) {
     return RHIResult<void>::Success();
 }
 
-RHIResult<IRHICommandList*> DX12Device::AllocateCommandList(RHICommandPoolHandle poolHandle) {
+RHIResult<IRHICommandList*> DX12Device::AllocateCommandList(
+    RHICommandPoolHandle poolHandle,
+    CommandBufferLevel /*level*/)
+{
     auto it = m_CommandPools.find(static_cast<uint64_t>(poolHandle));
     if (it == m_CommandPools.end() || !it->second.allocator || !m_Device) {
         return RHIError::Make(RHIErrorCode::InvalidHandle, "Unknown command pool.", "AllocateCommandList");
     }
+    // DX12 bundles are not wired yet — always allocate a primary direct list.
     ComPtr<ID3D12GraphicsCommandList> list;
     if (FAILED(m_Device->CreateCommandList(
             0, D3D12_COMMAND_LIST_TYPE_DIRECT, it->second.allocator.Get(), nullptr, IID_PPV_ARGS(&list)))) {

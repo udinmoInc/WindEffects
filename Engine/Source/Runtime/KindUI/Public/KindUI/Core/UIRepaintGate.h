@@ -30,9 +30,20 @@ public:
     static void RequestLayout();
     static void RequestPaint();
 
+    /// Same as RequestLayout/RequestPaint but tags a stable reason for WE_UI_INVALIDATION_LOG=1.
+    static void RequestLayoutReason(const char* reason);
+    static void RequestPaintReason(const char* reason);
+    [[nodiscard]] static const char* LastLayoutReason();
+    [[nodiscard]] static const char* LastPaintReason();
+    [[nodiscard]] static uint64_t LayoutReasonCount();
+    [[nodiscard]] static uint64_t PaintReasonCount();
+
     static void MarkAnimating();
+    /// Clears the sticky animation latch. Call at the start of the widget-tick phase
+    /// after PeekNeedsWidgetTick() so Tick must re-arm via MarkAnimating/Damp.
     static void MarkSettled();
-    /// Clears per-frame animation latch; call once at the start of each UI frame.
+    /// Frame bookkeeping. Does not clear the animation latch — that latch must survive
+    /// ConsumeNeedsPaint so the next frame still runs widget Tick while damping.
     static void BeginFrame();
 
     /// Scoped batching for multi-step structural operations (float/dock a panel,
@@ -64,6 +75,11 @@ public:
     [[nodiscard]] static bool PeekNeedsLayout();
     [[nodiscard]] static bool PeekNeedsPaint();
 
+    /// True when layout and paint are both clean (no animation latch).
+    [[nodiscard]] static bool PeekIsFullyIdle();
+    /// True when widget Tick / hover-damp should run this frame.
+    [[nodiscard]] static bool PeekNeedsWidgetTick();
+
     [[nodiscard]] static uint64_t RebuildCount();
     [[nodiscard]] static uint64_t SkipCount();
     [[nodiscard]] static uint64_t LayoutRebuildCount();
@@ -83,6 +99,10 @@ private:
     static std::atomic<uint64_t> s_LayoutRebuildCount;
     static std::atomic<uint64_t> s_PaintRebuildCount;
     static std::atomic<uint64_t> s_IdleSkipCount;
+    static std::atomic<const char*> s_LastLayoutReason;
+    static std::atomic<const char*> s_LastPaintReason;
+    static std::atomic<uint64_t> s_LayoutReasonCount;
+    static std::atomic<uint64_t> s_PaintReasonCount;
 };
 
 } // namespace we::runtime::kindui

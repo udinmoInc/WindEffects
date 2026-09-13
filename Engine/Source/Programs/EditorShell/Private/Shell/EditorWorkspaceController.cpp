@@ -11,6 +11,7 @@
 
 #include "Core/EditorConfigPaths.h"
 #include "Core/Logger.h"
+#include "Core/FrameCounter.h"
 #include "KindUI/Panel/Panel.h"
 #include "KindUI/Docking/DockContainer.h"
 #include "KindUI/Docking/FloatingPanelFrame.h"
@@ -873,6 +874,15 @@ void EditorWorkspaceController::UpdateEmptyDockVisibility() {
     }
     if (m_Layout.contentBrowserDock) {
         const bool show = dockHasTabs(m_Layout.contentBrowserDock) && m_ContentBrowserExpanded;
+        const bool wasVisible = m_Layout.contentBrowserDock->IsVisible();
+        if (wasVisible != show) {
+            WE_LOG_INFO(we::LogCategory::General.data(),
+                std::string("[CBSplitter] UpdateEmptyDockVisibility contentBrowserDock ")
+                    + (wasVisible ? "1" : "0") + " -> " + (show ? "1" : "0")
+                    + " expanded=" + (m_ContentBrowserExpanded ? "1" : "0")
+                    + " tabs=" + std::to_string(m_Layout.contentBrowserDock->GetTabCount())
+                    + " frame=" + std::to_string(we::runtime::core::FrameCounter::GetFrameNumber()));
+        }
         m_Layout.contentBrowserDock->SetVisible(show);
     }
 
@@ -1030,6 +1040,19 @@ void EditorWorkspaceController::ToggleContentBrowserExpanded() {
     auto splitter = m_Layout.rootVerticalSplitter;
     const bool nextExpanded = !m_ContentBrowserExpanded;
     const float prevHeight = splitter->GetFixedSecondWidth();
+    const auto& geom = splitter->GetGeometry();
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        std::string("[CBSplitter] Toggle BEGIN frame=")
+            + std::to_string(we::runtime::core::FrameCounter::GetFrameNumber())
+            + " expanded=" + (m_ContentBrowserExpanded ? "1" : "0")
+            + " -> " + (nextExpanded ? "1" : "0")
+            + " fixedSecond=" + std::to_string(prevHeight)
+            + " storedHeight=" + std::to_string(m_ContentBrowserBottomHeight)
+            + " geom=" + std::to_string(geom.width) + "x" + std::to_string(geom.height)
+            + " gateLayout=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout() ? "1" : "0")
+            + " gatePaint=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsPaint() ? "1" : "0")
+            + " dockVis=" + (m_Layout.contentBrowserDock && m_Layout.contentBrowserDock->IsVisible() ? "1" : "0"));
+
     m_ContentBrowserExpanded = nextExpanded;
     if (m_ContentBrowserExpanded) {
         const float targetHeight = m_ContentBrowserBottomHeight > 0.0f ? m_ContentBrowserBottomHeight : 240.0f;
@@ -1047,7 +1070,19 @@ void EditorWorkspaceController::ToggleContentBrowserExpanded() {
     }
 
     UpdateEmptyDockVisibility();
-    we::runtime::kindui::UIRepaintGate::RequestLayout();
+    we::runtime::kindui::UIRepaintGate::RequestLayoutReason("PanelExpand");
+    we::runtime::kindui::UIRepaintGate::RequestPaintReason("PanelExpand");
+
+    WE_LOG_INFO(we::LogCategory::General.data(),
+        std::string("[CBSplitter] Toggle END frame=")
+            + std::to_string(we::runtime::core::FrameCounter::GetFrameNumber())
+            + " expanded=" + (m_ContentBrowserExpanded ? "1" : "0")
+            + " fixedSecond=" + std::to_string(splitter->GetFixedSecondWidth())
+            + " gateLayout=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsLayout() ? "1" : "0")
+            + " gatePaint=" + (we::runtime::kindui::UIRepaintGate::PeekNeedsPaint() ? "1" : "0")
+            + " dockVis=" + (m_Layout.contentBrowserDock && m_Layout.contentBrowserDock->IsVisible() ? "1" : "0")
+            + " lastLayout=" + we::runtime::kindui::UIRepaintGate::LastLayoutReason()
+            + " lastPaint=" + we::runtime::kindui::UIRepaintGate::LastPaintReason());
 }
 
 void EditorWorkspaceController::SetOnPanelVisibilityChanged(std::function<void()> callback) {

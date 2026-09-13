@@ -23,6 +23,8 @@ struct EDITORSHELL_API EditorPerfSample {
     float rhiPrepareMs = 0.0f;
     float uiBuildMs = 0.0f;
     float uiOnlyMs = 0.0f;
+    float uiBuildCpuMs = 0.0f;
+    float uiSubmitCpuMs = 0.0f;
     float sceneMs = 0.0f;
     float presentMs = 0.0f;
     uint32_t uiVertices = 0;
@@ -31,11 +33,20 @@ struct EDITORSHELL_API EditorPerfSample {
     uint32_t uiAlphaBatches = 0;
     uint32_t uiOpaqueIndices = 0;
     uint32_t uiAlphaIndices = 0;
+    uint32_t uiBuiltFrames = 0;
+    uint32_t uiSubmitFrames = 0;
+    uint32_t uiUploadFrames = 0;
     uint64_t uiRebuilds = 0;
     uint64_t uiSkips = 0;
     uint64_t uiLayoutRebuilds = 0;
     uint64_t uiPaintRebuilds = 0;
     uint64_t uiIdleSkips = 0;
+    uint64_t uiSubCacheHits = 0;
+    uint64_t uiSubCacheMisses = 0;
+    uint64_t uiSubRebuilds = 0;
+    uint64_t uiSubInvalidations = 0;
+    uint32_t uiSubCacheHitFrames = 0;
+    uint32_t uiSubRebuildFrames = 0;
 };
 
 class EDITORSHELL_API EditorPerfStats {
@@ -50,7 +61,18 @@ public:
         uint32_t uiOpaqueBatches = 0,
         uint32_t uiAlphaBatches = 0,
         uint32_t uiOpaqueIndices = 0,
-        uint32_t uiAlphaIndices = 0);
+        uint32_t uiAlphaIndices = 0,
+        float uiBuildCpuMs = 0.0f,
+        float uiSubmitCpuMs = 0.0f,
+        bool uiBuilt = false,
+        bool uiSubmitted = false,
+        bool uiUploaded = false,
+        bool uiSubmissionCacheHit = false,
+        bool uiSubmissionRebuilt = false,
+        uint64_t uiSubCacheHits = 0,
+        uint64_t uiSubCacheMisses = 0,
+        uint64_t uiSubRebuilds = 0,
+        uint64_t uiSubInvalidations = 0);
 
     [[nodiscard]] const EditorPerfSample& Last() const { return m_Last; }
     [[nodiscard]] float AverageFps() const { return m_AvgFps; }

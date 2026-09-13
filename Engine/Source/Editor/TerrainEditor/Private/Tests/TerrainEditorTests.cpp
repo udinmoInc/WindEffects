@@ -78,7 +78,7 @@ TerrainEditorTestReport RunTerrainEditorTests() {
     landscape.SetBrushFalloff(0.4f);
     landscape.SetBrushOp(runtime_terrain::TerrainBrushOp::Raise);
     const bool brushed = landscape.ApplyBrushAtWorld(0.f, 0.f);
-    AddCase(report, "BrushWithUndo", brushed || true, "stroke"); // may no-op at origin
+    AddCase(report, "BrushWithUndo", brushed || true, "stroke");
     AddCase(report, "UndoAfterBrush", undoRuntime->Manager().CanUndo() || !brushed, "canUndo");
 
     runtime_terrain::ProceduralHeightmapParams proc{};
@@ -101,7 +101,6 @@ TerrainEditorTestReport RunTerrainEditorTests() {
         wizard.Step() == LandscapeWizardStep::Generator,
         "generatorStep");
 
-    // Create Landscape from dialog without heightmap path.
     wizard.Reset();
     wizard.State().name = "FlatFromDialog";
     wizard.State().creationMethod = runtime_terrain::TerrainCreationMethod::Flat;
