@@ -19,89 +19,47 @@ namespace we::runtime::kindui::palette {
 
 struct GraphiteDark {
 
-    // ── Base surfaces (EStyleColor) ─────────────────────────────────────────
-    // Dark charcoal hierarchy:
-    // Black      → deepest level
-    // Input      → recessed controls
-    // Foldout    → recessed control wells
-    // Recessed   → tree/grid wells
-    // Background → main workspace
-    // Panel      → panel body
-    // Header     → panel/section header
-    // Dropdown   → raised popup surface
-
-    static constexpr Color Black             = Hex("#070707");
-
-    // Main editor chrome / title strip
-    static constexpr Color Title             = Hex("#070707");
-
-    // Main workspace — near-black base
-    static constexpr Color Background        = Hex("#070707");
-
-    // Very dark separators / window edges
-    static constexpr Color WindowBorder      = Hex("#060606");
-
-    // Recessed control wells
-    static constexpr Color Foldout           = Hex("#151515");
-
-    // Inputs / pressed wells
-    static constexpr Color Input             = Hex("#0E0E0E");
-
-    // Input and control borders
+    // AppBackground vs one shared PanelSurface.
+    // Nested container roles alias Panel. Input/Button are controls only.
+    static constexpr Color Black             = Hex("#050505");
+    static constexpr Color Title             = Hex("#0A0A0A");
+    static constexpr Color Background        = Hex("#0C0C0C"); // AppBackground
+    static constexpr Color WindowBorder      = Hex("#070707");
+    static constexpr Color Foldout           = Hex("#202020"); // Category / foldout headers (distinct from Panel)
+    static constexpr Color Category          = Hex("#202020"); // alias → Foldout — property categorizer bars
+    static constexpr Color Input             = Hex("#0E0E0E"); // InputSurface
     static constexpr Color InputOutline      = Hex("#292929");
-
-    // Border colors — configurable from JSON
-    static constexpr Color BorderSeparator   = Hex("#181818");
-    static constexpr Color BorderSubtle      = Hex("#383838");
-    static constexpr Color BorderDefault     = Hex("#383838");
-    static constexpr Color BorderLight       = Hex("#4C4C4C");
+    static constexpr Color BorderSeparator   = Hex("#101010");
+    static constexpr Color BorderSubtle      = Hex("#202020");
+    static constexpr Color BorderDefault     = Hex("#2A2A2A");
+    static constexpr Color BorderLight       = Hex("#353535");
     static constexpr Color BorderFocus       = Hex("#0068D0");
-    static constexpr Color BorderError       = Hex("#EF3535");
-
-    // Axis colors — configurable from JSON
-    static constexpr Color AxisX            = Hex("#D63838");
-    static constexpr Color AxisY            = Hex("#719F3D");
-    static constexpr Color AxisZ            = Hex("#209ED8");
-
-    // Recessed input top inner edge — darker charcoal, low contrast against Input.
+    static constexpr Color BorderError       = Hex("#963B3B");
+    static constexpr Color AxisX            = Hex("#8A3F3F");
+    static constexpr Color AxisY            = Hex("#5D783F");
+    static constexpr Color AxisZ            = Hex("#315F8A");
     static constexpr Color InputInsetInner   = Hex("#08080866");
-    // Optional outer lip for non-input chrome (panels / cards).
     static constexpr Color InputInsetOuter   = Hex("#00000080");
+    static constexpr Color Recessed          = Hex("#141414"); // legacy alias → InnerPanel
+    static constexpr Color InnerPanel        = Hex("#141414"); // PanelInner — nested rows / trees / wells
+    static constexpr Color Panel             = Hex("#181818"); // shared PanelSurface
+    static constexpr Color Header            = Hex("#181818"); // same as Panel
+    static constexpr Color Dropdown          = Hex("#1A1A1A"); // Popup / card
+    static constexpr Color DropdownOutline   = Hex("#2C2C2C");
+    static constexpr Color Hover             = Hex("#2C2C2C"); // HoverSurface
+    static constexpr Color Hover2            = Hex("#2E2E2E");
+    static constexpr Color Highlight         = Hex("#0068D0");
+    static constexpr Color Primary           = Hex("#0068D0");
+    static constexpr Color PrimaryHover      = Hex("#0878E5");
+    static constexpr Color PrimaryPress      = Hex("#004A96");
+    static constexpr Color ButtonPrimary      = Hex("#242424"); // ButtonSurface
+    static constexpr Color ButtonPrimaryHover = Hex("#2D2D2D");
+    static constexpr Color ButtonPrimaryPress = Hex("#1D1D1D");
+    static constexpr Color Secondary         = Hex("#141414"); // PanelInner alias
 
-    // Tree / grid wells
-    static constexpr Color Recessed          = Hex("#101010");
+    static constexpr Color Select            = Hex("#2F3844");
 
-    static constexpr Color Panel             = Hex("#161616");
-
-    // Section / panel headers
-    static constexpr Color Header            = Hex("#212121");
-
-    // Raised menus / cards / popups
-    static constexpr Color Dropdown          = Hex("#1A1A1A");
-
-    // Raised control / popup edges
-    static constexpr Color DropdownOutline   = Hex("#3A3A3A");
-
-    // ── Interaction (EStyleColor) ───────────────────────────────────────────
-
-    // Row / control hover — visible but not bright gray
-    static constexpr Color Hover             = Hex("#28282C");
-
-    // Muted text / scrollbar hover
-    static constexpr Color Hover2            = Hex("#8B9198");
-
-    // Primary interaction blue
-    static constexpr Color Highlight         = Hex("#0070E0");
-    static constexpr Color Primary           = Hex("#0070E0");
-    static constexpr Color PrimaryHover      = Hex("#0E86FF");
-    static constexpr Color PrimaryPress      = Hex("#0050A0");
-
-    // Legacy EStyleColor name
-    static constexpr Color Secondary         = Dropdown;
-
-    static constexpr Color Select            = Primary;
-
-    static constexpr Color SelectInactive    = Hex("#40576F");
+    static constexpr Color SelectInactive    = Hex("#252B33");
 
     // Parent selection — subtle dark blue-gray
     static constexpr Color SelectParent      = Hex("#2C323A");
@@ -109,24 +67,27 @@ struct GraphiteDark {
     // Hovered selected item
     static constexpr Color SelectHover       = Panel;
 
-    // ── Text (EStyleColor) ──────────────────────────────────────────────────
+    // ── Text — only two general UI text colors (neutral) ─────────────────────
 
-    static constexpr Color White             = Hex("#E0E0E0");
-    static constexpr Color White25           = Hex("#E0E0E040");
+    static constexpr Color White             = Hex("#D0D0D0");
+    static constexpr Color White25           = Hex("#FFFFFF33");
 
-    // Main editor text
-    static constexpr Color Foreground        = Hex("#C2C2C2");
+    // PrimaryText — labels, titles, values, active readable content
+    static constexpr Color PrimaryText       = Hex("#B8B8B8");
+    static constexpr Color Foreground        = PrimaryText; // alias
 
-    static constexpr Color ForegroundHover   = Hex("#E0E0E0");
+    // Brighter text only when drawn on accent/filled controls (not a 3rd body color)
+    static constexpr Color ForegroundHover   = Hex("#D2D2D2");
 
-    // Text rendered over Input surfaces
+    // Text rendered over light Input surfaces
     static constexpr Color ForegroundInverted = Input;
 
-    // Header / section text
-    static constexpr Color ForegroundHeader  = Hex("#D0D0D0");
+    // Header text shares PrimaryText (no separate chroma)
+    static constexpr Color ForegroundHeader  = PrimaryText;
 
-    // Disabled / notification label text
-    static constexpr Color Notifications     = Hex("#858585");
+    // SecondaryText — hints, metadata, descriptions, supporting copy
+    static constexpr Color SecondaryText     = Hex("#929292");
+    static constexpr Color Notifications     = SecondaryText; // alias
 
     // ── Icons (mono atlas tint targets — separate from body text) ───────────
 
@@ -169,7 +130,7 @@ struct GraphiteDark {
     static constexpr Color AccentGray        = Hex("#707070");
 
     static constexpr Color AccentWhite       = White;
-    static constexpr Color AccentFolder      = Hex("#9A7848");
+    static constexpr Color AccentFolder      = Hex("#A8844A");
 
     // ── Composites (alpha permitted — overlays / shadows only) ──────────────
 
@@ -194,6 +155,13 @@ struct GraphiteDark {
 
     // ── Button bevel ────────────────────────────────────────────────────────
     // Toolbar / raised controls only — never full-surface fills.
+
+    // Cool slate face — distinct from Panel/Header/Dropdown, not a darker clone.
+    static constexpr Color ButtonFace        = Hex("#32353C");
+    static constexpr Color ButtonFaceHover   = Hex("#3E424A");
+    static constexpr Color ButtonFacePress   = Hex("#262930");
+    // Near-black outer rim (alpha; drawn on the outside edge of the face).
+    static constexpr Color ButtonInset       = Hex("#000000D0");
 
     static constexpr Color ButtonBevelTop    = Hex("#383A3D");
     static constexpr Color ButtonBevelBottom = Hex("#111213");

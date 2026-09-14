@@ -10,8 +10,8 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Theme/IKindUITheme.h"
-#include "KindUI/Theme/GraphiteDarkTheme.h"
 #include "KindUI/Theme/ResolvedStyle.h"
+#include "KindUI/Theme/StyleResolver.h"
 #include "KindUI/Theme/StyleRole.h"
 
 #include <functional>

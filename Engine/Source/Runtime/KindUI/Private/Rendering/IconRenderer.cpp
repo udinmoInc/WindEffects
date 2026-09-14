@@ -8,6 +8,8 @@
 // ==============================================================================
 #include "KindUI/Host/IconRenderer.h"
 
+// Resolves through IconManager's shared PNG/GPU cache (no per-renderer texture copies).
+
 namespace we::runtime::kindui {
 
 IconRenderer::IconRenderer() = default;

@@ -325,6 +325,17 @@ public:
         }
         const auto primary = viewport->Selection().GetPrimary();
         if (!primary.IsValid()) {
+            // Viewport clear: scene listener usually clears first; still drop outliner
+            // selection here so Details clears before widget Tick the same frame.
+            if (!m_Selection->IsEmpty()) {
+                m_ApplyingExternalSelection = true;
+                m_Events->Suspend(true);
+                m_Selection->Clear();
+                m_Events->Suspend(false);
+                ApplySelectionToTreeView();
+                m_ApplyingExternalSelection = false;
+                SyncSelectionToScene();
+            }
             return;
         }
         const OutlinerNodeId node{primary.value};

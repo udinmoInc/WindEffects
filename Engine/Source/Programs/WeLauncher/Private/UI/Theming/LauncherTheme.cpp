@@ -7,13 +7,8 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "UI/Theming/LauncherTheme.h"
-#include "KindUI/Theme/GraphiteDarkTheme.h"
 
 namespace we::programs::welauncher {
-
-we::runtime::kindui::Color LauncherTheme::ResolveColor(we::runtime::kindui::ColorToken token) const {
-    return GraphiteDarkTheme::ResolveColor(token);
-}
 
 float LauncherTheme::ResolveMetric(we::runtime::kindui::MetricToken token) const {
     switch (token) {

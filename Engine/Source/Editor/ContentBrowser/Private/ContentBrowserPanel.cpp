@@ -263,7 +263,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
 
     auto folderTree = std::make_shared<::we::editor::contentbrowser::TreeView>();
     folderTree->SetExplorerStyle(false);
-    folderTree->SetPaintNavigationBackground(false);
+    folderTree->SetPaintNavigationBackground(true);
     folderTree->SetShowColumnHeader(false);
     folderTree->SetItemHeight(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::ListRowHeight));
     folderTree->SetIndentWidth(we::runtime::kindui::ResolveMetric(we::runtime::kindui::MetricToken::TreeIndentWidth));
@@ -274,6 +274,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     mainColumn->SetFlexShrink(1.0f);
 
     auto assetToolbar = ::we::editor::contentbrowser::ContentBrowserToolbarControls::Create(::we::editor::contentbrowser::ContentBrowserToolbarControls::ToolbarMode::Full);
+    assetToolbar->SetDrawBottomBorder(true);
     auto contentBrowser = std::make_shared<::we::editor::contentbrowser::ContentBrowser>();
 
     assetToolbar->SetFlexShrink(0.0f);
@@ -287,7 +288,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     rightPane->SetFlexShrink(1.0f);
 
     auto searchRow = std::make_shared<we::runtime::kindui::Row>();
-    searchRow->Background(we::runtime::kindui::Hex("#151515"));
+    searchRow->Background(we::runtime::kindui::ResolveSurfaceColor(we::runtime::kindui::SurfaceRole::Panel));
     searchRow->Padding(Margin{ 6.0f, 3.0f, 6.0f, 3.0f });
     searchRow->Gap(4.0f);
     searchRow->Align(AlignItems::Center);

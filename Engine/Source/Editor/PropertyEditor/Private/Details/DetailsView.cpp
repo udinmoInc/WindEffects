@@ -524,9 +524,8 @@ private:
                     m_SplitterState.GetRatio());
                 const bool mixed = node->GetValueState() == PropertyValueState::Mixed;
                 const bool rowHovered = m_HoveredPropertyPath == node->GetPath();
-                if (rowHovered) {
-                    PanelChrome::PaintPropertyRowBackground(context, row, true, false);
-                }
+                PanelChrome::PaintPropertyRowBackground(
+                    context, row, rowHovered, false, node->GetDepth());
 
                 if (hasLockIcon) {
                     PanelChrome::PaintPropertyLockIcon(context, layout.lockIcon, IsPropertyLocked(node));

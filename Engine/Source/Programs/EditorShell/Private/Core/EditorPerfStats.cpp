@@ -13,6 +13,8 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
+#include <string>
 
 using ::we::runtime::kindui::UIRepaintGate;
 
@@ -25,6 +27,13 @@ bool EnvEnabled(const char* name) {
     return v != nullptr && v[0] != '\0' && v[0] != '0';
 }
 
+std::string FormatMb(uint64_t bytes) {
+    const double mb = static_cast<double>(bytes) / (1024.0 * 1024.0);
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.3f", mb);
+    return std::string(buf);
+}
+
 } // namespace
 
 EditorPerfStats& EditorPerfStats::Get() {
@@ -34,6 +43,65 @@ EditorPerfStats& EditorPerfStats::Get() {
 
 bool EditorPerfStats::IsPerfLoggingEnabled() {
     return EnvEnabled("WE_EDITOR_PERF");
+}
+
+bool EditorPerfStats::IsMemLoggingEnabled() {
+    return EnvEnabled("WE_KINDUI_MEM_LOG") || EnvEnabled("WE_EDITOR_PERF") || EnvEnabled("WE_KINDUI_HEAP");
+}
+
+void EditorPerfStats::CaptureMemory(
+    const we::runtime::kindui::Widget* root,
+    const we::runtime::kindui::OverlayRenderer* overlay) {
+    if (!IsMemLoggingEnabled()) {
+        return;
+    }
+
+    const double now = NowMs();
+    if (m_LastMemLogMs > 0.0 && (now - m_LastMemLogMs) < 1000.0) {
+        return;
+    }
+    m_LastMemLogMs = now;
+
+    we::runtime::kindui::KindUIHeapStats::RefreshEnabledFromEnv();
+    const auto snap = we::runtime::kindui::KindUIHeapStats::Capture(root, overlay);
+
+    std::string line = std::string("[EditorMem]")
+        + " wsMB=" + FormatMb(snap.processWorkingSetBytes)
+        + " privateMB=" + FormatMb(snap.processPrivateBytes)
+        + " peakWsMB=" + FormatMb(snap.processPeakWorkingSetBytes)
+        + " kinduiCpuMB=" + FormatMb(snap.kinduiCpuStructuralBytes)
+        + " widgets=" + std::to_string(snap.widgetCount)
+        + " visible=" + std::to_string(snap.visibleWidgetCount)
+        + " widgetBaseMB=" + FormatMb(snap.widgetObjectBytesEstimate)
+        + " retainedPaintMB=" + FormatMb(snap.retainedPaintBytesEstimate)
+        + " geomVertCapMB=" + FormatMb(snap.geometryVertexCapacityBytes)
+        + " geomIdxCapMB=" + FormatMb(snap.geometryIndexCapacityBytes)
+        + " geomBatchCapMB=" + FormatMb(snap.geometryBatchCapacityBytes)
+        + " drawCmdCapMB=" + FormatMb(snap.drawCommandCapacityBytes)
+        + " gpuVBMB=" + FormatMb(snap.gpuVertexCapacityBytes)
+        + " gpuIBMB=" + FormatMb(snap.gpuIndexCapacityBytes)
+        + " textMeasureCache=" + std::to_string(snap.textMeasureCacheEntries)
+        + " textMeasureMB=" + FormatMb(snap.textMeasureCacheBytes)
+        + " textMetricsCache=" + std::to_string(snap.textMetricsCacheEntries)
+        + " textMetricsMB=" + FormatMb(snap.textMetricsCacheBytes)
+        + " fontAtlasPages=" + std::to_string(snap.fontAtlasPageCount)
+        + " fontAtlasCpuMB=" + FormatMb(snap.fontAtlasCpuBytes)
+        + " iconTexCache=" + std::to_string(snap.iconTextureCacheEntries)
+        + " iconTexMB=" + FormatMb(snap.iconTextureCacheBytes)
+        + " subCacheSlots=" + std::to_string(snap.submissionCacheSlots)
+        + " sizeofWidget=" + std::to_string(sizeof(we::runtime::kindui::Widget));
+
+    if (snap.kinduiHeapTracking) {
+        line += std::string(" kinduiTrack=1")
+            + " allocs=" + std::to_string(snap.kinduiAllocCount)
+            + " frees=" + std::to_string(snap.kinduiFreeCount)
+            + " outMB=" + FormatMb(snap.kinduiOutstandingBytes)
+            + " peakOutMB=" + FormatMb(snap.kinduiPeakOutstandingBytes);
+    } else {
+        line += " kinduiTrack=0 note=process+structural-only";
+    }
+
+    HE_INFO(line);
 }
 
 double EditorPerfStats::NowMs() const {

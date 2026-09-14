@@ -303,7 +303,7 @@ RHIResult<void> DX12Device::UpdateTexture(RHITextureHandle handle, const Texture
     }
 
     // One-shot upload using a temporary list on frame slot 0.
-    WaitIdle();
+    // Wait only after Execute — a pre-copy WaitIdle doubled GPU stalls on every atlas/icon update.
     m_Allocators[0]->Reset();
     m_CmdLists[0]->Reset(m_Allocators[0].Get(), nullptr);
     BindShaderHeaps(m_CmdLists[0].Get());

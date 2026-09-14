@@ -17,21 +17,27 @@
 namespace we::runtime::kindui {
 
 std::atomic<bool> UIRepaintGate::s_NeedsLayout{true};
+std::atomic<bool> UIRepaintGate::s_NeedsOverlayLayout{false};
 std::atomic<bool> UIRepaintGate::s_NeedsPaint{true};
 std::atomic<bool> UIRepaintGate::s_Animating{false};
 std::atomic<int> UIRepaintGate::s_BatchDepth{0};
 std::atomic<bool> UIRepaintGate::s_BatchDeferredLayout{false};
+std::atomic<bool> UIRepaintGate::s_BatchDeferredOverlayLayout{false};
 std::atomic<bool> UIRepaintGate::s_BatchDeferredPaint{false};
 std::atomic<bool> UIRepaintGate::s_BatchDeferredAnimating{false};
 std::atomic<uint64_t> UIRepaintGate::s_RebuildCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_SkipCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_LayoutRebuildCount{0};
+std::atomic<uint64_t> UIRepaintGate::s_OverlayLayoutRebuildCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_PaintRebuildCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_IdleSkipCount{0};
 std::atomic<const char*> UIRepaintGate::s_LastLayoutReason{nullptr};
+std::atomic<const char*> UIRepaintGate::s_LastOverlayLayoutReason{nullptr};
 std::atomic<const char*> UIRepaintGate::s_LastPaintReason{nullptr};
 std::atomic<uint64_t> UIRepaintGate::s_LayoutReasonCount{0};
+std::atomic<uint64_t> UIRepaintGate::s_OverlayLayoutReasonCount{0};
 std::atomic<uint64_t> UIRepaintGate::s_PaintReasonCount{0};
+std::atomic<bool> UIRepaintGate::s_HostLayoutPendingPaint{false};
 
 namespace {
 
@@ -57,6 +63,7 @@ void UIRepaintGate::EndBatch() {
     }
     // Outermost batch closed: collapse every deferred request into one flag set.
     const bool deferLayout = s_BatchDeferredLayout.exchange(false, std::memory_order_acq_rel);
+    const bool deferOverlayLayout = s_BatchDeferredOverlayLayout.exchange(false, std::memory_order_acq_rel);
     const bool deferPaint = s_BatchDeferredPaint.exchange(false, std::memory_order_acq_rel);
     const bool deferAnimating = s_BatchDeferredAnimating.exchange(false, std::memory_order_acq_rel);
     if (deferAnimating) {
@@ -67,6 +74,12 @@ void UIRepaintGate::EndBatch() {
         s_LastLayoutReason.store("Batch", std::memory_order_relaxed);
         s_LayoutReasonCount.fetch_add(1, std::memory_order_relaxed);
         s_NeedsLayout.store(true, std::memory_order_release);
+    }
+    if (deferOverlayLayout) {
+        PaintCauseLog::Get().Push("gate-overlay", WE_PAINT_CALLER);
+        s_LastOverlayLayoutReason.store("Batch", std::memory_order_relaxed);
+        s_OverlayLayoutReasonCount.fetch_add(1, std::memory_order_relaxed);
+        s_NeedsOverlayLayout.store(true, std::memory_order_release);
     }
     if (deferPaint || deferAnimating) {
         PaintCauseLog::Get().Push("gate-paint", WE_PAINT_CALLER);
@@ -101,8 +114,27 @@ void UIRepaintGate::RequestLayout() {
     RequestLayoutReason("Unknown");
 }
 
+void UIRepaintGate::RequestOverlayLayout() {
+    RequestOverlayLayoutReason("Unknown");
+}
+
 void UIRepaintGate::RequestPaint() {
     RequestPaintReason("Unknown");
+}
+
+void UIRepaintGate::RequestOverlayLayoutReason(const char* reason) {
+    reason = NormalizeReason(reason);
+    s_LastOverlayLayoutReason.store(reason, std::memory_order_relaxed);
+    s_OverlayLayoutReasonCount.fetch_add(1, std::memory_order_relaxed);
+    if (InvalidationLogEnabled()) {
+        HE_INFO(std::string("[UIInvalidation] overlay-layout reason=") + reason);
+    }
+    if (InBatch()) {
+        s_BatchDeferredOverlayLayout.store(true, std::memory_order_relaxed);
+        return;
+    }
+    PaintCauseLog::Get().Push("gate-overlay", WE_PAINT_CALLER);
+    s_NeedsOverlayLayout.store(true, std::memory_order_release);
 }
 
 void UIRepaintGate::RequestLayoutReason(const char* reason) {
@@ -162,8 +194,26 @@ bool UIRepaintGate::ConsumeNeedsLayout() {
     const bool requested = s_NeedsLayout.exchange(false, std::memory_order_acq_rel);
     if (requested) {
         s_LayoutRebuildCount.fetch_add(1, std::memory_order_relaxed);
+        // Full layout subsumes overlay-only work.
+        s_NeedsOverlayLayout.store(false, std::memory_order_release);
     }
     return requested;
+}
+
+bool UIRepaintGate::ConsumeNeedsOverlayLayout() {
+    const bool requested = s_NeedsOverlayLayout.exchange(false, std::memory_order_acq_rel);
+    if (requested) {
+        s_OverlayLayoutRebuildCount.fetch_add(1, std::memory_order_relaxed);
+    }
+    return requested;
+}
+
+void UIRepaintGate::NotifyHostLayoutCompleted() {
+    s_HostLayoutPendingPaint.store(true, std::memory_order_release);
+}
+
+bool UIRepaintGate::ConsumeHostLayoutForPaint() {
+    return s_HostLayoutPendingPaint.exchange(false, std::memory_order_acq_rel);
 }
 
 bool UIRepaintGate::ConsumeNeedsPaint() {
@@ -189,13 +239,17 @@ bool UIRepaintGate::PeekNeedsLayout() {
     return s_NeedsLayout.load(std::memory_order_acquire);
 }
 
+bool UIRepaintGate::PeekNeedsOverlayLayout() {
+    return s_NeedsOverlayLayout.load(std::memory_order_acquire);
+}
+
 bool UIRepaintGate::PeekNeedsPaint() {
     return s_NeedsPaint.load(std::memory_order_acquire)
         || s_Animating.load(std::memory_order_acquire);
 }
 
 bool UIRepaintGate::PeekNeedsRebuild() {
-    return PeekNeedsLayout() || PeekNeedsPaint();
+    return PeekNeedsLayout() || PeekNeedsOverlayLayout() || PeekNeedsPaint();
 }
 
 bool UIRepaintGate::PeekIsFullyIdle() {
@@ -218,6 +272,15 @@ uint64_t UIRepaintGate::SkipCount() {
 
 uint64_t UIRepaintGate::LayoutRebuildCount() {
     return s_LayoutRebuildCount.load(std::memory_order_relaxed);
+}
+
+const char* UIRepaintGate::LastOverlayLayoutReason() {
+    const char* reason = s_LastOverlayLayoutReason.load(std::memory_order_relaxed);
+    return reason ? reason : "None";
+}
+
+uint64_t UIRepaintGate::OverlayLayoutReasonCount() {
+    return s_OverlayLayoutReasonCount.load(std::memory_order_relaxed);
 }
 
 uint64_t UIRepaintGate::PaintRebuildCount() {

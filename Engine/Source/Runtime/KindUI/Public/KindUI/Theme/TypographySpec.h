@@ -15,12 +15,14 @@
 namespace we::runtime::kindui {
 
 /// Concrete typography values resolved from a semantic role + theme.
-/// Role → color mapping (IKindUITheme::ResolveTypography):
-///   PageTitle / SectionTitle / Body → TextPrimary
-///   Subtitle                        → TextSecondary
-///   Caption / Label                 → TextCaption / TextSecondary
-///   Hint / CaptionSmall             → TextHint
-///   Disabled                        → TextDisabled
+/// Color mapping (TypographySystem::GetColorToken):
+///   Ordinary UI  → TextPrimary (PrimaryText) or TextSecondary (SecondaryText)
+///   Link/Error/Warning/Success → semantic status only (never ordinary labels)
+/// Size mapping (TypographySystem::GetFontSize):
+///   Title roles  → FontSizeTitle
+///   Header roles → FontSizeHeader
+///   Body/Tab/…  → FontSizeNormal
+///   Caption/…   → FontSizeCaption
 struct KINDUI_API TypographySpec {
     TypographyToken role = TypographyToken::Body;
     float sizePx = 12.0f;

@@ -12,12 +12,10 @@
 #include <KindUI/EditorUI.h>
 namespace we::editor::services {
 
-// Editor product theme: GraphiteDark surfaces + orange accent for editing tools.
+/// Editor product theme id over GraphiteDark. Color/metric resolution is owned by GraphiteDarkTheme.
 class EDITORSHELL_API EditorTheme final : public we::runtime::kindui::GraphiteDarkTheme {
 public:
     [[nodiscard]] std::string_view GetThemeId() const override { return "Editor"; }
-
-    [[nodiscard]] we::runtime::kindui::Color ResolveColor(we::runtime::kindui::ColorToken token) const override;
 };
 
 } // namespace we::editor::services

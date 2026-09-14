@@ -765,12 +765,16 @@ MemoryInfo WindowsPlatform::GetMemoryInfo() const {
 
     using K32Fn = BOOL(WINAPI*)(HANDLE, ProcessMemoryCounters*, DWORD);
     SIZE_T workingSet = 0;
+    SIZE_T peakWorkingSet = 0;
+    SIZE_T privateBytes = 0;
     if (HMODULE k = ::GetModuleHandleW(L"kernel32.dll")) {
         if (auto fn = reinterpret_cast<K32Fn>(::GetProcAddress(k, "K32GetProcessMemoryInfo"))) {
             ProcessMemoryCounters counters{};
             counters.cb = sizeof(counters);
             if (fn(GetCurrentProcess(), &counters, sizeof(counters))) {
                 workingSet = counters.WorkingSetSize;
+                peakWorkingSet = counters.PeakWorkingSetSize;
+                privateBytes = counters.PagefileUsage;
             }
         }
     }
@@ -781,6 +785,9 @@ MemoryInfo WindowsPlatform::GetMemoryInfo() const {
     info.totalVirtualBytes = status.ullTotalVirtual;
     info.availableVirtualBytes = status.ullAvailVirtual;
     info.processUsedBytes = static_cast<uint64_t>(workingSet);
+    info.processWorkingSetBytes = static_cast<uint64_t>(workingSet);
+    info.processPrivateBytes = static_cast<uint64_t>(privateBytes);
+    info.processPeakWorkingSetBytes = static_cast<uint64_t>(peakWorkingSet);
     return info;
 }
 

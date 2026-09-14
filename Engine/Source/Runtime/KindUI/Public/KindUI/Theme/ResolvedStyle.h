@@ -11,7 +11,6 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Theme/StyleRole.h"
-#include "KindUI/Theme/Palette.h"
 
 #include <string_view>
 

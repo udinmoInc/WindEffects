@@ -306,7 +306,7 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
             hoverAlpha,
             0.0f,
             false,
-            ColorToken::SecondarySurface);
+            ColorToken::PanelBackground);
     }
 
     if (selected) {
@@ -509,7 +509,7 @@ void ContentBrowser::Paint(PaintContext& context) {
     UpdateVisibleRange();
 
     Rect innerBounds{ m_Geometry.x, m_Geometry.y, m_Geometry.width, m_ScrollMetrics.viewport.height };
-    context.DrawRect(innerBounds, ::we::runtime::kindui::Hex("#151515"));
+    context.DrawSurface(innerBounds, ::we::runtime::kindui::SurfaceRole::Panel, 0.0f, "ContentBrowserView");
 
     const float viewTop = m_ScrollMetrics.viewport.y;
     const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
@@ -566,7 +566,7 @@ void ContentBrowser::Paint(PaintContext& context) {
         const float borderY = std::floor(m_Geometry.y + m_Geometry.height - statusHeight);
         const float borderThickness = std::max(1.0f, ThemeMetric(MetricToken::PanelDividerWidth));
         context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness },
-            ThemeColor(ColorToken::Separator));
+            ThemeColor(ColorToken::BorderDefault));
 
         const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
         const float padX = std::floor(12.0f * uiScale);
@@ -616,7 +616,7 @@ void ContentBrowser::Paint(PaintContext& context) {
         }
     }
 
-    const ::we::runtime::kindui::Color trackBg = ::we::runtime::kindui::Hex("#151515");
+    const ::we::runtime::kindui::Color trackBg = ThemeColor(ColorToken::ScrollbarTrack);
     m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered(), &trackBg);
 }
 

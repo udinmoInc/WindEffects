@@ -40,7 +40,7 @@ void ScrollContainer::SetContentWidget(std::shared_ptr<Widget> contentWidget) {
 void ScrollContainer::SyncScroll() {
     float contentH = m_Geometry.height;
     if (m_ContentWidget) {
-        const Size contentSize = m_ContentWidget->Measure(Size{ m_Geometry.width, 1e9f });
+        const Size contentSize = MeasureChild(m_ContentWidget, Size{ m_Geometry.width, 1e9f });
         contentH = contentSize.height;
     }
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
@@ -48,17 +48,36 @@ void ScrollContainer::SyncScroll() {
 }
 
 Size ScrollContainer::Measure(const Size& availableSize) {
+    if (!IsVisible()) {
+        m_DesiredSize = {};
+        return m_DesiredSize;
+    }
     m_DesiredSize = availableSize;
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void ScrollContainer::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    CommitGeometry(allottedRect);
+    if (!IsVisible()) {
+        return;
+    }
     SyncScroll();
     if (m_ContentWidget) {
-        const Rect contentRect{ allottedRect.x, allottedRect.y - m_Scroll.offset, allottedRect.width,
-            m_Geometry.height };
-        m_ContentWidget->Arrange(contentRect);
+        float contentH = m_Geometry.height;
+        const Size contentSize = m_ContentWidget->GetDesiredSize();
+        if (contentSize.height > 0.0f) {
+            contentH = contentSize.height;
+        } else {
+            contentH = MeasureChild(m_ContentWidget, Size{ m_Geometry.width, 1e9f }).height;
+        }
+        const Rect contentRect{
+            allottedRect.x,
+            allottedRect.y - m_Scroll.offset,
+            allottedRect.width,
+            contentH
+        };
+        ArrangeChild(m_ContentWidget, contentRect);
     }
 }
 

@@ -290,6 +290,10 @@ Rect Splitter::GetSplitterBarRect() const {
 }
 
 Size Splitter::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
     m_DesiredSize = availableSize;
     AssertNonNegativeSize(m_SlotId.empty() ? "Splitter" : m_SlotId, availableSize.width, availableSize.height);
 
@@ -306,10 +310,10 @@ Size Splitter::Measure(const Size& availableSize) {
             m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availW, barThickness,
             firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, w1, w2);
         if (firstVisible) {
-            m_FirstChild->Measure(Size{ w1, availH });
+            (void)MeasureChild(m_FirstChild, Size{ w1, availH });
         }
         if (secondVisible) {
-            m_SecondChild->Measure(Size{ w2, availH });
+            (void)MeasureChild(m_SecondChild, Size{ w2, availH });
         }
     } else {
         float h1 = 0.0f;
@@ -318,18 +322,22 @@ Size Splitter::Measure(const Size& availableSize) {
             m_ResizeMode, m_FixedFirstWidth, m_FixedSecondWidth, availH, barThickness,
             firstVisible, secondVisible, m_MinFirstPx, m_MinSecondPx, m_SplitRatio, h1, h2);
         if (firstVisible) {
-            m_FirstChild->Measure(Size{ availW, h1 });
+            (void)MeasureChild(m_FirstChild, Size{ availW, h1 });
         }
         if (secondVisible) {
-            m_SecondChild->Measure(Size{ availW, h2 });
+            (void)MeasureChild(m_SecondChild, Size{ availW, h2 });
         }
     }
 
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void Splitter::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    // Never skip on identical allotted rect: split ratio / fixed pane sizes can change
+    // while the splitter's outer geometry stays the same (drag resize).
+    CommitGeometry(allottedRect);
+    ClearLayoutDirty();
     AssertNonNegativeSize(m_SlotId.empty() ? "Splitter" : m_SlotId, allottedRect.width, allottedRect.height);
 
     const float barThickness = GetEffectiveBarThickness();
@@ -359,7 +367,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 allottedRect);
             AssertLayoutRectValid("Splitter.first", firstRect, allottedRect);
             m_FirstChildRect = firstRect;
-            m_FirstChild->Arrange(firstRect);
+            ArrangeChild(m_FirstChild, firstRect);
         }
         if (secondVisible) {
             const float secondX = (firstVisible && w1 > 0.0f) ? barX + barThickness : allottedRect.x;
@@ -374,7 +382,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 allottedRect);
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
             m_SecondChildRect = secondRect;
-            m_SecondChild->Arrange(secondRect);
+            ArrangeChild(m_SecondChild, secondRect);
         }
 
         if (firstVisible && secondVisible) {
@@ -444,7 +452,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 allottedRect);
             AssertLayoutRectValid("Splitter.first", firstRect, allottedRect);
             m_FirstChildRect = firstRect;
-            m_FirstChild->Arrange(firstRect);
+            ArrangeChild(m_FirstChild, firstRect);
         }
         if (secondVisible) {
             const float secondY = (firstVisible && h1 > 0.0f) ? barY + barThickness : allottedRect.y;
@@ -459,7 +467,7 @@ void Splitter::Arrange(const Rect& allottedRect) {
                 allottedRect);
             AssertLayoutRectValid("Splitter.second", secondRect, allottedRect);
             m_SecondChildRect = secondRect;
-            m_SecondChild->Arrange(secondRect);
+            ArrangeChild(m_SecondChild, secondRect);
         }
 
         if (firstVisible && secondVisible) {
@@ -560,6 +568,12 @@ void Splitter::Paint(PaintContext& context) {
     }
 
     if (!firstVisible || !secondVisible) {
+        return;
+    }
+
+    if (m_PanelGapEnabled) {
+        // Empty gaps between docked panels must remain clean background space.
+        // No line divider is drawn in the panel gap.
         return;
     }
 
@@ -700,6 +714,23 @@ void Splitter::OnHoverLost() {
         NoteSplitterDragEnded();
         // A captured drag can leave the window without a mouse-up event.
         // Finalize its geometry through the same path as a normal release.
+        UIRepaintGate::RequestLayoutReason("Resize");
+        UIRepaintGate::RequestPaintReason("Resize");
+    }
+    if (!AnySplitterDragging()) {
+        we::platform::Platform::Get().SetSystemCursor(we::platform::SystemCursor::Arrow);
+    }
+}
+
+void Splitter::OnCaptureLost() {
+    Widget::OnCaptureLost();
+    if (m_Dragging) {
+        m_Dragging = false;
+        const int prev = g_SplitterDragCount.fetch_sub(1, std::memory_order_relaxed);
+        if (prev <= 0) {
+            g_SplitterDragCount.store(0, std::memory_order_relaxed);
+        }
+        NoteSplitterDragEnded();
         UIRepaintGate::RequestLayoutReason("Resize");
         UIRepaintGate::RequestPaintReason("Resize");
     }

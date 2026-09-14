@@ -15,29 +15,32 @@
 namespace we::runtime::kindui {
 
 // Semantic color tokens — one role per entry.
-// Concrete values live in Palette.h (GraphiteDark) and theme ResolveColor().
-// Multiple tokens may share a palette entry when roles intentionally match.
+// Concrete values: GraphiteDark.json → PaletteRuntime → GraphiteDarkTheme::ResolveColor.
 
 enum class ColorToken : uint32_t {
-    // ── Surfaces (dark panel defaults) ───────────────────────
-    WindowBackground,
-    WorkspaceBackground,
-    DockChromeBackground,
-    PanelBackground,
+    // ── Surfaces ────────────────────────────────────────────
+    // AppBackground vs one shared PanelSurface. Nested containers reuse Panel.
+    // Input / Control / Hover are for controls only — not large regions.
+    WindowBackground,          // AppBackground
+    WorkspaceBackground,       // AppBackground
+    DockChromeBackground,      // AppBackground
+    PanelBackground,           // shared PanelSurface
+    PanelRaisedBackground,     // alias → PanelSurface
     TabActiveBackground,
-    SecondarySurface,
+    SecondarySurface,          // PanelInner / InnerPanel (nested rows, trees, wells)
     CardBackground,
-    HeaderBackground,
-    ListLabelBandBackground,
-    ToolbarBackground,
+    HeaderBackground,          // alias → PanelSurface
+    CategoryBackground,        // Category / Foldout — property categorizer headers
+    ListLabelBandBackground,   // alias → PanelSurface
+    ToolbarBackground,         // alias → PanelSurface
     TabBackground,
-    InputBackground,
-    ControlBackground,
+    InputBackground,           // InputSurface (controls)
+    ControlBackground,         // ButtonSurface (controls)
     PopupBackground,
     TooltipBackground,
     DisabledBackground,
-    StatusBarBackground,
-    ViewportToolbarBackground,
+    StatusBarBackground,       // alias → PanelSurface
+    ViewportToolbarBackground, // alias → PanelSurface
     ScrollbarTrack,
 
     // ── Interaction states ────────────────────────────────────────────────────
@@ -59,20 +62,21 @@ enum class ColorToken : uint32_t {
     BorderLight,
     BorderFocus,
     BorderError,
+    InputOutline,
 
     // ── Axis colors ───────────────────────────────────────────────────────────
     AxisX,
     AxisY,
     AxisZ,
 
-    // ── Text hierarchy ──────────────────────────────────────────────────────
-    TextPrimary,
-    TextSecondary,
-    TextHint,
-    TextDisabled,
-    TextOnAccent,
-    LinkForeground,
-    SearchPlaceholder,
+    // ── Text hierarchy (only two general body colors) ────────────────────────
+    TextPrimary,               // PrimaryText — labels, titles, values
+    TextSecondary,             // SecondaryText — hints, metadata, supporting
+    TextHint,                  // alias → TextSecondary (legacy)
+    TextDisabled,              // state role; resolves to SecondaryText
+    TextOnAccent,              // contrast on accent/filled controls only
+    LinkForeground,            // interactive links only
+    SearchPlaceholder,         // alias → TextSecondary
 
     // ── Icons ─────────────────────────────────────────────────────────────────
     IconPrimary,
@@ -90,12 +94,12 @@ enum class ColorToken : uint32_t {
     ActiveTabLine,
     SelectionHighlight,
 
-    // ── Semantic status ───────────────────────────────────────────────────────
+    // ── Semantic status (not ordinary body text) ──────────────────────────────
     Success,
     Warning,
     ErrorForeground,
-    InfoColor,
-    PlayForeground,
+    InfoColor,                 // alias → TextPrimary (legacy; not accent chroma)
+    PlayForeground,            // alias → TextPrimary (legacy)
     CloseButtonHover,
 
     // ── Buttons ───────────────────────────────────────────────────────────────
@@ -243,6 +247,7 @@ enum class MetricToken : uint32_t {
     CornerRadiusMedium,
     CornerRadiusLarge,
     WindowCornerRadius,
+    PanelCornerRadius,         // docked/editor panel chrome (0 = square)
 
     TextSizeMenu,
     TextSizeToolbar,

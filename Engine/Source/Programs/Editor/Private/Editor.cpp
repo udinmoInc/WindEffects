@@ -11,6 +11,13 @@
 #include "FirstRunAgreementPopup.h"
 #include "Core/ProductMetadata.h"
 #include "KindUI/Diagnostics/KindUIBenchmark.h"
+#include "KindUI/Diagnostics/KindUIVirtualizationBenchmark.h"
+#include "KindUI/Diagnostics/KindUIDirtyRegionBenchmark.h"
+#include "KindUI/Diagnostics/KindUILayoutBenchmark.h"
+#include "KindUI/Diagnostics/KindUIStateChangeBenchmark.h"
+#include "KindUI/Diagnostics/KindUITextBenchmark.h"
+#include "KindUI/Diagnostics/KindUIOverlayBenchmark.h"
+#include "KindUI/Diagnostics/KindUIResidencyBenchmark.h"
 #include "KindUI/Diagnostics/KindUIInteractionBenchmark.h"
 #include "PropertyEditor/PropertyEditorBenchmark.h"
 #include "KindUI/Diagnostics/UiColorCompositionDiagnostic.h"
@@ -84,6 +91,55 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
     if (const char* bench = std::getenv("WE_UI_BENCH"); bench != nullptr && bench[0] != '\0' && bench[0] != '0') {
         const auto report = UI::RunKindUIBenchmark(500);
         HE_INFO("[UIBench] " + report.summary);
+    }
+    if (const char* virtBench = std::getenv("WE_UI_VIRT_BENCH");
+        virtBench != nullptr && virtBench[0] != '\0' && virtBench[0] != '0') {
+        const auto report = UI::RunKindUIVirtualizationBenchmark(48);
+        HE_INFO("[UIVirtBench] " + report.summary);
+    }
+    if (const char* dirtyBench = std::getenv("WE_UI_DIRTY_BENCH");
+        dirtyBench != nullptr && dirtyBench[0] != '\0' && dirtyBench[0] != '0') {
+        const auto report = UI::RunKindUIDirtyRegionBenchmark(64);
+        HE_INFO("[UIDirtyBench] " + report.summary);
+    }
+    if (const char* layoutBench = std::getenv("WE_UI_LAYOUT_BENCH");
+        layoutBench != nullptr && layoutBench[0] != '\0' && layoutBench[0] != '0') {
+        const auto report = UI::RunKindUILayoutBenchmark(64);
+        HE_INFO("[UILayoutBench] " + report.summary);
+    }
+    if (const char* stateBench = std::getenv("WE_UI_STATE_BENCH");
+        stateBench != nullptr && stateBench[0] != '\0' && stateBench[0] != '0') {
+        const auto report = UI::RunKindUIStateChangeBenchmark(64);
+        HE_INFO("[UIStateBench] " + report.summary);
+    }
+    if (const char* textBench = std::getenv("WE_UI_TEXT_BENCH");
+        textBench != nullptr && textBench[0] != '\0' && textBench[0] != '0') {
+        const auto report = UI::RunKindUITextBenchmark(
+            m_OverlayRenderer ? m_OverlayRenderer->GetTextUIService() : nullptr, 64);
+        HE_INFO("[UITextBench] " + report.summary);
+    }
+    if (const char* overlayBench = std::getenv("WE_UI_OVERLAY_BENCH");
+        overlayBench != nullptr && overlayBench[0] != '\0' && overlayBench[0] != '0') {
+        const auto report = UI::RunKindUIOverlayBenchmark(64);
+        HE_INFO("[UIOverlayBench] " + report.summary);
+    }
+    if (const char* residencyBench = std::getenv("WE_UI_RESIDENCY_BENCH");
+        residencyBench != nullptr && residencyBench[0] != '\0' && residencyBench[0] != '0') {
+        const auto report = UI::RunKindUIResidencyBenchmark(m_OverlayRenderer.get(), 48);
+        HE_INFO("[UIResidencyBench] " + report.summary);
+        for (const auto& scenario : report.scenarios) {
+            HE_INFO("[UIResidencyBench] " + scenario.name
+                + " frame=" + std::to_string(static_cast<uint64_t>(scenario.avgFrameMicros)) + "us"
+                + " icons=" + std::to_string(scenario.residentIcons)
+                + " iconGpu=" + std::to_string(scenario.residentIconGpuBytes)
+                + " geom=" + std::to_string(scenario.residentTextGeom)
+                + " load=" + std::to_string(scenario.loads)
+                + " up=" + std::to_string(scenario.uploads)
+                + " ev=" + std::to_string(scenario.evictions)
+                + " hit=" + std::to_string(scenario.cacheHits)
+                + " miss=" + std::to_string(scenario.cacheMisses)
+                + " defer=" + std::to_string(scenario.deferredReleases));
+        }
     }
     if (const char* interactBench = std::getenv("WE_UI_INTERACT_BENCH");
         interactBench != nullptr && interactBench[0] != '\0' && interactBench[0] != '0') {

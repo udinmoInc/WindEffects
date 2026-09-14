@@ -19,6 +19,8 @@
 #include "KindUI/Host/OverlayRenderContext.h"
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/LayoutIncremental.h"
+#include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/Animator.h"
 #include "Core/AssetRegistry.h"
 #include "Core/Logger.h"
@@ -191,16 +193,27 @@ void WeLauncherApp::SyncLayoutFromSwapchain() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
-    if (needsLayout) {
+    const bool needsFullLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
+    const bool needsOverlayLayout = !needsFullLayout
+        && we::runtime::kindui::UIRepaintGate::ConsumeNeedsOverlayLayout();
+    if (needsFullLayout) {
         using Size = we::runtime::kindui::Size;
         using Rect = we::runtime::kindui::Rect;
+        we::runtime::kindui::LayoutIncrementalStats::ResetCurrent();
+        ++we::runtime::kindui::LayoutIncrementalStats::Current().fullLayoutPasses;
         m_UI->Measure(Size{ static_cast<float>(w), static_cast<float>(h) });
         m_UI->Arrange(Rect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) });
         m_UI->ClearSubtreeLayoutDirty();
+        we::runtime::kindui::UIRepaintGate::NotifyHostLayoutCompleted();
+        m_UI->ReleaseRetainedPaintSubtree();
         we::runtime::kindui::UIRepaintGate::RequestPaintReason("LayoutSizeChanged");
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
+    } else if (needsOverlayLayout) {
+        m_UI->SyncOverlaysOnly();
+        we::runtime::kindui::UIRepaintGate::RequestPaintReason("OverlayLayout");
+    } else {
+        (void)we::runtime::kindui::UIRepaintGate::ConsumeNeedsOverlayLayout();
     }
 }
 

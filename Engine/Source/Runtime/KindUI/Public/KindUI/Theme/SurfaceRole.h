@@ -14,24 +14,30 @@
 
 namespace we::runtime::kindui {
 
-// Phase 1 — semantic surface roles. Widgets resolve colors only through these roles.
+// Semantic surface roles for KindUI chrome.
+// AppBackground → PanelSurface (headers/toolbars/body). PanelInner / InnerPanel
+// is the recessed well for nested property rows, trees, and navigation panes.
+// Input/Control are controls only. Hierarchy: Panel → PanelInner → Input.
 enum class SurfaceRole : uint8_t {
     None = 0,
-    Window,
-    Workspace,
-    Toolbar,
-    DockChrome,
+    Window,            // AppBackground
+    Workspace,         // AppBackground
+    Toolbar,           // PanelSurface
+    DockChrome,        // AppBackground
     TabActive,
     TabInactive,
-    Panel,
-    PanelHeader,
-    Recessed,
-    Input,
+    Panel,             // shared PanelSurface
+    PanelInner,        // InnerPanel — nested properties / trees / wells (one step darker)
+    PanelRaised,       // alias → PanelSurface
+    PanelHeader,       // alias → PanelSurface
+    Category,          // Category / Foldout — property categorizer headers (distinct)
+    Recessed,          // alias → PanelInner
+    Input,             // InputSurface — controls only
     InputBorder,
-    Control,
-    ControlHover,
+    Control,           // ButtonSurface — controls only
+    ControlHover,      // HoverSurface
     ControlPressed,
-    Selected,
+    Selected,          // SelectedSurface
     SelectedInactive,
     Text,
     TextSecondary,
@@ -48,12 +54,12 @@ enum class SurfaceRole : uint8_t {
 };
 
 enum class TextRole : uint8_t {
-    Primary,
-    Secondary,
-    Hint,
-    Disabled,
-    OnAccent,
-    Header,
+    Primary,     // PrimaryText — labels, titles, values
+    Secondary,   // SecondaryText — hints, metadata, supporting
+    Hint,        // alias → Secondary
+    Disabled,    // state; same color as Secondary
+    OnAccent,    // contrast on accent fills only
+    Header,      // alias → Primary
 };
 
 enum class ControlState : uint8_t {

@@ -89,10 +89,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
     });
 
     g_ExplorerHeader->SetOnFilterClicked([treeView]() {
-        const auto& headerGeom = g_ExplorerHeader->GetGeometry();
         const auto& filterBtnGeom = g_ExplorerHeader->GetFilterButtonGeometry();
-
-        Point menuPos{ filterBtnGeom.x, headerGeom.y + headerGeom.height };
 
         auto filterOptions = g_ExplorerHeader->GetFilterOptions();
         auto menu = std::make_shared<ExplorerFilterMenu>(
@@ -117,7 +114,8 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
 
         if (auto* overlay = GetEditorPopupHost()) {
             overlay->CloseAllPopups();
-            overlay->ShowPopup(menu, menuPos);
+            overlay->ShowAnchoredPopup(
+                menu, filterBtnGeom, ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
         }
     });
 

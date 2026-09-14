@@ -115,41 +115,152 @@ Color ResolveInteractiveBackgroundImpl(
 
 }
 
+#include <array>
+#include <atomic>
+#include <mutex>
+
+namespace {
+std::atomic<uint64_t> g_GlobalThemeVersion{1};
+
+constexpr size_t kMaxColorTokens = 256;
+constexpr size_t kMaxMetricTokens = 256;
+constexpr size_t kMaxPaddingTokens = 32;
+constexpr size_t kMaxSpacingTokens = 16;
+constexpr size_t kMaxRadiusTokens = 16;
+constexpr size_t kMaxTypographyTokens = 64;
+
+struct GlobalThemeTokenCache {
+    uint64_t version{0};
+    std::array<Color, kMaxColorTokens> colors{};
+    std::array<float, kMaxMetricTokens> metrics{};
+    std::array<Margin, kMaxPaddingTokens> paddings{};
+    std::array<float, kMaxSpacingTokens> spacings{};
+    std::array<float, kMaxRadiusTokens> radii{};
+    std::array<float, kMaxTypographyTokens> fontSizes{};
+    bool initialized{false};
+};
+
+GlobalThemeTokenCache g_ThemeCache{};
+std::mutex g_ThemeCacheMutex;
+
+void RebuildTokenCacheLocked(uint64_t targetVersion) {
+    auto& theme = ThemeManager::Get().Theme();
+    for (uint32_t i = 0; i < kMaxColorTokens; ++i) {
+        ColorToken tok = static_cast<ColorToken>(i);
+        Color resolved = theme.ResolveColor(tok);
+        if (!IsCompositeColorToken(tok)) {
+            resolved = ColorSpace::OpaqueSurface(resolved);
+        }
+        g_ThemeCache.colors[i] = resolved;
+    }
+    for (uint32_t i = 0; i < kMaxMetricTokens; ++i) {
+        MetricToken tok = static_cast<MetricToken>(i);
+        g_ThemeCache.metrics[i] = theme.ResolveMetric(tok);
+    }
+    for (uint32_t i = 0; i < kMaxPaddingTokens; ++i) {
+        PaddingToken tok = static_cast<PaddingToken>(i);
+        g_ThemeCache.paddings[i] = theme.ResolvePadding(tok);
+    }
+    for (uint32_t i = 0; i < kMaxSpacingTokens; ++i) {
+        SpacingToken tok = static_cast<SpacingToken>(i);
+        g_ThemeCache.spacings[i] = theme.ResolveSpacing(tok);
+    }
+    for (uint32_t i = 0; i < kMaxRadiusTokens; ++i) {
+        RadiusToken tok = static_cast<RadiusToken>(i);
+        g_ThemeCache.radii[i] = theme.ResolveRadius(tok);
+    }
+    for (uint32_t i = 0; i < kMaxTypographyTokens; ++i) {
+        TypographyToken tok = static_cast<TypographyToken>(i);
+        g_ThemeCache.fontSizes[i] = theme.ResolveFontSize(tok);
+    }
+    g_ThemeCache.version = targetVersion;
+    g_ThemeCache.initialized = true;
+}
+
+void EnsureCacheValid() {
+    palette::ReloadGraphiteDarkPaletteIfChanged();
+    const uint64_t targetVer = g_GlobalThemeVersion.load(std::memory_order_relaxed);
+    if (g_ThemeCache.version == targetVer && g_ThemeCache.initialized) {
+        return;
+    }
+    std::lock_guard lock(g_ThemeCacheMutex);
+    const uint64_t currVer = g_GlobalThemeVersion.load(std::memory_order_relaxed);
+    if (g_ThemeCache.version == currVer && g_ThemeCache.initialized) {
+        return;
+    }
+    RebuildTokenCacheLocked(currVer);
+}
+
+}
+
+void InvalidateThemeCache() {
+    g_GlobalThemeVersion.fetch_add(1, std::memory_order_release);
+}
+
+uint64_t GetThemeCacheVersion() {
+    return g_GlobalThemeVersion.load(std::memory_order_relaxed);
+}
+
 IKindUITheme& ResolveDefaultTheme() {
     return ThemeManager::Get().Theme();
 }
 
 Color ResolveColor(ColorToken token) {
-    palette::ReloadGraphiteDarkPaletteIfChanged();
-    Color resolved = ThemeManager::Get().Theme().ResolveColor(token);
-    if (!IsCompositeColorToken(token)) {
-        resolved = ColorSpace::OpaqueSurface(resolved);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxColorTokens) {
+        Color resolved = g_ThemeCache.colors[idx];
+        if (UiColorDebug::IsEnabled()) {
+            UiColorDebug::Get().TraceResolve(token, resolved);
+        }
+        return resolved;
     }
-    if (UiColorDebug::IsEnabled()) {
-        UiColorDebug::Get().TraceResolve(token, resolved);
-    }
-    return resolved;
+    return Color::Transparent();
 }
 
 float ResolveMetric(MetricToken token) {
-    palette::ReloadGraphiteDarkPaletteIfChanged();
-    return ThemeManager::Get().Theme().ResolveMetric(token);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxMetricTokens) {
+        return g_ThemeCache.metrics[idx];
+    }
+    return 0.0f;
 }
 
 Margin ResolvePadding(PaddingToken token) {
-    return ThemeManager::Get().Theme().ResolvePadding(token);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxPaddingTokens) {
+        return g_ThemeCache.paddings[idx];
+    }
+    return {};
 }
 
 float ResolveSpacing(SpacingToken token) {
-    return ThemeManager::Get().Theme().ResolveSpacing(token);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxSpacingTokens) {
+        return g_ThemeCache.spacings[idx];
+    }
+    return 0.0f;
 }
 
 float ResolveRadius(RadiusToken token) {
-    return ThemeManager::Get().Theme().ResolveRadius(token);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxRadiusTokens) {
+        return g_ThemeCache.radii[idx];
+    }
+    return 0.0f;
 }
 
 float ResolveFontSize(TypographyToken token) {
-    return ThemeManager::Get().Theme().ResolveFontSize(token);
+    EnsureCacheValid();
+    const uint32_t idx = static_cast<uint32_t>(token);
+    if (idx < kMaxTypographyTokens) {
+        return g_ThemeCache.fontSizes[idx];
+    }
+    return 12.0f;
 }
 
 TypographySpec ResolveTypography(TypographyToken token) {
@@ -189,7 +300,7 @@ Color MixInteractiveSurface(
     bool disabled,
     Color opaqueUnderlay)
 {
-    palette::ReloadGraphiteDarkPaletteIfChanged();
+    // ResolveColor inside the blender polls palette hot-reload via EnsureCacheValid.
     return MixInteractiveSurfaceImpl(base, hoverAnim, pressAnim, selected, disabled, opaqueUnderlay);
 }
 

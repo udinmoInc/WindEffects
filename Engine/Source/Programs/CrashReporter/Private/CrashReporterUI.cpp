@@ -142,7 +142,7 @@ void CrashReporterUI::Construct() {
     inputPanel->Padding(Margin{8.0f, 8.0f, 8.0f, 8.0f});
     auto inputLabel = std::make_shared<Label>(
         "Please provide detailed information about what you were doing when the crash occurred.",
-        ResolveColor(ColorToken::TextHint),
+        ResolveColor(ColorToken::TextSecondary),
         12.0f);
     inputLabel->SetHorizontalAlignment(HorizontalAlignment::Left);
     inputPanel->AddChild(inputLabel);

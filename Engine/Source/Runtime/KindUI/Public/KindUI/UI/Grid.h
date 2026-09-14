@@ -61,11 +61,12 @@ private:
         int rowSpan = 1;
     };
 
-    std::vector<float> ResolveTracks(
+    void ResolveTracks(
         const std::vector<GridTrackSize>& tracks,
         float available,
         float gap,
-        bool measuringColumns) const;
+        bool measuringColumns,
+        std::vector<float>& sizes) const;
 
     std::vector<GridTrackSize> m_Columns{ GridTrackSize::Fr(1.0f) };
     std::vector<GridTrackSize> m_Rows{ GridTrackSize::Auto() };
@@ -75,6 +76,11 @@ private:
     Color m_Background{};
     bool m_HasBackground = false;
     std::vector<Placement> m_Placements;
+    // Reused across Measure/Arrange — avoid per-layout heap traffic.
+    mutable std::vector<float> m_ColSizes;
+    mutable std::vector<float> m_RowSizes;
+    mutable std::vector<float> m_ColOffsets;
+    mutable std::vector<float> m_RowOffsets;
 };
 
 [[nodiscard]] KINDUI_API std::shared_ptr<Grid> MakeGrid();

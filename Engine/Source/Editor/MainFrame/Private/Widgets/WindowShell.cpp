@@ -38,7 +38,7 @@ Size WindowShell::Measure(const Size& availableSize) {
 }
 
 void WindowShell::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    CommitGeometry(allottedRect);
     if (m_Content) {
         m_Content->Arrange(allottedRect);
     }
@@ -46,7 +46,7 @@ void WindowShell::Arrange(const Rect& allottedRect) {
 
 void WindowShell::Paint(PaintContext& context) {
     if (m_Content) {
-        m_Content->Paint(context);
+        m_Content->PaintSubtree(context);
     }
 }
 

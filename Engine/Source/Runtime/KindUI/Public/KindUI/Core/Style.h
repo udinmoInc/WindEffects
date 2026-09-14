@@ -11,7 +11,6 @@
 #include "KindUI/Export.h"
 #include "KindUI/Core/Types.h"
 #include "KindUI/Theme/ThemeAccess.h"
-#include "KindUI/Theme/Palette.h"
 #include "KindUI/Theme/TypographySpec.h"
 #include <string>
 #include <memory>
@@ -30,20 +29,22 @@ enum class PseudoState {
 struct BorderStyle {
     float width = 1.0f;
     Color color{};
-    float cornerRadius = 4.0f;
-    float cornerRadiusTopLeft = 4.0f;
-    float cornerRadiusTopRight = 4.0f;
+    // Defaults are square — controls/tabs set radius from theme metrics explicitly.
+    float cornerRadius = 0.0f;
+    float cornerRadiusTopLeft = 0.0f;
+    float cornerRadiusTopRight = 0.0f;
     float cornerRadiusBottomLeft = 0.0f;
     float cornerRadiusBottomRight = 0.0f;
 };
 
 struct BackgroundStyle {
     Color color{};
-    float cornerRadius = 4.0f;
+    float cornerRadius = 0.0f;
 };
 
 struct TextStyle {
-    Color color = Color::White();
+    // Default to theme PrimaryText — never white/accent literals for ordinary UI text.
+    Color color = ResolveColor(ColorToken::TextPrimary);
     float size = 12.0f;
     uint16_t weight = 400;
     bool bold = false;

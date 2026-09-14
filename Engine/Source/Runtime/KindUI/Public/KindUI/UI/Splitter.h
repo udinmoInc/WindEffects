@@ -37,6 +37,7 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseUp(const MouseEvent& event) override;
     void OnHoverLost() override;
+    void OnCaptureLost() override;
     [[nodiscard]] std::shared_ptr<Widget> HitTestPoint(const Point& pos, const Rect* clip = nullptr) override;
     [[nodiscard]] bool IsInteractiveContainer() const override { return true; }
 

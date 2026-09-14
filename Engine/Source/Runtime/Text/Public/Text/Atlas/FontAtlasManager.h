@@ -83,6 +83,7 @@ public:
     virtual void Touch(const GlyphAtlasKey& key) = 0;
     virtual void BeginFrame(uint64_t frameIndex) = 0;
     virtual void EvictUnused(size_t maxEntries) = 0;
+    [[nodiscard]] virtual size_t GlyphCount() const = 0;
 
     [[nodiscard]] virtual const AtlasPageRuntime* GetPage(uint32_t pageIndex) const = 0;
     [[nodiscard]] virtual std::optional<AtlasPageRuntime> CopyPage(uint32_t pageIndex) const = 0;

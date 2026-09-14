@@ -76,8 +76,8 @@ void PaintToolbarButtonChrome(PaintContext& context, const Rect& rect, float hov
     // Main button surface - all corners rounded
     context.DrawRoundedRect(rect, bgColor, radius);
 
-    // Crisp black border from palette around all corners
-    Color borderColor = we::runtime::kindui::palette::GraphiteDarkLive().Black;
+    // Crisp outline around all corners
+    Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
     if (primary) {
         borderColor = we::runtime::kindui::ResolveColor(ColorToken::AccentPrimary);
     }
@@ -115,8 +115,10 @@ ContentBrowserToolbarControls::ContentBrowserToolbarControls(ToolbarMode mode)
     : Row()
     , m_Mode(mode)
 {
-    const float padH = ThemeMetric(MetricToken::Space2);
-    Padding(Margin{padH, 0.0f, padH + 6.0f, 0.0f});
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+    const float padV = 1.0f * uiScale;
+    Padding(Margin{padH, padV, padH + 6.0f, padV});
     Gap(ThemeMetric(MetricToken::Space1));
     Align(AlignItems::Center);
 }
@@ -146,7 +148,8 @@ void ContentBrowserToolbarControls::InitializeChildren() {
                 menuItems.push_back(mi);
             }
             auto menu = std::make_shared<::we::runtime::kindui::DropdownMenu>(menuItems);
-            overlay->ShowPopup(menu, Point{ geom.x, geom.y + geom.height + 2.0f });
+            overlay->ShowAnchoredPopup(
+                menu, geom, ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
         }
     };
 
@@ -281,14 +284,15 @@ void ContentBrowserToolbarControls::Arrange(const Rect& allottedRect) {
 }
 
 void ContentBrowserToolbarControls::Paint(PaintContext& context) {
+    context.DrawSurface(m_Geometry, ::we::runtime::kindui::SurfaceRole::Panel, 0.0f, "ContentBrowserToolbarControls");
     Row::Paint(context);
 
-    // Existing background separator separating toolbar from content
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
-    const float thickness = ThemeMetric(MetricToken::PanelDividerWidth) * uiScale;
-    const Rect bottomBorder{ m_Geometry.x, m_Geometry.y + m_Geometry.height - thickness, m_Geometry.width, thickness };
-    context.DrawSurface(bottomBorder, we::runtime::kindui::SurfaceRole::Separator, 0.0f,
-        "ContentBrowserToolbarSeparator");
+    if (m_DrawBottomBorder) {
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float borderH = 1.0f * uiScale;
+        const Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
+        context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - borderH, m_Geometry.width, borderH }, borderColor);
+    }
 
     if (we::runtime::kindui::UiGeometryDebug::IsEnabled()) {
         we::runtime::kindui::UiGeometryDebug::Get().TraceRegion(

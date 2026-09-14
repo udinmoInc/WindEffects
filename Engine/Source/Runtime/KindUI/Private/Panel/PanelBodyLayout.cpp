@@ -170,6 +170,10 @@ float PanelBodyLayout::IntrinsicRegionHeight(const PanelBodyRegion region) const
 }
 
 Size PanelBodyLayout::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
 
     float reservedHeight = 0.0f;
     float maxWidth = 0.0f;
@@ -181,7 +185,7 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
         }
         const float intrinsicH = IntrinsicRegionHeight(region);
         Size childAvail = availableSize;
-        const Size desired = slot.widget->Measure(childAvail);
+        const Size desired = MeasureChild(slot.widget, childAvail);
         const float measuredH = std::max(intrinsicH, desired.height);
         reservedHeight += measuredH;
         maxWidth = std::max(maxWidth, desired.width);
@@ -220,8 +224,9 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
     }
 
     Size contentDesired{ 0.0f, 0.0f };
-    if (m_Regions[RegionIndex(PanelBodyRegion::Content)].widget) {
-        contentDesired = m_Regions[RegionIndex(PanelBodyRegion::Content)].widget->Measure(rowAvailable);
+    if (auto& content = m_Regions[RegionIndex(PanelBodyRegion::Content)].widget;
+        content && content->IsVisible()) {
+        contentDesired = MeasureChild(content, rowAvailable);
         maxWidth = std::max(maxWidth, contentDesired.width);
     }
 
@@ -233,6 +238,7 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
         : (reservedHeight + contentDesired.height);
 
     m_DesiredSize = ClampDesiredSize(Size{ desiredW, desiredH });
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
@@ -251,7 +257,7 @@ void PanelBodyLayout::ArrangeFixedRegion(
     const float intrinsicH = IntrinsicRegionHeight(region);
     const float availableH = std::max(0.0f, totalBottom - currentY);
 
-    slot.widget->Measure(Size{ allottedRect.width, availableH });
+    (void)MeasureChild(slot.widget, Size{ allottedRect.width, availableH });
     const float desiredH = slot.widget->GetDesiredSize().height;
     float regionH = (intrinsicH > 0.0f) ? std::max(intrinsicH, desiredH) : desiredH;
     regionH = std::min(availableH, regionH);
@@ -260,7 +266,7 @@ void PanelBodyLayout::ArrangeFixedRegion(
         Rect{ allottedRect.x, currentY, allottedRect.width, regionH },
         allottedRect);
     AssertLayoutRectValid("PanelBodyLayout.region", slot.geometry, allottedRect);
-    slot.widget->Arrange(InsetRegionContent(slot.geometry, region));
+    ArrangeChild(slot.widget, InsetRegionContent(slot.geometry, region));
     currentY += slot.geometry.height;
     if (slot.geometry.height > 0.01f) {
         currentY += RegionSeparationGap();
@@ -268,7 +274,10 @@ void PanelBodyLayout::ArrangeFixedRegion(
 }
 
 void PanelBodyLayout::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    if (CanSkipArrange(allottedRect)) {
+        return;
+    }
+    CommitGeometry(allottedRect);
     ClearLayoutDirty();
 
     float currentY = allottedRect.y;
@@ -289,7 +298,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
     if (footerSlot.widget && footerSlot.widget->IsVisible()) {
         const float intrinsicH = IntrinsicRegionHeight(PanelBodyRegion::Footer);
         const float availableH = std::max(0.0f, totalBottom - currentY);
-        footerSlot.widget->Measure(Size{ allottedRect.width, availableH });
+        (void)MeasureChild(footerSlot.widget, Size{ allottedRect.width, availableH });
         footerHeight = std::min(
             std::max(intrinsicH, footerSlot.widget->GetDesiredSize().height),
             availableH);
@@ -302,12 +311,12 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
 
     const float contentHeight = std::max(0.0f, totalBottom - currentY - footerHeight - footerGap);
     auto& contentSlot = m_Regions[RegionIndex(PanelBodyRegion::Content)];
-    if (contentSlot.widget) {
+    if (contentSlot.widget && contentSlot.widget->IsVisible()) {
         contentSlot.geometry = ClampRectToParent(
             Rect{ allottedRect.x, currentY, allottedRect.width, contentHeight },
             allottedRect);
         AssertLayoutRectValid("PanelBodyLayout.content", contentSlot.geometry, allottedRect);
-        contentSlot.widget->Arrange(contentSlot.geometry);
+        ArrangeChild(contentSlot.widget, contentSlot.geometry);
         m_ContentClipRect = contentSlot.geometry;
         currentY += contentSlot.geometry.height;
 
@@ -323,7 +332,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
                     std::min(toolbarH, std::max(0.0f, contentSlot.geometry.height - inset))
                 },
                 allottedRect);
-            toolbarSlot.widget->Arrange(toolbarSlot.geometry);
+            ArrangeChild(toolbarSlot.widget, toolbarSlot.geometry);
         } else if (m_OverlayToolbar && toolbarSlot.widget) {
             toolbarSlot.geometry = {};
         }
@@ -337,7 +346,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
             Rect{ allottedRect.x, currentY, allottedRect.width, footerHeight },
             allottedRect);
         AssertLayoutRectValid("PanelBodyLayout.region", footerSlot.geometry, allottedRect);
-        footerSlot.widget->Arrange(footerSlot.geometry);
+        ArrangeChild(footerSlot.widget, footerSlot.geometry);
     } else if (footerSlot.widget) {
         footerSlot.geometry = {};
     }

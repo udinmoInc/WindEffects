@@ -9,16 +9,47 @@
 #include "KindUI/UI/OverlayManager.h"
 #include "KindUI/UI/PopupPositioner.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIStateChange.h"
+#include "KindUI/Core/UIDirtyRegionTracker.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/ThemeAccess.h"
-#include "Core/Logger.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace we::runtime::kindui {
+namespace {
+
+OverlayCompositorStats g_OverlayStats{};
+
+} // namespace
 
 OverlayHost::OverlayHost() = default;
 OverlayHost::~OverlayHost() = default;
+
+OverlayCompositorStats& OverlayHost::Stats() {
+    return g_OverlayStats;
+}
+
+void OverlayHost::ResetStats() {
+    g_OverlayStats = {};
+}
+
+int32_t OverlayHost::DefaultZOrder(OverlayKind kind) {
+    switch (kind) {
+    case OverlayKind::Transient: return 100;
+    case OverlayKind::Tooltip: return 200;
+    case OverlayKind::Pinned: return 50;
+    case OverlayKind::Modal: return 300;
+    case OverlayKind::Fullscreen: return 250;
+    }
+    return 100;
+}
+
+uint64_t OverlayHost::NextEntryId() {
+    return m_NextEntryId++;
+}
 
 void OverlayHost::SetBaseWidget(const std::shared_ptr<Widget>& baseWidget) {
     if (m_BaseWidget) {
@@ -30,75 +61,278 @@ void OverlayHost::SetBaseWidget(const std::shared_ptr<Widget>& baseWidget) {
     }
 }
 
-int OverlayHost::FindPopupIndex(const std::shared_ptr<Widget>& popup) const {
+int OverlayHost::FindEntryIndex(const std::shared_ptr<Widget>& popup) const {
     if (!popup) {
         return -1;
     }
-    for (size_t i = 0; i < m_Popups.size(); ++i) {
-        if (m_Popups[i] == popup) {
+    for (size_t i = 0; i < m_Entries.size(); ++i) {
+        if (m_Entries[i].widget == popup) {
             return static_cast<int>(i);
         }
     }
     return -1;
 }
 
-void OverlayHost::RemovePopupAt(size_t index) {
-    if (index >= m_Popups.size()) {
+void OverlayHost::RequestOverlayUpdate(const char* reason) {
+    m_OverlaysNeedLayout = true;
+    UIRepaintGate::RequestOverlayLayoutReason(reason);
+    UIRepaintGate::RequestPaintReason(reason);
+}
+
+void OverlayHost::MarkOverlayOpenCloseDirty(const Rect& bounds) {
+    if (bounds.IsEmpty()) {
+        UIDirtyRegionTracker::Get().MarkFullDirty();
+    } else {
+        UIDirtyRegionTracker::Get().Add(bounds, 8.0f);
+    }
+}
+
+void OverlayHost::AttachOverlayEntry(OverlayEntry& entry) {
+    if (!entry.widget) {
         return;
     }
-    DetachOverlayChild(m_Popups[index]);
-    m_Popups.erase(m_Popups.begin() + static_cast<std::ptrdiff_t>(index));
-    if (index < m_FullscreenPopups.size()) {
-        m_FullscreenPopups.erase(m_FullscreenPopups.begin() + static_cast<std::ptrdiff_t>(index));
+    entry.widget->SetOverlayContent(true);
+    AttachOverlayChild(entry.widget);
+    entry.lastPaintBounds = entry.widget->GetGeometry();
+    MarkOverlayOpenCloseDirty(entry.lastPaintBounds);
+    RequestOverlayUpdate("OverlayOpen");
+    g_OverlayStats.openCount = static_cast<uint32_t>(m_Entries.size());
+}
+
+void OverlayHost::RemoveEntryAt(size_t index) {
+    if (index >= m_Entries.size()) {
+        return;
     }
-    if (index < m_PinnedPopups.size()) {
-        m_PinnedPopups.erase(m_PinnedPopups.begin() + static_cast<std::ptrdiff_t>(index));
+    OverlayEntry& entry = m_Entries[index];
+    const Rect dirty = entry.lastPaintBounds.IsEmpty() && entry.widget
+        ? entry.widget->GetGeometry()
+        : entry.lastPaintBounds;
+    if (entry.widget) {
+        entry.widget->SetOverlayContent(false);
+        DetachOverlayChild(entry.widget);
     }
-    if (index < m_PopupCachedSizes.size()) {
-        m_PopupCachedSizes.erase(m_PopupCachedSizes.begin() + static_cast<std::ptrdiff_t>(index));
+    MarkOverlayOpenCloseDirty(dirty);
+    m_Entries.erase(m_Entries.begin() + static_cast<std::ptrdiff_t>(index));
+    RequestOverlayUpdate("OverlayClose");
+    g_OverlayStats.openCount = static_cast<uint32_t>(m_Entries.size());
+}
+
+bool OverlayHost::RectsNearlyEqual(const Rect& a, const Rect& b, float eps) {
+    return std::abs(a.x - b.x) <= eps
+        && std::abs(a.y - b.y) <= eps
+        && std::abs(a.width - b.width) <= eps
+        && std::abs(a.height - b.height) <= eps;
+}
+
+Rect OverlayHost::ResolveLiveAnchorRect(const OverlayEntry& entry) const {
+    if (auto live = entry.liveAnchor.lock()) {
+        return live->GetGeometry();
     }
-    if (index < m_PopupAnchors.size()) {
-        m_PopupAnchors.erase(m_PopupAnchors.begin() + static_cast<std::ptrdiff_t>(index));
+    return entry.anchorRect;
+}
+
+Rect OverlayHost::ResolvePlacementViewport(const std::shared_ptr<Widget>& anchorWidget) const {
+    Rect viewport = m_Geometry;
+    if (viewport.width <= 0.0f || viewport.height <= 0.0f) {
+        return viewport;
     }
-    if (index < m_PopupPlacementModes.size()) {
-        m_PopupPlacementModes.erase(m_PopupPlacementModes.begin() + static_cast<std::ptrdiff_t>(index));
+    for (std::shared_ptr<Widget> current = anchorWidget; current; current = current->GetParent()) {
+        if (const std::optional<Rect> clip = current->GetHitTestClipRect()) {
+            if (!clip->IsEmpty()) {
+                viewport = viewport.Intersect(*clip);
+            }
+        }
+    }
+    return viewport;
+}
+
+void OverlayHost::PlaceTransientEntry(OverlayEntry& entry, bool forceRemeasure) {
+    if (!entry.widget || !entry.placed || !entry.visible) {
+        return;
+    }
+
+    const Rect resolvedAnchor = ResolveLiveAnchorRect(entry);
+    std::shared_ptr<Widget> live = entry.liveAnchor.lock();
+    Rect viewport = ResolvePlacementViewport(live);
+
+    if (viewport.width < 32.0f || viewport.height < 32.0f) {
+        viewport = Rect{ 0.0f, 0.0f, 4096.0f, 4096.0f };
+    }
+
+    const bool anchorMoved = !RectsNearlyEqual(resolvedAnchor, entry.anchorRect);
+    const bool viewportChanged = !RectsNearlyEqual(viewport, entry.placementViewport);
+    const bool needsLayout = forceRemeasure || entry.widget->SubtreeNeedsLayout()
+        || entry.cachedSize.width <= 0.0f || entry.cachedSize.height <= 0.0f
+        || anchorMoved || viewportChanged;
+
+    if (!needsLayout) {
+        const Rect current = entry.widget->GetGeometry();
+        if (current.width > 0.0f && current.height > 0.0f) {
+            ArrangeChild(entry.widget, current);
+            entry.lastPaintBounds = current;
+            ++g_OverlayStats.repositionSkipped;
+            ++g_OverlayStats.slotsArranged;
+            return;
+        }
+    }
+
+    entry.anchorRect = resolvedAnchor;
+    entry.placementViewport = viewport;
+
+    const float margin = ResolveMetric(MetricToken::Space2);
+    const float availW = std::max(1.0f, viewport.width - margin * 2.0f);
+    const float availH = std::max(1.0f, viewport.height - margin * 2.0f);
+
+    Size size = MeasureChild(entry.widget, Size{ availW, availH });
+    size = entry.widget->ClampDesiredSize(size);
+    size.width = std::min(size.width, availW);
+    size.height = std::min(size.height, availH);
+    entry.cachedSize = size;
+    ++g_OverlayStats.slotsMeasured;
+
+    PopupPlacementOptions options{};
+    options.anchorRect = resolvedAnchor;
+    options.mode = entry.placementMode;
+    options.gap = ResolveMetric(MetricToken::Space1);
+    options.viewportMargin = margin;
+    options.viewportBounds = viewport;
+
+    const PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+    const Rect oldBounds = entry.lastPaintBounds;
+    ArrangeChild(entry.widget, placement.popupRect);
+    entry.cachedSize = Size{ placement.popupRect.width, placement.popupRect.height };
+    entry.lastPaintBounds = placement.popupRect;
+    if (!oldBounds.IsEmpty()) {
+        UIDirtyRegionTracker::Get().Add(oldBounds, 4.0f);
+    }
+    UIDirtyRegionTracker::Get().Add(placement.popupRect, 4.0f);
+    ++g_OverlayStats.slotsArranged;
+}
+
+void OverlayHost::LayoutOverlayEntries(bool hostResized) {
+    const float margin = ResolveMetric(MetricToken::Space2);
+
+    // Stable paint/hit order by z-order (insertion order as tie-break).
+    std::stable_sort(m_Entries.begin(), m_Entries.end(),
+        [](const OverlayEntry& a, const OverlayEntry& b) {
+            if (a.zOrder != b.zOrder) {
+                return a.zOrder < b.zOrder;
+            }
+            return a.id < b.id;
+        });
+
+    for (OverlayEntry& entry : m_Entries) {
+        auto& popup = entry.widget;
+        if (!popup || !entry.visible) {
+            continue;
+        }
+
+        if (entry.fullscreen || entry.kind == OverlayKind::Modal
+            || entry.kind == OverlayKind::Fullscreen) {
+            if (hostResized || popup->SubtreeNeedsLayout()) {
+                (void)MeasureChild(popup, Size{ m_Geometry.width, m_Geometry.height });
+                ++g_OverlayStats.slotsMeasured;
+            }
+            ArrangeChild(popup, m_Geometry);
+            entry.cachedSize = Size{ m_Geometry.width, m_Geometry.height };
+            entry.lastPaintBounds = m_Geometry;
+            ++g_OverlayStats.slotsArranged;
+            continue;
+        }
+
+        if (entry.placed) {
+            PlaceTransientEntry(entry, hostResized);
+            continue;
+        }
+
+        Rect geom = popup->GetGeometry();
+        Size size = entry.cachedSize;
+        if (size.width <= 0.0f || size.height <= 0.0f) {
+            size = Size{ geom.width, geom.height };
+        }
+
+        if (entry.pinned) {
+            if (popup->SubtreeNeedsLayout()) {
+                (void)MeasureChild(popup, size);
+                ++g_OverlayStats.slotsMeasured;
+            }
+        } else if (popup->SubtreeNeedsLayout() || size.width <= 0.0f || size.height <= 0.0f) {
+            const float maxW = std::max(1.0f, m_Geometry.width - margin * 2.0f);
+            const float availH = std::max(1.0f, m_Geometry.height - geom.y - margin);
+            size = MeasureChild(popup, Size{ maxW, availH });
+            size = popup->ClampDesiredSize(size);
+            ++g_OverlayStats.slotsMeasured;
+        }
+
+        PopupPlacementOptions options{};
+        options.anchorRect = Rect{ geom.x, geom.y, 0.0f, 0.0f };
+        options.mode = PopupPlacementMode::AtPoint;
+        options.gap = 0.0f;
+        options.viewportMargin = margin;
+        options.viewportBounds = m_Geometry;
+
+        const PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+        ArrangeChild(popup, placement.popupRect);
+        entry.cachedSize = Size{ placement.popupRect.width, placement.popupRect.height };
+        entry.lastPaintBounds = placement.popupRect;
+        ++g_OverlayStats.slotsArranged;
+    }
+
+    m_OverlaysNeedLayout = false;
+}
+
+void OverlayHost::SyncOverlaysOnly() {
+    // Overlay-only path: never Arrange the base shell widget.
+    if (m_Geometry.width <= 0.0f || m_Geometry.height <= 0.0f) {
+        return;
+    }
+    ++g_OverlayStats.overlayOnlyLayouts;
+    LayoutOverlayEntries(false);
+    for (OverlayEntry& entry : m_Entries) {
+        if (entry.widget) {
+            entry.widget->ClearSubtreeLayoutDirty();
+        }
+    }
+}
+
+void OverlayHost::SyncOverlaysOnly(const Rect& hostViewport) {
+    if (hostViewport.width <= 0.0f || hostViewport.height <= 0.0f) {
+        return;
+    }
+    const bool hostResized = !RectsNearlyEqual(hostViewport, m_Geometry)
+        || std::abs(hostViewport.width - m_LastArrangeSize.width) > 0.5f
+        || std::abs(hostViewport.height - m_LastArrangeSize.height) > 0.5f;
+    // Seed viewport only — do not CommitGeometry (avoids retained-paint ancestor walks
+    // for OverlayHosts that are not in the base widget tree).
+    m_Geometry = hostViewport;
+    m_LastArrangeSize = Size{ hostViewport.width, hostViewport.height };
+    ++g_OverlayStats.overlayOnlyLayouts;
+    LayoutOverlayEntries(hostResized);
+    for (OverlayEntry& entry : m_Entries) {
+        if (entry.widget) {
+            entry.widget->ClearSubtreeLayoutDirty();
+        }
     }
 }
 
 void OverlayHost::ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) {
-    const float screenW = (std::max)(m_Geometry.width, 1.0f);
-    const float screenH = (std::max)(m_Geometry.height, 1.0f);
-    const float margin = ResolveMetric(MetricToken::Space1);
-    const float screenMargin = ResolveMetric(MetricToken::Space4);
-    const float maxW = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenW - screenMargin);
-    const float availBelowY = (std::max)(ResolveMetric(MetricToken::PopupMinWidth) * 0.35f, screenH - position.y -
-        margin);
-
-    Size size = popup->Measure(Size{ maxW, availBelowY });
-    size = popup->ClampDesiredSize(size);
-
-    float posX = position.x;
-    float posY = position.y;
-
-    if (posX + size.width > screenW - margin) {
-        posX = (std::max)(margin, position.x - size.width - 8.0f);
+    if (!popup) {
+        return;
     }
-    if (posY + size.height > screenH - margin) {
-        posY = (std::max)(margin, screenH - size.height - margin);
-    }
-    posX = std::clamp(posX, margin, (std::max)(margin, screenW - size.width - margin));
-    posY = std::clamp(posY, margin, (std::max)(margin, screenH - size.height - margin));
-
-    Rect geom{ posX, posY, size.width, size.height };
-    popup->Arrange(geom);
-
-    m_Popups.push_back(popup);
-    m_FullscreenPopups.push_back(false);
-    m_PinnedPopups.push_back(false);
-    m_PopupCachedSizes.push_back(size);
-    m_PopupAnchors.push_back(Rect{});
-    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
-    AttachOverlayChild(popup);
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Transient;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.placed = true;
+    entry.interactive = true;
+    entry.anchorRect = Rect{ position.x, position.y, 0.0f, 0.0f };
+    entry.placementMode = PopupPlacementMode::BottomPreferred;
+    popup->SetOverlayContent(true);
+    PlaceTransientEntry(entry, true);
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
 }
 
 void OverlayHost::ShowAnchoredPopup(
@@ -108,47 +342,160 @@ void OverlayHost::ShowAnchoredPopup(
     if (!popup) {
         return;
     }
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Transient;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.placed = true;
+    entry.interactive = true;
+    entry.anchorRect = anchorRect;
+    entry.placementMode = placementMode;
+    popup->SetOverlayContent(true);
+    PlaceTransientEntry(entry, true);
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
+}
 
-    const float screenW = (std::max)(m_Geometry.width, 1.0f);
-    const float screenH = (std::max)(m_Geometry.height, 1.0f);
-    const Rect viewport{ 0.0f, 0.0f, screenW, screenH };
+void OverlayHost::ShowAnchoredPopup(
+    const std::shared_ptr<Widget>& popup,
+    const std::shared_ptr<Widget>& anchorWidget,
+    PopupPlacementMode placementMode) {
+    if (!popup) {
+        return;
+    }
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Transient;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.placed = true;
+    entry.interactive = true;
+    entry.placementMode = placementMode;
+    if (anchorWidget) {
+        entry.liveAnchor = anchorWidget;
+        entry.anchorRect = anchorWidget->GetGeometry();
+    }
+    popup->SetOverlayContent(true);
+    PlaceTransientEntry(entry, true);
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
+}
 
-    Size size = popup->Measure(Size{ screenW, screenH });
-    size = popup->ClampDesiredSize(size);
+void OverlayHost::ShowTooltip(
+    const std::shared_ptr<Widget>& tooltip,
+    const Rect& anchorRect,
+    PopupPlacementMode placementMode) {
+    if (!tooltip) {
+        return;
+    }
+    CloseTooltips();
+    UIStateChangeGate::ScopedTransaction tx("TooltipOpen");
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = tooltip;
+    entry.kind = OverlayKind::Tooltip;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.placed = true;
+    entry.interactive = false;
+    entry.anchorRect = anchorRect;
+    entry.placementMode = placementMode;
+    tooltip->SetOverlayContent(true);
+    PlaceTransientEntry(entry, true);
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
+}
 
-    PopupPlacementOptions options{};
-    options.anchorRect = anchorRect;
-    options.mode = placementMode;
-    options.gap = ResolveMetric(MetricToken::Space1);
-    options.viewportMargin = ResolveMetric(MetricToken::Space2);
-    options.viewportBounds = viewport;
+void OverlayHost::ShowTooltip(
+    const std::shared_ptr<Widget>& tooltip,
+    const std::shared_ptr<Widget>& anchorWidget,
+    PopupPlacementMode placementMode) {
+    if (!tooltip) {
+        return;
+    }
+    CloseTooltips();
+    UIStateChangeGate::ScopedTransaction tx("TooltipOpen");
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = tooltip;
+    entry.kind = OverlayKind::Tooltip;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.placed = true;
+    entry.interactive = false;
+    entry.placementMode = placementMode;
+    if (anchorWidget) {
+        entry.liveAnchor = anchorWidget;
+        entry.anchorRect = anchorWidget->GetGeometry();
+    }
+    tooltip->SetOverlayContent(true);
+    PlaceTransientEntry(entry, true);
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
+}
 
-    PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
-    popup->Arrange(placement.popupRect);
+void OverlayHost::CloseTooltips() {
+    for (int i = static_cast<int>(m_Entries.size()) - 1; i >= 0; --i) {
+        if (m_Entries[static_cast<size_t>(i)].kind == OverlayKind::Tooltip) {
+            RemoveEntryAt(static_cast<size_t>(i));
+        }
+    }
+}
 
-    m_Popups.push_back(popup);
-    m_FullscreenPopups.push_back(false);
-    m_PinnedPopups.push_back(false);
-    m_PopupCachedSizes.push_back(size);
-    m_PopupAnchors.push_back(anchorRect);
-    m_PopupPlacementModes.push_back(placementMode);
-    AttachOverlayChild(popup);
+void OverlayHost::ShowModal(const std::shared_ptr<Widget>& modal) {
+    if (!modal) {
+        return;
+    }
+    UIStateChangeGate::ScopedTransaction tx("ModalOpen");
+    const int existing = FindEntryIndex(modal);
+    if (existing >= 0) {
+        RemoveEntryAt(static_cast<size_t>(existing));
+    }
+    modal->SetOverlayContent(true);
+    const float width = std::max(m_Geometry.width, 1.0f);
+    const float height = std::max(m_Geometry.height, 1.0f);
+    const Rect geom{ 0.0f, 0.0f, width, height };
+    (void)MeasureChild(modal, Size{ width, height });
+    ArrangeChild(modal, geom);
+
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = modal;
+    entry.kind = OverlayKind::Modal;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.fullscreen = true;
+    entry.pinned = true;
+    entry.interactive = true;
+    entry.cachedSize = Size{ width, height };
+    entry.lastPaintBounds = geom;
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
 }
 
 void OverlayHost::ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) {
-    const float width = (std::max)(m_Geometry.width, 1.0f);
-    const float height = (std::max)(m_Geometry.height, 1.0f);
-    const Rect geom{0.0f, 0.0f, width, height};
-    popup->Measure(Size{width, height});
-    popup->Arrange(geom);
+    if (!popup) {
+        return;
+    }
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    const float width = std::max(m_Geometry.width, 1.0f);
+    const float height = std::max(m_Geometry.height, 1.0f);
+    const Rect geom{ 0.0f, 0.0f, width, height };
+    popup->SetOverlayContent(true);
+    (void)MeasureChild(popup, Size{ width, height });
+    ArrangeChild(popup, geom);
 
-    m_Popups.push_back(popup);
-    m_FullscreenPopups.push_back(true);
-    m_PinnedPopups.push_back(false);
-    m_PopupCachedSizes.push_back(Size{width, height});
-    m_PopupAnchors.push_back(Rect{});
-    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
-    AttachOverlayChild(popup);
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Fullscreen;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.fullscreen = true;
+    entry.interactive = true;
+    entry.cachedSize = Size{ width, height };
+    entry.lastPaintBounds = geom;
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
 }
 
 void OverlayHost::ShowPinnedPopup(
@@ -158,166 +505,218 @@ void OverlayHost::ShowPinnedPopup(
     if (!popup) {
         return;
     }
-
-    const int existing = FindPopupIndex(popup);
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    const int existing = FindEntryIndex(popup);
     if (existing >= 0) {
-        RemovePopupAt(static_cast<size_t>(existing));
+        RemoveEntryAt(static_cast<size_t>(existing));
     }
 
-    const float screenW = (std::max)(m_Geometry.width, 1.0f);
-    const float screenH = (std::max)(m_Geometry.height, 1.0f);
+    const float screenW = std::max(m_Geometry.width, 1.0f);
+    const float screenH = std::max(m_Geometry.height, 1.0f);
     const float margin = ResolveMetric(MetricToken::Space2);
 
     Size size{
-        (std::max)(preferredSize.width, 240.0f),
-        (std::max)(preferredSize.height, 180.0f)
+        std::max(preferredSize.width, 240.0f),
+        std::max(preferredSize.height, 180.0f)
     };
-    size.width = (std::min)(size.width, (std::max)(240.0f, screenW - margin * 2.0f));
-    size.height = (std::min)(size.height, (std::max)(180.0f, screenH - margin * 2.0f));
+    size.width = std::min(size.width, std::max(240.0f, screenW - margin * 2.0f));
+    size.height = std::min(size.height, std::max(180.0f, screenH - margin * 2.0f));
 
-    popup->Measure(size);
+    popup->SetOverlayContent(true);
+    (void)MeasureChild(popup, size);
     size = popup->ClampDesiredSize(size);
 
-    float posX = std::clamp(position.x, margin, (std::max)(margin, screenW - size.width - margin));
-    float posY = std::clamp(position.y, margin, (std::max)(margin, screenH - size.height - margin));
+    PopupPlacementOptions options{};
+    options.anchorRect = Rect{ position.x, position.y, 0.0f, 0.0f };
+    options.mode = PopupPlacementMode::AtPoint;
+    options.gap = 0.0f;
+    options.viewportMargin = margin;
+    options.viewportBounds = Rect{ 0.0f, 0.0f, screenW, screenH };
 
-    popup->Arrange(Rect{ posX, posY, size.width, size.height });
+    const PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+    ArrangeChild(popup, placement.popupRect);
 
-    m_Popups.push_back(popup);
-    m_FullscreenPopups.push_back(false);
-    m_PinnedPopups.push_back(true);
-    m_PopupCachedSizes.push_back(size);
-    m_PopupAnchors.push_back(Rect{});
-    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
-    AttachOverlayChild(popup);
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Pinned;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.pinned = true;
+    entry.interactive = true;
+    entry.cachedSize = Size{ placement.popupRect.width, placement.popupRect.height };
+    entry.lastPaintBounds = placement.popupRect;
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
 }
 
 void OverlayHost::ShowPinnedFullscreenPopup(const std::shared_ptr<Widget>& popup) {
     if (!popup) {
         return;
     }
-
-    const int existing = FindPopupIndex(popup);
+    UIStateChangeGate::ScopedTransaction tx("OverlayOpen");
+    const int existing = FindEntryIndex(popup);
     if (existing >= 0) {
-        RemovePopupAt(static_cast<size_t>(existing));
+        RemoveEntryAt(static_cast<size_t>(existing));
     }
 
-    const float width = (std::max)(m_Geometry.width, 1.0f);
-    const float height = (std::max)(m_Geometry.height, 1.0f);
+    const float width = std::max(m_Geometry.width, 1.0f);
+    const float height = std::max(m_Geometry.height, 1.0f);
     const Rect geom{ 0.0f, 0.0f, width, height };
-    popup->Measure(Size{ width, height });
-    popup->Arrange(geom);
+    popup->SetOverlayContent(true);
+    (void)MeasureChild(popup, Size{ width, height });
+    ArrangeChild(popup, geom);
 
-    // Append last so docking previews paint above opaque floating windows.
-    // HitTest still falls through because the overlay returns nullptr.
-    m_Popups.push_back(popup);
-    m_FullscreenPopups.push_back(true);
-    m_PinnedPopups.push_back(true);
-    m_PopupCachedSizes.push_back(Size{ width, height });
-    m_PopupAnchors.push_back(Rect{});
-    m_PopupPlacementModes.push_back(PopupPlacementMode::SidePreferred);
-    AttachOverlayChild(popup);
+    OverlayEntry entry{};
+    entry.id = NextEntryId();
+    entry.widget = popup;
+    entry.kind = OverlayKind::Fullscreen;
+    entry.zOrder = DefaultZOrder(entry.kind);
+    entry.fullscreen = true;
+    entry.pinned = true;
+    entry.interactive = true;
+    entry.cachedSize = Size{ width, height };
+    entry.lastPaintBounds = geom;
+    m_Entries.push_back(std::move(entry));
+    AttachOverlayEntry(m_Entries.back());
 }
 
 void OverlayHost::MovePopup(const std::shared_ptr<Widget>& popup, const Point& position) {
-    const int index = FindPopupIndex(popup);
+    const int index = FindEntryIndex(popup);
     if (index < 0) {
         return;
     }
 
-    const size_t i = static_cast<size_t>(index);
-    if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
+    OverlayEntry& entry = m_Entries[static_cast<size_t>(index)];
+    if (entry.fullscreen) {
         return;
     }
 
-    const float screenW = (std::max)(m_Geometry.width, 1.0f);
-    const float screenH = (std::max)(m_Geometry.height, 1.0f);
-    const float margin = 4.0f;
+    const float screenW = std::max(m_Geometry.width, 1.0f);
+    const float screenH = std::max(m_Geometry.height, 1.0f);
+    const float margin = ResolveMetric(MetricToken::Space2);
 
-    Size size = (i < m_PopupCachedSizes.size()) ? m_PopupCachedSizes[i] : Size{};
+    Size size = entry.cachedSize;
     if (size.width <= 0.0f || size.height <= 0.0f) {
         const Rect current = popup->GetGeometry();
         size = Size{ current.width, current.height };
     }
 
-    float posX = std::clamp(position.x, margin, (std::max)(margin, screenW - size.width - margin));
-    float posY = std::clamp(position.y, margin, (std::max)(margin, screenH - size.height - margin));
-    popup->Arrange(Rect{ posX, posY, size.width, size.height });
+    PopupPlacementOptions options{};
+    options.anchorRect = Rect{ position.x, position.y, 0.0f, 0.0f };
+    options.mode = PopupPlacementMode::AtPoint;
+    options.gap = 0.0f;
+    options.viewportMargin = margin;
+    options.viewportBounds = Rect{ 0.0f, 0.0f, screenW, screenH };
+
+    const Rect oldBounds = entry.lastPaintBounds;
+    const PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+    ArrangeChild(popup, placement.popupRect);
+    entry.cachedSize = Size{ placement.popupRect.width, placement.popupRect.height };
+    entry.lastPaintBounds = placement.popupRect;
+    if (!oldBounds.IsEmpty()) {
+        UIDirtyRegionTracker::Get().Add(oldBounds, 4.0f);
+    }
+    UIDirtyRegionTracker::Get().Add(placement.popupRect, 4.0f);
+    UIRepaintGate::RequestPaintReason("OverlayMove");
 }
 
 void OverlayHost::ResizePopup(const std::shared_ptr<Widget>& popup, const Rect& bounds) {
-    const int index = FindPopupIndex(popup);
+    const int index = FindEntryIndex(popup);
     if (index < 0) {
         return;
     }
 
-    const size_t i = static_cast<size_t>(index);
-    if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
+    OverlayEntry& entry = m_Entries[static_cast<size_t>(index)];
+    if (entry.fullscreen) {
         return;
     }
 
-    const float screenW = (std::max)(m_Geometry.width, 1.0f);
-    const float screenH = (std::max)(m_Geometry.height, 1.0f);
-    const float margin = 4.0f;
+    const float screenW = std::max(m_Geometry.width, 1.0f);
+    const float screenH = std::max(m_Geometry.height, 1.0f);
+    const float margin = ResolveMetric(MetricToken::Space2);
 
     Size size{
-        (std::max)(120.0f, bounds.width),
-        (std::max)(28.0f, bounds.height)
+        std::max(120.0f, bounds.width),
+        std::max(28.0f, bounds.height)
     };
-    size.width = (std::min)(size.width, (std::max)(120.0f, screenW - margin * 2.0f));
-    size.height = (std::min)(size.height, (std::max)(28.0f, screenH - margin * 2.0f));
+    size.width = std::min(size.width, std::max(120.0f, screenW - margin * 2.0f));
+    size.height = std::min(size.height, std::max(28.0f, screenH - margin * 2.0f));
 
-    float posX = std::clamp(bounds.x, margin, (std::max)(margin, screenW - size.width - margin));
-    float posY = std::clamp(bounds.y, margin, (std::max)(margin, screenH - size.height - margin));
+    PopupPlacementOptions options{};
+    options.anchorRect = Rect{ bounds.x, bounds.y, 0.0f, 0.0f };
+    options.mode = PopupPlacementMode::AtPoint;
+    options.gap = 0.0f;
+    options.viewportMargin = margin;
+    options.viewportBounds = Rect{ 0.0f, 0.0f, screenW, screenH };
 
-    if (i < m_PopupCachedSizes.size()) {
-        m_PopupCachedSizes[i] = size;
+    (void)MeasureChild(popup, size);
+    const Rect oldBounds = entry.lastPaintBounds;
+    const PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
+    ArrangeChild(popup, placement.popupRect);
+    entry.cachedSize = Size{ placement.popupRect.width, placement.popupRect.height };
+    entry.lastPaintBounds = placement.popupRect;
+    if (!oldBounds.IsEmpty()) {
+        UIDirtyRegionTracker::Get().Add(oldBounds, 4.0f);
     }
-
-    popup->Measure(size);
-    popup->Arrange(Rect{ posX, posY, size.width, size.height });
+    UIDirtyRegionTracker::Get().Add(placement.popupRect, 4.0f);
+    RequestOverlayUpdate("OverlayResize");
 }
 
 void OverlayHost::ClosePopup(const std::shared_ptr<Widget>& popup) {
-    const int index = FindPopupIndex(popup);
+    const int index = FindEntryIndex(popup);
     if (index >= 0) {
-        RemovePopupAt(static_cast<size_t>(index));
+        UIStateChangeGate::ScopedTransaction tx("OverlayClose");
+        RemoveEntryAt(static_cast<size_t>(index));
     }
 }
 
 void OverlayHost::CloseTopPopup() {
-    if (m_Popups.empty()) {
+    if (m_Entries.empty()) {
         return;
     }
-    RemovePopupAt(m_Popups.size() - 1);
+    // Close topmost interactive/transient (highest z), skip pinned unless only entry.
+    for (int i = static_cast<int>(m_Entries.size()) - 1; i >= 0; --i) {
+        const OverlayEntry& e = m_Entries[static_cast<size_t>(i)];
+        if (!e.pinned || e.kind == OverlayKind::Tooltip || e.kind == OverlayKind::Transient) {
+            UIStateChangeGate::ScopedTransaction tx("OverlayClose");
+            RemoveEntryAt(static_cast<size_t>(i));
+            return;
+        }
+    }
+    UIStateChangeGate::ScopedTransaction tx("OverlayClose");
+    RemoveEntryAt(m_Entries.size() - 1);
 }
 
 void OverlayHost::CloseTransientPopups() {
-    for (int i = static_cast<int>(m_Popups.size()) - 1; i >= 0; --i) {
-        const size_t index = static_cast<size_t>(i);
-        const bool pinned = index < m_PinnedPopups.size() && m_PinnedPopups[index];
-        if (!pinned) {
-            RemovePopupAt(index);
+    UIStateChangeGate::ScopedTransaction tx("OverlayClose");
+    for (int i = static_cast<int>(m_Entries.size()) - 1; i >= 0; --i) {
+        const OverlayEntry& e = m_Entries[static_cast<size_t>(i)];
+        if (!e.pinned) {
+            RemoveEntryAt(static_cast<size_t>(i));
         }
     }
 }
 
 void OverlayHost::CloseAllPopups() {
-    for (auto& popup : m_Popups) {
-        DetachOverlayChild(popup);
+    UIStateChangeGate::ScopedTransaction tx("OverlayClose");
+    for (auto& entry : m_Entries) {
+        if (entry.widget) {
+            entry.widget->SetOverlayContent(false);
+            DetachOverlayChild(entry.widget);
+        }
     }
-    m_Popups.clear();
-    m_FullscreenPopups.clear();
-    m_PinnedPopups.clear();
-    m_PopupCachedSizes.clear();
-    m_PopupAnchors.clear();
-    m_PopupPlacementModes.clear();
+    m_Entries.clear();
+    UIDirtyRegionTracker::Get().MarkFullDirty();
+    RequestOverlayUpdate("OverlayCloseAll");
+    g_OverlayStats.openCount = 0;
 }
 
 void OverlayHost::ExecutePendingCallbacks() {
-    // Snapshot: menu callbacks often close/open popups (float/dock), which must
-    // not mutate m_Popups while we iterate it.
-    const std::vector<std::shared_ptr<Widget>> snapshot = m_Popups;
+    std::vector<std::shared_ptr<Widget>> snapshot;
+    snapshot.reserve(m_Entries.size());
+    for (const auto& entry : m_Entries) {
+        snapshot.push_back(entry.widget);
+    }
     for (const auto& popup : snapshot) {
         if (popup) {
             popup->ExecutePendingCallback();
@@ -329,140 +728,75 @@ bool OverlayHost::IsWidgetInPopup(const std::shared_ptr<Widget>& widget) const {
     if (!widget) {
         return false;
     }
-
-    for (auto current = widget; current; current = current->GetParent()) {
-        for (const auto& popup : m_Popups) {
-            if (current == popup) {
+    std::shared_ptr<Widget> current = widget;
+    for (int depth = 0; current && depth < 256; ++depth) {
+        for (const auto& entry : m_Entries) {
+            if (entry.widget && current == entry.widget) {
                 return true;
             }
         }
+        current = current->GetParent();
     }
     return false;
 }
 
 bool OverlayHost::IsPinnedPopup(const std::shared_ptr<Widget>& popup) const {
-    const int index = FindPopupIndex(popup);
+    const int index = FindEntryIndex(popup);
     if (index < 0) {
         return false;
     }
-    const size_t i = static_cast<size_t>(index);
-    return i < m_PinnedPopups.size() && m_PinnedPopups[i];
+    return m_Entries[static_cast<size_t>(index)].pinned;
 }
 
 Size OverlayHost::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
     m_DesiredSize = availableSize;
     if (m_BaseWidget) {
-        m_BaseWidget->Measure(availableSize);
+        (void)MeasureChild(m_BaseWidget, availableSize);
     }
+    NoteMeasureCache(availableSize);
     return availableSize;
 }
 
 void OverlayHost::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    CommitGeometry(allottedRect);
     const bool hostResized =
         std::abs(allottedRect.width - m_LastArrangeSize.width) > 0.5f
         || std::abs(allottedRect.height - m_LastArrangeSize.height) > 0.5f;
-    m_LastArrangeSize = Size{allottedRect.width, allottedRect.height};
+    m_LastArrangeSize = Size{ allottedRect.width, allottedRect.height };
     ClearLayoutDirty();
-    if (m_BaseWidget) {
-        m_BaseWidget->Arrange(allottedRect);
+    ++g_OverlayStats.fullHostArranges;
+
+    const bool baseNeedsArrange = hostResized
+        || (m_BaseWidget && m_BaseWidget->SubtreeNeedsLayout())
+        || (m_BaseWidget && !RectsNearlyEqual(m_BaseWidget->GetGeometry(), allottedRect));
+
+    if (m_BaseWidget && baseNeedsArrange) {
+        ArrangeChild(m_BaseWidget, allottedRect);
+    } else if (m_BaseWidget) {
+        ++g_OverlayStats.baseArrangesSkipped;
     }
 
-    const float popupMargin = ResolveMetric(MetricToken::Space2) * 2.0f;
-    const float minPopupDim = ResolveMetric(MetricToken::ToolbarLabeledMinWidth) + ResolveMetric(MetricToken::Space2);
-    const float maxW = (std::max)(minPopupDim, allottedRect.width - popupMargin);
-
-    for (size_t i = 0; i < m_Popups.size(); ++i) {
-        auto& popup = m_Popups[i];
-        if (i < m_FullscreenPopups.size() && m_FullscreenPopups[i]) {
-            if (hostResized || popup->SubtreeNeedsLayout()) {
-                popup->Measure(Size{allottedRect.width, allottedRect.height});
-            }
-            popup->Arrange(allottedRect);
-            if (i < m_PopupCachedSizes.size()) {
-                m_PopupCachedSizes[i] = Size{allottedRect.width, allottedRect.height};
-            }
-            continue;
-        }
-
-        const bool pinned = i < m_PinnedPopups.size() && m_PinnedPopups[i];
-        Rect geom = popup->GetGeometry();
-        Size size = (i < m_PopupCachedSizes.size()) ? m_PopupCachedSizes[i] : Size{};
-
-        if (i < m_PopupAnchors.size() && (m_PopupAnchors[i].width > 0.0f || m_PopupAnchors[i].height > 0.0f)) {
-            size = popup->Measure(Size{ allottedRect.width, allottedRect.height });
-            size = popup->ClampDesiredSize(size);
-
-            PopupPlacementOptions options{};
-            options.anchorRect = m_PopupAnchors[i];
-            options.mode = i < m_PopupPlacementModes.size() ? m_PopupPlacementModes[i] :
-                PopupPlacementMode::SidePreferred;
-            options.gap = ResolveMetric(MetricToken::Space1);
-            options.viewportMargin = ResolveMetric(MetricToken::Space2);
-            options.viewportBounds = allottedRect;
-
-            PopupPlacementResult placement = PopupPositioner::Calculate(size, options);
-            popup->Arrange(placement.popupRect);
-            if (i < m_PopupCachedSizes.size()) {
-                m_PopupCachedSizes[i] = size;
-            }
-            continue;
-        }
-
-        if (pinned) {
-            if (size.width <= 0.0f || size.height <= 0.0f) {
-                size = Size{ geom.width, geom.height };
-            }
-            if (popup->SubtreeNeedsLayout()) {
-                popup->Measure(size);
-            }
-        } else {
-            const bool needsRemeasure =
-                popup->SubtreeNeedsLayout() || size.width <= 0.0f || size.height <= 0.0f;
-            if (needsRemeasure) {
-                const float availH = (std::max)(minPopupDim, allottedRect.height - geom.y -
-                    ResolveMetric(MetricToken::Space2));
-                size = popup->Measure(Size{maxW, availH});
-                size = popup->ClampDesiredSize(size);
-                if (i < m_PopupCachedSizes.size()) {
-                    m_PopupCachedSizes[i] = size;
-                } else {
-                    m_PopupCachedSizes.push_back(size);
-                }
-            }
-        }
-
-        geom.width = size.width;
-        geom.height = size.height;
-
-        if (geom.x + geom.width > allottedRect.width - 4.0f) {
-            geom.x = (std::max)(4.0f, allottedRect.width - geom.width - 4.0f);
-        }
-        if (geom.y + geom.height > allottedRect.height - 4.0f) {
-            geom.y = (std::max)(4.0f, allottedRect.height - geom.height - 4.0f);
-        }
-        if (geom.x < 4.0f) geom.x = 4.0f;
-        if (geom.y < 4.0f) geom.y = 4.0f;
-
-        if (i < m_PopupCachedSizes.size()) {
-            m_PopupCachedSizes[i] = size;
-        }
-        popup->Arrange(geom);
-    }
+    LayoutOverlayEntries(hostResized);
 }
 
 void OverlayHost::Paint(PaintContext& context) {
     if (m_BaseWidget) {
         m_BaseWidget->PaintSubtree(context);
     }
-    for (auto& popup : m_Popups) {
-        popup->PaintSubtree(context);
+    for (auto& entry : m_Entries) {
+        if (entry.widget && entry.visible) {
+            entry.widget->PaintSubtree(context);
+            entry.lastPaintBounds = entry.widget->GetGeometry();
+            ++g_OverlayStats.slotsPainted;
+        }
     }
 }
 
 void OverlayHost::OnMouseDown(const MouseEvent&) {
-    // Popup dismissal is handled by EventSystem when clicking outside a popup.
-    // Do not close here — empty-area hits on this host must not swallow clicks.
+    // Dismissal is handled by EventSystem when clicking outside a popup.
 }
 
 std::shared_ptr<Widget> OverlayHost::HitTestPoint(const Point& pos, const Rect* clip) {
@@ -473,11 +807,12 @@ std::shared_ptr<Widget> OverlayHost::HitTestPoint(const Point& pos, const Rect* 
         return nullptr;
     }
 
-    for (auto it = m_Popups.rbegin(); it != m_Popups.rend(); ++it) {
-        if (!*it) {
+    // Highest z-order first (entries sorted ascending in LayoutOverlayEntries).
+    for (auto it = m_Entries.rbegin(); it != m_Entries.rend(); ++it) {
+        if (!it->widget || !it->visible || !it->interactive) {
             continue;
         }
-        if (auto hit = (*it)->HitTestPoint(pos, clip)) {
+        if (auto hit = it->widget->HitTestPoint(pos, clip)) {
             return hit;
         }
     }
@@ -489,5 +824,4 @@ std::shared_ptr<Widget> OverlayHost::HitTestPoint(const Point& pos, const Rect* 
     return nullptr;
 }
 
-}
-
+} // namespace we::runtime::kindui

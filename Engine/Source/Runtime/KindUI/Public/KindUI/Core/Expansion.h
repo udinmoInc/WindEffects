@@ -9,7 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
-#include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIStateChange.h"
 
 #include <cstddef>
 #include <functional>
@@ -31,7 +31,7 @@ public:
 };
 
 /// Canonical Expand All / Collapse All / SetExpanded entry points.
-/// All multi-node mutations run inside one UIRepaintGate batch so layout/paint
+/// All multi-node mutations run inside one UIStateChangeGate transaction so layout/paint
 /// coalesce to a single rebuild after the transaction commits.
 class KINDUI_API Expansion {
 public:
@@ -45,8 +45,7 @@ public:
         ScopedTransaction& operator=(const ScopedTransaction&) = delete;
 
     private:
-        const char* m_Reason = "Expansion";
-        bool m_Active = false;
+        UIStateChangeGate::ScopedTransaction m_Gate;
     };
 
     /// Single-node expand/collapse with batched invalidation.

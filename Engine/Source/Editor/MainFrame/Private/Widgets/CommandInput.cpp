@@ -89,7 +89,7 @@ void CommandInput::Paint(PaintContext& context) {
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, fontSize);
 
     if (m_Text.empty() && !IsFocused()) {
-        context.DrawText(m_Placeholder, Point{ textX, textY }, ThemeColor(ColorToken::SearchPlaceholder), fontSize);
+        context.DrawText(m_Placeholder, Point{ textX, textY }, ThemeColor(ColorToken::TextSecondary), fontSize);
         return;
     }
 

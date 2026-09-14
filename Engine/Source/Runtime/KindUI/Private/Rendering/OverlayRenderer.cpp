@@ -30,6 +30,8 @@
 #include "Core/Logger.h"
 #include "Core/Paths.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIDirtyRegionTracker.h"
+#include "KindUI/Core/UIResourceResidency.h"
 #include "KindUI/Core/Widget.h"
 
 #include <algorithm>
@@ -41,7 +43,12 @@
 namespace we::runtime::kindui {
 namespace {
 
-[[nodiscard]] we::rhi::UIDrawList BuildDrawList(
+static_assert(sizeof(UIVertex2) == sizeof(we::rhi::UIVertex), "UIVertex2 must match RHI UIVertex");
+static_assert(alignof(UIVertex2) == alignof(we::rhi::UIVertex), "UIVertex2 align must match RHI UIVertex");
+
+/// Rebuild cached draw list into persistent storage (capacity retained). Color convert only.
+void BuildDrawList(
+    we::rhi::UIDrawList& list,
     const std::vector<UIVertex2>& vertices,
     const std::vector<uint32_t>& indices,
     const std::vector<UIRenderBatch>& batches,
@@ -49,24 +56,27 @@ namespace {
     uint32_t width,
     uint32_t height)
 {
-    we::rhi::UIDrawList list{};
     list.targetWidth = width;
     list.targetHeight = height;
+
     list.vertices.resize(vertices.size());
     for (size_t i = 0; i < vertices.size(); ++i) {
-        auto& dst = list.vertices[i];
-        const auto& src = vertices[i];
-        std::memcpy(dst.position, src.position, sizeof(dst.position));
-        std::memcpy(dst.uv, src.uv, sizeof(dst.uv));
+        we::rhi::UIVertex& dst = list.vertices[i];
+        const UIVertex2& src = vertices[i];
+        // Layout-identical: copy then overwrite color for target encoding.
+        std::memcpy(&dst, &src, sizeof(we::rhi::UIVertex));
         ColorSpace::WriteGpuVertexColorForTarget(
             targetFormat,
             Color{src.color[0], src.color[1], src.color[2], src.color[3]},
             dst.color);
-        std::memcpy(dst.sdfRect, src.sdfRect, sizeof(dst.sdfRect));
-        std::memcpy(dst.sdfParams, src.sdfParams, sizeof(dst.sdfParams));
     }
-    list.indices = indices;
-    list.batches.reserve(batches.size());
+
+    list.indices.assign(indices.begin(), indices.end());
+
+    list.batches.clear();
+    if (list.batches.capacity() < batches.size()) {
+        list.batches.reserve(batches.size());
+    }
     for (const auto& batch : batches) {
         we::rhi::UIDrawBatch out{};
         out.texture = batch.textureSet;
@@ -82,7 +92,6 @@ namespace {
         out.msdfPixelRange = batch.msdfPixelRange;
         list.batches.push_back(out);
     }
-    return list;
 }
 
 } // namespace
@@ -97,10 +106,15 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
     if (!device) {
         return false;
     }
+    // Idempotent: drop any prior GPU/UI state before (re)building.
+    Shutdown();
+
     m_RHIDevice = device;
     m_SwapchainFormat = swapchainFormat;
     m_MaxFramesInFlight = maxFramesInFlight ? maxFramesInFlight : 2;
 
+    WE_LOG_INFO(we::LogCategory::Startup, "OverlayRenderer: UiImmediateRenderer...");
+    we::runtime::core::Logger::Flush();
     m_UIImmediate = std::make_unique<UiImmediateRenderer>();
     if (!m_UIImmediate->Init(device, swapchainFormat, m_MaxFramesInFlight)) {
         WE_LOG_WARN(we::LogCategory::Startup,
@@ -116,10 +130,21 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
         m_DummySampler = 1;
     }
 
+    WE_LOG_INFO(we::LogCategory::Startup, "OverlayRenderer: UiGpuUpload...");
+    we::runtime::core::Logger::Flush();
     m_GpuUpload = std::make_unique<UiGpuUpload>();
     m_GpuUpload->Init(device);
+
+    WE_LOG_INFO(we::LogCategory::Startup, "OverlayRenderer: TextUIService...");
+    we::runtime::core::Logger::Flush();
     m_TextUIService = std::make_unique<TextUIService>();
-    (void)m_TextUIService->Initialize(this);
+    if (!m_TextUIService->Initialize(this)) {
+        WE_LOG_ERROR(we::LogCategory::Startup, "OverlayRenderer: TextUIService Initialize failed.");
+        m_TextUIService.reset();
+    }
+
+    WE_LOG_INFO(we::LogCategory::Startup, "OverlayRenderer: IconManager...");
+    we::runtime::core::Logger::Flush();
     m_IconRenderer = std::make_unique<IconRenderer>();
     m_IconManager = std::make_unique<IconManager>();
 
@@ -148,20 +173,46 @@ bool OverlayRenderer::Init(we::rhi::IRHIDevice* device, we::rhi::Format swapchai
 }
 
 void OverlayRenderer::Shutdown() {
+    // Tear down consumers of descriptor sets before the owner (UiImmediate).
+    // Reset unique_ptrs here so member-destructor order cannot Unregister into a dead renderer.
+    if (m_IconRenderer) {
+        m_IconRenderer->SetIconManager(nullptr);
+        m_IconRenderer->Shutdown();
+        m_IconRenderer.reset();
+    }
+    if (m_IconManager) {
+        m_IconManager->Shutdown();
+        m_IconManager.reset();
+    }
+    if (m_TextUIService) {
+        m_TextUIService->Shutdown();
+        m_TextUIService.reset();
+    }
     if (m_WidgetAdapter) {
         m_WidgetAdapter->Shutdown();
+        m_WidgetAdapter.reset();
+    }
+    if (m_StateManager) {
+        m_StateManager.reset();
     }
     if (m_GpuUpload) {
         m_GpuUpload->Shutdown();
+        m_GpuUpload.reset();
     }
+
+    m_Vertices.clear();
+    m_Indices.clear();
+    m_Batches.clear();
+    m_CachedDrawList = {};
+    m_CachedDrawListGeneration = ~uint64_t{0};
+    m_DummyDescriptorSet = 0;
+    m_DummySampler = 0;
+
     if (m_UIImmediate) {
         m_UIImmediate->Shutdown();
         m_UIImmediate.reset();
     }
     m_RHIDevice = nullptr;
-    m_Vertices.clear();
-    m_Indices.clear();
-    m_Batches.clear();
 }
 
 void OverlayRenderer::SetTargetExtent(uint32_t width, uint32_t height) {
@@ -200,6 +251,62 @@ uint64_t OverlayRenderer::SubmissionInvalidationCount() const {
     return m_UIImmediate ? m_UIImmediate->SubmissionInvalidationCount() : 0;
 }
 
+uint64_t OverlayRenderer::GetGeometryVertexCapacityBytes() const {
+    return static_cast<uint64_t>(m_Vertices.capacity()) * static_cast<uint64_t>(sizeof(UIVertex2));
+}
+
+uint64_t OverlayRenderer::GetGeometryIndexCapacityBytes() const {
+    return static_cast<uint64_t>(m_Indices.capacity()) * sizeof(uint32_t);
+}
+
+uint64_t OverlayRenderer::GetGeometryBatchCapacityBytes() const {
+    return static_cast<uint64_t>(m_Batches.capacity()) * static_cast<uint64_t>(sizeof(UIRenderBatch));
+}
+
+uint64_t OverlayRenderer::GetDrawCommandCapacityBytes() const {
+    return m_WidgetAdapter ? m_WidgetAdapter->GetDrawCommandCapacityBytes() : 0;
+}
+
+uint64_t OverlayRenderer::GetGpuVertexCapacityBytes() const {
+    return m_UIImmediate ? m_UIImmediate->GetGpuVertexCapacityBytes() : 0;
+}
+
+uint64_t OverlayRenderer::GetGpuIndexCapacityBytes() const {
+    return m_UIImmediate ? m_UIImmediate->GetGpuIndexCapacityBytes() : 0;
+}
+
+const UiGpuPathStats* OverlayRenderer::GetGpuPathStats() const {
+    return m_UIImmediate ? &m_UIImmediate->GetGpuPathStats() : nullptr;
+}
+
+size_t OverlayRenderer::GetTextMeasureCacheEntryCount() const {
+    return m_TextUIService ? m_TextUIService->MeasureCacheEntryCount() : 0;
+}
+
+uint64_t OverlayRenderer::GetTextMeasureCacheBytes() const {
+    return m_TextUIService ? m_TextUIService->EstimateMeasureCacheBytes() : 0;
+}
+
+uint32_t OverlayRenderer::GetFontAtlasPageCount() const {
+    return m_TextUIService ? m_TextUIService->FontAtlasPageCount() : 0;
+}
+
+uint64_t OverlayRenderer::GetFontAtlasCpuBytes() const {
+    return m_TextUIService ? m_TextUIService->EstimateFontAtlasCpuBytes() : 0;
+}
+
+size_t OverlayRenderer::GetIconTextureCacheEntryCount() const {
+    return m_IconManager ? m_IconManager->TextureCacheEntryCount() : 0;
+}
+
+uint64_t OverlayRenderer::GetIconTextureCacheBytes() const {
+    return m_IconManager ? m_IconManager->EstimatedGpuBytes() : 0;
+}
+
+uint32_t OverlayRenderer::GetSubmissionCacheSlotCount() const {
+    return m_UIImmediate ? m_UIImmediate->SubmissionCacheSlotCount() : 0;
+}
+
 void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t frameSlot) {
     m_ActiveFrameSlot = frameSlot;
     m_LastBuildCpuMs = 0.0f;
@@ -209,6 +316,28 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     const uint64_t frameNumber = we::runtime::core::FrameCounter::GetFrameNumber();
     const uint32_t width = m_CurrentWidth;
     const uint32_t height = m_CurrentHeight;
+
+    auto& residency = UIResourceResidency::Get();
+    const uint32_t fif = m_UIImmediate ? m_UIImmediate->FramesInFlight() : 2u;
+    residency.BeginFrame(frameNumber, fif);
+
+    if (m_IconManager) {
+        m_IconManager->OnFrame(frameNumber, this, root);
+    }
+    if (m_TextUIService) {
+        m_TextUIService->OnResidencyTick();
+    }
+    // Merge icon residency into the global snapshot (text tick wrote geom/atlas).
+    {
+        const auto& prior = residency.Stats();
+        residency.SetResidentSnapshot(
+            m_IconManager ? static_cast<uint32_t>(m_IconManager->TextureCacheEntryCount()) : 0,
+            m_IconManager ? m_IconManager->EstimatedGpuBytes() : 0,
+            prior.residentTextGeomCount,
+            prior.residentTextGeomCpuBytes,
+            prior.residentGlyphCount,
+            prior.residentAtlasCpuBytes);
+    }
 
     if (UiColorDebug::IsEnabled() || UiColorDebug::IsSemanticAuditEnabled()) {
         UiColorDebug::Get().BeginFrame();
@@ -238,6 +367,9 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
     const bool compositionAudit = UiColorCompositionDiagnostic::IsEnabled()
         && !UiColorCompositionDiagnostic::Get().HasCompleted();
     const bool forceRebuild = frameNumber <= 3 || sizeChanged || m_Vertices.empty() || compositionAudit;
+    if (forceRebuild || sizeChanged) {
+        UIDirtyRegionTracker::Get().MarkFullDirty();
+    }
     // Layout Measure/Arrange is owned by the host (Editor SyncViewport / WeLauncher SyncLayout).
     // Peek only — do not ConsumeNeedsLayout here (host is the sole consumer).
     const bool needsLayout = forceRebuild || UIRepaintGate::PeekNeedsLayout();
@@ -259,12 +391,18 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
             if (m_WidgetAdapter) {
                 m_WidgetAdapter->ResetDiagnostics();
                 m_WidgetAdapter->ProcessWidget(root, width, height, needsLayout);
+                const bool geometryReused = m_WidgetAdapter->LastPhaseTiming().geometryReused;
                 m_WidgetAdapter->SwapGeometry(m_Vertices, m_Indices, m_Batches);
                 m_LastPhaseTiming = m_WidgetAdapter->LastPhaseTiming();
+                // Reused drawgen output keeps prior GPU buffers / submission cache valid.
+                if (!geometryReused) {
+                    ++m_GeometryGeneration;
+                }
+            } else {
+                ++m_GeometryGeneration;
             }
         m_LastBuiltWidth = width;
         m_LastBuiltHeight = height;
-        ++m_GeometryGeneration;
         m_BuiltGeometryThisFrame = true;
     }
 
@@ -301,25 +439,65 @@ void OverlayRenderer::RenderUI(const std::shared_ptr<Widget>& root, uint32_t fra
         if (nowMs - s_LastLogMs >= 1000.0) {
             s_LastLogMs = nowMs;
             const auto& p = m_LastPhaseTiming;
+            const UiGpuPathStats* gpu = GetGpuPathStats();
             HE_INFO(
                 std::string("[UiBuildProfile] total=") + std::to_string(p.totalMs) +
                 "ms clear=" + std::to_string(p.clearMs) +
                 " layout=" + std::to_string(p.layoutMs) +
                 " paint=" + std::to_string(p.paintMs) +
+                " coalesce=" + std::to_string(p.coalesceMs) +
                 " drawgen=" + std::to_string(p.drawgenMs) +
+                " batchCoalesce=" + std::to_string(p.batchCoalesceMs) +
                 " text=" + std::to_string(p.textMs) +
                 " clearDirty=" + std::to_string(p.clearDirtyMs) +
                 " cmds=" + std::to_string(p.paintCommands) +
+                "->" + std::to_string(p.commandsAfterCoalesce) +
+                " dropped=" + std::to_string(p.commandsDropped) +
+                " rectMerge=" + std::to_string(p.rectsMerged) +
+                " clipNorm=" + std::to_string(p.clipsNormalized) +
+                " iconCluster=" + std::to_string(p.iconsClustered) +
+                " textCluster=" + std::to_string(p.textsClustered) +
                 " textCmds=" + std::to_string(p.textCommands) +
                 " rectCmds=" + std::to_string(p.rectCommands) +
                 " verts=" + std::to_string(p.vertices) +
-                " batches=" + std::to_string(p.batches) +
+                " idx=" + std::to_string(p.indices) +
+                " batches=" + std::to_string(p.batchesAfterDrawgen) +
+                "->" + std::to_string(p.batches) +
+                " batchMerge=" + std::to_string(p.batchesMerged) +
+                " texSw=" + std::to_string(p.textureSwitches) +
+                " clips=" + std::to_string(p.clipRectCount) +
+                " globalBatch=" + (p.globalBatchEnabled ? "1" : "0") +
                 " ranLayout=" + (p.ranLayout ? "1" : "0") +
                 " retain=" + (p.paintRetention ? "1" : "0") +
                 " painted=" + std::to_string(p.subtreesPainted) +
                 " replayed=" + std::to_string(p.subtreesReplayed) +
                 " replayCmds=" + std::to_string(p.commandsReplayed) +
-                " wall=" + std::to_string(m_LastBuildCpuMs));
+                " dirtyR=" + std::to_string(p.dirtyRegionCount) +
+                " dirtyCov=" + std::to_string(p.dirtyCoverage) +
+                " dirtyFull=" + (p.dirtyFull ? "1" : "0") +
+                " geomReuse=" + (p.geometryReused ? "1" : "0") +
+                " layM=" + std::to_string(p.layoutMeasureRan) +
+                "/" + std::to_string(p.layoutMeasureRan + p.layoutMeasureSkipped) +
+                " layA=" + std::to_string(p.layoutArrangeRan) +
+                "/" + std::to_string(p.layoutArrangeRan + p.layoutArrangeSkipped) +
+                " layFull=" + std::to_string(p.layoutFullPasses) +
+                " wall=" + std::to_string(m_LastBuildCpuMs) +
+                " submitCpu=" + std::to_string(m_LastSubmitCpuMs) +
+                " opaqueB=" + std::to_string(m_FrameStats.opaqueBatches) +
+                " alphaB=" + std::to_string(m_FrameStats.alphaBatches) +
+                " upload=" + (m_UploadedGeometryThisFrame ? "1" : "0") +
+                " subHit=" + (m_LastSubmissionCacheHit ? "1" : "0") +
+                " gpuUp=" + std::to_string(gpu ? gpu->geometryUploadCount : 0) +
+                " gpuBytes=" + std::to_string(gpu ? gpu->geometryUploadBytes : 0) +
+                " gpuSkip=" + std::to_string(gpu ? gpu->geometryUploadSkipCount : 0) +
+                " gpuHashSkip=" + std::to_string(gpu ? gpu->geometryContentHashSkipCount : 0) +
+                " gpuBufCreate=" + std::to_string(gpu ? gpu->bufferCreateCount : 0) +
+                " gpuBufRealloc=" + std::to_string(gpu ? gpu->bufferReallocCount : 0) +
+                " gpuUploadMs=" + std::to_string(gpu ? gpu->lastGeometryUploadCpuMs : 0.0f) +
+                " gpuVB=" + std::to_string(GetGpuVertexCapacityBytes()) +
+                " gpuIB=" + std::to_string(GetGpuIndexCapacityBytes()) +
+                " texCreate=" + std::to_string(gpu ? gpu->textureCreateCount : 0) +
+                " texUpdate=" + std::to_string(gpu ? gpu->textureUpdateCount : 0));
         }
     }
 
@@ -373,7 +551,8 @@ void OverlayRenderer::EndOverlayPass(const we::runtime::uigfx::OverlayRenderCont
         || m_CachedDrawListFormat != targetFormat
         || m_CachedDrawList.targetWidth != m_CurrentWidth
         || m_CachedDrawList.targetHeight != m_CurrentHeight) {
-        m_CachedDrawList = BuildDrawList(
+        BuildDrawList(
+            m_CachedDrawList,
             m_Vertices, m_Indices, m_Batches, targetFormat, m_CurrentWidth, m_CurrentHeight);
         m_CachedDrawListGeneration = m_GeometryGeneration;
         m_CachedDrawListFormat = targetFormat;
@@ -442,6 +621,27 @@ void OverlayRenderer::UnregisterTexture(we::rhi::RHIDescriptorSetHandle descript
     }
 }
 
+void OverlayRenderer::RetireTexture(we::rhi::RHIDescriptorSetHandle descriptorSet) {
+    if (m_UIImmediate) {
+        m_UIImmediate->RetireTexture(descriptorSet);
+    }
+    UIResourceResidency::Get().NoteDeferredRelease();
+}
+
+void OverlayRenderer::PrepareForResourceEviction(const std::shared_ptr<Widget>& root) {
+    // Drop any CPU/GPU caches that may still reference retiring descriptor sets.
+    if (root) {
+        root->ReleaseRetainedPaintSubtree();
+    }
+    m_CachedDrawList = {};
+    m_CachedDrawListGeneration = ~uint64_t{0};
+    ++m_GeometryGeneration;
+    InvalidateGpuSubmissionCache();
+    UIDirtyRegionTracker::Get().MarkFullDirty();
+    UIRepaintGate::RequestPaintReason("ResourceEviction");
+    UIResourceResidency::Get().PinThroughGpuHorizon();
+}
+
 we::rhi::RHIDescriptorSetHandle OverlayRenderer::UploadRgbaTexture(
     uint32_t width,
     uint32_t height,
@@ -455,10 +655,20 @@ we::rhi::RHIDescriptorSetHandle OverlayRenderer::UploadRgbaTexture(
     return we::rhi::RHIDescriptorSetHandle::Invalid;
 }
 
+bool OverlayRenderer::UpdateRgbaTexturePixels(
+    we::rhi::RHIDescriptorSetHandle set,
+    uint32_t width,
+    uint32_t height,
+    std::span<const uint8_t> rgba)
+{
+    if (m_UIImmediate) {
+        return m_UIImmediate->UpdateRgbaTexturePixels(set, width, height, rgba);
+    }
+    return false;
+}
+
 TextUIService* OverlayRenderer::GetTextUIService() const { return m_TextUIService.get(); }
 IconRenderer* OverlayRenderer::GetIconRenderer() const { return m_IconRenderer.get(); }
 IconManager* OverlayRenderer::GetIconManager() const { return m_IconManager.get(); }
 
 } // namespace we::runtime::kindui
-
-// kindui-perf-rebuild-token

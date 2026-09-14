@@ -24,6 +24,8 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 namespace we::runtime::text {
 
@@ -89,6 +91,16 @@ public:
     [[nodiscard]] virtual diagnostics::IFontDiagnostics& Diagnostics() = 0;
     [[nodiscard]] virtual assets::IFontAssetManager& Assets() = 0;
     [[nodiscard]] virtual atlas::IFontAtlasManager* AtlasManager() = 0;
+
+    /// Layout-cache hit/miss counters for KindUI text profiling (reset each BeginFrameStats).
+    struct LayoutCacheStats {
+        uint64_t hits = 0;
+        uint64_t misses = 0;
+        uint32_t entries = 0;
+        uint64_t estimatedBytes = 0;
+    };
+    virtual void BeginFrameStats() = 0;
+    [[nodiscard]] virtual LayoutCacheStats GetLayoutCacheStats() const = 0;
 };
 
 struct TextEngineConfig {
@@ -149,9 +161,11 @@ public:
     [[nodiscard]] diagnostics::IFontDiagnostics& Diagnostics() override;
     [[nodiscard]] assets::IFontAssetManager& Assets() override;
     [[nodiscard]] atlas::IFontAtlasManager* AtlasManager() override { return m_AtlasManager.get(); }
+    void BeginFrameStats() override;
+    [[nodiscard]] LayoutCacheStats GetLayoutCacheStats() const override;
 
 private:
-    [[nodiscard]] layout::LayoutResult LayoutCached(
+    [[nodiscard]] const layout::LayoutResult* LayoutCached(
         std::string_view utf8Text,
         const layout::TextStyle& style,
         const layout::LayoutConstraints& constraints,
@@ -169,12 +183,13 @@ private:
     FontHandle m_DefaultFont = kInvalidFontHandle;
 
     struct LayoutCacheEntry {
-        uint64_t key = 0;
         uint64_t atlasGeneration = 0;
         layout::LayoutResult result;
     };
-    std::vector<LayoutCacheEntry> m_LayoutCache;
-    static constexpr size_t kMaxLayoutCacheEntries = 256;
+    std::unordered_map<uint64_t, LayoutCacheEntry> m_LayoutCache;
+    std::vector<uint64_t> m_LayoutCacheOrder;
+    static constexpr size_t kMaxLayoutCacheEntries = 1024;
+    mutable LayoutCacheStats m_FrameCacheStats{};
 };
 
 #if defined(_MSC_VER)

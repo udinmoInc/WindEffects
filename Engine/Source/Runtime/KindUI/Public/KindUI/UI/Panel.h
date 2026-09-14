@@ -10,6 +10,7 @@
 
 #include "KindUI/Export.h"
 
+#include "KindUI/Core/Expansion.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/Style.h"
 #include "KindUI/Core/WindIcon.h"
@@ -31,7 +32,7 @@ using ::we::runtime::kindui::MouseEvent;
 using ::we::runtime::kindui::WidgetStyle;
 
 // Panel widget with collapsible header and content area
-class KINDUI_API Panel : public Widget {
+class KINDUI_API Panel : public Widget, public ::we::runtime::kindui::IExpansionNode {
 public:
     Panel(const std::string& title = "");
     virtual ~Panel() = default;
@@ -69,7 +70,8 @@ public:
     std::string GetTitle() const { return m_Title; }
 
     void SetExpanded(bool expanded);
-    bool IsExpanded() const { return m_Expanded; }
+    [[nodiscard]] bool IsExpanded() const override { return m_Expanded; }
+    void ApplyExpanded(bool expanded) override;
     void Toggle() { SetExpanded(!m_Expanded); }
 
     // Header actions (icons on the right side of header)

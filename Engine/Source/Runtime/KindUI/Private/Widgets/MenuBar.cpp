@@ -158,7 +158,8 @@ void MenuBar::OnMouseDown(const MouseEvent& event) {
                 }
 
                 auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
-                overlay->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
+                overlay->ShowAnchoredPopup(
+                    dropdown, menu->geometry, PopupPlacementMode::BottomPreferred);
             }
         }
     }
@@ -188,24 +189,26 @@ void MenuBar::OnMouseMove(const MouseEvent& event) {
         }
     }
 
+    const bool switchOpenMenu =
+        menu && newHovered >= 0 && m_MenuOpen && overlay && m_HoveredMenu != newHovered;
+
     if (newHovered != m_HoveredMenu) {
         m_HoveredMenu = newHovered;
         InvalidatePaint();
     }
 
-    if (menu && newHovered >= 0) {
-        if (m_MenuOpen && overlay && m_HoveredMenu != newHovered) {
-            overlay->CloseAllPopups();
-            std::vector<std::shared_ptr<MenuItem>> itemsToShow = menu->items;
-            if (itemsToShow.empty()) {
-                auto emptyItem = std::make_shared<MenuItem>();
-                emptyItem->label = "(Empty)";
-                emptyItem->enabled = false;
-                itemsToShow.push_back(emptyItem);
-            }
-            auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
-            overlay->ShowPopup(dropdown, Point{menu->geometry.x, menu->geometry.y + menu->geometry.height});
+    if (switchOpenMenu) {
+        overlay->CloseAllPopups();
+        std::vector<std::shared_ptr<MenuItem>> itemsToShow = menu->items;
+        if (itemsToShow.empty()) {
+            auto emptyItem = std::make_shared<MenuItem>();
+            emptyItem->label = "(Empty)";
+            emptyItem->enabled = false;
+            itemsToShow.push_back(emptyItem);
         }
+        auto dropdown = std::make_shared<DropdownMenu>(itemsToShow);
+        overlay->ShowAnchoredPopup(
+            dropdown, menu->geometry, PopupPlacementMode::BottomPreferred);
     }
 }
 

@@ -10,6 +10,7 @@
 #include "KindUI/UI/Flex.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/UI/PanelChrome.h"
 
 namespace we::runtime::kindui {
 
@@ -17,7 +18,8 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    Padding(Margin{ padH, 0.0f, padH, 0.0f });
+    const float padV = 1.0f * uiScale;
+    Padding(Margin{ padH, padV, padH, padV });
     Gap(ThemeMetric(MetricToken::ChromeSeparationGapWide));
     Align(AlignItems::Center);
 
@@ -38,6 +40,17 @@ Size PanelToolbarRow::Measure(const Size& availableSize) {
 void PanelToolbarRow::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     Row::Arrange(allottedRect);
+}
+
+void PanelToolbarRow::Paint(PaintContext& context) {
+    context.DrawSurface(m_Geometry, SurfaceRole::Toolbar, 0.0f, "PanelToolbarRow");
+    Row::Paint(context);
+    if (m_DrawBottomBorder) {
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float borderH = 1.0f * uiScale;
+        const Color borderColor = ResolveColor(ColorToken::Separator);
+        context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - borderH, m_Geometry.width, borderH }, borderColor);
+    }
 }
 
 void PanelToolbarRow::Finalize() {

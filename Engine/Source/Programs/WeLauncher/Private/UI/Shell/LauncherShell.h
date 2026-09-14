@@ -57,6 +57,12 @@ public:
     void Tick(float deltaTime) override;
     void OnKeyDown(const we::runtime::kindui::KeyEvent& event) override;
 
+    /// Overlay-only layout for floating UI (does not remeasure launcher chrome).
+    void SyncOverlaysOnly();
+    [[nodiscard]] we::runtime::kindui::OverlayHost* GetPopupHost() const {
+        return m_PopupHost.get();
+    }
+
     void ShowCreateWizard() override;
     void BrowseForProject() override;
     void ShowRenameDialog() override;

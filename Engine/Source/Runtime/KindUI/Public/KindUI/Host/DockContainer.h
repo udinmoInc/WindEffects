@@ -110,7 +110,7 @@ private:
     float m_HeaderHeightLogical = 0.0f;
     float m_TrailingReservedWidth = 0.0f;
     float m_LeadingReservedWidth = 0.0f;
-    bool m_ShowOptionsMenu = true;
+    bool m_ShowOptionsMenu = false;
     Rect m_HeaderRect;
     Rect m_HeaderContentGapRect;
     Rect m_ContentRect;

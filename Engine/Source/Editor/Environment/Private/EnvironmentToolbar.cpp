@@ -191,7 +191,8 @@ private:
             return;
         }
         overlay->CloseAllPopups();
-        overlay->ShowPopup(menu, we::runtime::kindui::Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f });
+        overlay->ShowAnchoredPopup(
+            menu, shared_from_this(), we::runtime::kindui::PopupPlacementMode::BottomPreferred);
     }
 
     bool m_Hovered = false;

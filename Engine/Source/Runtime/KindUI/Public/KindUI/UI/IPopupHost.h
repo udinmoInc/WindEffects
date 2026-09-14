@@ -22,11 +22,16 @@ class KINDUI_API IPopupHost {
 public:
     virtual ~IPopupHost() = default;
 
+    /// Show a transient popup with preferred top-left at `position`.
+    /// Routes through the shared placement system (measure → flip → clamp).
     virtual void ShowPopup(const std::shared_ptr<Widget>& popup, const Point& position) = 0;
+
+    /// Show a transient popup anchored to a control rect (measure → flip → clamp).
     virtual void ShowAnchoredPopup(
         const std::shared_ptr<Widget>& popup,
         const Rect& anchorRect,
-        PopupPlacementMode placementMode = PopupPlacementMode::SidePreferred) = 0;
+        PopupPlacementMode placementMode = PopupPlacementMode::BottomPreferred) = 0;
+
     virtual void ShowFullscreenPopup(const std::shared_ptr<Widget>& popup) = 0;
     virtual void CloseTopPopup() = 0;
     virtual void CloseAllPopups() = 0;

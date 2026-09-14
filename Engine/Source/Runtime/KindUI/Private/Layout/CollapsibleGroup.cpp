@@ -15,6 +15,9 @@ namespace we::runtime::kindui {
 CollapsibleGroup::CollapsibleGroup(std::string title, bool expanded)
     : m_Title(std::move(title)), m_Expanded(expanded) {
     m_ContentColumn = std::make_shared<Column>();
+    m_ContentColumn->Align(AlignItems::Stretch);
+    m_ContentColumn->Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
+    m_ContentColumn->Gap(0.0f);
     m_ContentColumn->SetVisibleSilent(m_Expanded);
     AddChild(m_ContentColumn);
 }
@@ -57,22 +60,30 @@ void CollapsibleGroup::AddContentChild(const std::shared_ptr<Widget>& child) {
 }
 
 Size CollapsibleGroup::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
     const float headerH = PropertyPanelChrome::SectionHeight();
     Size contentSize{ availableSize.width, 0.0f };
     if (m_Expanded && m_ContentColumn && m_ContentColumn->IsVisible()) {
-        contentSize = m_ContentColumn->Measure(availableSize);
+        contentSize = MeasureChild(m_ContentColumn, availableSize);
     }
     m_DesiredSize = Size{ availableSize.width, headerH + contentSize.height };
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void CollapsibleGroup::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    if (CanSkipArrange(allottedRect)) {
+        return;
+    }
+    CommitGeometry(allottedRect);
+    ClearLayoutDirty();
     const float headerH = PropertyPanelChrome::SectionHeight();
     if (m_Expanded && m_ContentColumn && m_ContentColumn->IsVisible()) {
         const Rect contentRect{ allottedRect.x, allottedRect.y + headerH, allottedRect.width, allottedRect.height -
             headerH };
-        m_ContentColumn->Arrange(contentRect);
+        ArrangeChild(m_ContentColumn, contentRect);
     }
 }
 

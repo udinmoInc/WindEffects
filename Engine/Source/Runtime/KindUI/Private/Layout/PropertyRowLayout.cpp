@@ -69,7 +69,7 @@ void PropertyRowLayout::SetOnResetClicked(std::function<void()> cb) {
 }
 
 Size PropertyRowLayout::Measure(const Size& availableSize) {
-    const float h = LayoutMetrics::PropertyControlHeight();
+    const float h = LayoutMetrics::PropertyRowHeight();
     m_DesiredSize = Size{ availableSize.width, h };
     return m_DesiredSize;
 }
@@ -90,6 +90,7 @@ void PropertyRowLayout::Paint(PaintContext& context) {
     if (m_ValueWidget) {
         m_ValueWidget->PaintSubtree(context);
     }
+    PropertyPanelChrome::PaintPropertyRowGrid(context, layout);
 }
 
 void PropertyRowLayout::OnMouseMove(const MouseEvent& event) {

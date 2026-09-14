@@ -13,6 +13,11 @@
 #include <cstdint>
 #include <string>
 
+namespace we::runtime::kindui {
+class Widget;
+class OverlayRenderer;
+}
+
 namespace we::editor::services {
 
 // Lightweight frame instrumentation. Enable with WE_EDITOR_PERF=1 for once/sec logs.
@@ -79,6 +84,11 @@ public:
 
     // Named to avoid urlmon.h IsLoggingEnabledA/W macro collision on Windows.
     [[nodiscard]] static bool IsPerfLoggingEnabled();
+    [[nodiscard]] static bool IsMemLoggingEnabled();
+
+    /// Capture process (+ optional KindUI module heap) and log [EditorMem] once/sec when enabled.
+    void CaptureMemory(const we::runtime::kindui::Widget* root,
+                       const we::runtime::kindui::OverlayRenderer* overlay);
 
 private:
     EditorPerfStats() = default;
@@ -91,6 +101,7 @@ private:
     double m_FrameStartMs = 0.0;
     double m_StageStartMs = 0.0;
     double m_LastLogMs = 0.0;
+    double m_LastMemLogMs = 0.0;
     float m_AvgFps = 0.0f;
 };
 

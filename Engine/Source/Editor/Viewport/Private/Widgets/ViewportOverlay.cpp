@@ -270,7 +270,7 @@ void NavigationControls::Paint(PaintContext& context) {
     context.DrawRoundedRect(m_Geometry, ThemeColor(ColorToken::GizmoBackground), 4.0f);
     
     for (const auto& btn : m_Buttons) {
-        Color iconColor = btn.hovered ? ThemeColor(ColorToken::AccentPrimary) : ThemeColor(ColorToken::TextPrimary);
+        Color iconColor = btn.hovered ? ThemeColor(ColorToken::IconHover) : ThemeColor(ColorToken::IconPrimary);
         const float tier = static_cast<float>(16u);
         IconPainter::Draw(context, btn.icon, IconMetrics::PlaceGlyphCentered(btn.geometry, 16u));
     }

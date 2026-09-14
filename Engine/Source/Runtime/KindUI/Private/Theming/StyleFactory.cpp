@@ -10,42 +10,11 @@
 
 #include "KindUI/Theme/ThemeManager.h"
 #include "KindUI/Theme/ThemeAccess.h"
-#include "KindUI/Theme/IKindUITheme.h"
-#include "KindUI/Theme/ResolvedStyle.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/StyleRole.h"
 
 namespace we::runtime::kindui {
 namespace {
-
-class StyleFactory {
-public:
-    static BorderStyle BorderNone();
-    static BorderStyle BorderThin(const IStyleResolver& styles);
-    static BorderStyle BorderSelected(const IStyleResolver& styles);
-
-    static BackgroundStyle BackgroundNone();
-    static BackgroundStyle BackgroundPanel(const IStyleResolver& styles);
-    static BackgroundStyle BackgroundToolbar(const IStyleResolver& styles);
-    static BackgroundStyle BackgroundHover(const IStyleResolver& styles);
-    static BackgroundStyle BackgroundSelected(const IStyleResolver& styles);
-    static BackgroundStyle BackgroundInput(const IStyleResolver& styles);
-
-    static TextStyle TextMenu(const IStyleResolver& styles);
-    static TextStyle TextToolbar(const IStyleResolver& styles);
-    static TextStyle TextHeader(const IStyleResolver& styles);
-    static TextStyle TextBody(const IStyleResolver& styles);
-    static TextStyle TextSmall(const IStyleResolver& styles);
-
-    static WidgetStyle Panel(const IStyleResolver& styles);
-    static WidgetStyle Button(const IStyleResolver& styles);
-    static WidgetStyle ToolButton(const IStyleResolver& styles);
-    static WidgetStyle TextBox(const IStyleResolver& styles);
-    static WidgetStyle TreeItem(const IStyleResolver& styles);
-    static WidgetStyle PropertyLabel(const IStyleResolver& styles);
-    static WidgetStyle Tab(const IStyleResolver& styles);
-    static WidgetStyle TabActive(const IStyleResolver& styles);
-};
 
 ShadowStyle ElevationToShadow(int elevation) {
     switch (elevation) {
@@ -56,6 +25,7 @@ ShadowStyle ElevationToShadow(int elevation) {
     }
 }
 
+/// Adapter: StyleRole bundles → WidgetStyle. Resolution stays in StyleResolver.
 WidgetStyle FromRole(StyleRole role, StyleRole hoverRole, StyleRole pressRole) {
     const auto& styles = ThemeManager::Get().Styles();
     const ResolvedStyle base = styles.Resolve(role);
@@ -90,164 +60,33 @@ WidgetStyle FromRole(StyleRole role, StyleRole hoverRole, StyleRole pressRole) {
     return style;
 }
 
-BorderStyle StyleFactory::BorderNone() {
-    return BorderStyle{0.0f, Color::Transparent(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-}
+} // namespace
 
-BorderStyle StyleFactory::BorderThin(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Panel);
-    return BorderStyle{
-        resolved.borderWidth,
-        resolved.border,
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius
-    };
-}
-
-BorderStyle StyleFactory::BorderSelected(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TableRowSelected);
-    return BorderStyle{
-        ResolveMetric(MetricToken::FocusRingWidth),
-        ResolveColor(ColorToken::AccentPrimary),
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius,
-        resolved.cornerRadius
-    };
-}
-
-BackgroundStyle StyleFactory::BackgroundNone() {
-    return BackgroundStyle{Color::Transparent(), 0.0f};
-}
-
-BackgroundStyle StyleFactory::BackgroundPanel(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Panel);
-    return BackgroundStyle{resolved.background, resolved.cornerRadius};
-}
-
-BackgroundStyle StyleFactory::BackgroundToolbar(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Toolbar);
-    return BackgroundStyle{resolved.background, resolved.cornerRadius};
-}
-
-BackgroundStyle StyleFactory::BackgroundHover(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::ButtonHover);
-    return BackgroundStyle{resolved.background, resolved.cornerRadius};
-}
-
-BackgroundStyle StyleFactory::BackgroundSelected(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TableRowSelected);
-    return BackgroundStyle{resolved.background, resolved.cornerRadius};
-}
-
-BackgroundStyle StyleFactory::BackgroundInput(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::Input);
-    return BackgroundStyle{resolved.background, resolved.cornerRadius};
-}
-
-TextStyle StyleFactory::TextMenu(const IStyleResolver& styles) {
-    (void)styles;
-    return TextStyle::FromRole(TypographyToken::Menu);
-}
-
-TextStyle StyleFactory::TextToolbar(const IStyleResolver& styles) {
-    (void)styles;
-    return TextStyle::FromRole(TypographyToken::Toolbar);
-}
-
-TextStyle StyleFactory::TextHeader(const IStyleResolver& styles) {
-    (void)styles;
-    return TextStyle::FromRole(TypographyToken::SectionTitle);
-}
-
-TextStyle StyleFactory::TextBody(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TextPrimary);
-    return TextStyle{resolved.foreground, resolved.fontSize, false, false};
-}
-
-TextStyle StyleFactory::TextSmall(const IStyleResolver& styles) {
-    const auto resolved = styles.Resolve(StyleRole::TextCaption);
-    return TextStyle{resolved.foreground, resolved.fontSize, false, false};
-}
-
-WidgetStyle StyleFactory::Panel(const IStyleResolver& styles) {
-    (void)styles;
+WidgetStyle WidgetStyle::Panel() {
     return FromRole(StyleRole::Panel, StyleRole::CardHover, StyleRole::ButtonActive);
 }
 
-WidgetStyle StyleFactory::Button(const IStyleResolver& styles) {
-    (void)styles;
+WidgetStyle WidgetStyle::Button() {
     return FromRole(StyleRole::ButtonSecondary, StyleRole::ButtonHover, StyleRole::ButtonActive);
 }
 
-WidgetStyle StyleFactory::ToolButton(const IStyleResolver& styles) {
-    (void)styles;
+WidgetStyle WidgetStyle::ToolButton() {
     return FromRole(StyleRole::ToolbarButton, StyleRole::ButtonHover, StyleRole::ButtonActive);
 }
 
-WidgetStyle StyleFactory::TextBox(const IStyleResolver& styles) {
-    (void)styles;
+WidgetStyle WidgetStyle::TextBox() {
     WidgetStyle style = FromRole(StyleRole::Input, StyleRole::Input, StyleRole::Input);
-    const auto pad = ThemeManager::Get().Theme().ResolvePadding(PaddingToken::PaddingButtonLeft);
     style.padding = Margin{
         ResolveMetric(MetricToken::Space2),
         ResolveMetric(MetricToken::Space1),
         ResolveMetric(MetricToken::Space2),
         ResolveMetric(MetricToken::Space1)
     };
-    (void)pad;
     return style;
-}
-
-WidgetStyle StyleFactory::TreeItem(const IStyleResolver& styles) {
-    (void)styles;
-    return FromRole(StyleRole::TreeItem, StyleRole::TableRowHover, StyleRole::TreeItemSelected);
-}
-
-WidgetStyle StyleFactory::PropertyLabel(const IStyleResolver& styles) {
-    (void)styles;
-    return FromRole(StyleRole::PropertyRow, StyleRole::PropertyRow, StyleRole::PropertyRow);
-}
-
-WidgetStyle StyleFactory::Tab(const IStyleResolver& styles) {
-    (void)styles;
-    return FromRole(StyleRole::Tab, StyleRole::ButtonHover, StyleRole::TabActive);
-}
-
-WidgetStyle StyleFactory::TabActive(const IStyleResolver& styles) {
-    (void)styles;
-    WidgetStyle style = FromRole(StyleRole::TabActive, StyleRole::TabActive, StyleRole::TabActive);
-    style.text.weight = 500;
-    style.text.bold = false;
-    return style;
-}
-
-} // namespace
-
-WidgetStyle WidgetStyle::Panel() {
-    return StyleFactory::Panel(ThemeManager::Get().Styles());
-}
-
-WidgetStyle WidgetStyle::Button() {
-    return StyleFactory::Button(ThemeManager::Get().Styles());
-}
-
-WidgetStyle WidgetStyle::ToolButton() {
-    return StyleFactory::ToolButton(ThemeManager::Get().Styles());
-}
-
-WidgetStyle WidgetStyle::TextBox() {
-    return StyleFactory::TextBox(ThemeManager::Get().Styles());
 }
 
 WidgetStyle WidgetStyle::TreeItem() {
-    return StyleFactory::TreeItem(ThemeManager::Get().Styles());
+    return FromRole(StyleRole::TreeItem, StyleRole::TableRowHover, StyleRole::TreeItemSelected);
 }
 
 } // namespace we::runtime::kindui
-
- 

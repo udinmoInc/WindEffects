@@ -16,6 +16,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Diagnostics/UiBuildPhaseTiming.h"
+#include "Rendering/DrawCommandBatcher.h"
 #include <memory>
 #include <vector>
 
@@ -113,6 +114,11 @@ public:
     // Get diagnostics for this adapter instance
     const Diagnostics& GetDiagnostics() const { return m_Diagnostics; }
     void ResetDiagnostics() { m_Diagnostics.Reset(); }
+
+    [[nodiscard]] uint64_t GetDrawCommandCapacityBytes() const {
+        return static_cast<uint64_t>(m_PaintContext.GetCommands().capacity())
+            * static_cast<uint64_t>(sizeof(DrawCommand));
+    }
     
 private:
     void AddOrMergeBatch(
@@ -137,7 +143,13 @@ private:
     std::vector<UIVertex2> m_Vertices;
     std::vector<uint32_t> m_Indices;
     std::vector<UIRenderBatch> m_Batches;
+    /// Previous successful drawgen output — reused when command content hash matches.
+    std::vector<UIVertex2> m_CachedVertices;
+    std::vector<uint32_t> m_CachedIndices;
+    std::vector<UIRenderBatch> m_CachedBatches;
+    uint64_t m_LastCommandHash = 0;
     PaintContext m_PaintContext;
+    DrawCommandBatcher m_Batcher;
     UiBuildPhaseTiming m_LastPhaseTiming{};
     
     uint32_t m_Width;

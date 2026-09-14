@@ -172,7 +172,11 @@ struct MemoryInfo {
     uint64_t availablePhysicalBytes = 0;
     uint64_t totalVirtualBytes = 0;
     uint64_t availableVirtualBytes = 0;
+    /// Process working set (RSS). Legacy alias kept for callers.
     uint64_t processUsedBytes = 0;
+    uint64_t processWorkingSetBytes = 0;
+    uint64_t processPrivateBytes = 0;
+    uint64_t processPeakWorkingSetBytes = 0;
 };
 
 struct CpuInfo {

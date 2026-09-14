@@ -29,6 +29,11 @@ using ::we::runtime::kindui::panels::Panel;
 
 class DetailsChromeRegionWidget : public Widget {
 public:
+    DetailsChromeRegionWidget() {
+        // Hidden after unselect; must still Tick so SyncVisibility can show chrome again.
+        SetTicksWhenHidden(true);
+    }
+
     void SetDetails(IDetailsView* details) { m_Details = details; }
 
     void Tick(float deltaTime) override {
@@ -42,8 +47,8 @@ protected:
         if (active == IsVisible()) {
             return;
         }
+        // SetVisible already RequestLayout + RequestPaint for height 0 ↔ content.
         SetVisible(active);
-        InvalidateLayout();
     }
 
     IDetailsView* m_Details = nullptr;
@@ -97,29 +102,22 @@ private:
     WindIconRef m_LastIcon = kWindIconNone;
 };
 
-class CategoryFilterTabsWrapper final : public DetailsChromeRegionWidget {
+class SearchToolbarWrapper final : public DetailsChromeRegionWidget {
 public:
-    explicit CategoryFilterTabsWrapper(IDetailsView* details) {
+    explicit SearchToolbarWrapper(IDetailsView* details) {
         SetDetails(details);
-        m_TabStrip = std::make_shared<FilterTabStrip>();
-        m_TabStrip->SetOnTabSelected([details](const std::string& category) {
+        m_Toolbar = std::make_shared<PanelToolbarRow>();
+        m_Toolbar->SetFlexShrink(0.0f);
+        m_Toolbar->SetOnSearchChanged([details](const std::string& text) {
             if (details) {
-                details->SetActiveCategory(category);
+                details->SetSearchText(text);
             }
         });
-        AddChild(m_TabStrip);
-    }
-
-    void Tick(float deltaTime) override {
-        DetailsChromeRegionWidget::Tick(deltaTime);
-        if (!m_Details || !IsVisible()) return;
-
-        const auto categories = m_Details->GetCategoryNames();
-        if (categories != m_LastCategories) {
-            m_LastCategories = categories;
-            m_TabStrip->SetTabs(categories);
-        }
-        m_TabStrip->SetActiveTab(m_Details->GetActiveCategory());
+        m_Toolbar->AddIconButton(WindIcons::Star16, []() {});
+        m_Toolbar->AddIconButton(WindIcons::Settings16, []() {});
+        m_Toolbar->Finalize();
+        AddChild(m_Toolbar);
+        SyncVisibility();
     }
 
     Size Measure(const Size& availableSize) override {
@@ -127,92 +125,24 @@ public:
             m_DesiredSize = Size{ availableSize.width, 0.0f };
             return m_DesiredSize;
         }
-        m_DesiredSize = m_TabStrip->Measure(availableSize);
+        m_DesiredSize = m_Toolbar->Measure(availableSize);
         return m_DesiredSize;
     }
 
     void Arrange(const Rect& allottedRect) override {
         m_Geometry = allottedRect;
-        m_TabStrip->Arrange(allottedRect);
+        if (IsVisible()) {
+            m_Toolbar->Arrange(allottedRect);
+        }
     }
 
     void Paint(PaintContext& context) override {
         if (!IsVisible()) return;
-        m_TabStrip->Paint(context);
+        m_Toolbar->Paint(context);
     }
 
 private:
-    std::shared_ptr<FilterTabStrip> m_TabStrip;
-    std::vector<std::string> m_LastCategories;
-};
-
-class SubOutlinerTreeWrapper final : public DetailsChromeRegionWidget {
-public:
-    explicit SubOutlinerTreeWrapper(IDetailsView* details) {
-        SetDetails(details);
-        m_Tree = std::make_shared<CompactTreeWidget>();
-        m_Tree->SetOnItemClicked([details](const CompactTreeNode& item) {
-            if (details) {
-                details->SetActiveCategory(item.category);
-            }
-        });
-        AddChild(m_Tree);
-        RebuildItems();
-    }
-
-    void Tick(float deltaTime) override {
-        DetailsChromeRegionWidget::Tick(deltaTime);
-        if (!m_Details || !IsVisible()) return;
-
-        RebuildItems();
-        m_Tree->SetActiveCategory(m_Details->GetActiveCategory());
-    }
-
-    Size Measure(const Size& availableSize) override {
-        if (!IsVisible()) {
-            m_DesiredSize = Size{ availableSize.width, 0.0f };
-            return m_DesiredSize;
-        }
-        m_DesiredSize = m_Tree->Measure(availableSize);
-        return m_DesiredSize;
-    }
-
-    void Arrange(const Rect& allottedRect) override {
-        m_Geometry = allottedRect;
-        m_Tree->Arrange(allottedRect);
-    }
-
-    void Paint(PaintContext& context) override {
-        if (!IsVisible()) return;
-        m_Tree->Paint(context);
-    }
-
-private:
-    void RebuildItems() {
-        if (!m_Details) return;
-        const std::string title = m_Details->GetObjectTitle();
-        const auto icon = m_Details->GetObjectIcon();
-        const std::string rootTitle = title.empty() ? "Actor (Self)" : title + " (Self)";
-
-        if (rootTitle != m_LastTitle) {
-            m_LastTitle = rootTitle;
-            std::vector<CompactTreeNode> items;
-            items.push_back({
-                "root",
-                rootTitle,
-                "",
-                "",
-                icon.IsValid() ? icon : WindIcons::Folder16,
-                0,
-                false,
-                true
-            });
-            m_Tree->SetItems(items);
-        }
-    }
-
-    std::shared_ptr<CompactTreeWidget> m_Tree;
-    std::string m_LastTitle;
+    std::shared_ptr<PanelToolbarRow> m_Toolbar;
 };
 
 class DetailsContentRegion final : public Column {
@@ -246,9 +176,9 @@ private:
             return;
         }
         m_HasSelection = hasSelection;
+        // SetVisible already arms layout+paint; no extra InvalidateLayout.
         if (m_PropertyList) m_PropertyList->SetVisible(hasSelection);
         if (m_EmptyState) m_EmptyState->SetVisible(!hasSelection);
-        InvalidateLayout();
     }
 
     IDetailsView* m_Details = nullptr;
@@ -259,12 +189,6 @@ private:
 
 }
 
-std::shared_ptr<Widget> CreateSubOutlinerWidget(IDetailsView* details) {
-    auto subOutliner = std::make_shared<SubOutlinerTreeWrapper>(details);
-    subOutliner->SetFlexShrink(0.0f);
-    return subOutliner;
-}
-
 void PopulateDetailsPanelRegions(
     we::editor::dsl::PanelContext& p,
     const std::shared_ptr<Widget>& propertyList,
@@ -273,23 +197,8 @@ void PopulateDetailsPanelRegions(
     auto objectHeader = std::make_shared<ObjectTitleHeaderWrapper>(details);
     objectHeader->SetFlexShrink(0.0f);
 
-    auto subOutliner = std::make_shared<SubOutlinerTreeWrapper>(details);
-    subOutliner->SetFlexShrink(0.0f);
-
-    auto toolbar = std::make_shared<PanelToolbarRow>();
+    auto toolbar = std::make_shared<SearchToolbarWrapper>(details);
     toolbar->SetFlexShrink(0.0f);
-    toolbar->AddLeadingIconButton(WindIcons::ListFilter16, []() {});
-    toolbar->SetOnSearchChanged([details](const std::string& text) {
-        if (details) {
-            details->SetSearchText(text);
-        }
-    });
-    toolbar->AddIconButton(WindIcons::Star16, []() {});
-    toolbar->AddIconButton(WindIcons::Settings16, []() {});
-    toolbar->Finalize();
-
-    auto categoryTabs = std::make_shared<CategoryFilterTabsWrapper>(details);
-    categoryTabs->SetFlexShrink(0.0f);
 
     auto emptyState = MakeEmptyState(
         "Inspector",
@@ -299,14 +208,17 @@ void PopulateDetailsPanelRegions(
     propertyContent->SetFlexGrow(1.0f);
     propertyContent->SetFlexShrink(1.0f);
 
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+    const float rowGap = ResolveMetric(MetricToken::Space1) * uiScale;
+
     auto mainColumn = std::make_shared<Column>();
     mainColumn->SetFlexGrow(1.0f);
     mainColumn->SetFlexShrink(1.0f);
+    mainColumn->Gap(rowGap);
+    mainColumn->Padding(Margin{ 0.0f, rowGap, 0.0f, 0.0f });
 
     mainColumn->AddChild(objectHeader);
-    mainColumn->AddChild(subOutliner);
     mainColumn->AddChild(toolbar);
-    mainColumn->AddChild(categoryTabs);
     mainColumn->AddChild(propertyContent);
 
     p.Content(mainColumn);

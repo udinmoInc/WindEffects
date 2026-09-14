@@ -166,8 +166,8 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
                         1.0f, 0.0f, false, ColorToken::PopupBackground));
             }
             const Color textColor = m_FilterMenuItems[i].checked
-                ? ThemeColor(ColorToken::AccentPrimary)
-                : ThemeColor(ColorToken::TextPrimary);
+                ? ThemeColor(ColorToken::TextPrimary)
+                : ThemeColor(ColorToken::TextSecondary);
             context.DrawText(m_FilterMenuItems[i].label,
                 Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(),
                     m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },

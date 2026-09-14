@@ -30,6 +30,7 @@ using ::we::runtime::kindui::ToolbarNavigationButton;
 using ::we::runtime::kindui::ToolbarIconButton;
 using ::we::runtime::kindui::ToolbarButton;
 using ::we::runtime::kindui::SearchBoxControl;
+using ::we::runtime::kindui::Margin;
 
 class ContentBrowserToolbarControls : public we::runtime::kindui::Row {
 public:
@@ -69,6 +70,13 @@ public:
     void SetOnExpandAllClicked(std::function<void()> callback);
     void SetOnCollapseAllClicked(std::function<void()> callback);
 
+    void SetDrawBottomBorder(bool drawBorder) { m_DrawBottomBorder = drawBorder; }
+    void SetDrawBorder(bool drawBorder) { m_DrawBottomBorder = drawBorder; }
+    void SetShowBorder(bool showBorder) { m_DrawBottomBorder = showBorder; }
+    [[nodiscard]] bool GetDrawBottomBorder() const { return m_DrawBottomBorder; }
+
+    void SetToolbarPadding(float left, float top, float right, float bottom) { Padding(Margin{ left, top, right, bottom }); }
+
 private:
     ContentBrowserToolbarControls(ToolbarMode mode);
     void InitializeChildren();
@@ -104,6 +112,7 @@ private:
     std::function<void()> m_OnImportClicked;
     std::function<void()> m_OnSaveClicked;
     std::function<void()> m_OnFilterClicked;
+    bool m_DrawBottomBorder = false;
 };
 
 }

@@ -9,6 +9,7 @@
 #include "KindUI/Host/DialogService.h"
 
 #include "KindUI/Compose/UI.h"
+#include "KindUI/UI/OverlayManager.h"
 
 namespace we::runtime::kindui {
 
@@ -43,6 +44,11 @@ void DialogService::Show(ViewFactory factory, DialogSpec spec) {
     m_ModalHost->SetContent(m_ViewHost->GetRoot());
     m_ModalHost->SetVisible(true);
     m_Open = true;
+
+    // Prefer the canonical OverlayHost compositor when available.
+    if (auto* overlay = dynamic_cast<OverlayHost*>(m_Context->GetPopupHost())) {
+        overlay->ShowModal(m_ModalHost);
+    }
 }
 
 void DialogService::Refresh() {
@@ -66,6 +72,11 @@ void DialogService::Dismiss(const std::string& id) {
     m_Factory = {};
     m_ModalHost->SetContent(nullptr);
     m_ModalHost->SetVisible(false);
+    if (m_Context) {
+        if (auto* overlay = dynamic_cast<OverlayHost*>(m_Context->GetPopupHost())) {
+            overlay->ClosePopup(m_ModalHost);
+        }
+    }
 }
 
 void DialogService::DismissAll() {

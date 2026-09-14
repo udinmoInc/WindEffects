@@ -105,7 +105,6 @@ struct RuntimeServices {
 
 [[nodiscard]] std::shared_ptr<IPropertyTree> CreatePropertyTree(RuntimeServices services);
 [[nodiscard]] std::unique_ptr<IDetailsView> CreateDetailsView(RuntimeServices services);
-[[nodiscard]] std::shared_ptr<we::runtime::kindui::Widget> CreateSubOutlinerWidget(IDetailsView* details);
 void PopulateDetailsPanelRegions(
     we::editor::dsl::PanelContext& p,
     const std::shared_ptr<we::runtime::kindui::Widget>& propertyList,

@@ -26,6 +26,12 @@ static void ActivateOp(ILandscapeEditor& editor, runtime_terrain::TerrainBrushOp
 }
 
 void BuildSculptTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, ILandscapeEditor& editor) {
+    if (!editor.HasLandscape()) {
+        AddFormSectionTitle(layout, "Sculpt");
+        AddFormInfoRow(layout, "Status", "Create a landscape first to sculpt.");
+        return;
+    }
+
     const auto op = editor.BrushSettings().op;
 
     AddFormSectionTitle(layout, "Basic");

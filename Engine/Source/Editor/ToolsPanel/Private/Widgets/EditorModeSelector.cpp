@@ -178,8 +178,10 @@ void EditorModeSelector::OpenModeMenu() {
     }
 
     auto menu = std::make_shared<DropdownMenu>(std::move(items));
-    Point popupPos{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f };
-    overlay->ShowPopup(menu, popupPos);
+    overlay->ShowAnchoredPopup(
+        menu,
+        GetGeometry(),
+        ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
 }
 
 } // namespace we::programs::editor

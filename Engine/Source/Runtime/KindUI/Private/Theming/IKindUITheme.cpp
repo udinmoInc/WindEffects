@@ -17,24 +17,24 @@ TypographySpec IKindUITheme::ResolveTypography(const TypographyToken token) cons
 }
 
 Color IKindUITheme::InteractiveBackground(float hoverAnim, float pressAnim, bool selected) const {
+    // Single blender ownership: ThemeAccess::ResolveInteractiveBackground.
     return ResolveInteractiveBackground(hoverAnim, pressAnim, selected, ColorToken::PanelBackground);
 }
 
 Color IKindUITheme::IconForState(bool hovered, bool active) const {
     if (active) {
-        return ResolveColor(ColorToken::IconActive);
+        return this->ResolveColor(ColorToken::IconActive);
     }
     if (hovered) {
-        return ResolveColor(ColorToken::IconHover);
+        return this->ResolveColor(ColorToken::IconHover);
     }
-    return ResolveColor(ColorToken::IconSecondary);
+    return this->ResolveColor(ColorToken::IconSecondary);
 }
 
 Color IKindUITheme::TextForState(bool hovered, bool active) const {
     return (active || hovered)
-        ? ResolveColor(ColorToken::TextPrimary)
-        : ResolveColor(ColorToken::TextSecondary);
+        ? this->ResolveColor(ColorToken::TextPrimary)
+        : this->ResolveColor(ColorToken::TextSecondary);
 }
 
 } // namespace we::runtime::kindui
- 

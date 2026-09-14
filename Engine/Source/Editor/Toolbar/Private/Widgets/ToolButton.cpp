@@ -152,7 +152,8 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float iconSz = IconSize(uiScale);
         const float iconGap = IconGapPx(uiScale);
         const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
-        const float controlH = ThemeMetric(MetricToken::StatusBarHeight) * uiScale;
+        // Match command-input compact height so chips fit inside the footer strip.
+        const float controlH = ThemeMetric(MetricToken::ControlHeightCompact) * uiScale;
         const bool hasIcon = m_Icon.IsValid();
 
         float textW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
@@ -286,7 +287,7 @@ Size ToolButton::Measure(const Size& availableSize) {
 }
 
 void ToolButton::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    CommitGeometry(allottedRect);
 }
 
 void ToolButton::Tick(float deltaTime) {

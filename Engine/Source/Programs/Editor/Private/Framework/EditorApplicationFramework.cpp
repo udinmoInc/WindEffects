@@ -14,9 +14,11 @@
 #include "Core/FrameCounter.h"
 #include <KindUI/EditorUI.h>
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
+#include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
 
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
 namespace we::programs::editor {
@@ -75,6 +77,73 @@ void EditorApplicationFramework::TickApplication(float deltaTime) {
                 m_Host.RequestHostStop();
                 RequestExit();
                 return;
+            }
+        }
+    }
+
+    // Memory stress: ExpandAll ↔ CollapseAll under the root (WE_KINDUI_MEM_STRESS=expand).
+    if (const char* stress = std::getenv("WE_KINDUI_MEM_STRESS")) {
+        if (stress[0] != '\0' && std::strcmp(stress, "0") != 0) {
+            using clock = std::chrono::steady_clock;
+            static auto s_Last = clock::now();
+            static int s_Cycle = 0;
+            static bool s_Expand = true;
+            const int maxCycles = []() {
+                if (const char* n = std::getenv("WE_KINDUI_MEM_STRESS_CYCLES")) {
+                    const int v = std::atoi(n);
+                    return v > 0 ? v : 20;
+                }
+                return 20;
+            }();
+            const double intervalSec = []() {
+                if (const char* n = std::getenv("WE_KINDUI_MEM_STRESS_INTERVAL")) {
+                    const double v = std::atof(n);
+                    return v > 0.05 ? v : 0.5;
+                }
+                return 0.5;
+            }();
+            const double since = std::chrono::duration<double>(clock::now() - s_Last).count();
+            if (s_Cycle < maxCycles && since >= intervalSec) {
+                s_Last = clock::now();
+                if (auto root = m_Host.GetHostRootWidget()) {
+                    if (std::strcmp(stress, "expand") == 0) {
+                        if (s_Expand) {
+                            we::runtime::kindui::Expansion::ExpandAllUnder(*root);
+                        } else {
+                            we::runtime::kindui::Expansion::CollapseAllUnder(*root);
+                        }
+                        s_Expand = !s_Expand;
+                        ++s_Cycle;
+                        HE_INFO(std::string("[EditorMemStress] expandCycle=") + std::to_string(s_Cycle)
+                            + "/" + std::to_string(maxCycles));
+                    } else if (std::strcmp(stress, "dock") == 0) {
+                        auto& ws = ::we::programs::editor::EditorWorkspaceController::Get();
+                        if (s_Expand) {
+                            ws.FloatPanel("Details");
+                        } else {
+                            ws.DockPanel("Details");
+                        }
+                        s_Expand = !s_Expand;
+                        ++s_Cycle;
+                        HE_INFO(std::string("[EditorMemStress] dockCycle=") + std::to_string(s_Cycle)
+                            + "/" + std::to_string(maxCycles));
+                    } else if (std::strcmp(stress, "panel") == 0) {
+                        auto& ws = ::we::programs::editor::EditorWorkspaceController::Get();
+                        const bool visible = (s_Cycle % 2) == 0;
+                        ws.SetPanelVisible("ContentBrowser", visible);
+                        ws.SetPanelVisible("Details", visible);
+                        ++s_Cycle;
+                        HE_INFO(std::string("[EditorMemStress] panelCycle=") + std::to_string(s_Cycle)
+                            + "/" + std::to_string(maxCycles)
+                            + " visible=" + (visible ? "1" : "0"));
+                    }
+                    if (std::strcmp(stress, "expand") == 0
+                        || std::strcmp(stress, "dock") == 0
+                        || std::strcmp(stress, "panel") == 0) {
+                        ::we::editor::services::EditorPerfStats::Get().CaptureMemory(
+                            root.get(), m_Host.GetHostOverlayRenderer());
+                    }
+                }
             }
         }
     }

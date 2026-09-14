@@ -160,7 +160,8 @@ KINDUI_API void PaintPropertyRowBackground(
     PaintContext& context,
     const Rect& rowRect,
     bool hovered,
-    bool selected);
+    bool selected,
+    int depth = 0);
 
 }
 

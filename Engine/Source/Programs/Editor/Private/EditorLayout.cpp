@@ -15,6 +15,7 @@
 #include "KindUI/Diagnostics/ScreenRecorder.h"
 #include "KindUI/Diagnostics/UiInputLatencyAudit.h"
 #include "KindUI/Diagnostics/UiPathDiagnostics.h"
+#include "KindUI/Core/LayoutIncremental.h"
 #include "Platform/InputTypes.h"
 #include "Platform/PlatformSDK.h"
 #include "Widgets/ViewportWidget.h"
@@ -151,17 +152,24 @@ bool Editor::SyncViewportFramebufferFromLayout() {
     }
 
     const bool sizeChanged = w != m_LastLayoutSwapchainW || h != m_LastLayoutSwapchainH;
-    const bool needsLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
+    const bool needsFullLayout = sizeChanged || we::runtime::kindui::UIRepaintGate::ConsumeNeedsLayout();
+    const bool needsOverlayLayout = !needsFullLayout
+        && we::runtime::kindui::UIRepaintGate::ConsumeNeedsOverlayLayout();
 
-    if (needsLayout) {
+    if (needsFullLayout) {
         // Root Measure/Arrange uses the swapchain = Windows CLIENT RECT only
         // (GetClientRect). Title/menu/toolbar/status are flex chrome rows; the
         // workspace Column FlexGrow(1) receives the remaining client area.
         const UI::Rect clientRect{ 0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h) };
+        we::runtime::kindui::LayoutIncrementalStats::ResetCurrent();
+        ++we::runtime::kindui::LayoutIncrementalStats::Current().fullLayoutPasses;
         we::runtime::kindui::UiPathDiagnostics::Get().OnLayoutPass();
         m_RootWidget->Measure(UI::Size{ clientRect.width, clientRect.height });
         m_RootWidget->Arrange(clientRect);
         m_RootWidget->ClearSubtreeLayoutDirty();
+        // Host layout moves absolute geometry — next paint must not replay retained commands.
+        we::runtime::kindui::UIRepaintGate::NotifyHostLayoutCompleted();
+        m_RootWidget->ReleaseRetainedPaintSubtree();
         // Layout completed for this frame — one paint/geometry rebuild, then submission cache.
         // Do not re-arm layout here; Arrange must not write calculated sizes back as requests.
         we::runtime::kindui::UIRepaintGate::RequestPaintReason(
@@ -170,6 +178,14 @@ bool Editor::SyncViewportFramebufferFromLayout() {
         m_LastLayoutSwapchainW = w;
         m_LastLayoutSwapchainH = h;
         layoutOrResize = true;
+    } else if (needsOverlayLayout && m_OverlayHost) {
+        // Canonical overlay compositor: reposition/remeasure floating UI only.
+        m_OverlayHost->SyncOverlaysOnly();
+        we::runtime::kindui::UIRepaintGate::RequestPaintReason("OverlayLayout");
+        we::runtime::kindui::UiInputLatencyAudit::Get().OnLayout();
+        layoutOrResize = true;
+    } else {
+        (void)we::runtime::kindui::UIRepaintGate::ConsumeNeedsOverlayLayout();
     }
 
     if (m_ViewportWidget) {

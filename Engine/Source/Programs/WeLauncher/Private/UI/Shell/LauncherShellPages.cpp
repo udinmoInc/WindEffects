@@ -271,7 +271,7 @@ EnginePageModel LauncherShell::BuildEnginePageModel() {
     }));
 
     for (const auto& check : m_Context->Sdk().RunChecks()) {
-        Color color = LColor(ColorToken::TextHint);
+        Color color = LColor(ColorToken::TextSecondary);
         if (check.status == SdkCheckStatus::Pass) {
             color = LColor(ColorToken::Success);
         } else if (check.status == SdkCheckStatus::Warn) {

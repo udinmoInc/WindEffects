@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
+#include "KindUI/Core/UIStateChange.h"
 
 #include <algorithm>
 #include <functional>
@@ -109,7 +110,7 @@ void Bind(Observable<T>& source, const std::shared_ptr<WidgetT>& widget, Setter 
     source.Subscribe([weak = std::weak_ptr<WidgetT>(widget), setter](const T& value) {
         if (auto locked = weak.lock()) {
             setter(*locked, value);
-            locked->InvalidatePaint();
+            UIStateChangeGate::Post(*locked, StateChangeKind::Property);
         }
     });
 }

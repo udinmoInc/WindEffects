@@ -7,6 +7,7 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/EventSystem.h"
+#include "KindUI/Core/UIStateChange.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/UI/OverlayManager.h"
 #include "KindUI/UI/ScrollLayout.h"
@@ -121,6 +122,7 @@ void EventSystem::ProcessMouseEvent(const MouseEvent& event) {
                 newChain.push_back(curr);
             }
 
+            UIStateChangeGate::ScopedTransaction hoverBatch("Hover");
             // Determine widgets that lost hover: in m_HoverChain but not in newChain
             for (auto& weakOld : m_HoverChain) {
                 if (auto old = weakOld.lock()) {
@@ -354,6 +356,7 @@ void EventSystem::SetFocusedWidget(const std::shared_ptr<Widget>& widget) {
     std::shared_ptr<Widget> oldFocused = m_FocusedWidget.lock();
     if (widget == oldFocused) return;
 
+    UIStateChangeGate::ScopedTransaction focusBatch("Focus");
     if (oldFocused) {
         oldFocused->OnBlur();
     }

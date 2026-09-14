@@ -13,6 +13,7 @@
 #include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/StyleRole.h"
+#include "KindUI/UI/PopupPositioner.h"
 
 #include <algorithm>
 
@@ -64,17 +65,26 @@ void ModalHost::Arrange(const Rect& allottedRect) {
     } else {
         h = std::min(std::max(desired.height, 200.0f * scale), allottedRect.height * 0.90f);
     }
-    float posX = allottedRect.x + (allottedRect.width - w) * 0.5f;
-    float posY = allottedRect.y + (allottedRect.height - h) * 0.5f;
+
+    PopupPlacementOptions options{};
+    options.mode = PopupPlacementMode::AtPoint;
+    options.gap = 0.0f;
+    options.viewportMargin = 8.0f;
+    options.viewportBounds = allottedRect;
 
     if (m_AnchorPosition && !m_CenterInParent) {
-        posX = std::clamp(m_AnchorPosition->x, allottedRect.x + 8.0f, (std::max)(allottedRect.x + 8.0f,
-            allottedRect.x + allottedRect.width - w - 8.0f));
-        posY = std::clamp(m_AnchorPosition->y, allottedRect.y + 8.0f, (std::max)(allottedRect.y + 8.0f,
-            allottedRect.y + allottedRect.height - h - 8.0f));
+        options.anchorRect = Rect{ m_AnchorPosition->x, m_AnchorPosition->y, 0.0f, 0.0f };
+    } else {
+        options.anchorRect = Rect{
+            allottedRect.x + (allottedRect.width - w) * 0.5f,
+            allottedRect.y + (allottedRect.height - h) * 0.5f,
+            0.0f,
+            0.0f
+        };
     }
 
-    m_Content->Arrange(Rect{ posX, posY, w, h });
+    const PopupPlacementResult placement = PopupPositioner::Calculate(Size{ w, h }, options);
+    m_Content->Arrange(placement.popupRect);
 }
 
 void ModalHost::Paint(PaintContext& context) {

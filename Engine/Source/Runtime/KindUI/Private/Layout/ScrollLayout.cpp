@@ -56,6 +56,10 @@ void ScrollLayout::SyncScrollMetrics() {
 }
 
 Size ScrollLayout::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
     // Prefer intrinsic/min main size. Scroll views are almost always flex-grow
     // children; claiming availableSize as desired caused parent Columns/Rows to
     // overflow and flex-shrink every sibling to an empty rect.
@@ -70,21 +74,24 @@ Size ScrollLayout::Measure(const Size& availableSize) {
         const float contentWidth = std::max(
             0.0f,
             availableSize.width - ScrollViewport::ScrollbarWidth(uiScale));
-        m_Content->Measure(Size{ contentWidth, 100000.0f });
+        (void)MeasureChild(m_Content, Size{ contentWidth, 100000.0f });
     }
 
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void ScrollLayout::Arrange(const Rect& allottedRect) {
+    // Never skip Arrange on scroll containers: scroll offset can change while the
+    // allotted rect stays identical, and content Y must still update.
     if (m_Geometry != allottedRect) {
-        m_Geometry = allottedRect;
+        CommitGeometry(allottedRect);
         m_MetricsDirty = true;
     }
     SyncScrollMetrics();
 
     if (m_Content && m_Content->IsVisible()) {
-        m_Content->Arrange(Rect{
+        ArrangeChild(m_Content, Rect{
             m_Metrics.viewport.x,
             m_Metrics.viewport.y - m_Scroll.offset,
             m_Metrics.viewport.width,
@@ -113,6 +120,7 @@ void ScrollLayout::OnMouseDown(const MouseEvent& event) {
     SyncScrollMetrics();
     if (m_Scroll.OnMouseDown(event, m_Metrics, ViewportHeight(), m_ContentHeight)) {
         Arrange(m_Geometry);
+        InvalidatePaint();
         return;
     }
 
@@ -164,13 +172,18 @@ bool ScrollLayout::ShowsPointerCursor(const Point& position) const {
 void ScrollLayout::SetScrollOffset(float offset) {
     m_Scroll.SetOffset(offset, ViewportHeight(), m_ContentHeight);
     Arrange(m_Geometry);
+    InvalidatePaint();
 }
 
 bool ScrollLayout::ScrollToOffset(float offset) {
     const float previous = m_Scroll.offset;
     m_Scroll.SetOffset(offset, ViewportHeight(), m_ContentHeight);
     Arrange(m_Geometry);
-    return std::abs(m_Scroll.offset - previous) > 0.01f;
+    const bool changed = std::abs(m_Scroll.offset - previous) > 0.01f;
+    if (changed) {
+        InvalidatePaint();
+    }
+    return changed;
 }
 
 bool ScrollLayout::ScrollToMakeVisible(const Rect& contentRect) {
@@ -181,6 +194,7 @@ bool ScrollLayout::ScrollToMakeVisible(const Rect& contentRect) {
         m_ContentHeight);
     if (changed) {
         Arrange(m_Geometry);
+        InvalidatePaint();
     }
     return changed;
 }

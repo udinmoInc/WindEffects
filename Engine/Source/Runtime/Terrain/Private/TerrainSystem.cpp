@@ -77,36 +77,76 @@ const TerrainCreateInfo& TerrainSystem::Info() const {
 }
 
 TerrainHeightmap& TerrainSystem::Heightmap() {
-    return *detail::QueryActiveTerrainAccess().heightfield;
+    if (auto* heightfield = detail::QueryActiveTerrainAccess().heightfield) {
+        return *heightfield;
+    }
+    static TerrainHeightmap s_Empty;
+    return s_Empty;
 }
 
 const TerrainHeightmap& TerrainSystem::Heightmap() const {
-    return *detail::QueryActiveTerrainAccess().heightfield;
+    if (auto* heightfield = detail::QueryActiveTerrainAccess().heightfield) {
+        return *heightfield;
+    }
+    static const TerrainHeightmap s_Empty;
+    return s_Empty;
 }
 
 TerrainChunkManager& TerrainSystem::Chunks() {
-    return *detail::QueryActiveTerrainAccess().chunks;
+    if (auto* chunks = detail::QueryActiveTerrainAccess().chunks) {
+        return *chunks;
+    }
+    static TerrainChunkManager s_Empty;
+    return s_Empty;
 }
 TerrainLODManager& TerrainSystem::Lod() {
-    return *detail::QueryActiveTerrainAccess().lod;
+    if (auto* lod = detail::QueryActiveTerrainAccess().lod) {
+        return *lod;
+    }
+    static TerrainLODManager s_Empty;
+    return s_Empty;
 }
 TerrainCollision& TerrainSystem::Collision() {
-    return *detail::QueryActiveTerrainAccess().collision;
+    if (auto* collision = detail::QueryActiveTerrainAccess().collision) {
+        return *collision;
+    }
+    static TerrainCollision s_Empty;
+    return s_Empty;
 }
 TerrainMaterialSystem& TerrainSystem::Materials() {
-    return *detail::QueryActiveTerrainAccess().materials;
+    if (auto* mats = detail::QueryActiveTerrainAccess().materials) {
+        return *mats;
+    }
+    static TerrainMaterialSystem s_Empty;
+    return s_Empty;
 }
 TerrainBrushSystem& TerrainSystem::Brushes() {
-    return *detail::QueryActiveTerrainAccess().brushes;
+    if (auto* brushes = detail::QueryActiveTerrainAccess().brushes) {
+        return *brushes;
+    }
+    static TerrainBrushSystem s_Empty;
+    return s_Empty;
 }
 TerrainStreaming& TerrainSystem::Streaming() {
-    return *detail::QueryActiveTerrainAccess().streaming;
+    if (auto* streaming = detail::QueryActiveTerrainAccess().streaming) {
+        return *streaming;
+    }
+    static TerrainStreaming s_Empty;
+    return s_Empty;
 }
 TerrainRenderer& TerrainSystem::Renderer() {
-    return *detail::QueryActiveTerrainAccess().renderer;
+    if (auto* renderer = detail::QueryActiveTerrainAccess().renderer) {
+        return *renderer;
+    }
+    static TerrainRenderer s_Empty;
+    return s_Empty;
 }
 TerrainFoliageSystem& TerrainSystem::Foliage() {
-    return *detail::QueryActiveTerrainAccess().foliage;
+    if (auto* foliage = detail::QueryActiveTerrainAccess().foliage) {
+        return *foliage;
+    }
+    static TerrainFoliageSystem s_Empty;
+    return s_Empty;
 }
 
 bool TerrainSystem::ImportHeightmap(const std::filesystem::path& path) {

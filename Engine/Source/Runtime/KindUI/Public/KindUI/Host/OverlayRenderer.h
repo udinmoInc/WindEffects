@@ -10,6 +10,7 @@
 
 #include "KindUI/Export.h"
 #include "KindUI/Diagnostics/UiBuildPhaseTiming.h"
+#include "KindUI/Diagnostics/UiGpuPathStats.h"
 #include "KindUI/Host/OverlayRenderContext.h"
 #include "RHI/GpuBackends.h"
 #include "RHI/IRHI.h"
@@ -100,12 +101,21 @@ public:
         we::rhi::RHITextureViewHandle imageView,
         we::rhi::RHISamplerHandle sampler);
     void UnregisterTexture(we::rhi::RHIDescriptorSetHandle descriptorSet);
+    /// FIF-deferred texture destroy (residency eviction). Invalidates submission cache.
+    void RetireTexture(we::rhi::RHIDescriptorSetHandle descriptorSet);
+    /// Drop cached draw lists / retained paint and bump geometry gen before freeing GPU sets.
+    void PrepareForResourceEviction(const std::shared_ptr<Widget>& root);
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle UploadRgbaTexture(
         uint32_t width,
         uint32_t height,
         std::span<const uint8_t> rgba,
         bool linearFilter = false,
         bool srgb = false);
+    [[nodiscard]] bool UpdateRgbaTexturePixels(
+        we::rhi::RHIDescriptorSetHandle set,
+        uint32_t width,
+        uint32_t height,
+        std::span<const uint8_t> rgba);
 
     TextUIService* GetTextUIService() const;
     IconRenderer* GetIconRenderer() const;
@@ -135,6 +145,22 @@ public:
     [[nodiscard]] uint64_t SubmissionCacheMissCount() const;
     [[nodiscard]] uint64_t SubmissionRebuildCount() const;
     [[nodiscard]] uint64_t SubmissionInvalidationCount() const;
+
+    [[nodiscard]] uint64_t GetGeometryVertexCapacityBytes() const;
+    [[nodiscard]] uint64_t GetGeometryIndexCapacityBytes() const;
+    [[nodiscard]] uint64_t GetGeometryBatchCapacityBytes() const;
+    [[nodiscard]] uint64_t GetDrawCommandCapacityBytes() const;
+    [[nodiscard]] uint64_t GetGpuVertexCapacityBytes() const;
+    [[nodiscard]] uint64_t GetGpuIndexCapacityBytes() const;
+    [[nodiscard]] const UiGpuPathStats* GetGpuPathStats() const;
+
+    [[nodiscard]] size_t GetTextMeasureCacheEntryCount() const;
+    [[nodiscard]] uint64_t GetTextMeasureCacheBytes() const;
+    [[nodiscard]] uint32_t GetFontAtlasPageCount() const;
+    [[nodiscard]] uint64_t GetFontAtlasCpuBytes() const;
+    [[nodiscard]] size_t GetIconTextureCacheEntryCount() const;
+    [[nodiscard]] uint64_t GetIconTextureCacheBytes() const;
+    [[nodiscard]] uint32_t GetSubmissionCacheSlotCount() const;
 
     /// Hard-invalidate reusable GPU UI submissions (swapchain recreate, device loss).
     void InvalidateGpuSubmissionCache();

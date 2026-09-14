@@ -31,6 +31,8 @@ namespace PanelChrome = ::we::runtime::kindui::panels::PanelChrome;
 
 DockContainer::DockContainer() {
     m_HeaderHeightLogical = ThemeMetric(MetricToken::PanelTabHeight);
+    // Options ("more") control is unused — keep it off the panel title strip.
+    m_ShowOptionsMenu = false;
 }
 
 float DockContainer::GetHeaderHeightDevice() const {
@@ -137,7 +139,7 @@ void DockContainer::SetActiveTab(int index) {
             if (activePanel) {
                 activePanel->SetVisible(true);
                 if (!m_ContentRect.IsEmpty()) {
-                    activePanel->Arrange(m_ContentRect);
+                    ArrangeChild(activePanel, m_ContentRect);
                 }
             }
             if (m_OnActiveTabChanged) {
@@ -150,6 +152,9 @@ void DockContainer::SetActiveTab(int index) {
 }
 
 void DockContainer::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     Widget::Tick(deltaTime);
     const float speed = 18.0f;
     for (auto& tab : m_Tabs) {
@@ -159,6 +164,10 @@ void DockContainer::Tick(float deltaTime) {
 }
 
 Size DockContainer::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
 
     const float headerHeight = GetHeaderHeightDevice();
     const float headerContentGap = PanelChrome::DockHeaderContentGap();
@@ -187,7 +196,7 @@ Size DockContainer::Measure(const Size& availableSize) {
             contentAvailable.height = std::max(0.0f, contentAvailable.height - headerHeight - headerContentGap);
         }
 
-        panelContentDesired = activePanel->Measure(contentAvailable);
+        panelContentDesired = MeasureChild(activePanel, contentAvailable);
     }
 
     if (availableSize.width >= 1.0e8f) {
@@ -203,11 +212,16 @@ Size DockContainer::Measure(const Size& availableSize) {
 
     m_DesiredSize = ClampDesiredSize(
         PanelChrome::ExpandDockMeasuredSize(Size{ desiredW, desiredH }, availableSize));
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void DockContainer::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    if (CanSkipArrange(allottedRect)) {
+        return;
+    }
+    CommitGeometry(allottedRect);
+    ClearLayoutDirty();
     const auto layout = PanelChrome::LayoutDockPanel(allottedRect, GetHeaderHeightDevice());
     m_HeaderRect = layout.headerRect;
     m_HeaderContentGapRect = layout.headerContentGapRect;
@@ -219,9 +233,9 @@ void DockContainer::Arrange(const Rect& allottedRect) {
     for (int i = 0; i < static_cast<int>(m_Tabs.size()); ++i) {
         auto panel = m_Tabs[static_cast<size_t>(i)].panel;
         if (i == m_ActiveTabIndex) {
-            panel->Arrange(m_ContentRect);
+            ArrangeChild(panel, m_ContentRect);
         } else {
-            panel->Arrange(Rect{0.0f, 0.0f, 0.0f, 0.0f});
+            ArrangeChild(panel, Rect{0.0f, 0.0f, 0.0f, 0.0f});
         }
     }
 
@@ -361,6 +375,7 @@ void DockContainer::Paint(PaintContext& context) {
 
     PanelChrome::DockTabStripState state{};
     state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
+    state.flatCorners = false;
     state.optionsMenuHovered = m_OptionsMenuHovered;
     state.showOptionsMenu = m_ShowOptionsMenu;
     state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {

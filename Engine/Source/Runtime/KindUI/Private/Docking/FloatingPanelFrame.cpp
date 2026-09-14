@@ -289,9 +289,11 @@ void FloatingPanelFrame::Paint(::we::runtime::kindui::PaintContext& context) {
 
     context.PushSurfaceOwner("FloatingPanelFrame", SurfaceRole::Window);
     ::we::runtime::kindui::panels::PanelChrome::PaintPanelAmbientShadow(context, m_Geometry);
-    context.DrawSurface(m_Geometry, SurfaceRole::Window, 0.0f, "FloatingWindow");
-    context.DrawSurface(m_TitleBarRect, SurfaceRole::DockChrome, 0.0f, "FloatingTitleBar");
-    context.DrawSurfaceOutline(m_Geometry, SurfaceRole::Border, 1.0f, 0.0f, "FloatingBorder");
+    const float windowRadius = ::we::runtime::kindui::ResolveMetric(MetricToken::WindowCornerRadius)
+        * ::we::runtime::kindui::panels::PanelChrome::UiScale();
+    context.DrawSurface(m_Geometry, SurfaceRole::Window, windowRadius, "FloatingWindow");
+    context.DrawSurface(m_TitleBarRect, SurfaceRole::DockChrome, windowRadius, "FloatingTitleBar");
+    context.DrawSurfaceOutline(m_Geometry, SurfaceRole::Border, 1.0f, windowRadius, "FloatingBorder");
 
     // Left-aligned window logo beside the tab strip.
     if (m_LogoRect.width > 0.5f && m_LogoRect.height > 0.5f) {

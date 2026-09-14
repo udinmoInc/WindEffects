@@ -36,6 +36,9 @@ public class KindUI : ModuleRules
 
         Definitions.Add("WE_HAS_LUNASVG=1");
         Definitions.Add("KINDUI_EXPORTS");
+        // Heap attribution via global operator new is disabled (unsafe across DLL/CRT).
+        // Process memory + structural KindUI stats remain available via KindUIHeapStats.
+        Definitions.Add("WE_KINDUI_HEAP_TRACK=0");
 
         PlatformSettings.Windows ??= new WindowsSettings();
 

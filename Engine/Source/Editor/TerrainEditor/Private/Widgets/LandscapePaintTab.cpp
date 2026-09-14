@@ -46,6 +46,12 @@ void AddLayerRow(
 void BuildPaintTab(const std::shared_ptr<Column>& layout, ILandscapeEditor& editor) {
     AddFormSectionTitle(layout, "Landscape Layers");
 
+    if (!editor.HasLandscape()) {
+        // Avoid touching TerrainSystem brush/material state before Create.
+        AddFormInfoRow(layout, "Status", "Create a landscape first to paint layers.");
+        return;
+    }
+
     const int count = editor.GetLayerCount();
     for (int i = 0; i < count; ++i) {
         AddLayerRow(layout, editor.GetLayerName(i), editor.ActivePaintLayer() == i, false,

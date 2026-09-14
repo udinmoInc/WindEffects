@@ -68,7 +68,7 @@ EditorWorkspaceController& EditorWorkspaceController::Get() {
     return instance;
 }
 
-we::runtime::kindui::IPopupHost* GetEditorPopupHost() {
+we::runtime::kindui::OverlayHost* GetEditorPopupHost() {
     return EditorWorkspaceController::Get().GetPopupHost();
 }
 
@@ -91,7 +91,7 @@ void EditorWorkspaceController::SetPopupHost(we::runtime::kindui::OverlayHost* h
     m_PopupHost = host;
 }
 
-we::runtime::kindui::IPopupHost* EditorWorkspaceController::GetPopupHost() const {
+we::runtime::kindui::OverlayHost* EditorWorkspaceController::GetPopupHost() const {
     return m_PopupHost;
 }
 
@@ -519,10 +519,10 @@ void EditorWorkspaceController::ShowFloatingOptionsMenu(const std::string& panel
 
     auto menu = std::make_shared<::we::editor::menus::DropdownMenu>(items);
     m_PopupHost->CloseTransientPopups();
-    m_PopupHost->ShowPopup(menu, Point{
-        header.x + header.width - 160.0f,
-        header.y + titleH + 2.0f
-    });
+    m_PopupHost->ShowAnchoredPopup(
+        menu,
+        Rect{ header.x, header.y, header.width, titleH },
+        ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
 }
 
 ::we::editor::docking::DockZone EditorWorkspaceController::ZoneForDock(

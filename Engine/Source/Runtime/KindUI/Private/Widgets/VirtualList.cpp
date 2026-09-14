@@ -7,8 +7,10 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/UI/VirtualList.h"
+#include "KindUI/Core/UIStateChange.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Core/InputEvents.h"
 
 #include <algorithm>
 #include <cmath>
@@ -31,86 +33,237 @@ std::shared_ptr<VirtualList> MakeVirtualList() {
     return list;
 }
 
+std::shared_ptr<ListView> MakeListView() {
+    return MakeVirtualList();
+}
+
+void VirtualList::InvalidateModel() {
+    m_Slots.clear();
+    m_Pool.Clear();
+    m_Range = {};
+    m_HeightPrefixDirty = true;
+    InvalidateLayout();
+}
+
 void VirtualList::SetItemCount(size_t count) {
-    if (m_ItemCount == count) return;
+    if (m_ItemCount == count) {
+        return;
+    }
     m_ItemCount = count;
+    m_HeightPrefixDirty = true;
+    // Drop selection indices that fell off the end.
+    for (auto it = m_Selected.begin(); it != m_Selected.end();) {
+        if (*it >= m_ItemCount) {
+            it = m_Selected.erase(it);
+        } else {
+            ++it;
+        }
+    }
     InvalidateLayout();
 }
 
 void VirtualList::SetItemHeight(float height) {
-    const float next = std::max(1.0f, height);
-    if (std::abs(next - m_ItemHeight) < 0.01f) return;
+    const float next = (std::max)(1.0f, height);
+    if (std::abs(next - m_ItemHeight) < 0.01f) {
+        return;
+    }
     m_ItemHeight = next;
+    m_HeightPrefixDirty = true;
+    InvalidateLayout();
+}
+
+void VirtualList::SetOverscan(size_t rows) {
+    if (m_Overscan == rows) {
+        return;
+    }
+    m_Overscan = rows;
     InvalidateLayout();
 }
 
 void VirtualList::SetItemFactory(ItemFactory factory) {
     m_ItemFactory = std::move(factory);
-    m_Cache.clear();
+    InvalidateModel();
+}
+
+void VirtualList::SetItemFactory(std::function<std::shared_ptr<Widget>(size_t index)> factory) {
+    if (!factory) {
+        SetItemFactory(ItemFactory{});
+        return;
+    }
+    SetItemFactory(ItemFactory{[factory = std::move(factory)](
+                                    size_t index, std::shared_ptr<Widget> recycled) {
+        (void)recycled;
+        return factory(index);
+    }});
+}
+
+void VirtualList::SetHeightProvider(HeightProvider provider) {
+    m_HeightProvider = std::move(provider);
+    m_HeightPrefixDirty = true;
     InvalidateLayout();
 }
 
+void VirtualList::RebuildHeightPrefix() {
+    if (!m_HeightProvider) {
+        m_HeightPrefix.clear();
+        m_HeightPrefixDirty = false;
+        return;
+    }
+    std::vector<float> heights(m_ItemCount);
+    for (size_t i = 0; i < m_ItemCount; ++i) {
+        heights[i] = (std::max)(1.0f, m_HeightProvider(i));
+    }
+    we::runtime::kindui::RebuildHeightPrefix(heights, m_HeightPrefix);
+    m_HeightPrefixDirty = false;
+}
+
+float VirtualList::ContentHeight() const {
+    if (m_HeightProvider) {
+        if (m_HeightPrefix.size() == m_ItemCount + 1) {
+            return m_HeightPrefix.back();
+        }
+        return static_cast<float>(m_ItemCount) * m_ItemHeight;
+    }
+    return static_cast<float>(m_ItemCount) * m_ItemHeight;
+}
+
+float VirtualList::RowHeight(size_t index) const {
+    if (m_HeightProvider && m_HeightPrefix.size() == m_ItemCount + 1 && index < m_ItemCount) {
+        return m_HeightPrefix[index + 1] - m_HeightPrefix[index];
+    }
+    return m_ItemHeight;
+}
+
+float VirtualList::RowOffset(size_t index) const {
+    if (m_HeightProvider && m_HeightPrefix.size() == m_ItemCount + 1 && index <= m_ItemCount) {
+        return m_HeightPrefix[index];
+    }
+    return FixedRowOffset(index, m_ItemHeight);
+}
+
+size_t VirtualList::IndexAtY(float contentY) const {
+    if (m_ItemCount == 0) {
+        return 0;
+    }
+    if (m_HeightProvider && m_HeightPrefix.size() == m_ItemCount + 1) {
+        const ListVisibleRange hit = ComputeVariableVisibleRange(contentY, 1.0f, m_HeightPrefix, 0);
+        return hit.Empty() ? m_ItemCount - 1 : hit.first;
+    }
+    if (m_ItemHeight <= 0.0f) {
+        return 0;
+    }
+    return (std::min)(m_ItemCount - 1, static_cast<size_t>((std::max)(0.0f, contentY) / m_ItemHeight));
+}
+
 void VirtualList::SetScrollOffset(float offset) {
-    const float maxScroll = std::max(0.0f, static_cast<float>(m_ItemCount) * m_ItemHeight - m_Geometry.height);
-    const float clamped = std::clamp(offset, 0.0f, maxScroll);
+    const float maxScroll = (std::max)(0.0f, ContentHeight() - m_Geometry.height);
+    const float clamped = (std::clamp)(offset, 0.0f, maxScroll);
     if (std::abs(clamped - m_ScrollOffset) < kHeightEpsilon) {
         return;
     }
-    const size_t prevFirst = m_FirstVisible;
+    const ListVisibleRange prev = m_Range;
     m_ScrollOffset = clamped;
-    const size_t nextFirst = (m_ItemHeight > 0.0f)
-        ? static_cast<size_t>(m_ScrollOffset / m_ItemHeight)
-        : 0;
-    // Window change requires a layout pass to rebuild rows; same window only needs paint/arrange.
-    if (nextFirst != prevFirst || m_Cache.empty()) {
+    ListVisibleRange next{};
+    if (m_HeightProvider) {
+        if (m_HeightPrefixDirty) {
+            // Const-cast-free: mark dirty for Arrange.
+            next = prev;
+        } else {
+            next = ComputeVariableVisibleRange(
+                m_ScrollOffset, m_Geometry.height, m_HeightPrefix, m_Overscan);
+        }
+    } else {
+        next = ComputeFixedVisibleRange(
+            m_ScrollOffset, m_Geometry.height, m_ItemCount, m_ItemHeight, m_Overscan);
+    }
+    if (next.first != prev.first || next.count != prev.count) {
         InvalidateLayout();
     } else {
         InvalidatePaint();
     }
 }
 
-void VirtualList::ComputeVisibleWindow(size_t& firstVisible, size_t& visibleCount) const {
-    firstVisible = 0;
-    visibleCount = 0;
-    if (!m_ItemFactory || m_ItemCount == 0 || m_ItemHeight <= 0.0f || m_Geometry.height <= 0.0f) {
+void VirtualList::ScrollIntoView(size_t index) {
+    if (index >= m_ItemCount || m_Geometry.height <= 0.0f) {
         return;
     }
-    firstVisible = static_cast<size_t>(m_ScrollOffset / m_ItemHeight);
-    const size_t visible = static_cast<size_t>(std::ceil(m_Geometry.height / m_ItemHeight)) + 1;
-    visibleCount = std::min(visible, m_ItemCount > firstVisible ? m_ItemCount - firstVisible : 0);
+    const float top = RowOffset(index);
+    const float bottom = top + RowHeight(index);
+    if (top < m_ScrollOffset) {
+        SetScrollOffset(top);
+    } else if (bottom > m_ScrollOffset + m_Geometry.height) {
+        SetScrollOffset(bottom - m_Geometry.height);
+    }
 }
 
-void VirtualList::RebuildVisible() {
-    // Silent structural rebuild: must not re-arm UIRepaintGate during Arrange.
-    // Expand/collapse changes allotted height once; continuous InvalidateLayout here
-    // was the panel-expansion rebuild loop.
-    ClearChildrenSilent();
-    m_Cache.clear();
+void VirtualList::SetSelectedIndex(size_t index, bool multi) {
+    if (index >= m_ItemCount) {
+        return;
+    }
+    if (!multi) {
+        m_Selected.clear();
+    }
+    m_Selected.insert(index);
+    m_AnchorIndex = index;
+    if (m_OnSelectionChanged) {
+        m_OnSelectionChanged();
+    }
+    UIStateChangeGate::Post(*this, StateChangeKind::Selection);
+}
 
-    size_t first = 0;
-    size_t visible = 0;
-    ComputeVisibleWindow(first, visible);
-    m_FirstVisible = first;
-    m_VisibleCount = visible;
-    if (visible == 0) {
+void VirtualList::ClearSelection() {
+    if (m_Selected.empty()) {
+        return;
+    }
+    m_Selected.clear();
+    m_AnchorIndex = static_cast<size_t>(-1);
+    if (m_OnSelectionChanged) {
+        m_OnSelectionChanged();
+    }
+    UIStateChangeGate::Post(*this, StateChangeKind::Selection);
+}
+
+void VirtualList::SyncVisibleWindow() {
+    if (m_HeightPrefixDirty) {
+        RebuildHeightPrefix();
+    }
+
+    ListVisibleRange next{};
+    if (m_HeightProvider) {
+        next = ComputeVariableVisibleRange(
+            m_ScrollOffset, m_Geometry.height, m_HeightPrefix, m_Overscan);
+    } else {
+        next = ComputeFixedVisibleRange(
+            m_ScrollOffset, m_Geometry.height, m_ItemCount, m_ItemHeight, m_Overscan);
+    }
+
+    if (!m_ItemFactory) {
+        m_Slots.clear();
+        m_Pool.Clear();
+        m_Range = next;
         return;
     }
 
-    for (size_t i = 0; i < visible; ++i) {
-        auto item = m_ItemFactory(first + i);
-        if (!item) {
-            continue;
-        }
-        m_Cache.push_back(item);
-        AddChildSilent(item);
+    const bool windowChanged =
+        next.first != m_Range.first
+        || next.count != m_Range.count
+        || m_Slots.size() != next.count;
+
+    if (!windowChanged && !m_Slots.empty()) {
+        m_Range = next;
+        return;
     }
+
+    // Own rows only via recycle pool/slots — never Widget::m_Children.
+    m_Pool.SyncWindow(next, m_Slots, m_ItemFactory);
+    m_Range = next;
 }
 
 Size VirtualList::Measure(const Size& availableSize) {
-    // Intrinsic height from item count; width follows available when known.
-    // Do not claim availableSize.height — that overflows parent Flex and triggers
-    // a shrink-to-zero pass on the whole shell.
-    const float contentH = static_cast<float>(m_ItemCount) * m_ItemHeight;
+    if (m_HeightPrefixDirty) {
+        RebuildHeightPrefix();
+    }
+    const float contentH = ContentHeight();
     m_DesiredSize = {
         availableSize.width > 0.0f ? availableSize.width : GetMinSize().width,
         GetFlexGrow() > 0.0f ? GetMinSize().height : contentH
@@ -122,49 +275,137 @@ void VirtualList::Arrange(const Rect& allottedRect) {
     m_Geometry = allottedRect;
     ClearLayoutDirty();
 
-    size_t nextFirst = 0;
-    size_t nextVisible = 0;
-    ComputeVisibleWindow(nextFirst, nextVisible);
-    const bool windowChanged =
-        nextFirst != m_FirstVisible
-        || nextVisible != m_VisibleCount
-        || m_Cache.size() != nextVisible;
+    const float maxScroll = (std::max)(0.0f, ContentHeight() - allottedRect.height);
+    m_ScrollOffset = (std::clamp)(m_ScrollOffset, 0.0f, maxScroll);
 
-    // Rebuild only when the visible window actually changes. Never RequestLayout
-    // from here — silent child swap keeps the expand settle path one-shot.
-    if (m_Cache.empty() || windowChanged) {
-        RebuildVisible();
-        ClearLayoutDirty();
-    } else {
-        m_FirstVisible = nextFirst;
-        m_VisibleCount = nextVisible;
-    }
+    SyncVisibleWindow();
+    ClearLayoutDirty();
 
-    const float y0 = allottedRect.y - std::fmod(m_ScrollOffset, m_ItemHeight);
-    for (size_t i = 0; i < m_Cache.size(); ++i) {
-        Rect row{
-            allottedRect.x,
-            y0 + static_cast<float>(i) * m_ItemHeight,
-            allottedRect.width,
-            m_ItemHeight
-        };
-        m_Cache[i]->Measure({ allottedRect.width, m_ItemHeight });
-        m_Cache[i]->Arrange(row);
-        m_Cache[i]->ClearLayoutDirty();
+    for (auto& slot : m_Slots) {
+        if (!slot.widget) {
+            continue;
+        }
+        const float y = allottedRect.y + RowOffset(slot.dataIndex) - m_ScrollOffset;
+        const float h = RowHeight(slot.dataIndex);
+        Rect row{ allottedRect.x, y, allottedRect.width, h };
+        (void)MeasureChild(slot.widget, Size{ allottedRect.width, h });
+        ArrangeChild(slot.widget, row);
+        slot.widget->ClearLayoutDirty();
     }
 }
 
 void VirtualList::Paint(PaintContext& context) {
     ClearPaintDirty();
-    for (auto& child : m_Cache) {
-        if (child && child->IsVisible()) {
-            child->PaintSubtree(context);
+    context.PushClipRect(m_Geometry);
+    for (auto& slot : m_Slots) {
+        if (slot.widget && slot.widget->IsVisible()) {
+            slot.widget->PaintSubtree(context);
+        }
+    }
+    context.PopClipRect();
+}
+
+void VirtualList::Tick(float deltaTime) {
+    // Only active (visible+overscan) row widgets tick.
+    for (auto& slot : m_Slots) {
+        if (slot.widget && slot.widget->IsVisible()) {
+            slot.widget->Tick(deltaTime);
         }
     }
 }
 
 void VirtualList::OnMouseWheel(const MouseEvent& event) {
-    SetScrollOffset(m_ScrollOffset - event.wheelDeltaY * m_ItemHeight);
+    const float step = m_HeightProvider ? RowHeight(m_Range.first) : m_ItemHeight;
+    SetScrollOffset(m_ScrollOffset - event.wheelDeltaY * step);
+}
+
+void VirtualList::OnMouseDown(const MouseEvent& event) {
+    if (event.button != MouseButton::Left) {
+        return;
+    }
+    const float localY = event.position.y - m_Geometry.y + m_ScrollOffset;
+    const size_t index = IndexAtY(localY);
+    if (index < m_ItemCount) {
+        SetSelectedIndex(index, event.ctrlDown);
+        ScrollIntoView(index);
+    }
+    for (auto& slot : m_Slots) {
+        if (slot.widget && slot.widget->GetGeometry().Contains(event.position)) {
+            slot.widget->OnMouseDown(event);
+            break;
+        }
+    }
+}
+
+void VirtualList::OnKeyDown(const KeyEvent& event) {
+    if (m_ItemCount == 0) {
+        return;
+    }
+    size_t current = m_AnchorIndex < m_ItemCount ? m_AnchorIndex : 0;
+    size_t next = current;
+    const size_t page = m_Range.count > 0 ? m_Range.count : 1;
+
+    using we::platform::KeyCode;
+    switch (event.key) {
+    case KeyCode::Up:
+        next = current > 0 ? current - 1 : 0;
+        break;
+    case KeyCode::Down:
+        next = (std::min)(m_ItemCount - 1, current + 1);
+        break;
+    case KeyCode::PageUp:
+        next = current > page ? current - page : 0;
+        break;
+    case KeyCode::PageDown:
+        next = (std::min)(m_ItemCount - 1, current + page);
+        break;
+    case KeyCode::Home:
+        next = 0;
+        break;
+    case KeyCode::End:
+        next = m_ItemCount - 1;
+        break;
+    default:
+        for (auto& slot : m_Slots) {
+            if (slot.widget) {
+                slot.widget->OnKeyDown(event);
+            }
+        }
+        return;
+    }
+    SetSelectedIndex(next, event.shiftDown);
+    ScrollIntoView(next);
+}
+
+
+std::optional<Rect> VirtualList::GetHitTestClipRect() const {
+    return m_Geometry;
+}
+
+bool VirtualList::CanReceiveMouseWheelAt(const Point& pos) const {
+    return IsVisible() && m_Geometry.Contains(pos);
+}
+
+std::shared_ptr<Widget> VirtualList::HitTestPoint(const Point& pos, const Rect* clip) {
+    if (!IsVisible() || IsPointerTransparent() || !IsEnabled()) {
+        return nullptr;
+    }
+    if (clip && !clip->Contains(pos)) {
+        return nullptr;
+    }
+    if (!m_Geometry.Contains(pos)) {
+        return nullptr;
+    }
+    // Front-to-back over active slots only.
+    for (auto it = m_Slots.rbegin(); it != m_Slots.rend(); ++it) {
+        if (!it->widget) {
+            continue;
+        }
+        if (auto hit = it->widget->HitTestPoint(pos, &m_Geometry)) {
+            return hit;
+        }
+    }
+    return shared_from_this();
 }
 
 } // namespace we::runtime::kindui

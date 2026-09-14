@@ -9,6 +9,8 @@
 #include "App/PopupService.h"
 
 #include "KindUI/Compose/ViewBuilder.h"
+#include "KindUI/UI/OverlayManager.h"
+#include "KindUI/UI/PopupPositioner.h"
 
 namespace we::runtime::kindui {
 
@@ -21,13 +23,26 @@ void PopupService::ShowMenu(Element menu, Point position) {
         return;
     }
     if (auto popup = BuildMenu(std::move(menu))) {
+        // Shared placement: measure → prefer below point → flip/clamp inside host.
         m_Host->ShowPopup(popup, position);
     }
 }
 
 void PopupService::ShowMenuAt(Element menu, const Widget& anchor) {
-    const Rect geom = anchor.GetGeometry();
-    ShowMenu(std::move(menu), Point{ geom.x, geom.y + geom.height });
+    if (!m_Host) {
+        return;
+    }
+    if (auto popup = BuildMenu(std::move(menu))) {
+        // Prefer live tracking when the host is the concrete OverlayHost.
+        if (auto* overlay = dynamic_cast<OverlayHost*>(m_Host)) {
+            if (auto live = const_cast<Widget&>(anchor).weak_from_this().lock()) {
+                overlay->ShowAnchoredPopup(popup, live, PopupPlacementMode::BottomPreferred);
+                return;
+            }
+        }
+        m_Host->ShowAnchoredPopup(
+            popup, anchor.GetGeometry(), PopupPlacementMode::BottomPreferred);
+    }
 }
 
 void PopupService::ShowDropdown(Element menu, Point position) {
@@ -59,4 +74,3 @@ std::shared_ptr<Widget> PopupService::BuildMenu(const Element& menu) {
 }
 
 } // namespace we::runtime::kindui
- 

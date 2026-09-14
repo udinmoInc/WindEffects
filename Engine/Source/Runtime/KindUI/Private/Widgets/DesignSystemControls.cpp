@@ -121,7 +121,7 @@ void DesignButton::Paint(PaintContext& context) {
         auto groupLayout = AutoAlign::ComputeGroupCenterLayout(
             m_Geometry, style.iconSize, m_Icon.IsValid(), m_Label, style.fontSize, 0.0f, false);
         if (m_Icon.IsValid()) {
-            IconPainter::Draw(context, m_Icon, groupLayout.iconRect);
+            IconPainter::Draw(context, m_Icon, groupLayout.iconRect, fg);
         }
         if (!m_Label.empty()) {
             context.DrawText(
@@ -136,7 +136,7 @@ void DesignButton::Paint(PaintContext& context) {
         auto iconTextLayout = AutoAlign::ComputeIconTextLayout(
             contentBox, style.iconSize, m_Icon.IsValid(), m_Label, style.fontSize);
         if (m_Icon.IsValid()) {
-            IconPainter::Draw(context, m_Icon, iconTextLayout.iconRect);
+            IconPainter::Draw(context, m_Icon, iconTextLayout.iconRect, fg);
         }
         if (!m_Label.empty()) {
             context.DrawText(
@@ -162,6 +162,9 @@ void DesignButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void DesignButton::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered && IsEnabled() ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
@@ -241,6 +244,9 @@ void IconButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void IconButton::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
@@ -254,7 +260,7 @@ Size Card::Measure(const Size& availableSize) {
     const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Card);
     for (auto& child : GetChildren()) {
         if (child && child->IsVisible()) {
-            const Size cs = child->Measure(Size{
+            const Size cs = MeasureChild(child, Size{
                 std::max(0.0f, contentW - style.padding.left - style.padding.right),
                 availableSize.height
             });
@@ -278,7 +284,7 @@ void Card::Arrange(const Rect& allottedRect) {
             continue;
         }
         const Size cs = child->GetDesiredSize();
-        child->Arrange(Rect{ allottedRect.x + style.padding.left, y, innerW, cs.height });
+        ArrangeChild(child, Rect{ allottedRect.x + style.padding.left, y, innerW, cs.height });
         y += cs.height;
     }
 }
@@ -297,6 +303,9 @@ void Card::Paint(PaintContext& context) {
 }
 
 void Card::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
@@ -458,6 +467,9 @@ void SearchBoxControl::Paint(PaintContext& context) {
 }
 
 void SearchBoxControl::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
@@ -495,11 +507,11 @@ void SearchBoxControl::OnKeyDown(const KeyEvent& event) {
     }
 }
 void SearchBoxControl::OnFocus() {
-    m_Focused = true;
+    Widget::OnFocus();
 }
 
 void SearchBoxControl::OnBlur() {
-    m_Focused = false;
+    Widget::OnBlur();
 }
 
 PanelTab::PanelTab(std::string label)
@@ -560,6 +572,9 @@ void PanelTab::OnMouseUp(const MouseEvent& event) {
 }
 
 void PanelTab::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
@@ -647,6 +662,9 @@ void SidebarItem::OnMouseUp(const MouseEvent& event) {
 }
 
 void SidebarItem::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered && !m_Active ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
@@ -707,6 +725,9 @@ void TableRowBase::Paint(PaintContext& context) {
 }
 
 void TableRowBase::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float targetHover = m_Hovered && !m_Selected ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);

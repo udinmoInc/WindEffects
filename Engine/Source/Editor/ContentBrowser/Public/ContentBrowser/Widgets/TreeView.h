@@ -107,6 +107,14 @@ public:
     void SetShowAlternatingRowBackground(bool show) { m_ShowAlternatingRowBackground = show; }
     void SetShowRowHighlight(bool show) { m_ShowRowHighlight = show; }
     size_t GetRenderItemCount() const { return m_RenderList.size(); }
+    [[nodiscard]] int GetFirstVisibleIndex() const { return m_FirstVisibleIndex; }
+    [[nodiscard]] int GetLastVisibleIndex() const { return m_LastVisibleIndex; }
+    [[nodiscard]] size_t GetActiveRowCount() const {
+        if (m_LastVisibleIndex < m_FirstVisibleIndex) {
+            return 0;
+        }
+        return static_cast<size_t>(m_LastVisibleIndex - m_FirstVisibleIndex + 1);
+    }
 
     void SetSearchQuery(const std::string& query);
     std::string GetSearchQuery() const { return m_SearchQuery; }

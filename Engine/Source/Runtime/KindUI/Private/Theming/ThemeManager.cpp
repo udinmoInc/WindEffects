@@ -7,8 +7,10 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Theme/ThemeManager.h"
+#include "KindUI/Theme/GraphiteDarkTheme.h"
 #include "Theming/StyleClass.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/Theme/ThemeAccess.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -94,6 +96,7 @@ void ThemeManager::SetDpiScale(float scale) {
         m_Resolver->SetDpiScale(scale);
     }
     DPIContext::SetScale(scale);
+    InvalidateThemeCache();
 }
 
 float ThemeManager::GetDpiScale() const {
@@ -119,6 +122,7 @@ ResolvedStyle ThemeManager::Resolve(StyleRole role) const {
 }
 
 void ThemeManager::NotifyChanged() {
+    InvalidateThemeCache();
     std::vector<ChangeListener> copy;
     {
         std::lock_guard lock(m_Mutex);

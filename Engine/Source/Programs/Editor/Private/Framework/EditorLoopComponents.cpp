@@ -113,6 +113,12 @@ public:
             overlay ? overlay->SubmissionCacheMissCount() : 0,
             overlay ? overlay->SubmissionRebuildCount() : 0,
             overlay ? overlay->SubmissionInvalidationCount() : 0);
+
+        const auto root = host.GetHostRootWidget();
+        ::we::editor::services::EditorPerfStats::Get().CaptureMemory(
+            root.get(),
+            overlay);
+
         we::runtime::kindui::UiPathDiagnostics::Get().SetGeometryVertices(stats.vertices);
         we::runtime::kindui::UiPathDiagnostics::Get().EndFrame();
 

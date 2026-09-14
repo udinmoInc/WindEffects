@@ -12,6 +12,7 @@
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Theme/DesignToken.h"
+#include "KindUI/UI/PanelChrome.h"
 
 #include <algorithm>
 
@@ -63,7 +64,8 @@ ObjectTitleBar::ObjectTitleBar(std::string title, WindIconRef icon)
     : m_Title(std::move(title)), m_Icon(icon) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    Padding(Margin{ padH, 0.0f, padH, 0.0f });
+    const float padV = 1.0f * uiScale;
+    Padding(Margin{ padH, padV, padH, padV });
     Gap(ThemeMetric(MetricToken::Space1) * uiScale);
     Align(AlignItems::Center);
 
@@ -151,7 +153,7 @@ Size ObjectTitleBar::Measure(const Size& availableSize) {
 }
 
 void ObjectTitleBar::Paint(PaintContext& context) {
-    context.DrawRect(m_Geometry, ResolveColor(ColorToken::PanelBackground));
+    context.DrawSurface(m_Geometry, SurfaceRole::Panel, 0.0f, "ObjectTitleBar");
     Row::Paint(context);
 }
 

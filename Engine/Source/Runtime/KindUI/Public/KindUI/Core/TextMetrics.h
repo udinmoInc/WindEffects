@@ -10,6 +10,7 @@
 
 #include "KindUI/Export.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -35,6 +36,8 @@ struct KINDUI_API TextMetrics {
 
     static void SetMeasureProvider(MeasureFn provider);
     static void ClearCache();
+    [[nodiscard]] static size_t CacheEntryCount();
+    [[nodiscard]] static uint64_t EstimateCacheBytes();
 
     [[nodiscard]] static FontMetricsSpec GetFontMetrics(float fontSize);
     [[nodiscard]] static float MeasureWidth(std::string_view text, float fontSize, bool bold = false);

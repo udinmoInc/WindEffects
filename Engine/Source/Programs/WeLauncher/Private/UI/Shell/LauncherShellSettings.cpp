@@ -477,7 +477,7 @@ void LauncherShell::RebuildSettingsPage() {
         content->AddChild(MakeLabel(
             "No settings match your search.",
             LMetric(MetricToken::TextSizeBody) * s,
-            LColor(ColorToken::TextHint)));
+            LColor(ColorToken::TextSecondary)));
     }
 
     contentScroll->SetContent(content);

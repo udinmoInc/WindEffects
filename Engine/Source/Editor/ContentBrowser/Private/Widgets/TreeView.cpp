@@ -137,11 +137,12 @@ void TreeView::ScrollSelectionIntoView() {
 
     const std::string& selectedId = m_SelectedIds.back();
     const float rowHeight = m_ItemHeight * TreeUiScale();
-    for (const auto& item : m_RenderList) {
-        if (item.node->id != selectedId) {
+    for (size_t i = 0; i < m_RenderList.size(); ++i) {
+        const auto& item = m_RenderList[i];
+        if (!item.node || item.node->id != selectedId) {
             continue;
         }
-        const float top = static_cast<float>(item.flatIndex) * rowHeight;
+        const float top = static_cast<float>(i) * rowHeight;
         const float bottom = top + rowHeight;
         if (m_Scroll.ScrollToRange(top, bottom, m_Geometry.height, m_ContentHeight)) {
             Arrange(m_Geometry);
@@ -164,6 +165,9 @@ void TreeView::Arrange(const Rect& allottedRect) {
         BuildRenderList();
     }
     SyncScrollMetrics();
+
+    const int prevFirst = m_FirstVisibleIndex;
+    const int prevLast = m_LastVisibleIndex;
     UpdateVisibleRange();
 
     const float uiScale = TreeUiScale();
@@ -172,9 +176,24 @@ void TreeView::Arrange(const Rect& allottedRect) {
     const float viewportWidth = m_ScrollMetrics.viewport.width;
     const float indentOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
 
-    for (size_t i = 0; i < m_RenderList.size(); ++i) {
-        auto& item = m_RenderList[i];
-        item.flatIndex = static_cast<int>(i);
+    // Clear geometry for rows that left the active window (avoid O(N) full scans).
+    if (prevLast >= prevFirst && !m_RenderList.empty()) {
+        const int clearLo = std::max(0, prevFirst);
+        const int clearHi = std::min(prevLast, static_cast<int>(m_RenderList.size()) - 1);
+        for (int i = clearLo; i <= clearHi; ++i) {
+            if (i < m_FirstVisibleIndex || i > m_LastVisibleIndex) {
+                m_RenderList[static_cast<size_t>(i)].geometry = {};
+            }
+        }
+    }
+
+    // Virtualize arrange: write geometry only for visible rows (+ overscan).
+    for (int i = m_FirstVisibleIndex; i <= m_LastVisibleIndex; ++i) {
+        if (i < 0 || i >= static_cast<int>(m_RenderList.size())) {
+            continue;
+        }
+        auto& item = m_RenderList[static_cast<size_t>(i)];
+        item.flatIndex = i;
         const float itemY = m_ScrollMetrics.viewport.y - m_Scroll.offset + static_cast<float>(i) * rowHeight;
         item.geometry = Rect{
             viewportX + indentOffset + item.depth * m_IndentWidth,
@@ -304,8 +323,16 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
 
         if (m_ShowRowHighlight && (selected || hovered)) {
+            // Inset selection/hover like CompactTreeWidget (Space2), not edge-to-edge.
+            const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+            Rect highlightRect{
+                layout.rowBounds.x + padH,
+                layout.rowBounds.y,
+                (std::max)(0.0f, layout.rowBounds.width - padH * 2.0f),
+                layout.rowBounds.height
+            };
             PanelChrome::PaintListRowBackground(
-                context, layout.rowBounds, hovered, selected, IsFocused());
+                context, highlightRect, hovered, selected, IsFocused());
         } else if (m_ShowAlternatingRowBackground) {
             PanelChrome::PaintAlternatingListRowBackground(
                 context, layout.rowBounds, item.flatIndex);
@@ -891,25 +918,20 @@ void TreeView::BuildRenderList() {
 }
 
 void TreeView::UpdateVisibleRange() {
-    if (m_RenderList.empty()) {
+    const float rowHeight = m_ItemHeight * TreeUiScale();
+    const auto range = we::runtime::kindui::ComputeFixedVisibleRange(
+        m_Scroll.offset,
+        m_Geometry.height,
+        m_RenderList.size(),
+        rowHeight,
+        4);
+    if (range.Empty()) {
         m_FirstVisibleIndex = 0;
         m_LastVisibleIndex = -1;
         return;
     }
-
-    const float rowHeight = m_ItemHeight * TreeUiScale();
-    if (rowHeight <= 0.0f) {
-        m_FirstVisibleIndex = 0;
-        m_LastVisibleIndex = 0;
-        return;
-    }
-
-    const int overscan = 2;
-    const int rawFirst = static_cast<int>(std::floor(m_Scroll.offset / rowHeight));
-    m_FirstVisibleIndex = std::clamp(rawFirst - overscan, 0, std::max(0, static_cast<int>(m_RenderList.size()) - 1));
-
-    const int visibleCount = static_cast<int>(std::ceil(m_Geometry.height / rowHeight)) + overscan * 2;
-    m_LastVisibleIndex = std::clamp(m_FirstVisibleIndex + visibleCount, 0, static_cast<int>(m_RenderList.size()) - 1);
+    m_FirstVisibleIndex = static_cast<int>(range.first);
+    m_LastVisibleIndex = static_cast<int>(range.LastExclusive()) - 1;
 }
 
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {

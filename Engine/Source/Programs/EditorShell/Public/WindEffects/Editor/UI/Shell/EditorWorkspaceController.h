@@ -31,7 +31,7 @@ public:
 
     void BindLayout(const ::we::editor::shell::DockLayoutBuildResult& layout);
     void SetPopupHost(::we::runtime::kindui::OverlayHost* host);
-    [[nodiscard]] ::we::runtime::kindui::IPopupHost* GetPopupHost() const;
+    [[nodiscard]] ::we::runtime::kindui::OverlayHost* GetPopupHost() const;
     void SetEventSystem(::we::runtime::kindui::EventSystem* eventSystem) { m_EventSystem = eventSystem; }
 
     void RegisterPanel(
@@ -142,6 +142,6 @@ private:
     float m_ContentBrowserBottomHeight = 240.0f;
 };
 
-EDITORSHELL_API ::we::runtime::kindui::IPopupHost* GetEditorPopupHost();
+EDITORSHELL_API ::we::runtime::kindui::OverlayHost* GetEditorPopupHost();
 
 } // namespace we::programs::editor

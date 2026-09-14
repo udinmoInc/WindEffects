@@ -11,6 +11,7 @@
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
+#include "KindUI/UI/PanelChrome.h"
 #include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Theme/DesignToken.h"
 
@@ -44,8 +45,9 @@ float FilterTabStrip::LayoutTabsForWidth(float originX, float originY, float ava
     m_Tabs.clear();
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
     const float padH = ResolveMetric(MetricToken::Space2) * scale;
-    const float padV = ResolveMetric(MetricToken::Space1) * scale;
-    const float tabH = PropertyPanelChrome::CategoryTabHeight();
+    const float rowH = LayoutMetrics::UnifiedToolbarRowHeight();
+    const float tabH = 22.0f * scale;
+    const float padV = (rowH - tabH) * 0.5f;
     const float gap = ResolveMetric(MetricToken::Space1) * scale;
     const float minTabW = padH * 3.0f;
 
@@ -59,7 +61,7 @@ float FilterTabStrip::LayoutTabsForWidth(float originX, float originY, float ava
         const float tabW = (std::max)(minTabW, textWidth + padH * 2.0f);
         if (currentX + tabW > maxRight && currentX > leftInset) {
             currentX = leftInset;
-            currentY += tabH + gap;
+            currentY += rowH;
         }
         m_Tabs.push_back(TabSlot{ label, Rect{ currentX, currentY, tabW, tabH } });
         currentX += tabW + gap;
@@ -89,7 +91,7 @@ Size FilterTabStrip::Measure(const Size& availableSize) {
         return m_DesiredSize;
     }
     const float calculatedH = LayoutTabsForWidth(m_Geometry.x, m_Geometry.y, availableSize.width);
-    m_DesiredSize = Size{ availableSize.width, (std::max)(calculatedH, LayoutMetrics::PropertyCategoryTabRowHeight()) };
+    m_DesiredSize = Size{ availableSize.width, (std::max)(calculatedH, LayoutMetrics::UnifiedToolbarRowHeight()) };
     return m_DesiredSize;
 }
 
@@ -100,13 +102,18 @@ void FilterTabStrip::Arrange(const Rect& allottedRect) {
 
 void FilterTabStrip::Paint(PaintContext& context) {
     if (!IsVisible()) return;
-    LayoutTabsForWidth(m_Geometry.x, m_Geometry.y, m_Geometry.width);
-    context.DrawRect(m_Geometry, ResolveColor(ColorToken::PanelBackground));
+    context.DrawSurface(m_Geometry, SurfaceRole::Panel, 0.0f, "FilterTabStrip");
 
     for (const auto& tab : m_Tabs) {
         const bool isActive = (tab.label == "All") ? m_ActiveTab.empty() : (m_ActiveTab == tab.label);
         PropertyPanelChrome::PaintCategoryTab(context, tab.rect, tab.label, isActive, m_HoveredTab == tab.label);
     }
+
+    // Structural separator where header block meets property content
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float borderH = std::max(1.0f, 1.0f * scale);
+    const float borderY = m_Geometry.y + m_Geometry.height - borderH;
+    context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderH }, ResolveColor(ColorToken::Separator));
 }
 
 void FilterTabStrip::OnMouseMove(const MouseEvent& event) {

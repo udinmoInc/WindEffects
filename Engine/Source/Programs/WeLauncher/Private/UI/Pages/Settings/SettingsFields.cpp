@@ -566,7 +566,7 @@ void CacheUsageBar::Paint(PaintContext& context) {
     context.DrawText(
         usage,
         Point{ m_Geometry.x + m_Geometry.width - uw, m_Geometry.y },
-        LColor(ColorToken::TextHint),
+        LColor(ColorToken::TextSecondary),
         textSize);
 
     Rect track{
@@ -670,7 +670,7 @@ void AppearancePreviewPanel::Paint(PaintContext& context) {
         "UI Scale " + std::to_string(static_cast<int>(m_UiScale * 100.0f + 0.5f)) + "%   Font "
             + std::to_string(static_cast<int>(m_FontSize + 0.5f)) + " px",
         Point{ card.x + 12.0f * s, card.y + 12.0f * s + bodySize + 6.0f * s },
-        LColor(ColorToken::TextHint),
+        LColor(ColorToken::TextSecondary),
         bodySize);
 
     const float icon = LIconPx(MetricToken::IconSizeNavigation) * s;

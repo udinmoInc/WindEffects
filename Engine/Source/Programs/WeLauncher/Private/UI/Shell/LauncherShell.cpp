@@ -253,7 +253,7 @@ void LauncherShell::RebuildProjectActionsDialog() {
     panel->AddChild(MakeLabel(
         EllipsizePath(project->projectRoot, 52),
         LMetric(MetricToken::TextSizeCaption) * LScale(),
-        LColor(ColorToken::TextHint)));
+        LColor(ColorToken::TextSecondary)));
 
     auto addAction = [this, &panel](const char* label, WindIconRef icon, auto fn, bool closeAfter = true) {
         auto btn = MakeSecondaryAction(label, icon);
@@ -503,6 +503,17 @@ we::platform::WindowHitTestResult LauncherShell::WindowHitTest(we::platform::Int
         return m_TitleBar->WindowHitTest(point);
     }
     return we::platform::WindowHitTestResult::Client;
+}
+
+void LauncherShell::SyncOverlaysOnly() {
+    if (!m_PopupHost) {
+        return;
+    }
+    const Rect shell = GetGeometry();
+    if (shell.width <= 0.0f || shell.height <= 0.0f) {
+        return;
+    }
+    m_PopupHost->SyncOverlaysOnly(shell);
 }
 
 Size LauncherShell::Measure(const Size& availableSize) {

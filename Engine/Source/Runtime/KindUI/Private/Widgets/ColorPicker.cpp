@@ -71,6 +71,9 @@ void ColorPicker::Paint(PaintContext& context) {
 }
 
 void ColorPicker::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     m_HoverAnim = Animator::Damp(m_HoverAnim, m_Hovered ? 1.0f : 0.0f, ControlChrome::HoverDamping());
     Widget::Tick(deltaTime);
 }

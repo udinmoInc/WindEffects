@@ -212,7 +212,7 @@ void LauncherShell::RebuildCreateWizard() {
         list->AddChild(MakeLabel(
             "No matching templates",
             13.0f * s,
-            LColor(ColorToken::TextHint)));
+            LColor(ColorToken::TextSecondary)));
     } else {
         for (const auto* tmpl : visible) {
             const bool isSelected = selected && tmpl->id == selected->id;
@@ -264,7 +264,7 @@ void LauncherShell::RebuildCreateWizard() {
         right->AddChild(MakeLabel(
             selected->description.empty() ? "No description." : selected->description,
             12.0f * s,
-            LColor(ColorToken::TextHint)));
+            LColor(ColorToken::TextSecondary)));
 
         auto addMeta = [&](const char* label, const std::string& value) {
             auto row = std::make_shared<Row>();
@@ -295,7 +295,7 @@ void LauncherShell::RebuildCreateWizard() {
         right->AddChild(MakeLabel(
             "Select a template from the list.",
             13.0f * s,
-            LColor(ColorToken::TextHint)));
+            LColor(ColorToken::TextSecondary)));
     }
 
     right->AddChild(std::make_shared<FixedGap>(1.0f, 8.0f * s));
@@ -383,7 +383,7 @@ void LauncherShell::RebuildCreateWizard() {
     footerLeft->AddChild(MakeLabel(
         "Estimated disk usage  Â·  " + diskEstimate,
         12.0f * s,
-        LColor(ColorToken::TextHint)));
+        LColor(ColorToken::TextSecondary)));
     footerLeft->AddChild(MakeLabel(
         EllipsizePath(projectPathPreview, 64),
         12.0f * s,

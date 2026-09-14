@@ -13,6 +13,7 @@
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/UI/ScrollViewport.h"
+#include "KindUI/UI/ListVirtualization.h"
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -34,6 +35,7 @@ struct KINDUI_API CompactTreeNode {
 };
 
 /// Reusable compact tree view for component sub-outliners and hierarchy trees.
+/// Arrange/paint/hit-test only the visible flat rows (+ overscan).
 class KINDUI_API CompactTreeWidget : public Widget {
 public:
     CompactTreeWidget();
@@ -51,12 +53,19 @@ public:
     void OnMouseMove(const MouseEvent& event) override;
     void OnMouseDown(const MouseEvent& event) override;
 
+    [[nodiscard]] size_t GetFlatVisibleCount() const { return m_FlatIndices.size(); }
+    [[nodiscard]] ListVisibleRange GetActiveRange() const { return m_ActiveRange; }
+
 private:
     bool IsItemVisible(const CompactTreeNode& item) const;
     size_t GetVisibleItemCount() const;
     float CalculateContentHeight(float scale) const;
+    void RebuildFlatIndices();
+    void ArrangeVisibleRows(float itemH, float paddingV, float padH, float scale);
 
     std::vector<CompactTreeNode> m_Items;
+    std::vector<size_t> m_FlatIndices;
+    ListVisibleRange m_ActiveRange{};
     std::string m_ActiveCategory;
     std::string m_HoveredId;
     std::unordered_map<std::string, bool> m_ExpandedState;

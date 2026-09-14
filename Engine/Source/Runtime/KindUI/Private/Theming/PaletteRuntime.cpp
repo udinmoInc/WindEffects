@@ -14,6 +14,7 @@
 #include "Core/Paths.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -79,11 +80,13 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.Background = D::Background;
     c.WindowBorder = D::WindowBorder;
     c.Foldout = D::Foldout;
+    c.Category = D::Category;
     c.Input = D::Input;
     c.InputOutline = D::InputOutline;
     c.InputInsetInner = D::InputInsetInner;
     c.InputInsetOuter = D::InputInsetOuter;
     c.Recessed = D::Recessed;
+    c.InnerPanel = D::InnerPanel;
     c.BorderSeparator = D::BorderSeparator;
     c.BorderSubtle = D::BorderSubtle;
     c.BorderDefault = D::BorderDefault;
@@ -103,6 +106,9 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.Primary = D::Primary;
     c.PrimaryHover = D::PrimaryHover;
     c.PrimaryPress = D::PrimaryPress;
+    c.ButtonPrimary = D::ButtonPrimary;
+    c.ButtonPrimaryHover = D::ButtonPrimaryHover;
+    c.ButtonPrimaryPress = D::ButtonPrimaryPress;
     c.Secondary = D::Secondary;
     c.Select = D::Select;
     c.SelectInactive = D::SelectInactive;
@@ -110,6 +116,8 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.SelectHover = D::SelectHover;
     c.White = D::White;
     c.White25 = D::White25;
+    c.PrimaryText = D::PrimaryText;
+    c.SecondaryText = D::SecondaryText;
     c.Foreground = D::Foreground;
     c.ForegroundHover = D::ForegroundHover;
     c.ForegroundInverted = D::ForegroundInverted;
@@ -148,21 +156,130 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.FolderShadow = D::FolderShadow;
     c.ButtonBevelTop = D::ButtonBevelTop;
     c.ButtonBevelBottom = D::ButtonBevelBottom;
+    c.ScrollbarTrack = D::Recessed;
+    c.ScrollbarThumb = D::Hover;
+    c.ScrollbarThumbHover = D::Hover2;
     c.DebugGlyphBounds = D::DebugGlyphBounds;
 }
 
 void ResetMetricsToCompileDefaults(GraphiteDarkMetrics& m) {
-    m.TabTopRadius = 6.0f;
-    m.InputWidthCompact = 80.0f;
-    m.InputWidthDefault = 100.0f;
-    m.InputWidthLarge = 120.0f;
+    m = GraphiteDarkMetrics{};
 }
 
 float* MetricByName(GraphiteDarkMetrics& m, std::string_view name) {
-    if (name == "TabTopRadius") return &m.TabTopRadius;
+    if (name == "CornerRadiusSmall") return &m.CornerRadiusSmall;
+    if (name == "CornerRadiusMedium") return &m.CornerRadiusMedium;
+    if (name == "CornerRadiusLarge") return &m.CornerRadiusLarge;
+    if (name == "WindowCornerRadius") return &m.WindowCornerRadius;
+    if (name == "PanelCornerRadius") return &m.PanelCornerRadius;
+    if (name == "BorderWidth") return &m.BorderWidth;
+    if (name == "PanelDividerWidth") return &m.PanelDividerWidth;
+    if (name == "SplitterThickness") return &m.SplitterThickness;
+    if (name == "FocusRingWidth") return &m.FocusRingWidth;
+    if (name == "PanelHeaderHeight") return &m.PanelHeaderHeight;
+    if (name == "PanelTabHeight") return &m.PanelTabHeight;
+    if (name == "PanelToolbarHeight") return &m.PanelToolbarHeight;
+    if (name == "ToolbarHeight") return &m.ToolbarHeight;
+    if (name == "ViewportToolbarHeight") return &m.ViewportToolbarHeight;
+    if (name == "BreadcrumbBarHeight") return &m.BreadcrumbBarHeight;
+    if (name == "HeaderControlHeight") return &m.HeaderControlHeight;
+    if (name == "IconButtonSize") return &m.IconButtonSize;
+    if (name == "ButtonHeight") return &m.ButtonHeight;
+    if (name == "SearchBoxHeight") return &m.SearchBoxHeight;
+    if (name == "NavigationButtonSize") return &m.NavigationButtonSize;
+    if (name == "ToolbarLabeledHeight") return &m.ToolbarLabeledHeight;
+    if (name == "ControlHeightCompact") return &m.ControlHeightCompact;
+    if (name == "ControlHeightLarge") return &m.ControlHeightLarge;
     if (name == "InputWidthCompact") return &m.InputWidthCompact;
     if (name == "InputWidthDefault") return &m.InputWidthDefault;
     if (name == "InputWidthLarge") return &m.InputWidthLarge;
+    if (name == "FormRowHeight") return &m.FormRowHeight;
+    if (name == "MenuItemHeight") return &m.MenuItemHeight;
+    if (name == "PageMargin") return &m.PageMargin;
+    if (name == "SectionGap") return &m.SectionGap;
+    if (name == "CardPadding") return &m.CardPadding;
+    if (name == "ContentGap") return &m.ContentGap;
+    if (name == "FormRowGap") return &m.FormRowGap;
+    if (name == "LabelHintGap") return &m.LabelHintGap;
+    if (name == "ListRowHeight") return &m.ListRowHeight;
+    if (name == "CategoryHeaderHeight") return &m.CategoryHeaderHeight;
+    if (name == "TitleBarHeight") return &m.TitleBarHeight;
+    if (name == "WindowControlWidth") return &m.WindowControlWidth;
+    if (name == "IconSizeSearch") return &m.IconSizeSearch;
+    if (name == "IconSizeTree") return &m.IconSizeTree;
+    if (name == "IconSizeToolbar") return &m.IconSizeToolbar;
+    if (name == "IconSizeNavigation") return &m.IconSizeNavigation;
+    if (name == "IconSizePrimary") return &m.IconSizePrimary;
+    if (name == "IconSizeVerySmall") return &m.IconSizeVerySmall;
+    if (name == "IconSizeWindowControl") return &m.IconSizeWindowControl;
+    if (name == "IconButtonRadius") return &m.IconButtonRadius;
+    if (name == "ButtonPaddingHorizontal") return &m.ButtonPaddingHorizontal;
+    if (name == "ButtonSpacing") return &m.ButtonSpacing;
+    if (name == "ButtonGroupSpacing") return &m.ButtonGroupSpacing;
+    if (name == "ScrollbarWidth") return &m.ScrollbarWidth;
+    if (name == "ScrollbarThumbMinHeight") return &m.ScrollbarThumbMinHeight;
+    if (name == "TabTopRadius") return &m.TabTopRadius;
+    if (name == "TabActiveIndicatorHeight") return &m.TabActiveIndicatorHeight;
+    if (name == "StatusBarHeight") return &m.StatusBarHeight;
+    if (name == "TabGap") return &m.TabGap;
+    if (name == "TabIconGap") return &m.TabIconGap;
+    if (name == "TabCloseGap") return &m.TabCloseGap;
+    if (name == "TabMinWidth") return &m.TabMinWidth;
+    if (name == "CloseGlyphSize") return &m.CloseGlyphSize;
+    if (name == "TabStripPadH") return &m.TabStripPadH;
+    if (name == "TabStripPadV") return &m.TabStripPadV;
+    if (name == "TabActiveIndicatorWidth") return &m.TabActiveIndicatorWidth;
+    if (name == "TabPaddingH") return &m.TabPaddingH;
+    if (name == "TabPaddingV") return &m.TabPaddingV;
+    if (name == "DockPanelGap") return &m.DockPanelGap;
+    if (name == "ChromeSeparationGap") return &m.ChromeSeparationGap;
+    if (name == "ChromeSeparationGapWide") return &m.ChromeSeparationGapWide;
+    if (name == "ToolbarSeparatorWidth") return &m.ToolbarSeparatorWidth;
+    if (name == "ToolbarSeparatorHeight") return &m.ToolbarSeparatorHeight;
+    if (name == "ToolbarLabeledMinWidth") return &m.ToolbarLabeledMinWidth;
+    if (name == "PropertyLabelColumnWidth") return &m.PropertyLabelColumnWidth;
+    if (name == "PropertyIndentStep") return &m.PropertyIndentStep;
+    if (name == "TreeIndentWidth") return &m.TreeIndentWidth;
+    if (name == "TreeExpanderHitSize") return &m.TreeExpanderHitSize;
+    if (name == "PopupMinWidth") return &m.PopupMinWidth;
+    if (name == "PopupMaxWidth") return &m.PopupMaxWidth;
+    if (name == "PopupMaxHeight") return &m.PopupMaxHeight;
+    if (name == "TooltipMinWidth") return &m.TooltipMinWidth;
+    if (name == "ToggleTrackWidth") return &m.ToggleTrackWidth;
+    if (name == "ToggleTrackHeight") return &m.ToggleTrackHeight;
+    if (name == "CheckboxGlyphSize") return &m.CheckboxGlyphSize;
+    if (name == "PrimaryButtonHeight") return &m.PrimaryButtonHeight;
+    if (name == "ContentBrowserGridPadding") return &m.ContentBrowserGridPadding;
+    if (name == "ContentBrowserGridHSpacing") return &m.ContentBrowserGridHSpacing;
+    if (name == "ContentBrowserGridVSpacing") return &m.ContentBrowserGridVSpacing;
+    if (name == "ContentBrowserThumbLarge") return &m.ContentBrowserThumbLarge;
+    if (name == "ContentBrowserThumbMedium") return &m.ContentBrowserThumbMedium;
+    if (name == "ContentBrowserThumbSmall") return &m.ContentBrowserThumbSmall;
+    if (name == "ContentBrowserCellLarge") return &m.ContentBrowserCellLarge;
+    if (name == "ContentBrowserCellMedium") return &m.ContentBrowserCellMedium;
+    if (name == "ContentBrowserCellSmall") return &m.ContentBrowserCellSmall;
+    if (name == "DragThreshold") return &m.DragThreshold;
+    if (name == "MenuPadding") return &m.MenuPadding;
+    if (name == "CheckMarkSize") return &m.CheckMarkSize;
+    if (name == "MenuTextIndent") return &m.MenuTextIndent;
+    if (name == "SpaceXS") return &m.SpaceXS;
+    if (name == "Space1") return &m.Space1;
+    if (name == "SpaceMD") return &m.SpaceMD;
+    if (name == "Space2") return &m.Space2;
+    if (name == "Space3") return &m.Space3;
+    if (name == "Space4") return &m.Space4;
+    if (name == "Space5") return &m.Space5;
+    if (name == "Space6") return &m.Space6;
+    if (name == "HoverAnimationDamping") return &m.HoverAnimationDamping;
+    if (name == "PressAnimationDamping") return &m.PressAnimationDamping;
+    if (name == "PressOffset") return &m.PressOffset;
+    if (name == "ShadowBlurSmall") return &m.ShadowBlurSmall;
+    if (name == "ShadowBlurMedium") return &m.ShadowBlurMedium;
+    if (name == "ShadowSpreadMedium") return &m.ShadowSpreadMedium;
+    if (name == "FontSizeTitle") return &m.FontSizeTitle;
+    if (name == "FontSizeHeader") return &m.FontSizeHeader;
+    if (name == "FontSizeNormal") return &m.FontSizeNormal;
+    if (name == "FontSizeCaption") return &m.FontSizeCaption;
     return nullptr;
 }
 
@@ -173,11 +290,13 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "Background") return &c.Background;
     if (name == "WindowBorder") return &c.WindowBorder;
     if (name == "Foldout") return &c.Foldout;
+    if (name == "Category" || name == "Categorizer") return &c.Category;
     if (name == "Input") return &c.Input;
     if (name == "InputOutline") return &c.InputOutline;
     if (name == "InputInsetInner") return &c.InputInsetInner;
     if (name == "InputInsetOuter") return &c.InputInsetOuter;
     if (name == "Recessed") return &c.Recessed;
+    if (name == "InnerPanel" || name == "Inner") return &c.InnerPanel;
     if (name == "BorderSeparator") return &c.BorderSeparator;
     if (name == "BorderSubtle") return &c.BorderSubtle;
     if (name == "BorderDefault") return &c.BorderDefault;
@@ -197,6 +316,9 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "Primary") return &c.Primary;
     if (name == "PrimaryHover") return &c.PrimaryHover;
     if (name == "PrimaryPress") return &c.PrimaryPress;
+    if (name == "ButtonPrimary") return &c.ButtonPrimary;
+    if (name == "ButtonPrimaryHover") return &c.ButtonPrimaryHover;
+    if (name == "ButtonPrimaryPress") return &c.ButtonPrimaryPress;
     if (name == "Secondary") return &c.Secondary;
     if (name == "Select") return &c.Select;
     if (name == "SelectInactive") return &c.SelectInactive;
@@ -204,6 +326,8 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "SelectHover") return &c.SelectHover;
     if (name == "White") return &c.White;
     if (name == "White25") return &c.White25;
+    if (name == "PrimaryText") return &c.PrimaryText;
+    if (name == "SecondaryText") return &c.SecondaryText;
     if (name == "Foreground") return &c.Foreground;
     if (name == "ForegroundHover") return &c.ForegroundHover;
     if (name == "ForegroundInverted") return &c.ForegroundInverted;
@@ -242,14 +366,82 @@ Color* ColorByName(GraphiteDarkColors& c, std::string_view name) {
     if (name == "FolderShadow") return &c.FolderShadow;
     if (name == "ButtonBevelTop") return &c.ButtonBevelTop;
     if (name == "ButtonBevelBottom") return &c.ButtonBevelBottom;
+    if (name == "ScrollbarTrack") return &c.ScrollbarTrack;
+    if (name == "ScrollbarThumb") return &c.ScrollbarThumb;
+    if (name == "ScrollbarThumbHover") return &c.ScrollbarThumbHover;
     if (name == "DebugGlyphBounds") return &c.DebugGlyphBounds;
     return nullptr;
 }
 
 void ApplyAliasFallbacks(GraphiteDarkColors& c) {
     // Match Palette.h aliases when JSON omits them.
+    if (c.PrimaryText.a <= 0.0f && c.Foreground.a > 0.0f) {
+        c.PrimaryText = c.Foreground;
+    }
+    if (c.Foreground.a <= 0.0f && c.PrimaryText.a > 0.0f) {
+        c.Foreground = c.PrimaryText;
+    }
+    if (c.SecondaryText.a <= 0.0f && c.Notifications.a > 0.0f) {
+        c.SecondaryText = c.Notifications;
+    }
+    if (c.Notifications.a <= 0.0f && c.SecondaryText.a > 0.0f) {
+        c.Notifications = c.SecondaryText;
+    }
+    if (c.ForegroundHeader.a <= 0.0f) {
+        c.ForegroundHeader = c.PrimaryText.a > 0.0f ? c.PrimaryText : c.Foreground;
+    }
+    // Guard: never let ordinary text slots resolve to accent Primary / Highlight.
+    auto looksLikeAccent = [&](const Color& text) {
+        constexpr float kEps = 0.02f;
+        return (std::fabs(text.r - c.Primary.r) < kEps
+            && std::fabs(text.g - c.Primary.g) < kEps
+            && std::fabs(text.b - c.Primary.b) < kEps)
+            || (std::fabs(text.r - c.Highlight.r) < kEps
+            && std::fabs(text.g - c.Highlight.g) < kEps
+            && std::fabs(text.b - c.Highlight.b) < kEps)
+            || (std::fabs(text.r - c.AccentBlue.r) < kEps
+            && std::fabs(text.g - c.AccentBlue.g) < kEps
+            && std::fabs(text.b - c.AccentBlue.b) < kEps)
+            || (std::fabs(text.r - c.AccentGreen.r) < kEps
+            && std::fabs(text.g - c.AccentGreen.g) < kEps
+            && std::fabs(text.b - c.AccentGreen.b) < kEps);
+    };
+    if (looksLikeAccent(c.PrimaryText)) {
+        c.PrimaryText = GraphiteDark::PrimaryText;
+    }
+    if (looksLikeAccent(c.Foreground)) {
+        c.Foreground = c.PrimaryText;
+    }
+    if (looksLikeAccent(c.ForegroundHeader)) {
+        c.ForegroundHeader = c.PrimaryText;
+    }
+    if (looksLikeAccent(c.SecondaryText)) {
+        c.SecondaryText = GraphiteDark::SecondaryText;
+    }
+    if (looksLikeAccent(c.Notifications)) {
+        c.Notifications = c.SecondaryText;
+    }
     if (c.Secondary.a <= 0.0f) {
         c.Secondary = c.Dropdown;
+    }
+    // InnerPanel ↔ Recessed — one recessed well color for PanelInner surfaces.
+    if (c.InnerPanel.a <= 0.0f && c.Recessed.a > 0.0f) {
+        c.InnerPanel = c.Recessed;
+    }
+    if (c.Recessed.a <= 0.0f && c.InnerPanel.a > 0.0f) {
+        c.Recessed = c.InnerPanel;
+    }
+    // Category ↔ Foldout — property categorizer headers.
+    if (c.Category.a <= 0.0f && c.Foldout.a > 0.0f) {
+        c.Category = c.Foldout;
+    }
+    if (c.Foldout.a <= 0.0f && c.Category.a > 0.0f) {
+        c.Foldout = c.Category;
+    }
+    if (c.Secondary.a > 0.0f && c.InnerPanel.a <= 0.0f) {
+        // Secondary is a PanelInner alias when InnerPanel omitted.
+        c.InnerPanel = c.Secondary;
+        c.Recessed = c.Secondary;
     }
     if (c.Select.a <= 0.0f) {
         c.Select = c.Primary;
@@ -318,6 +510,24 @@ bool LoadFromFile(const std::filesystem::path& path, GraphiteDarkColors& outColo
                         continue;
                     }
                     *slot = mit.value().get<float>();
+                    ++applied;
+                }
+                continue;
+            }
+            if ((it.key() == "Colors" || it.key() == "Palette") && it.value().is_object()) {
+                for (auto cit = it.value().begin(); cit != it.value().end(); ++cit) {
+                    if (!cit.value().is_string()) {
+                        continue;
+                    }
+                    Color* slot = ColorByName(nextColors, cit.key());
+                    if (!slot) {
+                        continue;
+                    }
+                    const Color parsed = ParseHexString(cit.value().get<std::string>());
+                    if (parsed.a <= 0.0f && parsed.r == 0.0f && parsed.g == 0.0f && parsed.b == 0.0f) {
+                        continue;
+                    }
+                    *slot = parsed;
                     ++applied;
                 }
                 continue;
@@ -455,6 +665,7 @@ bool ReloadGraphiteDarkPaletteIfChanged() {
         reloaded = true;
     }
     if (reloaded) {
+        // NotifyChanged invalidates the ThemeAccess token cache once.
         ThemeManager::Get().NotifyChanged();
     }
     return reloaded;

@@ -52,31 +52,33 @@ namespace ChromeSeparation = ::we::runtime::kindui::ChromeSeparation;
 
 namespace {
 
-void DrawRoundedRectTop(PaintContext& context, const Rect& rect, const Color& color, float radius, bool /*squareTopLeft*/ = false) {
-    if (radius <= 0.01f) {
+// Tab chip only: round the top of the TAB surface. Never round the panel body.
+// squareOuterLeft: docked first tab flush with the panel edge — keep that outer
+// corner square so the panel silhouette stays flush with the workspace.
+void DrawRoundedRectTop(
+    PaintContext& context,
+    const Rect& rect,
+    const Color& color,
+    float radius,
+    bool squareOuterLeft = false)
+{
+    if (radius <= 0.01f || rect.width < 2.0f || rect.height < 2.0f) {
         context.DrawRect(rect, color);
         return;
     }
-    // Always round both top corners — first-tab flush-left no longer squares the left edge.
     context.DrawRoundedRect(rect, color, radius);
-    const float coverH = radius + 1.0f;
+    // Straight bottom join into the square panel body.
+    const float coverH = (std::min)(radius + 1.0f, rect.height);
     context.DrawRect(Rect{ rect.x, rect.y + rect.height - coverH, rect.width, coverH }, color);
+    if (squareOuterLeft) {
+        const float coverW = (std::min)(radius + 1.0f, rect.width);
+        context.DrawRect(Rect{ rect.x, rect.y, coverW, coverW }, color);
+    }
 }
 
 void ResolvePanelBevelColors(Color& outHighlight, Color& outShadow) {
-    // Dark Graphite only — no light grey outline, but enough delta to read on Panel.
-    const Color panel = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
-    const Color header = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ResolveColor(ColorToken::HeaderBackground));
-    const Color deep = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ResolveColor(ColorToken::WorkspaceBackground));
-
-    outHighlight = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ColorSpace::LerpColor(panel, header, 0.85f));
-    // Bottom/right: sink toward workspace gap color.
-    outShadow = we::runtime::kindui::ColorSpace::OpaqueSurface(
-        we::runtime::kindui::ColorSpace::LerpColor(panel, deep, 0.70f));
+    outHighlight = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
+    outShadow = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
 }
 void PaintTabShoulderFill(
     PaintContext& context,
@@ -213,115 +215,26 @@ void PaintDockConnectedFrameBevel(
     const Rect& activeTabRect,
     float tabTopRadius)
 {
+    (void)tabTopRadius;
     if (contentRect.width < 2.0f || contentRect.height < 2.0f) {
         return;
     }
 
-    Color highlight{};
-    Color shadow{};
-    ResolvePanelBevelColors(highlight, shadow);
-
     const Color panel = we::runtime::kindui::ColorSpace::OpaqueSurface(
         we::runtime::kindui::ResolveColor(ColorToken::PanelBackground));
 
-    const float x0 = IconMetrics::SnapPx(contentRect.x);
     const float yJoin = IconMetrics::SnapPx(contentRect.y);
-    float x1 = IconMetrics::SnapPx(contentRect.x + contentRect.width);
-    float y1 = IconMetrics::SnapPx(contentRect.y + contentRect.height);
-    if (x1 < x0 + 2.0f) {
-        x1 = x0 + 2.0f;
-    }
-    if (y1 < yJoin + 2.0f) {
-        y1 = yJoin + 2.0f;
-    }
-
     const bool hasTab = !activeTabRect.IsEmpty()
         && activeTabRect.width > 2.0f
         && activeTabRect.height > 2.0f;
-    if (!hasTab) {
-        PaintHEdge(context, x0, yJoin, x1 - x0, highlight);
-        PaintVEdge(context, x0, yJoin, y1 - yJoin, highlight);
-        PaintHEdge(context, x0, y1 - 1.0f, x1 - x0, shadow);
-        PaintVEdge(context, x1 - 1.0f, yJoin, y1 - yJoin, shadow);
-        return;
-    }
 
-    const float tx0 = IconMetrics::SnapPx(activeTabRect.x);
-    const float ty0 = IconMetrics::SnapPx(activeTabRect.y);
-    const float tx1 = IconMetrics::SnapPx(activeTabRect.x + activeTabRect.width);
-
-    float topR = std::max(0.0f, IconMetrics::SnapPx(tabTopRadius));
-    topR = std::min(topR, std::floor((tx1 - tx0) * 0.45f));
-
-    const float sideLen = std::max(0.0f, yJoin - ty0);
-    float shoulderR = IconMetrics::SnapPx(4.0f);
-    shoulderR = std::max(3.0f, std::min(shoulderR, 5.0f));
-    shoulderR = std::min(shoulderR, std::max(0.0f, sideLen - topR - 1.0f));
-
-    const bool flushLeft = (tx0 - x0) <= 1.5f;
-    const bool flushRight = (x1 - tx1) <= 1.5f;
-    const bool bendLeft = !flushLeft && shoulderR >= 3.0f;
-    const bool bendRight = !flushRight && shoulderR >= 3.0f;
-
-    if (bendLeft) {
-        PaintTabShoulderFill(context, tx0, yJoin, shoulderR, true, panel);
-    }
-    if (bendRight) {
-        PaintTabShoulderFill(context, tx1, yJoin, shoulderR, false, panel);
-    }
-
-    // Seal interior join only (do not cover shoulder flare pockets).
-    {
-        const float sealL = tx0;
-        const float sealR = tx1;
-        if (sealR > sealL + 1.0f) {
-            PaintHEdge(context, sealL, yJoin - 1.0f, sealR - sealL, panel);
-            PaintHEdge(context, sealL, yJoin, sealR - sealL, panel);
+    if (hasTab) {
+        const float tx0 = IconMetrics::SnapPx(activeTabRect.x);
+        const float tx1 = IconMetrics::SnapPx(activeTabRect.x + activeTabRect.width);
+        if (tx1 > tx0 + 1.0f) {
+            PaintHEdge(context, tx0, yJoin - 1.0f, tx1 - tx0, panel);
+            PaintHEdge(context, tx0, yJoin, tx1 - tx0, panel);
         }
-    }
-
-    PaintHEdge(context, x0, y1 - 1.0f, x1 - x0, shadow);
-
-    if (flushLeft) {
-        PaintVEdge(context, x0, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), highlight);
-        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, true, highlight);
-    } else {
-        PaintVEdge(context, x0, yJoin, y1 - yJoin, highlight);
-        if (bendLeft) {
-            PaintHEdge(context, x0, yJoin, (tx0 - shoulderR) - x0, highlight);
-            PaintShoulderRim(context, tx0, yJoin, shoulderR, true, highlight);
-            PaintVEdge(context, tx0, ty0 + topR, (yJoin - shoulderR) - (ty0 + topR), highlight);
-        } else {
-            PaintHEdge(context, x0, yJoin, tx0 - x0, highlight);
-            PaintVEdge(context, tx0, ty0 + topR, yJoin - (ty0 + topR), highlight);
-        }
-        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, true, highlight);
-    }
-
-    if (tx1 - tx0 > topR * 2.0f + 1.0f) {
-        PaintHEdge(context, tx0 + topR, ty0, (tx1 - topR) - (tx0 + topR), highlight);
-    }
-
-    if (flushRight) {
-        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, highlight);
-        PaintVEdge(context, x1 - 1.0f, ty0 + topR, (y1 - 1.0f) - (ty0 + topR), shadow);
-    } else {
-        PaintConvexTopCorner(context, tx0, tx1, ty0, topR, false, highlight);
-        if (bendRight) {
-            // Vertical stops above the shoulder; rim bends out into the panel top.
-            PaintVEdge(
-                context,
-                tx1 - 1.0f,
-                ty0 + topR,
-                (yJoin - shoulderR) - (ty0 + topR),
-                highlight);
-            PaintShoulderRim(context, tx1, yJoin, shoulderR, false, highlight);
-            PaintHEdge(context, tx1 + shoulderR, yJoin, x1 - (tx1 + shoulderR), highlight);
-        } else {
-            PaintVEdge(context, tx1 - 1.0f, ty0 + topR, yJoin - (ty0 + topR), highlight);
-            PaintHEdge(context, tx1 - 1.0f, yJoin, x1 - (tx1 - 1.0f), highlight);
-        }
-        PaintVEdge(context, x1 - 1.0f, yJoin, y1 - yJoin, shadow);
     }
 }
 
@@ -345,9 +258,12 @@ Color ResolveTabIconColor(bool isActive, float hoverAnim) {
 }
 
 Color ResolveTabTextColor(bool isActive, float hoverAnim) {
-    return we::runtime::kindui::ResolveTextForState(
-        !isActive && hoverAnim > 0.01f,
-        isActive);
+    (void)hoverAnim;
+    // Ordinary tab labels: Primary when active, Secondary when inactive.
+    // Never AccentPrimary / LinkForeground / icon tints.
+    return we::runtime::kindui::ResolveTextColor(
+        isActive ? we::runtime::kindui::TextRole::Primary
+                 : we::runtime::kindui::TextRole::Secondary);
 }
 
 }
@@ -463,6 +379,8 @@ float HeaderButtonSize() {
 }
 
 void PaintPanelSurface(PaintContext& context, const Rect& rect) {
+    // Docked / editor panel bodies are always square. TabTopRadius must never
+    // leak into panel fills — only PaintDockTab may round the tab chip.
     context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Panel, 0.0f, "Panel");
 }
 
@@ -490,40 +408,10 @@ void PaintPanelAmbientShadow(PaintContext& context, const Rect& rect) {
 }
 
 void PaintPanelFrameBevel(PaintContext& context, const Rect& rect) {
-    if (rect.width < 2.0f || rect.height < 2.0f) {
-        return;
-    }
-
-    // Pixel-snap the frame so 1px edges stay crisp and never collapse.
-    const float x0 = IconMetrics::SnapPx(rect.x);
-    const float y0 = IconMetrics::SnapPx(rect.y);
-    float x1 = IconMetrics::SnapPx(rect.x + rect.width);
-    float y1 = IconMetrics::SnapPx(rect.y + rect.height);
-    if (x1 < x0 + 2.0f) {
-        x1 = x0 + 2.0f;
-    }
-    if (y1 < y0 + 2.0f) {
-        y1 = y0 + 2.0f;
-    }
-
-    constexpr float edge = 1.0f;
-    const float w = x1 - x0;
-    const float h = y1 - y0;
-    const float innerH = h - edge * 2.0f;
-
-    Color highlight{};
-    Color shadow{};
-    ResolvePanelBevelColors(highlight, shadow);
-
-    // Highlight L (top + left).
-    context.DrawRect(Rect{ x0, y0, w, edge }, highlight);
-    if (innerH > 0.0f) {
-        context.DrawRect(Rect{ x0, y0 + edge, edge, innerH }, highlight);
-    }
-
-    // Shadow L (bottom + right); right owns the corners for a soft drop.
-    context.DrawRect(Rect{ x0, y1 - edge, w, edge }, shadow);
-    context.DrawRect(Rect{ x1 - edge, y0, edge, h }, shadow);
+    (void)context;
+    (void)rect;
+    // Inter-panel separation is cleanly owned by Splitter and FloatingPanelFrame.
+    // Docked panels do not paint redundant outer frame bevels.
 }
 
 void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
@@ -531,12 +419,11 @@ void PaintToolbarRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintListLabelBand(PaintContext& context, const Rect& rect) {
-    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::PanelHeader, 0.0f, "ListLabelBand");
+    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Panel, 0.0f, "ListLabelBand");
 }
 
 void PaintHeaderRegion(PaintContext& context, const Rect& rect) {
     PaintListLabelBand(context, rect);
-    PaintSeparatorEdge(context, rect, false);
 }
 
 void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::string_view labelText) {
@@ -601,7 +488,7 @@ void PaintFooterRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintContentWell(PaintContext& context, const Rect& rect) {
-    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Recessed, 0.0f, "PanelWell");
+    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::PanelInner, 0.0f, "PanelWell");
 }
 
 void PaintContentWellWithTopEdge(PaintContext& context, const Rect& rect) {
@@ -614,7 +501,7 @@ void PaintPrimaryContentRegion(PaintContext& context, const Rect& rect) {
 }
 
 void PaintNavigationRegion(PaintContext& context, const Rect& rect) {
-    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::Recessed, 0.0f, "PanelNavigation");
+    context.DrawSurface(rect, we::runtime::kindui::SurfaceRole::PanelInner, 0.0f, "PanelNavigation");
 }
 
 void PaintContentRegion(PaintContext& context, const Rect& rect) {
@@ -739,50 +626,29 @@ void PaintDockTab(
     const float radius = flatCorners ? 0.0f : TabTopRadius();
 
     if (isActive) {
-        Rect activeRect = layout.tabRect;
-        if (!floatingDockTabs) {
-            // Extend through the header so the tab body meets the panel fill below.
-            activeRect.height = (headerRect.y + headerRect.height) - activeRect.y;
-            // Overlap 1px into the panel to kill any hairline seam at the join.
-            activeRect.height += 1.0f;
-        }
         const auto activeRole = we::runtime::kindui::SurfaceRole::TabActive;
-        if (floatingDockTabs) {
-            context.DrawSurface(activeRect, activeRole, radius, "DockTabActive");
-        } else if (radius <= 0.01f) {
-            context.DrawSurface(activeRect, activeRole, 0.0f, "DockTabActive");
+        const Color activeColor = we::runtime::kindui::ResolveSurfaceColor(activeRole);
+        // Round only the tab chip (layout.tabRect). Any extension into the
+        // panel header/body stays square so panel chrome cannot inherit TabTopRadius.
+        if (radius <= 0.01f) {
+            context.DrawSurface(layout.tabRect, activeRole, 0.0f, "DockTabActive");
         } else {
-            const Color activeColor = we::runtime::kindui::ResolveSurfaceColor(activeRole);
-            DrawRoundedRectTop(context, activeRect, activeColor, radius, flushLeft);
+            DrawRoundedRectTop(context, layout.tabRect, activeColor, radius, flushLeft);
         }
-
-        // Outward shoulders so the tab fill bends into the panel (not a hard L).
-        if (!floatingDockTabs && !flatCorners) {
-            const Color panelColor = we::runtime::kindui::ResolveSurfaceColor(
-                we::runtime::kindui::SurfaceRole::Panel);
-            const float joinY = headerRect.y + headerRect.height;
-            const float sideLen = std::max(0.0f, joinY - layout.tabRect.y);
-            float shoulderR = IconMetrics::SnapPx(4.0f);
-            shoulderR = std::max(3.0f, std::min(shoulderR, 5.0f));
-            shoulderR = std::min(shoulderR, std::max(0.0f, sideLen - radius - 1.0f));
-            if (shoulderR >= 3.0f) {
-                const float tabLeft = IconMetrics::SnapPx(layout.tabRect.x);
-                const float tabRight = IconMetrics::SnapPx(layout.tabRect.x + layout.tabRect.width);
-                const float panelLeft = IconMetrics::SnapPx(headerRect.x);
-                const float panelRight = IconMetrics::SnapPx(headerRect.x + headerRect.width);
-                if ((tabLeft - panelLeft) > 1.5f) {
-                    PaintTabShoulderFill(context, tabLeft, joinY, shoulderR, true, panelColor);
-                }
-                if ((panelRight - tabRight) > 1.5f) {
-                    PaintTabShoulderFill(context, tabRight, joinY, shoulderR, false, panelColor);
-                }
+        if (!floatingDockTabs) {
+            const float joinTop = layout.tabRect.y + layout.tabRect.height;
+            const float joinBottom = headerRect.y + headerRect.height + 1.0f;
+            if (joinBottom > joinTop) {
+                context.DrawRect(
+                    Rect{ layout.tabRect.x, joinTop, layout.tabRect.width, joinBottom - joinTop },
+                    activeColor);
             }
         }
     } else if (hoverAnim > 0.01f) {
         we::runtime::kindui::ControlChrome::PaintInteractiveFill(
             context,
             layout.tabRect,
-            floatingDockTabs ? radius : radius,
+            radius,
             hoverAnim,
             0.0f,
             false,
@@ -1026,7 +892,7 @@ void PaintDockTabStrip(
             hover,
             showClose,
             closeHovered,
-            i == 0,
+            false,
             state.flatCorners);
     }
 
@@ -1258,13 +1124,6 @@ void PaintDockPanelChrome(
     }
     const float tabRadius = state.flatCorners ? 0.0f : TabTopRadius();
     PaintDockConnectedFrameBevel(context, contentRect, activeTab, tabRadius);
-
-    // Existing KindUI separator border system; width matches the tab of the panel
-    if (!activeTab.IsEmpty()) {
-        PaintSeparatorEdge(context, Rect{ activeTab.x, headerRect.y, activeTab.width, headerRect.height }, false);
-    } else if (!headerRect.IsEmpty()) {
-        PaintSeparatorEdge(context, headerRect, false);
-    }
 }
 
 void PaintSearchField(
@@ -1282,26 +1141,22 @@ void PaintSearchField(
 }
 
 void PaintAlternatingListRowBackground(PaintContext& context, const Rect& rowRect, int rowIndex) {
-    // Even rows match Recessed navigation/well parents (TreeView paints Recessed first).
-    // Odd rows get a soft Panel stripe at low opacity — visible rhythm, not a highlight.
-    if ((rowIndex % 2) == 0) {
-        return;
-    }
-    Color stripe = we::runtime::kindui::ResolveColor(ColorToken::PanelBackground);
-    stripe.a *= 0.55f;
-    context.DrawRect(rowRect, stripe);
+    (void)context;
+    (void)rowRect;
+    (void)rowIndex;
 }
 
 void PaintListRowBackground(PaintContext& context, const Rect& rowRect, bool hovered, bool selected, bool focused) {
+    const float radius = 3.0f * UiScale();
     if (selected) {
         const we::runtime::kindui::SurfaceRole role = focused
             ? we::runtime::kindui::SurfaceRole::Selected
             : we::runtime::kindui::SurfaceRole::SelectedInactive;
-        context.DrawSurface(rowRect, role, 0.0f, "TreeRow");
+        context.DrawSurface(rowRect, role, radius, "TreeRow");
         return;
     }
     if (hovered) {
-        context.DrawSurface(rowRect, we::runtime::kindui::SurfaceRole::ControlHover, 0.0f, "TreeRow");
+        context.DrawSurface(rowRect, we::runtime::kindui::SurfaceRole::ControlHover, radius, "TreeRow");
     }
 }
 

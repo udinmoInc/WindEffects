@@ -30,6 +30,10 @@ public:
     static void RequestLayout();
     static void RequestPaint();
 
+    /// Overlay-only layout: Measure/Arrange popup slots without walking the base editor tree.
+    static void RequestOverlayLayout();
+    static void RequestOverlayLayoutReason(const char* reason);
+
     /// Same as RequestLayout/RequestPaint but tags a stable reason for WE_UI_INVALIDATION_LOG=1.
     static void RequestLayoutReason(const char* reason);
     static void RequestPaintReason(const char* reason);
@@ -37,6 +41,8 @@ public:
     [[nodiscard]] static const char* LastPaintReason();
     [[nodiscard]] static uint64_t LayoutReasonCount();
     [[nodiscard]] static uint64_t PaintReasonCount();
+    [[nodiscard]] static uint64_t OverlayLayoutReasonCount();
+    [[nodiscard]] static const char* LastOverlayLayoutReason();
 
     static void MarkAnimating();
     /// Clears the sticky animation latch. Call at the start of the widget-tick phase
@@ -66,13 +72,22 @@ public:
 
     // Returns true if Measure/Arrange should run this frame.
     [[nodiscard]] static bool ConsumeNeedsLayout();
+    /// True when only overlay slots need Measure/Arrange (base tree stays warm).
+    [[nodiscard]] static bool ConsumeNeedsOverlayLayout();
     // Returns true if Paint + geometry upload should run this frame.
     [[nodiscard]] static bool ConsumeNeedsPaint();
+
+    /// Hosts that Measure/Arrange outside UIWidgetAdapter must call this after Arrange
+    /// so the next paint disables command retention (stale absolute coords).
+    static void NotifyHostLayoutCompleted();
+    /// Consumed by UIWidgetAdapter paint: true if host (or prior) layout moved geometry.
+    [[nodiscard]] static bool ConsumeHostLayoutForPaint();
 
     // Legacy: true if either layout or paint is dirty.
     [[nodiscard]] static bool ConsumeNeedsRebuild();
     [[nodiscard]] static bool PeekNeedsRebuild();
     [[nodiscard]] static bool PeekNeedsLayout();
+    [[nodiscard]] static bool PeekNeedsOverlayLayout();
     [[nodiscard]] static bool PeekNeedsPaint();
 
     /// True when layout and paint are both clean (no animation latch).
@@ -88,21 +103,27 @@ public:
 
 private:
     static std::atomic<bool> s_NeedsLayout;
+    static std::atomic<bool> s_NeedsOverlayLayout;
     static std::atomic<bool> s_NeedsPaint;
     static std::atomic<bool> s_Animating;
     static std::atomic<int> s_BatchDepth;
     static std::atomic<bool> s_BatchDeferredLayout;
+    static std::atomic<bool> s_BatchDeferredOverlayLayout;
     static std::atomic<bool> s_BatchDeferredPaint;
     static std::atomic<bool> s_BatchDeferredAnimating;
     static std::atomic<uint64_t> s_RebuildCount;
     static std::atomic<uint64_t> s_SkipCount;
     static std::atomic<uint64_t> s_LayoutRebuildCount;
+    static std::atomic<uint64_t> s_OverlayLayoutRebuildCount;
     static std::atomic<uint64_t> s_PaintRebuildCount;
     static std::atomic<uint64_t> s_IdleSkipCount;
     static std::atomic<const char*> s_LastLayoutReason;
+    static std::atomic<const char*> s_LastOverlayLayoutReason;
     static std::atomic<const char*> s_LastPaintReason;
     static std::atomic<uint64_t> s_LayoutReasonCount;
+    static std::atomic<uint64_t> s_OverlayLayoutReasonCount;
     static std::atomic<uint64_t> s_PaintReasonCount;
+    static std::atomic<bool> s_HostLayoutPendingPaint;
 };
 
 } // namespace we::runtime::kindui

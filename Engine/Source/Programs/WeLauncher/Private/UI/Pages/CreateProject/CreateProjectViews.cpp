@@ -329,7 +329,7 @@ void CreateTemplateRow::Paint(PaintContext& context) {
     context.DrawText(
         Ellipsize(desc, textW, metaSize),
         Point{ textX, m_Geometry.y + m_Geometry.height - metaSize - 12.0f * s },
-        LColor(ColorToken::TextHint),
+        LColor(ColorToken::TextSecondary),
         metaSize);
 }
 

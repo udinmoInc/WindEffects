@@ -17,7 +17,7 @@
 #include <KindUI/EditorUI.h>
 // Forward declaration for the popup host function
 namespace we::programs::editor {
-    ::we::runtime::kindui::IPopupHost* GetEditorPopupHost();
+    ::we::runtime::kindui::OverlayHost* GetEditorPopupHost();
 }
 
 #include <algorithm>
@@ -1362,8 +1362,11 @@ public:
                     }
                 });
 
-                // Contextual popover positioning via shared placement utility: anchor to clicked Color control field
-                popupHost->ShowAnchoredPopup(popoverFrame, m_Geometry,
+                // Contextual popover positioning via shared placement utility: live anchor
+                // tracks scroll/resize/undock without a one-frame lag.
+                popupHost->ShowAnchoredPopup(
+                    popoverFrame,
+                    shared_from_this(),
                     we::runtime::kindui::PopupPlacementMode::SidePreferred);
             }
 
@@ -1982,7 +1985,9 @@ public:
                         popupHost->CloseTopPopup();
                     }
                 });
-                popupHost->ShowAnchoredPopup(pickerPopover, m_PillRect,
+                popupHost->ShowAnchoredPopup(
+                    pickerPopover,
+                    shared_from_this(),
                     we::runtime::kindui::PopupPlacementMode::BottomPreferred);
             }
 

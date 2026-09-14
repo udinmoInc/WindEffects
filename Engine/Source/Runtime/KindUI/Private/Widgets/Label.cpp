@@ -86,10 +86,8 @@ Label::Label(const std::string& text, TypographyToken role)
     : m_Text(text)
     , m_Style(TextStyle::FromRole(role))
 {
-    // Force neutral colors for label roles to prevent any green tint
-    if (role == TypographyToken::PropertyLabel || role == TypographyToken::Caption || role == TypographyToken::Error) {
-        m_Style.color = ResolveColor(ColorToken::TextSecondary);
-    }
+    // FromRole already maps Body/Title → PrimaryText and Caption/Hint → SecondaryText.
+    // Semantic Error/Warning/Success/Link keep their status colors from TypographySystem.
 }
 
 Label::Label(const std::string& text, const Color& color, float fontSize)

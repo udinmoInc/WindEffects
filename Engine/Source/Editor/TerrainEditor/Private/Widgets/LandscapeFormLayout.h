@@ -22,35 +22,46 @@ using FormChip = std::tuple<std::string, we::runtime::kindui::WindIconRef, bool,
 
 void ConfigureLandscapeFormColumn(const std::shared_ptr<we::runtime::kindui::Column>& layout);
 
-void AddFormSectionTitle(
+std::shared_ptr<we::runtime::kindui::CollapsibleGroup> AddFormSection(
     const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    std::string_view title,
+    bool expanded = true);
+
+void AddFormSectionTitle(
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     std::string_view title);
 
 void AddFormField(
-    const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     const std::string& label,
     const std::string& value,
     std::function<void(std::string_view)> onCommit);
 
+void AddFormVector3Field(
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
+    const std::string& label,
+    float x, float y, float z,
+    std::function<void(float, float, float)> onCommit);
+
 void AddFormChipRow(
-    const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     const std::vector<FormChip>& chips,
     size_t maxPerRow = 4);
 
 void AddFormToggle(
-    const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     const std::string& label,
     bool on,
-    std::function<void()> onClick);
+    std::function<void(bool)> onChange);
 
 void AddFormButton(
-    const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     const std::string& label,
     std::function<void()> onClick,
     bool primary = false);
 
 void AddFormInfoRow(
-    const std::shared_ptr<we::runtime::kindui::Column>& layout,
+    const std::shared_ptr<we::runtime::kindui::Widget>& container,
     const std::string& label,
     const std::string& value);
 

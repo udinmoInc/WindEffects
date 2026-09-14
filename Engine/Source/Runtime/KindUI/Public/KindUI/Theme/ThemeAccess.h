@@ -18,6 +18,8 @@
 namespace we::runtime::kindui {
 
 KINDUI_API IKindUITheme& ResolveDefaultTheme();
+KINDUI_API void InvalidateThemeCache();
+KINDUI_API uint64_t GetThemeCacheVersion();
 KINDUI_API Color ResolveColor(ColorToken token);
 KINDUI_API float ResolveMetric(MetricToken token);
 KINDUI_API Margin ResolvePadding(PaddingToken token);

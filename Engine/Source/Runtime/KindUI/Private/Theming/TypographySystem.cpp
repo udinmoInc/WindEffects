@@ -9,6 +9,7 @@
 #include "KindUI/Theme/TypographySystem.h"
 #include "KindUI/UI/AutoAlign.h"
 #include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/PaletteRuntime.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,12 +17,13 @@
 namespace we::runtime::kindui {
 
 float TypographySystem::GetFontSize(TypographyToken role) {
+    const auto& M = palette::GraphiteDarkLiveMetrics();
     switch (role) {
     case TypographyToken::WindowTitle:
     case TypographyToken::Display:
     case TypographyToken::PageTitle:
     case TypographyToken::Heading1:
-        return 18.0f;
+        return M.FontSizeTitle;
 
     case TypographyToken::SectionTitle:
     case TypographyToken::Heading:
@@ -29,7 +31,7 @@ float TypographySystem::GetFontSize(TypographyToken role) {
     case TypographyToken::Heading3:
     case TypographyToken::CardTitle:
     case TypographyToken::DialogTitle:
-        return 14.0f;
+        return M.FontSizeHeader;
 
     case TypographyToken::Title:
     case TypographyToken::Subtitle:
@@ -51,7 +53,7 @@ float TypographySystem::GetFontSize(TypographyToken role) {
     case TypographyToken::Monospace:
     case TypographyToken::TableHeader:
     case TypographyToken::Link:
-        return 13.0f;
+        return M.FontSizeNormal;
 
     case TypographyToken::Caption:
     case TypographyToken::CaptionSmall:
@@ -64,7 +66,7 @@ float TypographySystem::GetFontSize(TypographyToken role) {
     case TypographyToken::Success:
     case TypographyToken::Disabled:
     default:
-        return 12.0f;
+        return M.FontSizeCaption;
     }
 }
 
@@ -104,19 +106,17 @@ ColorToken TypographySystem::GetColorToken(TypographyToken role) {
         return ColorToken::Warning;
     case TypographyToken::Success:
         return ColorToken::Success;
-    case TypographyToken::Disabled:
-        return ColorToken::TextDisabled;
 
     // Neutral Secondary hierarchy
     case TypographyToken::Subtitle:
     case TypographyToken::Status:
     case TypographyToken::StatusBar:
     case TypographyToken::PropertyLabel:
-    case TypographyToken::Toolbar:
     case TypographyToken::Caption:
     case TypographyToken::Hint:
     case TypographyToken::CaptionSmall:
     case TypographyToken::Tooltip:
+    case TypographyToken::Disabled:
         return ColorToken::TextSecondary;
 
     // Neutral Primary hierarchy
@@ -138,6 +138,8 @@ ColorToken TypographySystem::GetColorToken(TypographyToken role) {
     case TypographyToken::Button:
     case TypographyToken::Menu:
     case TypographyToken::Navigation:
+    case TypographyToken::Toolbar:
+    case TypographyToken::Tab:
     case TypographyToken::PropertyValue:
     case TypographyToken::Code:
     case TypographyToken::Console:

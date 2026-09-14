@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/Core/TextMetrics.h"
 
+#include <cstdint>
 #include <shared_mutex>
 
 namespace we::runtime::kindui {
@@ -75,7 +76,23 @@ void TrimCacheIfNeeded() {
 void TextMetrics::SetMeasureProvider(TextMetrics::MeasureFn provider) {
     std::unique_lock lock(g_MeasureMutex);
     g_MeasureProvider = std::move(provider);
+    // Drop heuristic-cache entries when a real provider takes over (or is cleared).
     g_MeasureCache.clear();
+}
+
+size_t TextMetrics::CacheEntryCount() {
+    std::shared_lock lock(g_MeasureMutex);
+    return g_MeasureCache.size();
+}
+
+uint64_t TextMetrics::EstimateCacheBytes() {
+    std::shared_lock lock(g_MeasureMutex);
+    uint64_t bytes = static_cast<uint64_t>(g_MeasureCache.bucket_count()) * sizeof(void*);
+    for (const auto& [key, value] : g_MeasureCache) {
+        (void)value;
+        bytes += sizeof(key) + key.text.capacity() + sizeof(float);
+    }
+    return bytes;
 }
 
 void TextMetrics::ClearCache() {
@@ -99,24 +116,27 @@ float TextMetrics::MeasureWidth(const std::string_view text, const float fontSiz
         return 0.0f;
     }
 
-    const CacheKeyView viewKey{ text, fontSize, bold };
     TextMetrics::MeasureFn provider;
+    {
+        std::shared_lock lock(g_MeasureMutex);
+        provider = g_MeasureProvider;
+    }
 
+    // When TextUIService is the provider it already owns a measure cache — do not
+    // duplicate string keys in g_MeasureCache (KindUI CPU double-storage).
+    if (provider) {
+        return provider(text, fontSize, bold);
+    }
+
+    const CacheKeyView viewKey{ text, fontSize, bold };
     {
         std::shared_lock lock(g_MeasureMutex);
         if (const auto found = g_MeasureCache.find(viewKey); found != g_MeasureCache.end()) {
             return found->second;
         }
-        provider = g_MeasureProvider;
     }
 
-    float width = 0.0f;
-    if (provider) {
-        width = provider(text, fontSize, bold);
-    } else {
-        width = static_cast<float>(text.size()) * fontSize * 0.5f;
-    }
-
+    const float width = static_cast<float>(text.size()) * fontSize * 0.5f;
     {
         std::unique_lock lock(g_MeasureMutex);
         TrimCacheIfNeeded();

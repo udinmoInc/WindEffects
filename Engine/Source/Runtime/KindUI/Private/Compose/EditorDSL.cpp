@@ -11,6 +11,8 @@
 #include "KindUI/UI/Label.h"
 #include "KindUI/UI/TextBox.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/DPIContext.h"
+#include <algorithm>
 
 namespace we::editor::dsl {
 
@@ -427,7 +429,8 @@ EditorPanelPtr PanelContext::BuildPanel() {
         m_Builder.Content(m_CustomContent);
     } else {
         auto bodyColumn = std::make_shared<Column>();
-        bodyColumn->Gap(6.0f);
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        bodyColumn->Gap(ResolveMetric(MetricToken::Space1) * uiScale);
         if (m_TitleBar) {
             bodyColumn->AddChild(m_TitleBar);
         }

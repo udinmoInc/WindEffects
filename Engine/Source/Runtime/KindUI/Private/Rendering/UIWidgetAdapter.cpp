@@ -7,6 +7,9 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Rendering/UIWidgetAdapter.h"
+#include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIDirtyRegionTracker.h"
+#include "KindUI/Core/LayoutIncremental.h"
 #include "KindUI/Diagnostics/UiPathDiagnostics.h"
 #include "KindUI/Diagnostics/UiBuildPhaseTiming.h"
 #include "KindUI/Core/ColorSpace.h"
@@ -125,6 +128,19 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     const auto tClear = clock::now();
     m_LastPhaseTiming.clearMs = msSince(t0, tClear);
 
+    // Global dirty-region merge for this rebuild (feeds stats + geometry reuse policy).
+    if (runLayout) {
+        UIDirtyRegionTracker::Get().MarkFullDirty();
+    }
+    const Rect viewport{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) };
+    const DirtyRegionFrameStats dirtyStats = UIDirtyRegionTracker::Get().ConsumeMerged(viewport);
+    m_LastPhaseTiming.dirtyRegionCount = dirtyStats.regionCount;
+    m_LastPhaseTiming.dirtyMergedCount = dirtyStats.mergedCount;
+    m_LastPhaseTiming.dirtyCoverage = dirtyStats.coverage;
+    m_LastPhaseTiming.dirtyAreaPx = dirtyStats.dirtyAreaPx;
+    m_LastPhaseTiming.dirtyFull = dirtyStats.fullDirty;
+    m_LastPhaseTiming.geometryReused = false;
+
     if (UiColorPipelineDiagnostic::IsEnabled()
         && !UiColorCompositionDiagnostic::IsEnabled()) {
         m_CurrentTextureSet = m_DefaultTextureSet;
@@ -172,11 +188,19 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     const bool alreadyLaidOut = sizeMatches && !root->SubtreeNeedsLayout();
     const auto tLayoutStart = clock::now();
     if (runLayout && !alreadyLaidOut) {
+        LayoutIncrementalStats::ResetCurrent();
+        ++LayoutIncrementalStats::Current().fullLayoutPasses;
         UiPathDiagnostics::Get().OnLayoutPass();
         root->Measure(Size{static_cast<float>(width), static_cast<float>(height)});
         root->Arrange(Rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
         root->ClearSubtreeLayoutDirty();
         m_LastPhaseTiming.ranLayout = true;
+        const auto& ls = LayoutIncrementalStats::Current();
+        m_LastPhaseTiming.layoutMeasureRan = ls.measureRan;
+        m_LastPhaseTiming.layoutMeasureSkipped = ls.measureSkipped;
+        m_LastPhaseTiming.layoutArrangeRan = ls.arrangeRan;
+        m_LastPhaseTiming.layoutArrangeSkipped = ls.arrangeSkipped;
+        m_LastPhaseTiming.layoutFullPasses = ls.fullLayoutPasses;
     }
     const auto tLayoutEnd = clock::now();
     m_LastPhaseTiming.layoutMs = msSince(tLayoutStart, tLayoutEnd);
@@ -200,7 +224,24 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     }
     // Paint-only rebuilds may replay retained DrawCommands for clean subtrees.
     // Layout frames change geometry — disable replay (still refresh retention after Paint).
-    const bool paintRetention = !m_LastPhaseTiming.ranLayout;
+    // Hosts often Arrange before ProcessWidget (ConsumeNeedsLayout elsewhere); that must
+    // also disable retention or status-bar chips replay at stale absolute positions.
+    const bool hostLaidOut = UIRepaintGate::ConsumeHostLayoutForPaint();
+    if (hostLaidOut) {
+        const auto& ls = LayoutIncrementalStats::Current();
+        m_LastPhaseTiming.layoutMeasureRan = ls.measureRan;
+        m_LastPhaseTiming.layoutMeasureSkipped = ls.measureSkipped;
+        m_LastPhaseTiming.layoutArrangeRan = ls.arrangeRan;
+        m_LastPhaseTiming.layoutArrangeSkipped = ls.arrangeSkipped;
+        m_LastPhaseTiming.layoutFullPasses = ls.fullLayoutPasses;
+        if (!m_LastPhaseTiming.ranLayout) {
+            // Host owned Measure/Arrange; surface layout time via layoutMs=0 but counters.
+        }
+    }
+    if (hostLaidOut && !m_LastPhaseTiming.ranLayout) {
+        root->ReleaseRetainedPaintSubtree();
+    }
+    const bool paintRetention = !m_LastPhaseTiming.ranLayout && !hostLaidOut;
     m_PaintContext.SetPaintRetentionEnabled(paintRetention);
     Widget::s_PaintRetentionStats = {};
     if (Widget::s_GlobalDiagnostics) {
@@ -251,30 +292,111 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
     m_Diagnostics.paintCommandsRecorded = static_cast<uint32_t>(m_PaintContext.GetCommands().size());
     UiPathDiagnostics::Get().SetPaintCommands(m_Diagnostics.paintCommandsRecorded);
     m_LastPhaseTiming.paintCommands = m_Diagnostics.paintCommandsRecorded;
+    m_LastPhaseTiming.globalBatchEnabled = DrawCommandBatcher::IsEnabled();
+
+    DrawCommandBatcherStats batcherStats{};
+    if (DrawCommandBatcher::IsEnabled()) {
+        m_Batcher.CoalesceCommands(m_PaintContext.EditCommands(), width, height, batcherStats);
+        m_LastPhaseTiming.coalesceMs = batcherStats.commandCoalesceMs;
+        m_LastPhaseTiming.commandsAfterCoalesce = batcherStats.commandsOut;
+        m_LastPhaseTiming.commandsDropped = batcherStats.commandsDropped;
+        m_LastPhaseTiming.rectsMerged = batcherStats.rectsMerged;
+        m_LastPhaseTiming.clipsNormalized = batcherStats.clipsNormalized;
+        m_LastPhaseTiming.iconsClustered = batcherStats.iconsClustered;
+        m_LastPhaseTiming.textsClustered = batcherStats.textsClustered;
+    } else {
+        m_LastPhaseTiming.commandsAfterCoalesce = m_LastPhaseTiming.paintCommands;
+    }
 
     const auto tClearDirtyStart = clock::now();
-    root->ClearSubtreePaintDirty();
+    // PaintSubtree clears dirty bits on painted/invisible nodes; only scrub leftovers.
+    if (root->SubtreeNeedsPaint()) {
+        root->ClearSubtreePaintDirty();
+    }
     const auto tClearDirtyEnd = clock::now();
     m_LastPhaseTiming.clearDirtyMs = msSince(tClearDirtyStart, tClearDirtyEnd);
 
-    // Convert paint commands to geometry
+    // Convert paint commands to geometry — reuse prior drawgen when command content matches.
+    if (TextUIService* textService = m_Renderer ? m_Renderer->GetTextUIService() : nullptr) {
+        textService->BeginFrame();
+    }
     const auto& commands = m_PaintContext.GetCommands();
+    const uint64_t cmdHash = HashDrawCommands(commands);
+    UIDirtyRegionTracker::Get().SetCommandContentHash(cmdHash);
+    const bool canReuseGeometry =
+        paintRetention
+        && !m_LastPhaseTiming.ranLayout
+        && !hostLaidOut
+        && cmdHash != 0
+        && cmdHash == m_LastCommandHash
+        && m_LastBuiltWidth == width
+        && m_LastBuiltHeight == height
+        && !m_CachedVertices.empty()
+        && !m_CachedBatches.empty()
+        && !UiColorDebug::IsOverlayEnabled()
+        && !UiColorCompositionDiagnostic::IsEnabled();
+
     const auto tDrawgenStart = clock::now();
     float textAccumMs = 0.0f;
-    for (const auto& cmd : commands) {
-        if (cmd.type == DrawCommandType::Text) {
-            const auto tText0 = clock::now();
-            ConvertDrawCommand(cmd);
-            textAccumMs += msSince(tText0, clock::now());
-        } else {
-            ConvertDrawCommand(cmd);
+    if (canReuseGeometry) {
+        m_Vertices = m_CachedVertices;
+        m_Indices = m_CachedIndices;
+        m_Batches = m_CachedBatches;
+        m_LastPhaseTiming.geometryReused = true;
+        UIDirtyRegionTracker::Get().SetGeometryReused(true);
+        m_LastPhaseTiming.drawgenMs = 0.0f;
+        m_LastPhaseTiming.textMs = 0.0f;
+        m_LastPhaseTiming.batchCoalesceMs = 0.0f;
+        m_LastPhaseTiming.batchesAfterDrawgen = static_cast<uint32_t>(m_Batches.size());
+    } else {
+        we::rhi::RHIDescriptorSetHandle lastLoggedTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
+        bool hasLoggedTexture = false;
+        Rect lastLoggedClip{};
+        bool hasLoggedClip = false;
+        for (const auto& cmd : commands) {
+            if (!hasLoggedClip || cmd.clipRect != lastLoggedClip) {
+                ++m_Diagnostics.clipRectCount;
+                lastLoggedClip = cmd.clipRect;
+                hasLoggedClip = true;
+            }
+            if (cmd.type == DrawCommandType::Text) {
+                const auto tText0 = clock::now();
+                ConvertDrawCommand(cmd);
+                textAccumMs += msSince(tText0, clock::now());
+            } else {
+                ConvertDrawCommand(cmd);
+            }
+            if (!hasLoggedTexture || m_CurrentTextureSet != lastLoggedTexture) {
+                if (hasLoggedTexture) {
+                    ++m_Diagnostics.textureSwitchCount;
+                }
+                lastLoggedTexture = m_CurrentTextureSet;
+                hasLoggedTexture = true;
+            }
         }
+        const auto tDrawgenEnd = clock::now();
+        m_LastPhaseTiming.drawgenMs = msSince(tDrawgenStart, tDrawgenEnd);
+        m_LastPhaseTiming.textMs = textAccumMs;
+        m_LastPhaseTiming.textCommands = m_Diagnostics.textCommands;
+        m_LastPhaseTiming.rectCommands = m_Diagnostics.rectangleCommands;
+        m_LastPhaseTiming.batchesAfterDrawgen = static_cast<uint32_t>(m_Batches.size());
+
+        if (DrawCommandBatcher::IsEnabled()) {
+            DrawCommandBatcherStats batchStats = batcherStats;
+            m_Batcher.CoalesceBatches(m_Vertices, m_Indices, m_Batches, batchStats);
+            m_LastPhaseTiming.batchCoalesceMs = batchStats.batchCoalesceMs;
+            m_LastPhaseTiming.batchesMerged = batchStats.batchesMerged;
+            batcherStats.batchesIn = batchStats.batchesIn;
+            batcherStats.batchesOut = batchStats.batchesOut;
+            batcherStats.batchesMerged = batchStats.batchesMerged;
+            batcherStats.batchCoalesceMs = batchStats.batchCoalesceMs;
+        }
+
+        m_CachedVertices = m_Vertices;
+        m_CachedIndices = m_Indices;
+        m_CachedBatches = m_Batches;
+        m_LastCommandHash = cmdHash;
     }
-    const auto tDrawgenEnd = clock::now();
-    m_LastPhaseTiming.drawgenMs = msSince(tDrawgenStart, tDrawgenEnd);
-    m_LastPhaseTiming.textMs = textAccumMs;
-    m_LastPhaseTiming.textCommands = m_Diagnostics.textCommands;
-    m_LastPhaseTiming.rectCommands = m_Diagnostics.rectangleCommands;
 
     if (UiColorDebug::IsOverlayEnabled()) {
         m_CurrentTextureSet = m_DefaultTextureSet;
@@ -291,10 +413,14 @@ void UIWidgetAdapter::ProcessWidget(const std::shared_ptr<Widget>& root,
         }
     }
 
+    m_Diagnostics.batchCount = static_cast<uint32_t>(m_Batches.size());
     m_LastBuiltWidth = width;
     m_LastBuiltHeight = height;
     m_LastPhaseTiming.vertices = static_cast<uint32_t>(m_Vertices.size());
+    m_LastPhaseTiming.indices = static_cast<uint32_t>(m_Indices.size());
     m_LastPhaseTiming.batches = static_cast<uint32_t>(m_Batches.size());
+    m_LastPhaseTiming.textureSwitches = m_Diagnostics.textureSwitchCount;
+    m_LastPhaseTiming.clipRectCount = m_Diagnostics.clipRectCount;
     m_LastPhaseTiming.totalMs = msSince(t0, clock::now());
 }
 

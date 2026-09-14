@@ -184,9 +184,10 @@ void WindowsPanelMenuButton::ShowMenu() {
         return;
     }
     overlay->CloseAllPopups();
-    overlay->ShowPopup(
+    overlay->ShowAnchoredPopup(
         menu,
-        ::we::runtime::kindui::Point{ m_Geometry.x, m_Geometry.y + m_Geometry.height + 2.0f });
+        shared_from_this(),
+        ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
 }
 
 } // namespace we::editor::toolbar

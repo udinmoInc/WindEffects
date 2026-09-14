@@ -95,6 +95,10 @@ Flex& Flex::Align(AlignRule rule) {
 }
 
 Size Flex::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
 
     const float padW = m_Padding.left + m_Padding.right;
     const float padH = m_Padding.top + m_Padding.bottom;
@@ -111,7 +115,7 @@ Size Flex::Measure(const Size& availableSize) {
     for (const auto& child : m_Children) {
         if (!child || !child->IsVisible()) continue;
 
-        Size desired = child->Measure(contentAvail);
+        Size desired = MeasureChild(child, contentAvail);
         desired = child->ClampDesiredSize(desired);
 
         const float desiredMain = row ? desired.width : desired.height;
@@ -134,6 +138,7 @@ Size Flex::Measure(const Size& availableSize) {
     m_DesiredSize = row
         ? Size{ main + padW, cross + padH }
         : Size{ cross + padW, main + padH };
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
@@ -157,7 +162,11 @@ Size Flex::MeasureWithFixedCross(const Size& availableSize, float fixedCrossSize
 }
 
 void Flex::Arrange(const Rect& allottedRect) {
-    m_Geometry = allottedRect;
+    if (CanSkipArrange(allottedRect)) {
+        return;
+    }
+
+    CommitGeometry(allottedRect);
     ClearLayoutDirty();
 
     const float padW = m_Padding.left + m_Padding.right;
@@ -169,8 +178,11 @@ void Flex::Arrange(const Rect& allottedRect) {
 
     for (const auto& child : m_Children) {
         if (!child || !child->IsVisible()) continue;
-        // Final arrange constraints can differ from the prior Measure pass (e.g. grow/shrink).
-        child->Measure(contentSize);
+        // Skip remasure when the child subtree is layout-clean and will not grow into
+        // the content box — desired sizes from the Measure pass remain valid.
+        if (child->SubtreeNeedsLayout() || EffectiveFlexGrow(*child, row) > 0.0f) {
+            (void)MeasureChild(child, contentSize);
+        }
     }
 
     auto& items = m_ArrangeScratch;
@@ -366,7 +378,7 @@ void Flex::Arrange(const Rect& allottedRect) {
         }
 
         if (item.mainSize >= 0.5f && crossSize >= 0.5f) {
-            item.widget->Arrange(childRect);
+            ArrangeChild(item.widget, childRect);
             AssertLayoutRectValid("Flex.child", childRect, allottedRect);
             AssertMinSizeRespected(
                 "Flex.child",
@@ -374,7 +386,7 @@ void Flex::Arrange(const Rect& allottedRect) {
                 item.widget->GetMinSize().width,
                 item.widget->GetMinSize().height);
         } else {
-            item.widget->Arrange(Rect{childRect.x, childRect.y, 0.0f, 0.0f});
+            ArrangeChild(item.widget, Rect{childRect.x, childRect.y, 0.0f, 0.0f});
         }
         mainCursor += item.mainSize + item.marginMainEnd;
     }
@@ -389,11 +401,7 @@ void Flex::Paint(PaintContext& context) {
             context.DrawRect(m_Geometry, m_Background);
         }
     }
-    for (auto& child : m_Children) {
-        if (child && child->IsVisible()) {
-            child->PaintSubtree(context);
-        }
-    }
+    PaintVisibleChildren(context);
 }
 
 std::shared_ptr<Row> MakeRow() {

@@ -92,6 +92,9 @@ void ToolbarGlyphButton::OnMouseUp(const MouseEvent& event) {
 }
 
 void ToolbarGlyphButton::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     const float hoverDamping = ThemeMetric(MetricToken::HoverAnimationDamping);
     const float pressDamping = ThemeMetric(MetricToken::PressAnimationDamping);
     const float pressOffsetTarget = ThemeMetric(MetricToken::PressOffset);

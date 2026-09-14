@@ -8,7 +8,10 @@
 // ==============================================================================
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Core/PaintContext.h"
+#include "KindUI/Core/UIStateChange.h"
 #include "KindUI/Core/UIRepaintGate.h"
+#include "KindUI/Core/UIDirtyRegionTracker.h"
+#include "KindUI/Core/LayoutIncremental.h"
 #include "KindUI/Diagnostics/PaintCauseLog.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "KindUI/UI/IPopupHost.h"
@@ -28,20 +31,17 @@ namespace we::runtime::kindui {
 Widget::Diagnostics* Widget::s_GlobalDiagnostics = nullptr;
 Widget::PaintRetentionStats Widget::s_PaintRetentionStats{};
 
+uint64_t Widget::EstimateRetainedPaintCapacityBytes() const {
+    if (!m_RetainedPaintStore) {
+        return 0;
+    }
+    const auto& store = *std::static_pointer_cast<const std::vector<DrawCommand>>(m_RetainedPaintStore);
+    return static_cast<uint64_t>(store.capacity()) * static_cast<uint64_t>(sizeof(DrawCommand));
+}
+
 void Widget::ResetDiagnostics() {
     if (s_GlobalDiagnostics) {
         s_GlobalDiagnostics->Reset();
-    }
-}
-
-void Widget::InvalidateRetainedPaintUpward() {
-    for (Widget* w = this; w; ) {
-        w->m_RetainedPaintValid = false;
-        w->m_RetainedPaintStore.reset();
-        w->m_RetainedPaintBegin = 0;
-        w->m_RetainedPaintEnd = 0;
-        auto parent = w->m_Parent.lock();
-        w = parent.get();
     }
 }
 
@@ -66,6 +66,21 @@ PaintRetentionFrame& RetentionFrame() {
 
 } // namespace
 
+void Widget::ClearStaleRetainedStoresUnder(Widget* root, const std::shared_ptr<void>& keepStore) {
+    if (!root) {
+        return;
+    }
+    if (root->m_RetainedPaintStore && root->m_RetainedPaintStore.get() != keepStore.get()) {
+        root->m_RetainedPaintValid = false;
+        root->m_RetainedPaintStore.reset();
+        root->m_RetainedPaintBegin = 0;
+        root->m_RetainedPaintEnd = 0;
+    }
+    for (const auto& child : root->m_Children) {
+        ClearStaleRetainedStoresUnder(child.get(), keepStore);
+    }
+}
+
 void Widget::PaintSubtree(PaintContext& context) {
     if (!m_Visible) {
         if (m_SubtreeNeedsPaint || m_NeedsPaint) {
@@ -75,18 +90,27 @@ void Widget::PaintSubtree(PaintContext& context) {
     }
 
     const bool canReplay = context.IsPaintRetentionEnabled()
+        && AllowsPaintRetention()
         && m_RetainedPaintValid
         && static_cast<bool>(m_RetainedPaintStore)
         && !SubtreeNeedsPaint();
 
     if (canReplay) {
         const auto& store = *std::static_pointer_cast<const RetainedPaintStore>(m_RetainedPaintStore);
+        const uint32_t replayBegin = static_cast<uint32_t>(context.CommandCount());
         context.AppendCommands(
             store,
             static_cast<size_t>(m_RetainedPaintBegin),
             static_cast<size_t>(m_RetainedPaintEnd));
+        const uint32_t replayEnd = static_cast<uint32_t>(context.CommandCount());
         ++s_PaintRetentionStats.subtreesReplayed;
         s_PaintRetentionStats.commandsReplayed += (m_RetainedPaintEnd - m_RetainedPaintBegin);
+        // Only rebase while an outermost paint is collecting ranges (depth > 0).
+        // Root-level replay must not append to the thread-local range list.
+        auto& frame = RetentionFrame();
+        if (frame.depth > 0) {
+            frame.ranges.push_back(PaintRetentionFrame::Range{ this, replayBegin, replayEnd });
+        }
         return;
     }
 
@@ -112,9 +136,20 @@ void Widget::PaintSubtree(PaintContext& context) {
             store->assign(
                 cmds.begin() + static_cast<std::ptrdiff_t>(commandBegin),
                 cmds.begin() + static_cast<std::ptrdiff_t>(end));
+            // assign() retains capacity — collapse/expand cycles must not keep expand peak forever.
+            if (store->capacity() > store->size() * 2u + 64u) {
+                store->shrink_to_fit();
+            }
         }
         for (const auto& range : frame.ranges) {
             if (!range.widget) {
+                continue;
+            }
+            if (!range.widget->AllowsPaintRetention()) {
+                range.widget->m_RetainedPaintValid = false;
+                range.widget->m_RetainedPaintStore.reset();
+                range.widget->m_RetainedPaintBegin = 0;
+                range.widget->m_RetainedPaintEnd = 0;
                 continue;
             }
             if (range.begin < commandBegin || range.end > commandEnd || range.begin > range.end) {
@@ -125,19 +160,27 @@ void Widget::PaintSubtree(PaintContext& context) {
             range.widget->m_RetainedPaintEnd = range.end - commandBegin;
             range.widget->m_RetainedPaintValid = true;
         }
+        // Drop older shared stores held by widgets not visited this pass (collapsed/hidden).
+        ClearStaleRetainedStoresUnder(this, store);
         s_PaintRetentionStats.commandsRecorded += static_cast<uint32_t>(store->size());
         frame.ranges.clear();
     }
 }
 
 void Widget::Tick(float deltaTime) {
-    if (!m_Visible || m_Children.empty()) return;
+    if ((!m_Visible && !m_TicksWhenHidden) || m_Children.empty()) {
+        return;
+    }
 
     const size_t count = m_Children.size();
     for (size_t i = 0; i < count && i < m_Children.size(); ++i) {
-        if (const auto& child = m_Children[i]) {
-            child->Tick(deltaTime);
+        const auto& child = m_Children[i];
+        // Skip invisible children unless they opted into hidden sync (selection chrome, etc.).
+        // Keeps hover-damp / MarkAnimating off the hot path for collapsed subtrees.
+        if (!child || (!child->IsVisible() && !child->TicksWhenHidden())) {
+            continue;
         }
+        child->Tick(deltaTime);
     }
 }
 
@@ -157,29 +200,272 @@ bool Widget::ShouldFireClickOnLeftUp(const MouseEvent& event) {
     return IsEnabled() && (wasPressed || m_Geometry.Contains(event.position));
 }
 
+bool Widget::IsEffectivelyVisible() const {
+    for (const Widget* w = this; w; ) {
+        if (!w->m_Visible) {
+            return false;
+        }
+        const auto parent = w->m_Parent.lock();
+        w = parent.get();
+    }
+    return true;
+}
+
+void Widget::InvalidateMeasureCache() {
+    m_HasValidMeasureCache = false;
+}
+
+void Widget::NoteMeasureCache(const Size& availableSize) {
+    m_LastMeasureAvailable = availableSize;
+    m_HasValidMeasureCache = true;
+}
+
+bool Widget::CanSkipMeasure(const Size& availableSize) const {
+    if (m_SubtreeNeedsLayout || !m_HasValidMeasureCache) {
+        return false;
+    }
+    return SizeApproxEqual(availableSize.width, m_LastMeasureAvailable.width)
+        && SizeApproxEqual(availableSize.height, m_LastMeasureAvailable.height);
+}
+
+bool Widget::CanSkipArrange(const Rect& allottedRect) const {
+    if (m_SubtreeNeedsLayout) {
+        return false;
+    }
+    // Containers must run Arrange so they can reposition children (StatusBar flat
+    // layout, PanelBodyLayout regions, Flex distribution, etc.). Skipping when
+    // only the outer rect matches leaves descendants at stale viewport geometry
+    // while ArrangeChild also skips them — black/empty UI and chips at origin.
+    if (!m_Children.empty()) {
+        return false;
+    }
+    const bool needsPlacement =
+        (allottedRect.width > 0.5f || allottedRect.height > 0.5f)
+        && m_Geometry.width <= 0.5f
+        && m_Geometry.height <= 0.5f;
+    if (needsPlacement) {
+        return false;
+    }
+    return SizeApproxEqual(allottedRect.x, m_Geometry.x)
+        && SizeApproxEqual(allottedRect.y, m_Geometry.y)
+        && SizeApproxEqual(allottedRect.width, m_Geometry.width)
+        && SizeApproxEqual(allottedRect.height, m_Geometry.height);
+}
+
+Size Widget::MeasureChild(const std::shared_ptr<Widget>& child, const Size& availableSize) {
+    auto& stats = LayoutIncrementalStats::Current();
+    ++stats.measureAttempts;
+    if (!child) {
+        return {};
+    }
+    if (!child->IsVisible()) {
+        ++stats.measureSkipped;
+        return {};
+    }
+    if (child->CanSkipMeasure(availableSize)) {
+        ++stats.measureSkipped;
+        return child->GetDesiredSize();
+    }
+    Size desired = child->Measure(availableSize);
+    child->NoteMeasureCache(availableSize);
+    ++stats.measureRan;
+    return desired;
+}
+
+void Widget::ArrangeChild(const std::shared_ptr<Widget>& child, const Rect& allottedRect) {
+    auto& stats = LayoutIncrementalStats::Current();
+    ++stats.arrangeAttempts;
+    if (!child) {
+        return;
+    }
+    if (child->CanSkipArrange(allottedRect)) {
+        ++stats.arrangeSkipped;
+        return;
+    }
+    child->Arrange(allottedRect);
+    ++stats.arrangeRan;
+}
+
+
+void Widget::ReleaseRetainedPaintSubtree() {
+    m_RetainedPaintValid = false;
+    m_RetainedPaintStore.reset();
+    m_RetainedPaintBegin = 0;
+    m_RetainedPaintEnd = 0;
+    for (auto& child : m_Children) {
+        if (child) {
+            child->ReleaseRetainedPaintSubtree();
+        }
+    }
+}
+
+void Widget::CommitGeometry(const Rect& rect) {
+    const bool moved =
+        m_Geometry.x != rect.x
+        || m_Geometry.y != rect.y
+        || m_Geometry.width != rect.width
+        || m_Geometry.height != rect.height;
+    if (moved) {
+        // Always record the move; do not walk parents here (Arrange can run while the
+        // tree is mid-reparent and IsEffectivelyVisible is not safe on every node).
+        UIDirtyRegionTracker::Get().AddMove(m_Geometry, rect);
+        // Retained draws bake absolute coordinates — moving without a drop leaves
+        // chips/icons painted at the old location (status bar over Inspector, etc.).
+        ReleaseRetainedPaintSubtree();
+        // Ancestors keep a single retained slice that still embeds our old absolute draws.
+        // Clearing only this subtree leaves WindowShell/root free to PaintSubtree-replay
+        // stale chip commands mid-panel while the real footer geometry is correct.
+        auto parent = m_Parent.lock();
+        while (parent) {
+            parent->m_RetainedPaintValid = false;
+            parent->m_RetainedPaintStore.reset();
+            parent->m_RetainedPaintBegin = 0;
+            parent->m_RetainedPaintEnd = 0;
+            parent = parent->m_Parent.lock();
+        }
+    }
+    m_Geometry = rect;
+}
+
+void Widget::PaintVisibleChildren(PaintContext& context) {
+    for (auto& child : m_Children) {
+        if (child && child->IsVisible()) {
+            child->PaintSubtree(context);
+        }
+    }
+}
+
+void Widget::SetVisible(bool visible) {
+    if (m_Visible == visible) {
+        return;
+    }
+    m_Visible = visible;
+    if (!visible) {
+        ReleaseRetainedPaintSubtree();
+    }
+    UIStateChangeGate::Post(*this, StateChangeKind::Visibility);
+}
+
+void Widget::SetVisibleSilent(bool visible) {
+    if (m_Visible == visible) {
+        return;
+    }
+    m_Visible = visible;
+    if (!visible) {
+        // Collapse/hide must not keep retained command buffers for hidden subtrees.
+        ReleaseRetainedPaintSubtree();
+    }
+}
+
 void Widget::InvalidateLayout() {
-    InvalidateRetainedPaintUpward();
+    // Hidden/collapsed subtrees mark dirty bits only — no gate spam, no retained wipe on
+    // visible ancestors. Becoming visible (SetVisible / Expansion batch) flushes work.
+    InvalidateLayoutImpl(IsEffectivelyVisible());
+}
+
+void Widget::InvalidatePaint() {
+    InvalidatePaintImpl(IsEffectivelyVisible());
+}
+
+void Widget::InvalidateRetainedPaintUpward() {
+    for (Widget* w = this; w; ) {
+        w->m_RetainedPaintValid = false;
+        w->m_RetainedPaintStore.reset();
+        w->m_RetainedPaintBegin = 0;
+        w->m_RetainedPaintEnd = 0;
+        auto parent = w->m_Parent.lock();
+        w = parent.get();
+    }
+}
+
+void Widget::InvalidateRetainedPaintForRepaint() {
+    // Descendants own their own retained slices. Clearing only ancestors leaves scrolled
+    // or newly-shown children free to PaintSubtree-replay absolute draws at old positions
+    // (stuck scroll, one-frame-late expand, black holes).
+    ReleaseRetainedPaintSubtree();
+    auto parent = m_Parent.lock();
+    while (parent) {
+        parent->m_RetainedPaintValid = false;
+        parent->m_RetainedPaintStore.reset();
+        parent->m_RetainedPaintBegin = 0;
+        parent->m_RetainedPaintEnd = 0;
+        parent = parent->m_Parent.lock();
+    }
+}
+
+void Widget::InvalidateLayoutImpl(bool armGate) {
+    if (armGate) {
+        InvalidateRetainedPaintForRepaint();
+    }
+    InvalidateMeasureCache();
+
+    // Grow / fixed-basis children fill leftover space; their desired-size changes do not
+    // rewrite parent intrinsic size. Still mark the immediate parent NeedsLayout so it
+    // re-Arranges, but stop NeedsLayout further up (SubtreeNeedsLayout still propagates).
+    const bool desiredSizeMayAffectParent = !(m_FlexGrow > 0.0f || m_FlexBasis >= 0.0f);
+
+    // Overlay content (popups/modals/tooltips): isolate from the base editor tree.
+    bool underOverlay = m_IsOverlayContent;
+    if (!underOverlay) {
+        for (auto p = m_Parent.lock(); p; p = p->m_Parent.lock()) {
+            if (p->m_IsOverlayContent) {
+                underOverlay = true;
+                break;
+            }
+        }
+    }
+
     if (m_NeedsLayout) {
+        // Still ensure ancestors carry subtree dirty for incremental walks.
+        auto p = m_Parent.lock();
+        while (p && !p->m_SubtreeNeedsLayout) {
+            p->m_SubtreeNeedsLayout = true;
+            p->InvalidateMeasureCache();
+            p = p->m_Parent.lock();
+        }
         return;
     }
     m_NeedsLayout = true;
     m_SubtreeNeedsLayout = true;
     auto p = m_Parent.lock();
+    bool firstParent = true;
     while (p) {
-        p->m_NeedsLayout = true;
         p->m_SubtreeNeedsLayout = true;
+        p->InvalidateMeasureCache();
+        // Overlay content must not force NeedsLayout on OverlayHost/base ancestors —
+        // that would re-Measure/Arrange the entire editor shell.
+        if (armGate && !underOverlay && (firstParent || desiredSizeMayAffectParent)) {
+            p->m_NeedsLayout = true;
+        }
+        firstParent = false;
         p = p->m_Parent.lock();
     }
-    UIRepaintGate::RequestLayout();
-    UiPathDiagnostics::Get().OnLayoutInvalidation();
+    if (armGate) {
+        if (m_Geometry.IsEmpty()) {
+            UIDirtyRegionTracker::Get().MarkFullDirty();
+        } else {
+            UIDirtyRegionTracker::Get().Add(m_Geometry, 4.0f);
+        }
+        if (underOverlay) {
+            UIRepaintGate::RequestOverlayLayoutReason("OverlayContent");
+            UIRepaintGate::RequestPaintReason("OverlayContent");
+        } else {
+            UIRepaintGate::RequestLayout();
+        }
+        UiPathDiagnostics::Get().OnLayoutInvalidation();
+    }
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
     }
 }
 
-void Widget::InvalidatePaint() {
-    // Retained slices include descendants — invalidate self + ancestors always.
-    InvalidateRetainedPaintUpward();
+void Widget::InvalidatePaintImpl(bool armGate) {
+    if (armGate) {
+        InvalidateRetainedPaintForRepaint();
+    } else {
+        // Offline updates: drop this subtree's slices; keep visible ancestors' retention.
+        ReleaseRetainedPaintSubtree();
+    }
     if (m_NeedsPaint) {
         return;
     }
@@ -187,14 +473,23 @@ void Widget::InvalidatePaint() {
     m_SubtreeNeedsPaint = true;
     auto p = m_Parent.lock();
     while (p) {
-        p->m_NeedsPaint = true;
+        if (armGate) {
+            p->m_NeedsPaint = true;
+        }
         p->m_SubtreeNeedsPaint = true;
         p = p->m_Parent.lock();
     }
-    PaintCauseLog::Get().Push("invalidate", WE_PAINT_CALLER);
-    UIRepaintGate::RequestPaint();
-    UiPathDiagnostics::Get().OnPaintInvalidation();
-    UiInputLatencyAudit::Get().OnInvalidation();
+    if (armGate) {
+        if (m_Geometry.IsEmpty()) {
+            UIDirtyRegionTracker::Get().MarkFullDirty();
+        } else {
+            UIDirtyRegionTracker::Get().Add(m_Geometry);
+        }
+        PaintCauseLog::Get().Push("invalidate", WE_PAINT_CALLER);
+        UIRepaintGate::RequestPaint();
+        UiPathDiagnostics::Get().OnPaintInvalidation();
+        UiInputLatencyAudit::Get().OnInvalidation();
+    }
     if (s_GlobalDiagnostics) {
         ++s_GlobalDiagnostics->invalidateCount;
     }
@@ -235,7 +530,7 @@ void Widget::ClearSubtreeLayoutDirty() {
 
 void Widget::InvalidateStyle() {
     m_NeedsStyle = true;
-    InvalidatePaint();
+    UIStateChangeGate::Post(*this, StateChangeKind::Style);
 }
 
 void Widget::AddChild(const std::shared_ptr<Widget>& child) {
@@ -394,14 +689,8 @@ ResolvedStyle Widget::ResolveStyle(StyleRole role) const {
 }
 
 ResolvedStyle Widget::ResolveStyleClass() const {
-    if (m_StyleClass.empty()) {
-        return {};
-    }
-    const StyleClass cls = StyleClassRegistry::Get().Resolve(m_StyleClass);
-    const ResolvedStyle base = Styles().ResolveClass(m_StyleClass);
-    return StyleResolve::ApplyState(
-        base,
-        cls,
+    return StyleResolve::ResolveWithState(
+        m_StyleClass,
         Theme(),
         Styles().GetDpiScale(),
         m_Hovered,
@@ -420,20 +709,21 @@ ResolvedStyle Widget::ResolveEffectiveStyle(StyleRole fallbackRole) const {
 void Widget::SetEnabled(bool enabled) {
     if (m_Enabled == enabled) return;
     m_Enabled = enabled;
-    InvalidateStyle(); // InvalidateStyle() calls InvalidatePaint() internally.
+    m_NeedsStyle = true;
+    UIStateChangeGate::Post(*this, StateChangeKind::Enabled);
 }
 
 void Widget::SetSelected(bool selected) {
     if (m_Selected == selected) return;
     m_Selected = selected;
-    InvalidateStyle();
-    InvalidatePaint();
+    m_NeedsStyle = true;
+    UIStateChangeGate::Post(*this, StateChangeKind::Selection);
 }
 
 void Widget::SetLoading(bool loading) {
     if (m_Loading == loading) return;
     m_Loading = loading;
-    InvalidatePaint();
+    UIStateChangeGate::Post(*this, StateChangeKind::Animation);
 }
 
 void Widget::SetCollapsed(bool collapsed) {
@@ -543,3 +833,4 @@ std::shared_ptr<Widget> Widget::HitTestPoint(const Point& pos, const Rect* clip)
 }
 
 } // namespace we::runtime::kindui
+

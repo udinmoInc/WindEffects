@@ -36,7 +36,8 @@ struct KINDUI_API StyleClass {
     ColorToken disabledBackground = ColorToken::DisabledBackground;
 
     PaddingToken paddingToken = PaddingToken::Panel;
-    MetricToken radiusToken = MetricToken::CornerRadiusMedium;
+    // Prefer square by default; buttons/cards override to CornerRadius* explicitly.
+    MetricToken radiusToken = MetricToken::PanelCornerRadius;
     MetricToken fontSizeToken = MetricToken::TextSizeBody;
     MetricToken heightToken = MetricToken::ButtonHeight;
     MetricToken animDurationToken = MetricToken::HoverAnimationDamping;
@@ -61,6 +62,7 @@ private:
 };
 
 /// Converts declarative StyleClass tokens into concrete ResolvedStyle values.
+/// Owned by StyleResolver::ResolveClass / Widget style-class path — not a second theme system.
 class KINDUI_API StyleResolve {
 public:
     [[nodiscard]] static ResolvedStyle FromClass(
@@ -71,6 +73,16 @@ public:
     [[nodiscard]] static ResolvedStyle ApplyState(
         const ResolvedStyle& base,
         const StyleClass& cls,
+        const IKindUITheme& theme,
+        float dpiScale,
+        bool hovered,
+        bool pressed,
+        bool disabled,
+        bool selected);
+
+    /// Single registry lookup + state application (avoids resolving the class twice).
+    [[nodiscard]] static ResolvedStyle ResolveWithState(
+        std::string_view className,
         const IKindUITheme& theme,
         float dpiScale,
         bool hovered,

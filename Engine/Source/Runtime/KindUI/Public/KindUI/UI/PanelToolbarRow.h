@@ -39,6 +39,14 @@ public:
     void Finalize();
     [[nodiscard]] Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
+    void Paint(PaintContext& context) override;
+
+    void SetDrawBottomBorder(bool drawBorder) { m_DrawBottomBorder = drawBorder; }
+    void SetDrawBorder(bool drawBorder) { m_DrawBottomBorder = drawBorder; }
+    void SetShowBorder(bool showBorder) { m_DrawBottomBorder = showBorder; }
+    [[nodiscard]] bool GetDrawBottomBorder() const { return m_DrawBottomBorder; }
+
+    void SetToolbarPadding(float left, float top, float right, float bottom) { Padding(Margin{ left, top, right, bottom }); }
 
     [[nodiscard]] std::shared_ptr<IconButton> GetIconButton(size_t index) const;
     [[nodiscard]] std::shared_ptr<SearchBoxControl> GetSearchBox() const { return m_SearchBox; }
@@ -55,6 +63,7 @@ private:
     std::vector<std::shared_ptr<IconButton>> m_IconButtons;
     std::vector<std::function<void()>> m_IconCallbacks;
     bool m_Built = false;
+    bool m_DrawBottomBorder = false;
 };
 
 } // namespace we::runtime::kindui

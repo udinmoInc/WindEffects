@@ -43,11 +43,11 @@ float InputMinHeight() {
 }
 
 float SearchInputHeight() {
-    return ResolvedStyleHeight(StyleRole::SearchBox, MetricToken::SearchBoxHeight);
+    return InputMinHeight();
 }
 
 float ToolbarSearchInputHeight() {
-    return SearchInputHeight();
+    return InputMinHeight();
 }
 
 float SearchRowHeight() {

@@ -13,6 +13,7 @@
 #include "KindUI/Core/Icon.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/WindIcon.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/ThemeAccess.h"
 
@@ -33,7 +34,7 @@ Size Breadcrumb::Measure(const Size& availableSize) {
         float textW = m_Crumbs[i].textWidth;
         totalW += textW + space + chevronW + space;
     }
-    const float h = ThemeMetric(MetricToken::ToolbarLabeledHeight) * uiScale;
+    const float h = LayoutMetrics::UnifiedToolbarRowHeight();
     m_DesiredSize = Size{ totalW, h };
     return m_DesiredSize;
 }
@@ -48,15 +49,14 @@ void Breadcrumb::Paint(PaintContext& context) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
     const float chevronSize = 12.0f * uiScale;
-    const Color kHighlightColor = we::runtime::kindui::ResolveColor(ColorToken::IconPrimary);
 
     for (size_t i = 0; i < m_Crumbs.size(); ++i) {
         const auto& crumb = m_Crumbs[i];
-        const Color textColor = (static_cast<int>(i) == m_HoveredCrumb)
-            ? kHighlightColor
-            : ((i == m_Crumbs.size() - 1)
-                ? kHighlightColor
-                : ThemeColor(ColorToken::TextSecondary));
+        const bool isCurrent = (i == m_Crumbs.size() - 1);
+        const bool isHovered = (static_cast<int>(i) == m_HoveredCrumb);
+        const Color textColor = (isCurrent || isHovered)
+            ? ThemeColor(ColorToken::TextPrimary)
+            : ThemeColor(ColorToken::TextSecondary);
 
         const Rect crumbArea{ crumb.geometry.x, m_Geometry.y, crumb.geometry.width, m_Geometry.height };
         auto crumbLayout = we::runtime::kindui::AutoAlign::ComputeIconTextLayout(

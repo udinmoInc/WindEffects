@@ -32,9 +32,12 @@ ColorToken TokenForRole(SurfaceRole role) {
     case SurfaceRole::TabInactive:
         return ColorToken::TabBackground;
     case SurfaceRole::Panel:
-        return ColorToken::PanelBackground;
+    case SurfaceRole::PanelRaised:
     case SurfaceRole::PanelHeader:
-        return ColorToken::HeaderBackground;
+        return ColorToken::PanelBackground;
+    case SurfaceRole::Category:
+        return ColorToken::CategoryBackground;
+    case SurfaceRole::PanelInner:   // tree / outline / content wells
     case SurfaceRole::Recessed:
         return ColorToken::SecondarySurface;
     case SurfaceRole::Input:
@@ -56,7 +59,7 @@ ColorToken TokenForRole(SurfaceRole role) {
     case SurfaceRole::TextSecondary:
         return ColorToken::TextSecondary;
     case SurfaceRole::TextHint:
-        return ColorToken::TextHint;
+        return ColorToken::TextSecondary;
     case SurfaceRole::TextDisabled:
         return ColorToken::TextDisabled;
     case SurfaceRole::Separator:
@@ -102,19 +105,25 @@ SurfaceRole SurfaceRoleFromColorToken(ColorToken token) {
         return SurfaceRole::TabInactive;
     case ColorToken::PanelBackground:
         return SurfaceRole::Panel;
+    case ColorToken::PanelRaisedBackground:
+        return SurfaceRole::PanelRaised;
     case ColorToken::HeaderBackground:
-    case ColorToken::ListLabelBandBackground:
         return SurfaceRole::PanelHeader;
+    case ColorToken::CategoryBackground:
+    case ColorToken::ListLabelBandBackground:
+        return SurfaceRole::Category;
     case ColorToken::SecondarySurface:
-        return SurfaceRole::Recessed;
+        return SurfaceRole::PanelInner;
     case ColorToken::InputBackground:
-    case ColorToken::ControlBackground:
         return SurfaceRole::Input;
     case ColorToken::BorderDefault:
     case ColorToken::BorderSubtle:
+    case ColorToken::InputOutline:
         return SurfaceRole::InputBorder;
     case ColorToken::CardBackground:
     case ColorToken::PopupBackground:
+        return SurfaceRole::PanelRaised;
+    case ColorToken::ControlBackground:
         return SurfaceRole::Control;
     case ColorToken::HoverBackground:
     case ColorToken::ControlBackgroundHover:
@@ -166,7 +175,10 @@ const char* SurfaceRoleName(SurfaceRole role) {
     case SurfaceRole::TabActive: return "TabActive";
     case SurfaceRole::TabInactive: return "TabInactive";
     case SurfaceRole::Panel: return "Panel";
+    case SurfaceRole::PanelInner: return "PanelInner";
+    case SurfaceRole::PanelRaised: return "PanelRaised";
     case SurfaceRole::PanelHeader: return "PanelHeader";
+    case SurfaceRole::Category: return "Category";
     case SurfaceRole::Recessed: return "Recessed";
     case SurfaceRole::Input: return "Input";
     case SurfaceRole::InputBorder: return "InputBorder";
@@ -235,17 +247,15 @@ Color ResolveSurfaceColor(SurfaceRole role) {
 Color ResolveTextColor(TextRole role) {
     switch (role) {
     case TextRole::Primary:
-        return ResolveColor(ColorToken::TextPrimary);
-    case TextRole::Secondary:
-        return ResolveColor(ColorToken::TextSecondary);
-    case TextRole::Hint:
-        return ResolveColor(ColorToken::TextHint);
-    case TextRole::Disabled:
-        return ResolveColor(ColorToken::TextDisabled);
-    case TextRole::OnAccent:
-        return ResolveColor(ColorToken::TextOnAccent);
     case TextRole::Header:
         return ResolveColor(ColorToken::TextPrimary);
+    case TextRole::Secondary:
+    case TextRole::Hint:
+    case TextRole::Disabled:
+        return ResolveColor(ColorToken::TextSecondary);
+    case TextRole::OnAccent:
+        // Contrast on accent fills only — not a third ordinary body color.
+        return ResolveColor(ColorToken::TextOnAccent);
     default:
         return ResolveColor(ColorToken::TextPrimary);
     }
@@ -360,4 +370,3 @@ Color ResolveInteractiveSurfaceColor(
 }
 
 } // namespace we::runtime::kindui
- 

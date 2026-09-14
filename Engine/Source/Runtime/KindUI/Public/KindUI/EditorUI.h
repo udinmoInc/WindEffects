@@ -111,3 +111,6 @@
 
 // --- Editor composition ---
 #include "KindUI/Compose/EditorDSL.h"
+
+// --- Diagnostics (optional heap / memory snapshots for EditorPerf) ---
+#include "KindUI/Diagnostics/KindUIHeapStats.h"

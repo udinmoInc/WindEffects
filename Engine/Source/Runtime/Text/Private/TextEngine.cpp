@@ -102,7 +102,19 @@ TextResult<FontHandle> TextEngine::LoadFont(const std::filesystem::path& assetPa
     return result;
 }
 
-layout::LayoutResult TextEngine::LayoutCached(
+layout::LayoutResult TextEngine::Layout(
+    const std::string_view utf8Text,
+    const layout::TextStyle& style,
+    const layout::LayoutConstraints& constraints,
+    const FontHandle font)
+{
+    if (const layout::LayoutResult* cached = LayoutCached(utf8Text, style, constraints, font)) {
+        return *cached;
+    }
+    return {};
+}
+
+const layout::LayoutResult* TextEngine::LayoutCached(
     const std::string_view utf8Text,
     const layout::TextStyle& style,
     const layout::LayoutConstraints& constraints,
@@ -110,11 +122,15 @@ layout::LayoutResult TextEngine::LayoutCached(
 {
     const uint64_t atlasGen = AtlasGeneration();
     const uint64_t key = HashLayoutKey(utf8Text, style, constraints, font);
-    for (const auto& entry : m_LayoutCache) {
-        if (entry.key == key && entry.atlasGeneration == atlasGen) {
-            return entry.result;
+    if (auto it = m_LayoutCache.find(key); it != m_LayoutCache.end()) {
+        if (it->second.atlasGeneration == atlasGen) {
+            ++m_FrameCacheStats.hits;
+            return &it->second.result;
         }
+        m_LayoutCache.erase(it);
     }
+
+    ++m_FrameCacheStats.misses;
 
     unicode::UnicodeDecoder decoder;
     const auto bytes = std::span(
@@ -134,30 +150,25 @@ layout::LayoutResult TextEngine::LayoutCached(
     const FontHandle layoutFont = font != kInvalidFontHandle ? font : m_DefaultFont;
     if (layoutFont == kInvalidFontHandle) {
         m_Diagnostics->Log({"Layout", "No default font loaded", ""});
-        return {};
+        return nullptr;
     }
 
     layout::LayoutResult result =
         m_LayoutEngine->Layout(decoded.codepoints, style, constraints, layoutFont);
 
-    LayoutCacheEntry entry;
-    entry.key = key;
-    entry.atlasGeneration = atlasGen;
-    entry.result = result;
-    if (m_LayoutCache.size() >= kMaxLayoutCacheEntries) {
-        m_LayoutCache.erase(m_LayoutCache.begin());
+    while (m_LayoutCache.size() >= kMaxLayoutCacheEntries && !m_LayoutCacheOrder.empty()) {
+        const uint64_t oldKey = m_LayoutCacheOrder.front();
+        m_LayoutCacheOrder.erase(m_LayoutCacheOrder.begin());
+        m_LayoutCache.erase(oldKey);
     }
-    m_LayoutCache.push_back(std::move(entry));
-    return result;
-}
 
-layout::LayoutResult TextEngine::Layout(
-    const std::string_view utf8Text,
-    const layout::TextStyle& style,
-    const layout::LayoutConstraints& constraints,
-    const FontHandle font)
-{
-    return LayoutCached(utf8Text, style, constraints, font);
+    LayoutCacheEntry entry;
+    entry.atlasGeneration = atlasGen;
+    entry.result = std::move(result);
+    auto [inserted, ok] = m_LayoutCache.emplace(key, std::move(entry));
+    (void)ok;
+    m_LayoutCacheOrder.push_back(key);
+    return &inserted->second.result;
 }
 
 const layout::LayoutResult* TextEngine::GetOrCreateLayout(
@@ -166,20 +177,7 @@ const layout::LayoutResult* TextEngine::GetOrCreateLayout(
     const layout::LayoutConstraints& constraints,
     const FontHandle font)
 {
-    const uint64_t atlasGen = AtlasGeneration();
-    const uint64_t key = HashLayoutKey(utf8Text, style, constraints, font);
-    for (const auto& entry : m_LayoutCache) {
-        if (entry.key == key && entry.atlasGeneration == atlasGen) {
-            return &entry.result;
-        }
-    }
-    (void)LayoutCached(utf8Text, style, constraints, font);
-    for (const auto& entry : m_LayoutCache) {
-        if (entry.key == key && entry.atlasGeneration == atlasGen) {
-            return &entry.result;
-        }
-    }
-    return nullptr;
+    return LayoutCached(utf8Text, style, constraints, font);
 }
 
 MeasureResult TextEngine::Measure(
@@ -193,11 +191,13 @@ MeasureResult TextEngine::Measure(
         measureConstraints.maxWidth = 1.0e9f;
         measureConstraints.wordWrap = false;
     }
-    const auto layout = LayoutCached(utf8Text, style, measureConstraints, font);
     MeasureResult result;
-    result.width = layout.bounds.width;
-    result.height = layout.bounds.height;
-    result.lineCount = layout.lines.size();
+    if (const layout::LayoutResult* layout =
+            LayoutCached(utf8Text, style, measureConstraints, font)) {
+        result.width = layout->bounds.width;
+        result.height = layout->bounds.height;
+        result.lineCount = layout->lines.size();
+    }
     return result;
 }
 
@@ -222,11 +222,12 @@ HitTestResult TextEngine::HitTest(
     const float localY,
     const FontHandle font)
 {
-    const auto layout = LayoutCached(utf8Text, style, constraints, font);
+    const layout::LayoutResult* layoutPtr = LayoutCached(utf8Text, style, constraints, font);
     HitTestResult hit;
-    if (layout.lines.empty()) {
+    if (!layoutPtr || layoutPtr->lines.empty()) {
         return hit;
     }
+    const auto& layout = *layoutPtr;
 
     uint32_t lineIndex = 0;
     for (size_t i = 0; i < layout.lines.size(); ++i) {
@@ -272,7 +273,11 @@ layout::CaretPosition TextEngine::CaretFromOffset(
     const size_t codepointIndex,
     const FontHandle font)
 {
-    const auto layout = LayoutCached(utf8Text, style, constraints, font);
+    const layout::LayoutResult* layoutPtr = LayoutCached(utf8Text, style, constraints, font);
+    if (!layoutPtr) {
+        return {};
+    }
+    const auto& layout = *layoutPtr;
     for (const auto& caret : layout.caretMap) {
         if (caret.codepointIndex == codepointIndex) {
             return caret;
@@ -292,9 +297,30 @@ layout::CaretPosition TextEngine::CaretFromOffset(
 void TextEngine::InvalidateLayoutCache()
 {
     m_LayoutCache.clear();
+    m_LayoutCacheOrder.clear();
     if (m_GlyphResolver) {
         m_GlyphResolver->ClearCache();
     }
+}
+
+void TextEngine::BeginFrameStats()
+{
+    m_FrameCacheStats = {};
+    m_FrameCacheStats.entries = static_cast<uint32_t>(m_LayoutCache.size());
+}
+
+ITextEngine::LayoutCacheStats TextEngine::GetLayoutCacheStats() const
+{
+    LayoutCacheStats stats = m_FrameCacheStats;
+    stats.entries = static_cast<uint32_t>(m_LayoutCache.size());
+    uint64_t bytes = static_cast<uint64_t>(m_LayoutCache.size()) * sizeof(LayoutCacheEntry);
+    for (const auto& [_, entry] : m_LayoutCache) {
+        bytes += entry.result.glyphs.capacity() * sizeof(layout::PositionedGlyph);
+        bytes += entry.result.lines.capacity() * sizeof(layout::LineMetrics);
+        bytes += entry.result.caretMap.capacity() * sizeof(layout::CaretPosition);
+    }
+    stats.estimatedBytes = bytes;
+    return stats;
 }
 
 uint64_t TextEngine::AtlasGeneration() const
@@ -339,5 +365,3 @@ std::unique_ptr<ITextEngine> CreateTextEngine(const TextEngineConfig& config)
 }
 
 } // namespace we::runtime::text
-
-// kindui-perf-rebuild-token

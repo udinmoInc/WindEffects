@@ -178,12 +178,13 @@ void ScrollViewport::Paint(
     if (trackColor) {
         context.DrawRect(metrics.track, *trackColor);
     } else {
-        context.DrawSurface(metrics.track, SurfaceRole::Panel, 0.0f, "ScrollbarTrack");
+        context.DrawSurface(metrics.track, SurfaceRole::Input, 0.0f, "ScrollbarTrack");
     }
 
-    const ResolvedStyle style = ThemeManager::Get().Resolve(StyleRole::Scrollbar);
     const bool active = thumbHovered || m_DraggingThumb;
-    Color thumbColor = active ? ResolveColor(ColorToken::ScrollbarThumbHover) : style.foreground;
+    Color thumbColor = active
+        ? ResolveColor(ColorToken::ScrollbarThumbHover)
+        : ResolveColor(ColorToken::ScrollbarThumb);
     const float radius = metrics.thumb.width * 0.5f;
     context.DrawRoundedRect(metrics.thumb, thumbColor, radius);
 }

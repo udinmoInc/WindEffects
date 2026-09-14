@@ -97,9 +97,10 @@ void ShowPopupMenu(
         return;
     }
     overlay->CloseAllPopups();
-    overlay->ShowPopup(
+    overlay->ShowAnchoredPopup(
         menu,
-        ::we::runtime::kindui::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
+        anchor,
+        ::we::runtime::kindui::PopupPlacementMode::BottomPreferred);
 }
 
 void ShowPerspectiveMenu(const ::we::runtime::kindui::Rect& anchor) {

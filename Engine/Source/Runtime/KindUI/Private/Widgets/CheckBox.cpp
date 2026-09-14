@@ -33,7 +33,7 @@ Size CheckBox::Measure(const Size& availableSize) {
         m_BoxStyleCacheValid = true;
         ClearStyleDirty();
     }
-    m_BoxSize = m_CachedBoxStyle.height > 0.0f ? m_CachedBoxStyle.height : 14.0f;
+    m_BoxSize = (m_CachedBoxStyle.iconSize > 0.0f) ? m_CachedBoxStyle.iconSize : 14.0f;
     const float textWidth = TextMetrics::MeasureWidth(m_Label, m_Style.size, m_Style.bold);
     const float gap = ResolveMetric(MetricToken::Space2);
     m_DesiredSize = Size{ m_BoxSize + gap + textWidth, std::max(m_BoxSize, m_Style.size + 4.0f) };
@@ -45,6 +45,9 @@ void CheckBox::Arrange(const Rect& allottedRect) {
 }
 
 void CheckBox::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, ControlChrome::HoverDamping());

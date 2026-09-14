@@ -151,6 +151,8 @@ public:
         bool italic = false) const;
 
     const std::vector<DrawCommand>& GetCommands() const { return m_Commands; }
+    /// Mutable access for shared-path coalescers (DrawCommandBatcher). Not for widget code.
+    [[nodiscard]] std::vector<DrawCommand>& EditCommands() { return m_Commands; }
     [[nodiscard]] size_t CommandCount() const { return m_Commands.size(); }
     void AppendCommands(const std::vector<DrawCommand>& commands);
     void AppendCommands(const std::vector<DrawCommand>& commands, size_t begin, size_t end);
@@ -165,6 +167,10 @@ public:
         m_ClipStack.clear();
         m_SurfaceOwnerStack.clear();
         m_LayerCounter = 0;
+        // Drop pathological capacity after huge paints (expand-all); keep a small warm reserve.
+        if (m_Commands.capacity() > 8192) {
+            m_Commands.shrink_to_fit();
+        }
         if (m_Commands.capacity() < 512) {
             m_Commands.reserve(512);
         }

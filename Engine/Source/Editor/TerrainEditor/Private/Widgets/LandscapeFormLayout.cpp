@@ -10,34 +10,144 @@
 
 #include <KindUI/EditorUI.h>
 #include <cstdio>
+#include <cmath>
 
 namespace we::editor::terrain {
 
 using namespace we::runtime::kindui;
 
+namespace {
+
+    void AddChildToContainer(const std::shared_ptr<Widget>& container, const std::shared_ptr<Widget>& child) {
+        if (!container || !child) return;
+        if (auto group = std::dynamic_pointer_cast<CollapsibleGroup>(container)) {
+            group->AddContentChild(child);
+        } else if (auto col = std::dynamic_pointer_cast<Column>(container)) {
+            col->AddChild(child);
+        }
+    }
+
+    class AxisInputWidget : public TextBox {
+    public:
+        AxisInputWidget(Color accentColor, const std::string& initialVal, std::function<void(const std::string&)> onCommit)
+            : TextBox(initialVal, std::move(onCommit)), m_AccentColor(accentColor)
+        {
+            SetMinWidth(30.0f);
+            SetFlexGrow(1.0f);
+            SetFlexShrink(1.0f);
+        }
+
+        Size Measure(const Size& availableSize) override {
+            const float h = ResolveMetric(MetricToken::SearchBoxHeight);
+            m_DesiredSize = Size{ availableSize.width, h };
+            return m_DesiredSize;
+        }
+
+        void Paint(PaintContext& context) override {
+            if (!IsVisible()) return;
+            TextBox::Paint(context);
+
+            const float scale = DPIContext::GetScale();
+            const float inset = 3.0f * scale;
+            const float accentW = 3.0f * scale;
+            const Rect accent{
+                m_Geometry.x + inset,
+                m_Geometry.y + inset,
+                accentW,
+                std::max(0.0f, m_Geometry.height - inset * 2.0f)
+            };
+            context.DrawRoundedRect(accent, m_AccentColor, 1.5f);
+        }
+
+    private:
+        Color m_AccentColor;
+    };
+
+} // namespace
+
 void ConfigureLandscapeFormColumn(const std::shared_ptr<Column>& layout) {
     if (!layout) {
         return;
     }
-    LayoutMetrics::ConfigurePropertyFormColumn(*layout);
+    layout->Align(AlignItems::Stretch);
+    layout->Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
+    layout->Gap(0.0f);
 }
 
-void AddFormSectionTitle(const std::shared_ptr<Column>& layout, std::string_view title) {
-    const bool leadingGap = layout && !layout->GetChildren().empty();
-    layout->AddChild(std::make_shared<FormSectionTitle>(std::string(title), leadingGap));
+std::shared_ptr<CollapsibleGroup> AddFormSection(
+    const std::shared_ptr<Column>& layout,
+    std::string_view title,
+    bool expanded)
+{
+    auto group = std::make_shared<CollapsibleGroup>(std::string(title), expanded);
+    group->SetFlexShrink(0.0f);
+    if (layout) {
+        layout->AddChild(group);
+    }
+    return group;
+}
+
+void AddFormSectionTitle(const std::shared_ptr<Widget>& container, std::string_view title) {
+    const bool leadingGap = container != nullptr;
+    AddChildToContainer(container, std::make_shared<FormSectionTitle>(std::string(title), leadingGap));
 }
 
 void AddFormField(
-    const std::shared_ptr<Column>& layout,
+    const std::shared_ptr<Widget>& container,
     const std::string& label,
     const std::string& value,
     std::function<void(std::string_view)> onCommit)
 {
-    layout->AddChild(LayoutMetrics::MakeTextFormRow(label, value, std::move(onCommit)));
+    auto input = std::make_shared<TextBox>(value, [onCommit](const std::string& v) {
+        if (onCommit) onCommit(v);
+    });
+    auto row = std::make_shared<PropertyRowLayout>(label, input);
+    AddChildToContainer(container, row);
+}
+
+void AddFormVector3Field(
+    const std::shared_ptr<Widget>& container,
+    const std::string& label,
+    float x, float y, float z,
+    std::function<void(float, float, float)> onCommit)
+{
+    auto vecRow = MakeRow();
+    vecRow->Align(AlignItems::Center);
+    vecRow->Gap(4.0f);
+    vecRow->SetFlexGrow(1.0f);
+    vecRow->SetFlexShrink(1.0f);
+
+    struct VecState { float x; float y; float z; };
+    auto state = std::make_shared<VecState>(VecState{ x, y, z });
+
+    // Inspector-style colored axis accents: Red for X, Green for Y, Blue for Z
+    const Color colorX{ 0.88f, 0.28f, 0.28f, 1.0f };
+    const Color colorY{ 0.28f, 0.78f, 0.28f, 1.0f };
+    const Color colorZ{ 0.28f, 0.48f, 0.88f, 1.0f };
+
+    auto fieldX = std::make_shared<AxisInputWidget>(colorX, FormFormatFloat(x), [state, onCommit](const std::string& v) {
+        state->x = FormParseFloat(v, state->x);
+        if (onCommit) onCommit(state->x, state->y, state->z);
+    });
+    auto fieldY = std::make_shared<AxisInputWidget>(colorY, FormFormatFloat(y), [state, onCommit](const std::string& v) {
+        state->y = FormParseFloat(v, state->y);
+        if (onCommit) onCommit(state->x, state->y, state->z);
+    });
+    auto fieldZ = std::make_shared<AxisInputWidget>(colorZ, FormFormatFloat(z), [state, onCommit](const std::string& v) {
+        state->z = FormParseFloat(v, state->z);
+        if (onCommit) onCommit(state->x, state->y, state->z);
+    });
+
+    vecRow->AddChild(fieldX);
+    vecRow->AddChild(fieldY);
+    vecRow->AddChild(fieldZ);
+
+    auto row = std::make_shared<PropertyRowLayout>(label, vecRow);
+    AddChildToContainer(container, row);
 }
 
 void AddFormChipRow(
-    const std::shared_ptr<Column>& layout,
+    const std::shared_ptr<Widget>& container,
     const std::vector<FormChip>& chips,
     size_t maxPerRow)
 {
@@ -49,7 +159,7 @@ void AddFormChipRow(
             currentRow = MakeRow();
             currentRow->Gap(ResolveMetric(MetricToken::Space1));
             currentRow->SetFlexShrink(0.0f);
-            layout->AddChild(currentRow);
+            AddChildToContainer(container, currentRow);
             countInRow = 0;
         }
         auto btn = MakeSecondaryAction(label, icon);
@@ -63,20 +173,19 @@ void AddFormChipRow(
 }
 
 void AddFormToggle(
-    const std::shared_ptr<Column>& layout,
+    const std::shared_ptr<Widget>& container,
     const std::string& label,
     bool on,
-    std::function<void()> onClick)
+    std::function<void(bool)> onChange)
 {
-    auto btn = MakeSecondaryAction(label + (on ? " : ON" : " : OFF"));
-    btn->SetOnClicked(std::move(onClick));
-    btn->SetHorizontalAlignment(HorizontalAlignment::Fill);
-    btn->SetFlexShrink(0.0f);
-    layout->AddChild(btn);
+    auto cb = std::make_shared<CheckBox>("", on);
+    cb->SetOnChanged(std::move(onChange));
+    auto row = std::make_shared<PropertyRowLayout>(label, cb);
+    AddChildToContainer(container, row);
 }
 
 void AddFormButton(
-    const std::shared_ptr<Column>& layout,
+    const std::shared_ptr<Widget>& container,
     const std::string& label,
     std::function<void()> onClick,
     bool primary)
@@ -88,21 +197,25 @@ void AddFormButton(
         btn = MakeSecondaryAction(label);
     }
     btn->SetOnClicked(std::move(onClick));
-    layout->AddChild(btn);
+    AddChildToContainer(container, btn);
 }
 
 void AddFormInfoRow(
-    const std::shared_ptr<Column>& layout,
+    const std::shared_ptr<Widget>& container,
     const std::string& label,
     const std::string& value)
 {
     auto valueLabel = std::make_shared<Label>(value, TypographyToken::PropertyValue);
-    layout->AddChild(LayoutMetrics::MakeFormRow(label, valueLabel));
+    auto row = std::make_shared<PropertyRowLayout>(label, valueLabel);
+    AddChildToContainer(container, row);
 }
 
 std::string FormFormatFloat(float value) {
+    if (std::abs(value - std::round(value)) < 1e-4f) {
+        return std::to_string(static_cast<int>(std::round(value)));
+    }
     char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.3g", static_cast<double>(value));
+    std::snprintf(buf, sizeof(buf), "%.4g", static_cast<double>(value));
     return buf;
 }
 

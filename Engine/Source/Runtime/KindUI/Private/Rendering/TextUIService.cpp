@@ -10,6 +10,7 @@
 
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Host/FontImportService.h"
+#include "KindUI/Core/UIResourceResidency.h"
 #include "KindUI/Host/OverlayRenderer.h"
 #include "Rendering/UiDebugImageWriter.h"
 #include "Text/Assets/FontAsset.h"
@@ -21,6 +22,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 
 namespace we::runtime::kindui {
 
@@ -272,8 +274,18 @@ void TextUIService::Shutdown() {
     }
     m_FontAtlases.clear();
     m_DynamicPages.clear();
+    m_GeometryCache.clear();
+    m_GeometryCacheOrder.clear();
     m_TextEngine.reset();
     m_Renderer = nullptr;
+}
+
+void TextUIService::BeginFrame() {
+    m_FrameStats = {};
+    if (m_TextEngine) {
+        m_TextEngine->BeginFrameStats();
+    }
+    SyncDirtyAtlasPages();
 }
 
 void TextUIService::SyncDirtyAtlasPages() {
@@ -284,16 +296,16 @@ void TextUIService::SyncDirtyAtlasPages() {
     const uint64_t gen = atlas->Generation();
     if (gen != m_LastSeenAtlasGeneration) {
         m_LastSeenAtlasGeneration = gen;
-        m_MeasureCache.clear();
+        m_GeometryCache.clear();
+        m_GeometryCacheOrder.clear();
         m_TextEngine->InvalidateLayoutCache();
         if (m_DebugEnabled && !m_DumpedAtlas) {
             DumpAtlasPagesToDisk();
         }
     }
-    // Only upload pages that actually changed — TakeDirtyPages() already tracks this.
-    // Removed: redundant full O(page-count) scan that re-checked every page every call.
     for (const uint32_t pageIndex : atlas->TakeDirtyPages()) {
         (void)EnsureAtlasPageUploaded(pageIndex);
+        ++m_FrameStats.atlasUploads;
     }
 }
 
@@ -323,6 +335,20 @@ we::rhi::RHIDescriptorSetHandle TextUIService::EnsureAtlasPageUploaded(const uin
         && gpu.height == pageCopy->page.height
         && gpu.version == pageCopy->version) {
         return gpu.descriptorSet;
+    }
+
+    // Same dimensions: refresh texels in place (no destroy/recreate, no submission invalidation).
+    if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid
+        && gpu.width == pageCopy->page.width
+        && gpu.height == pageCopy->page.height) {
+        if (m_Renderer->UpdateRgbaTexturePixels(
+                gpu.descriptorSet,
+                pageCopy->page.width,
+                pageCopy->page.height,
+                pageCopy->page.rgba)) {
+            gpu.version = pageCopy->version;
+            return gpu.descriptorSet;
+        }
     }
 
     if (gpu.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -382,6 +408,111 @@ we::runtime::text::layout::TextStyle TextUIService::BuildStyle(const DrawCommand
     return style;
 }
 
+we::runtime::text::FontHandle TextUIService::ResolveFont(
+    we::runtime::text::layout::FontWeight weight) const {
+    if (weight >= we::runtime::text::layout::FontWeight::SemiBold) {
+        return m_SemiBoldFont;
+    }
+    if (weight >= we::runtime::text::layout::FontWeight::Medium) {
+        return m_MediumFont;
+    }
+    return m_RegularFont;
+}
+
+uint64_t TextUIService::HashGeometryKey(
+    std::string_view text,
+    float fontSize,
+    we::runtime::text::layout::FontWeight weight,
+    bool italic) const
+{
+    uint64_t h = 14695981039346656037ULL;
+    for (const unsigned char c : text) {
+        h ^= static_cast<uint64_t>(c);
+        h *= 1099511628211ULL;
+    }
+    const auto mix = [&](uint64_t v) {
+        h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+    };
+    mix(static_cast<uint64_t>(fontSize * 1000.0f));
+    mix(static_cast<uint64_t>(weight));
+    mix(italic ? 1ULL : 0ULL);
+    return h;
+}
+
+const TextUIService::GeometryCacheEntry* TextUIService::GetOrBuildGeometry(
+    std::string_view text,
+    const we::runtime::text::layout::TextStyle& style,
+    we::runtime::text::FontHandle font,
+    uint64_t geomKey)
+{
+    const uint64_t atlasGen = m_TextEngine->AtlasGeneration();
+    auto& residency = UIResourceResidency::Get();
+    if (auto it = m_GeometryCache.find(geomKey); it != m_GeometryCache.end()) {
+        if (it->second.atlasGeneration == atlasGen) {
+            ++m_FrameStats.geometryCacheHits;
+            it->second.lastUsedFrame = residency.CurrentFrame();
+            residency.NoteHit();
+            return &it->second;
+        }
+        m_GeometryCache.erase(it);
+    }
+
+    ++m_FrameStats.geometryCacheMisses;
+    residency.NoteMiss();
+
+    we::runtime::text::layout::LayoutConstraints constraints{};
+    constraints.maxWidth = 1.0e9f;
+    constraints.wordWrap = false;
+    constraints.dpiScale = 1.0f;
+
+    const we::runtime::text::layout::LayoutResult* layoutPtr =
+        m_TextEngine->GetOrCreateLayout(text, style, constraints, font);
+    if (!layoutPtr || layoutPtr->glyphs.empty()) {
+        return nullptr;
+    }
+    MaybeLogScaleDiagnostics(*layoutPtr);
+
+    GeometryCacheEntry entry;
+    entry.atlasGeneration = atlasGen;
+    entry.quads.reserve(layoutPtr->glyphs.size());
+    for (const auto& glyph : layoutPtr->glyphs) {
+        if (!glyph.glyph.metrics.hasDrawableQuad) {
+            continue;
+        }
+        if (entry.quads.empty()) {
+            entry.atlasPage = glyph.glyph.metrics.atlasPage;
+            entry.msdfRange = std::max(glyph.msdfPixelRange, 1.0f);
+        }
+        GlyphQuad q;
+        q.x = glyph.x;
+        q.y = glyph.y;
+        q.w = std::max(glyph.width, 1.0f);
+        q.h = std::max(glyph.height, 1.0f);
+        q.u0 = glyph.glyph.metrics.atlasUv.u0;
+        q.v0 = glyph.glyph.metrics.atlasUv.v0;
+        q.u1 = glyph.glyph.metrics.atlasUv.u1;
+        q.v1 = glyph.glyph.metrics.atlasUv.v1;
+        q.msdf = std::max(glyph.msdfPixelRange, 1.0f);
+        q.atlasPage = glyph.glyph.metrics.atlasPage;
+        entry.quads.push_back(q);
+    }
+    if (entry.quads.empty()) {
+        return nullptr;
+    }
+
+    while (m_GeometryCache.size() >= kMaxGeometryCacheEntries && !m_GeometryCacheOrder.empty()) {
+        const uint64_t oldKey = m_GeometryCacheOrder.front();
+        m_GeometryCacheOrder.erase(m_GeometryCacheOrder.begin());
+        m_GeometryCache.erase(oldKey);
+        UIResourceResidency::Get().NoteEviction();
+    }
+    entry.lastUsedFrame = UIResourceResidency::Get().CurrentFrame();
+    auto [inserted, ok] = m_GeometryCache.emplace(geomKey, std::move(entry));
+    (void)ok;
+    m_GeometryCacheOrder.push_back(geomKey);
+    return &inserted->second;
+}
+
 float TextUIService::MeasureText(std::string_view text, float fontSize, bool bold) const {
     return MeasureText(
         text,
@@ -397,14 +528,9 @@ float TextUIService::MeasureText(
     if (!m_TextEngine || text.empty()) {
         return 0.0f;
     }
-    const TextMeasureKeyView keyView{ text, fontSize, static_cast<uint16_t>(weight) };
-    auto it = m_MeasureCache.find(keyView);
-    if (it != m_MeasureCache.end()) {
-        return it->second;
-    }
+    ++m_FrameStats.measureCalls;
 
     we::runtime::text::layout::TextStyle style{};
-    // fontSize is in final layout pixels (themes apply DPI before draw/measure).
     style.sizePx = fontSize;
     style.weight = weight;
 
@@ -412,21 +538,134 @@ float TextUIService::MeasureText(
     constraints.maxWidth = 1.0e9f;
     constraints.wordWrap = false;
     constraints.dpiScale = 1.0f;
-    we::runtime::text::FontHandle fontHandle = m_RegularFont;
-    if (weight >= we::runtime::text::layout::FontWeight::SemiBold) {
-        fontHandle = m_SemiBoldFont;
-    } else if (weight >= we::runtime::text::layout::FontWeight::Medium) {
-        fontHandle = m_MediumFont;
+
+    const we::runtime::text::FontHandle fontHandle = ResolveFont(weight);
+    // Single layout cache — no KindUI-side string measure cache.
+    if (const auto* layout =
+            m_TextEngine->GetOrCreateLayout(text, style, constraints, fontHandle)) {
+        return layout->bounds.width;
     }
-    float width = m_TextEngine->Measure(text, style, constraints, fontHandle).width;
-    TextMeasureKey key{ std::string(text), fontSize, static_cast<uint16_t>(weight) };
-    m_MeasureCache.emplace(std::move(key), width);
-    return width;
+    return 0.0f;
+}
+
+uint64_t TextUIService::EstimateMeasureCacheBytes() const {
+    if (!m_TextEngine) {
+        return 0;
+    }
+    return m_TextEngine->GetLayoutCacheStats().estimatedBytes;
+}
+
+size_t TextUIService::MeasureCacheEntryCount() const {
+    if (!m_TextEngine) {
+        return 0;
+    }
+    return m_TextEngine->GetLayoutCacheStats().entries;
+}
+
+uint32_t TextUIService::FontAtlasPageCount() const {
+    return static_cast<uint32_t>(m_DynamicPages.size() + m_FontAtlases.size());
+}
+
+uint64_t TextUIService::EstimateFontAtlasCpuBytes() const {
+    uint64_t bytes = 0;
+    bytes += static_cast<uint64_t>(m_DynamicPages.size()) * sizeof(GpuAtlasPage);
+    bytes += static_cast<uint64_t>(m_FontAtlases.size())
+        * (sizeof(we::runtime::text::FontHandle) + sizeof(GpuAtlasPage));
+    if (auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr) {
+        // Coarse: glyph entries + pages (pages dominate when present).
+        bytes += static_cast<uint64_t>(atlas->GlyphCount()) * 64ull;
+        for (uint32_t i = 0; i < atlas->PageCount(); ++i) {
+            if (const auto* page = atlas->GetPage(i)) {
+                bytes += page->page.rgba.size();
+            }
+        }
+    }
+    return bytes;
+}
+
+size_t TextUIService::GeometryCacheEntryCount() const {
+    return m_GeometryCache.size();
+}
+
+uint64_t TextUIService::EstimateGeometryCacheBytes() const {
+    uint64_t bytes = 0;
+    for (const auto& [_, entry] : m_GeometryCache) {
+        bytes += sizeof(entry) + entry.quads.capacity() * sizeof(GlyphQuad);
+    }
+    return bytes;
+}
+
+void TextUIService::OnResidencyTick() {
+    auto& residency = UIResourceResidency::Get();
+    if (!residency.ShouldRunEvictionPass()) {
+        return;
+    }
+
+    const uint64_t frame = residency.CurrentFrame();
+    const uint32_t idle = residency.TextGeomIdleFrames();
+    const uint64_t budget = residency.TextGeometryBudgetBytes();
+    uint64_t used = EstimateGeometryCacheBytes();
+    uint32_t evicted = 0;
+    const uint32_t maxEvict = residency.MaxEvictionsThisTick();
+
+    // Trim idle geometry entries; also drop oldest when over byte budget.
+    while (evicted < maxEvict && !m_GeometryCacheOrder.empty()) {
+        const uint64_t key = m_GeometryCacheOrder.front();
+        auto it = m_GeometryCache.find(key);
+        if (it == m_GeometryCache.end()) {
+            m_GeometryCacheOrder.erase(m_GeometryCacheOrder.begin());
+            continue;
+        }
+        const bool isIdle = frame > it->second.lastUsedFrame
+            && (frame - it->second.lastUsedFrame) >= idle;
+        const bool overBudget = used > budget;
+        if (!isIdle && !overBudget) {
+            break;
+        }
+        if (!isIdle && overBudget
+            && (frame - it->second.lastUsedFrame) < (idle / 4u + 1u)) {
+            break;
+        }
+        used = used > (sizeof(it->second) + it->second.quads.capacity() * sizeof(GlyphQuad))
+            ? used - (sizeof(it->second) + it->second.quads.capacity() * sizeof(GlyphQuad))
+            : 0;
+        m_GeometryCache.erase(it);
+        m_GeometryCacheOrder.erase(m_GeometryCacheOrder.begin());
+        ++evicted;
+        residency.NoteEviction();
+        if (!overBudget) {
+            break;
+        }
+        if (used <= budget) {
+            break;
+        }
+    }
+
+    uint32_t atlasEvicted = 0;
+    if (auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr) {
+        const size_t glyphs = atlas->GlyphCount();
+        const size_t budgetGlyphs = residency.GlyphEntryBudget();
+        if (glyphs > budgetGlyphs) {
+            atlas->EvictUnused(budgetGlyphs);
+            atlasEvicted = static_cast<uint32_t>(glyphs - budgetGlyphs);
+            residency.NoteEviction(atlasEvicted);
+        }
+    }
+
+    residency.SetResidentSnapshot(
+        residency.Stats().residentIconCount,
+        residency.Stats().residentIconGpuBytes,
+        static_cast<uint32_t>(m_GeometryCache.size()),
+        EstimateGeometryCacheBytes(),
+        m_TextEngine && m_TextEngine->AtlasManager()
+            ? static_cast<uint32_t>(m_TextEngine->AtlasManager()->GlyphCount())
+            : 0,
+        EstimateFontAtlasCpuBytes());
+    residency.NoteEvictionPass(evicted > 0 || atlasEvicted > 0);
 }
 
 we::rhi::RHIDescriptorSetHandle TextUIService::GetDescriptorForFont(
     const we::runtime::text::FontHandle handle) {
-    // Prefer dynamic atlas page 0 when seeded.
     if (auto* atlas = m_TextEngine ? m_TextEngine->AtlasManager() : nullptr; atlas && atlas->PageCount() > 0) {
         const auto set = EnsureAtlasPageUploaded(0);
         if (set != we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -452,60 +691,39 @@ bool TextUIService::GenerateTextGeometry(
     we::rhi::RHIDescriptorSetHandle& outTextureSet,
     UIRenderBatch* outBatchInfo)
 {
-    if (!m_TextEngine) {
+    if (!m_TextEngine || cmd.text.empty()) {
         return false;
     }
 
-    SyncDirtyAtlasPages();
+    ++m_FrameStats.textDraws;
 
-    we::runtime::text::FontHandle layoutFont = m_RegularFont;
     const auto weight = EffectiveWeight(cmd);
-    if (weight >= we::runtime::text::layout::FontWeight::SemiBold) {
-        layoutFont = m_SemiBoldFont;
-    } else if (weight >= we::runtime::text::layout::FontWeight::Medium) {
-        layoutFont = m_MediumFont;
-    }
+    const we::runtime::text::FontHandle layoutFont = ResolveFont(weight);
+    const we::runtime::text::layout::TextStyle style = BuildStyle(cmd);
+    const uint64_t geomKey = HashGeometryKey(cmd.text, cmd.fontSize, weight, cmd.textItalic);
 
-    we::runtime::text::layout::LayoutConstraints constraints{};
-    constraints.maxWidth = 1.0e9f;
-    constraints.wordWrap = false;
-    constraints.dpiScale = 1.0f;
-
-    const we::runtime::text::layout::LayoutResult* layoutPtr =
-        m_TextEngine->GetOrCreateLayout(cmd.text, BuildStyle(cmd), constraints, layoutFont);
-    if (!layoutPtr || layoutPtr->glyphs.empty()) {
+    const GeometryCacheEntry* geom = GetOrBuildGeometry(cmd.text, style, layoutFont, geomKey);
+    if (!geom || geom->quads.empty()) {
         return false;
     }
-    const we::runtime::text::layout::LayoutResult& layout = *layoutPtr;
 
-    MaybeLogScaleDiagnostics(layout);
+    const auto engineStats = m_TextEngine->GetLayoutCacheStats();
+    m_FrameStats.layoutHits = static_cast<uint32_t>(engineStats.hits);
+    m_FrameStats.layoutMisses = static_cast<uint32_t>(engineStats.misses);
+    m_FrameStats.layoutCacheEntries = engineStats.entries;
+    m_FrameStats.layoutCacheBytes = engineStats.estimatedBytes;
+    m_FrameStats.geometryCacheEntries = static_cast<uint32_t>(m_GeometryCache.size());
 
-    m_LastDebugGlyphs.clear();
-    if (m_DebugEnabled) {
-        m_LastDebugGlyphs.reserve(layout.glyphs.size());
-    }
-
-    uint32_t atlasPageIndex = 0;
     bool useDynamic = false;
-    for (const auto& glyph : layout.glyphs) {
-        if (glyph.glyph.metrics.hasDrawableQuad) {
-            atlasPageIndex = glyph.glyph.metrics.atlasPage;
-            useDynamic = m_TextEngine->AtlasManager() != nullptr
-                && atlasPageIndex < m_TextEngine->AtlasManager()->PageCount();
-            break;
-        }
+    uint32_t atlasPageIndex = geom->atlasPage;
+    if (auto* atlas = m_TextEngine->AtlasManager(); atlas && atlasPageIndex < atlas->PageCount()) {
+        useDynamic = true;
     }
 
     we::runtime::text::FontHandle resolvedFont = layoutFont;
     if (useDynamic) {
         outTextureSet = EnsureAtlasPageUploaded(atlasPageIndex);
     } else {
-        for (const auto& glyph : layout.glyphs) {
-            if (glyph.glyph.fontHandle != we::runtime::text::kInvalidFontHandle) {
-                resolvedFont = glyph.glyph.fontHandle;
-                break;
-            }
-        }
         outTextureSet = GetDescriptorForFont(resolvedFont);
     }
 
@@ -515,7 +733,6 @@ bool TextUIService::GenerateTextGeometry(
     }
 
     constexpr float type = 3.0f;
-    float batchMsdfRange = 4.0f;
     uint32_t atlasWidth = 0;
     uint32_t atlasHeight = 0;
     if (useDynamic) {
@@ -532,59 +749,60 @@ bool TextUIService::GenerateTextGeometry(
     const float originY = SnapPx(cmd.rect.y);
     const uint64_t atlasGen = m_TextEngine->AtlasGeneration();
 
-    const uint32_t startVertex = static_cast<uint32_t>(vertices.size());
-    for (const auto& glyph : layout.glyphs) {
-        if (!glyph.glyph.metrics.hasDrawableQuad) {
-            continue;
-        }
+    m_LastDebugGlyphs.clear();
+    if (m_DebugEnabled) {
+        m_LastDebugGlyphs.reserve(geom->quads.size());
+    }
 
-        const float x0 = originX + glyph.x;
-        const float y0 = originY + glyph.y;
-        const float x1 = x0 + std::max(glyph.width, 1.0f);
-        const float y1 = y0 + std::max(glyph.height, 1.0f);
+    const uint32_t startVertex = static_cast<uint32_t>(vertices.size());
+    const size_t needVerts = geom->quads.size() * 4;
+    const size_t needIdx = geom->quads.size() * 6;
+    if (vertices.capacity() < vertices.size() + needVerts) {
+        vertices.reserve(vertices.size() + needVerts);
+    }
+    if (indices.capacity() < indices.size() + needIdx) {
+        indices.reserve(indices.size() + needIdx);
+    }
+
+    for (const auto& q : geom->quads) {
+        const float x0 = originX + q.x;
+        const float y0 = originY + q.y;
+        const float x1 = x0 + q.w;
+        const float y1 = y0 + q.h;
 
         if (m_DebugEnabled) {
             TextDebugGlyphInfo info;
-            info.bounds = Rect{x0, y0, x1 - x0, y1 - y0};
-            info.atlasPage = glyph.glyph.metrics.atlasPage;
-            info.geometryScale = glyph.glyph.geometryScale;
-            info.effectiveScale = glyph.glyph.EffectiveGeometryScale();
-            info.msdfRange = glyph.msdfPixelRange;
-            info.planeW = glyph.glyph.metrics.bounds.width;
-            info.planeH = glyph.glyph.metrics.bounds.height;
+            info.bounds = Rect{x0, y0, q.w, q.h};
+            info.atlasPage = q.atlasPage;
+            info.msdfRange = q.msdf;
             info.atlasGeneration = atlasGen;
             m_LastDebugGlyphs.push_back(info);
         }
 
-        const float msdfRange = std::max(glyph.msdfPixelRange, 1.0f);
-        if (vertices.size() == startVertex) {
-            batchMsdfRange = msdfRange;
-        }
-
         UIVertex2 v0{
             {x0, y0},
-            {glyph.glyph.metrics.atlasUv.u0, glyph.glyph.metrics.atlasUv.v0},
+            {q.u0, q.v0},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, x1 - x0, y1 - y0},
-            {0.0f, type, msdfRange, 0.0f}};
+            {x0, y0, q.w, q.h},
+            {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v1{
             {x1, y0},
-            {glyph.glyph.metrics.atlasUv.u1, glyph.glyph.metrics.atlasUv.v0},
+            {q.u1, q.v0},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, x1 - x0, y1 - y0},
-            {0.0f, type, msdfRange, 0.0f}};
+            {x0, y0, q.w, q.h},
+            {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v2{
             {x1, y1},
-            {glyph.glyph.metrics.atlasUv.u1, glyph.glyph.metrics.atlasUv.v1},
+            {q.u1, q.v1},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, x1 - x0, y1 - y0},
-            {0.0f, type, msdfRange, 0.0f}};
+            {x0, y0, q.w, q.h},
+            {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v3{
             {x0, y1},
-            {glyph.glyph.metrics.atlasUv.u0, glyph.glyph.metrics.atlasUv.v1},
+            {q.u0, q.v1},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, x1 - x0, y1 - y0},
-            {0.0f, type, msdfRange, 0.0f}};
+            {x0, y0, q.w, q.h},
+            {0.0f, type, q.msdf, 0.0f}};
 
         const uint32_t base = static_cast<uint32_t>(vertices.size());
         vertices.push_back(v0);
@@ -599,16 +817,16 @@ bool TextUIService::GenerateTextGeometry(
         indices.push_back(base + 3);
     }
 
+    m_FrameStats.glyphsEmitted += static_cast<uint32_t>(geom->quads.size());
+
     if (outBatchInfo) {
         outBatchInfo->isText = true;
         outBatchInfo->atlasWidth = atlasWidth;
         outBatchInfo->atlasHeight = atlasHeight;
-        outBatchInfo->msdfPixelRange = batchMsdfRange;
+        outBatchInfo->msdfPixelRange = geom->msdfRange;
     }
 
     return vertices.size() > startVertex;
 }
 
 } // namespace we::runtime::kindui
-
-// kindui-perf-rebuild-token

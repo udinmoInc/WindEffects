@@ -71,14 +71,13 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
         .EdgePadding(edgePadding);
 
     builder.Left([&](ToolbarBuilder& left) {
-        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
+        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
             file.IconItem(WindIcons::Save16, "Save Level (Ctrl+S)", []() {
                 LogStubClick("Save Level (Ctrl+S)");
             });
         });
         left.AddWidget(modeSelector);
-        left.Separator();
-        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& file) {
+        left.Group(ToolbarAlignment::Left, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& file) {
             file.DropdownItem(WindIcons::Blueprint16, "", []() {
                 LogStubClick("Open Blueprints");
             }, "Open Blueprints");
@@ -102,7 +101,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
 
     // Center transport: click is recorded; no fake PIE state until real playback exists.
     builder.Center([&](ToolbarBuilder& center) {
-        center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& transport) {
+        center.Group(ToolbarAlignment::Center, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& transport) {
             transport.IconItem(WindIcons::Play16, "Play (PIE)", []() {
                 LogStubClick("Play (PIE)");
             }, [](const std::shared_ptr<ToolButton>& btn) {
@@ -118,7 +117,7 @@ std::shared_ptr<::we::runtime::kindui::Widget> BuildMainEditorToolbar(
     });
 
     builder.Right([&](ToolbarBuilder& right) {
-        right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::ExecutionCluster, [&](ToolbarBuilder& tools) {
+        right.Group(ToolbarAlignment::Right, ToolbarGroupStyle::Transparent, [&](ToolbarBuilder& tools) {
             tools.DropdownItem(WindIcons::Construct16, "Build", []() {
                 LogStubClick("Build");
             }, "Build Options");

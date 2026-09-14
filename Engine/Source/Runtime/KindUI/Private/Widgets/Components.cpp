@@ -115,6 +115,9 @@ void SkeletonBlock::Arrange(const Rect& allottedRect) {
 }
 
 void SkeletonBlock::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     m_Pulse += deltaTime * 2.5f;
     // Keep the central gate awake for the pulse; do not invent a local idle check.
     UIRepaintGate::MarkAnimating();

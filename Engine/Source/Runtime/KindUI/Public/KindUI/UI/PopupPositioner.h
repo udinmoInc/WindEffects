@@ -29,15 +29,16 @@ enum class PopupPlacementMode {
 
 /// Parameters for contextual popup placement.
 struct PopupPlacementOptions {
-    /// Rect of the anchor widget/control in window/viewport coordinate space.
+    /// Rect of the anchor widget/control in host/overlay coordinate space.
     Rect anchorRect{};
     /// Preferred placement mode relative to the anchor.
-    PopupPlacementMode mode = PopupPlacementMode::SidePreferred;
+    PopupPlacementMode mode = PopupPlacementMode::BottomPreferred;
     /// Gap in pixels between the anchor edge and the popup edge.
     float gap = 4.0f;
-    /// Safety padding margin from the screen/viewport boundaries.
+    /// Safety padding margin from the viewport boundaries.
     float viewportMargin = 8.0f;
-    /// Optional explicit viewport bounds (if zero/empty, uses default screen bounds).
+    /// Visible placement bounds (host / intersected panel or scroll viewport).
+    /// Must be set by the popup host; empty bounds yield a zero-size viewport.
     Rect viewportBounds{};
 };
 
@@ -45,18 +46,23 @@ struct PopupPlacementOptions {
 struct PopupPlacementResult {
     /// Final top-left position for arranging the popup in overlay space.
     Point position{};
-    /// Computed target rect of the popup.
+    /// Computed target rect of the popup (may be size-clamped to the viewport).
     Rect popupRect{};
     /// Final direction chosen for placement (Right, Left, Bottom, Top, AtPoint).
-    PopupPlacementMode chosenMode = PopupPlacementMode::SidePreferred;
+    PopupPlacementMode chosenMode = PopupPlacementMode::BottomPreferred;
     /// Fraction of popup area that remains visible within the viewport [0..1].
     float visibleFraction = 1.0f;
+    /// True when the popup was flipped to the opposite side of the preferred mode.
+    bool flipped = false;
 };
 
 class KINDUI_API PopupPositioner {
 public:
-    /// Calculates the optimal top-left position for a popup of size `popupSize`
+    /// Calculates the optimal rect for a popup of size `popupSize`
     /// relative to an `anchorRect` within `viewportBounds`.
+    /// Measures are assumed complete; this only places and clamps.
+    /// If the popup is larger than the padded viewport, size is clamped so the
+    /// result stays fully inside the viewport.
     [[nodiscard]] static PopupPlacementResult Calculate(
         const Size& popupSize,
         const PopupPlacementOptions& options);

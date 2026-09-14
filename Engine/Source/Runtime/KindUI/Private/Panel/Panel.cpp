@@ -80,6 +80,10 @@ Rect Panel::GetRegionRect(const PanelBodyRegion region) const {
 }
 
 Size Panel::Measure(const Size& availableSize) {
+    if (CanSkipMeasure(availableSize)) {
+        return m_DesiredSize;
+    }
+
     AttachBodyLayout();
     const float headerH = (m_HeaderHeight > 0.0f)
         ? (std::max)(m_HeaderHeight, PanelChrome::TabHeight())
@@ -91,8 +95,9 @@ Size Panel::Measure(const Size& availableSize) {
     }
 
     Size bodySize{ 0.0f, 0.0f };
-    if (m_BodyLayout) {
-        bodySize = m_BodyLayout->Measure(bodyAvailable);
+    // Collapsed / hidden body must not Measure the full content tree every layout pass.
+    if (m_BodyLayout && m_BodyLayout->IsVisible()) {
+        bodySize = MeasureChild(m_BodyLayout, bodyAvailable);
     }
 
     const float desiredW = (availableSize.width < 1.0e8f)
@@ -104,12 +109,17 @@ Size Panel::Measure(const Size& availableSize) {
         : (headerH + bodySize.height);
 
     m_DesiredSize = ClampDesiredSize(Size{ desiredW, desiredH });
+    NoteMeasureCache(availableSize);
     return m_DesiredSize;
 }
 
 void Panel::Arrange(const Rect& allottedRect) {
+    if (CanSkipArrange(allottedRect)) {
+        return;
+    }
+
     AttachBodyLayout();
-    m_Geometry = allottedRect;
+    CommitGeometry(allottedRect);
 
     const float headerH = (m_HeaderHeight > 0.0f)
         ? (std::max)(m_HeaderHeight, PanelChrome::TabHeight())
@@ -124,13 +134,15 @@ void Panel::Arrange(const Rect& allottedRect) {
 
     const float bodyY = allottedRect.y + headerH;
     const float bodyHeight = (std::max)(0.0f, allottedRect.y + allottedRect.height - bodyY);
-    if (m_BodyLayout) {
-        m_BodyLayout->Arrange(Rect{
+    if (m_BodyLayout && m_BodyLayout->IsVisible()) {
+        ArrangeChild(m_BodyLayout, Rect{
             allottedRect.x,
             bodyY,
             allottedRect.width,
             bodyHeight
         });
+    } else if (m_BodyLayout) {
+        ArrangeChild(m_BodyLayout, Rect{ allottedRect.x, bodyY, allottedRect.width, 0.0f });
     }
 
     CalculateHeaderGeometries();
@@ -293,13 +305,16 @@ std::shared_ptr<Widget> Panel::GetContent() const {
 }
 
 void Panel::SetExpanded(bool expanded) {
+    ::we::runtime::kindui::Expansion::SetExpanded(*this, expanded);
+}
+
+void Panel::ApplyExpanded(bool expanded) {
     if (m_Expanded == expanded) {
         return;
     }
-    // Batched through the shared Expansion gate transaction (no per-call layout/paint).
-    ::we::runtime::kindui::Expansion::ScopedTransaction transaction("PanelExpand");
     m_Expanded = expanded;
     if (m_BodyLayout) {
+        // Silent hide releases retained paint under the body (framework default).
         m_BodyLayout->SetVisibleSilent(expanded);
     }
 }

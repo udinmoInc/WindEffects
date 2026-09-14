@@ -29,9 +29,9 @@ using we::runtime::kindui::ColorToken;
 using we::runtime::kindui::TextMetrics;
 using we::runtime::kindui::palette::GraphiteDarkLive;
 
-// Input/dropdown value text — slightly brighter than primary for long paths.
+// Input/dropdown value text — PrimaryText only (no third body-text chroma).
 inline Color InputValueTextColor() {
-    return Color::Pick(LColor(ColorToken::TextPrimary), GraphiteDarkLive().ForegroundHover, 0.28f);
+    return LColor(ColorToken::TextPrimary);
 }
 
 inline float ApproxTextWidth(const std::string& text, float textSize) {

@@ -80,6 +80,9 @@ void TextBox::Arrange(const Rect& allottedRect) {
 }
 
 void TextBox::Tick(float deltaTime) {
+    if (!IsVisible()) {
+        return;
+    }
     (void)deltaTime;
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     const float targetFocus = m_Focused ? 1.0f : 0.0f;

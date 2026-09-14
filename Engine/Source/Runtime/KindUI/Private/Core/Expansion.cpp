@@ -7,40 +7,24 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/Expansion.h"
+#include "KindUI/Core/UIStateChange.h"
 #include "KindUI/Core/Widget.h"
 
 namespace we::runtime::kindui {
 namespace {
 
-thread_local int t_ExpansionTransactionDepth = 0;
-
-void CommitExpansionInvalidation(const char* reason) {
-    UIRepaintGate::RequestLayoutReason(reason);
-    UIRepaintGate::RequestPaintReason(reason);
+void MarkExpansionWidgetDirty(Widget& widget) {
+    UIStateChangeGate::Post(widget, StateChangeKind::Expansion);
 }
 
 } // namespace
 
 Expansion::ScopedTransaction::ScopedTransaction(const char* reason)
-    : m_Reason(reason && reason[0] ? reason : "Expansion")
+    : m_Gate(reason && reason[0] ? reason : "Expansion")
 {
-    if (t_ExpansionTransactionDepth == 0) {
-        UIRepaintGate::BeginBatch();
-        m_Active = true;
-    }
-    ++t_ExpansionTransactionDepth;
 }
 
-Expansion::ScopedTransaction::~ScopedTransaction() {
-    if (t_ExpansionTransactionDepth > 0) {
-        --t_ExpansionTransactionDepth;
-    }
-    if (m_Active) {
-        CommitExpansionInvalidation(m_Reason);
-        UIRepaintGate::EndBatch();
-        m_Active = false;
-    }
-}
+Expansion::ScopedTransaction::~ScopedTransaction() = default;
 
 void Expansion::SetExpanded(IExpansionNode& node, bool expanded) {
     if (node.IsExpanded() == expanded) {
@@ -48,6 +32,9 @@ void Expansion::SetExpanded(IExpansionNode& node, bool expanded) {
     }
     ScopedTransaction transaction("Expansion");
     node.ApplyExpanded(expanded);
+    if (auto* widget = dynamic_cast<Widget*>(&node)) {
+        MarkExpansionWidgetDirty(*widget);
+    }
 }
 
 void Expansion::ApplyUnderWidget(Widget& root, bool expanded) {
@@ -66,17 +53,20 @@ void Expansion::ApplyUnderWidget(Widget& root, bool expanded) {
 void Expansion::ExpandAllUnder(Widget& root) {
     ScopedTransaction transaction("ExpandAll");
     ApplyUnderWidget(root, true);
+    MarkExpansionWidgetDirty(root);
 }
 
 void Expansion::CollapseAllUnder(Widget& root) {
     ScopedTransaction transaction("CollapseAll");
     ApplyUnderWidget(root, false);
+    MarkExpansionWidgetDirty(root);
 }
 
 void Expansion::ExpandAll(IExpansionNode& root) {
     ScopedTransaction transaction("ExpandAll");
     if (auto* widget = dynamic_cast<Widget*>(&root)) {
         ApplyUnderWidget(*widget, true);
+        MarkExpansionWidgetDirty(*widget);
         return;
     }
     if (!root.IsExpanded()) {
@@ -88,6 +78,7 @@ void Expansion::CollapseAll(IExpansionNode& root) {
     ScopedTransaction transaction("CollapseAll");
     if (auto* widget = dynamic_cast<Widget*>(&root)) {
         ApplyUnderWidget(*widget, false);
+        MarkExpansionWidgetDirty(*widget);
         return;
     }
     if (root.IsExpanded()) {

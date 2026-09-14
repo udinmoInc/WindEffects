@@ -164,8 +164,8 @@ PropertyRowLayout LayoutPropertyRow(const Rect& rowRect, int depth, const Proper
     // Resizable control group width configured by labelColumnRatio with min-width safety clamping
     const float availableRowW = std::max(0.0f, rowRect.width - padH * 2.0f - actionsW - gap);
 
-    const float minLabelW = 80.0f * scale;
-    const float minValueW = 80.0f * scale;
+    const float minLabelW = 100.0f * scale;
+    const float minValueW = 60.0f * scale;
     const float ratio = std::clamp(
         (labelColumnRatio > 0.0f) ? labelColumnRatio : 0.40f,
         std::min(0.85f, minLabelW / std::max(1.0f, availableRowW)),
@@ -254,8 +254,7 @@ Rect LayoutPropertyControlRect(const Rect& valueRect) {
         return Rect{ x, valueRect.y + padding, w, std::max(0.0f, valueRect.height - padding * 2.0f) };
     }
 
-    const float controlH = (ResolveMetric(MetricToken::ControlHeightCompact) - ResolveMetric(MetricToken::Space1)) *
-        scale;
+    const float controlH = ResolveMetric(MetricToken::SearchBoxHeight) * scale;
     const float y = valueRect.y + (valueRect.height - controlH) * 0.5f;
     const float w = std::max(0.0f, valueRect.width - padding * 2.0f);
     const float x = valueRect.x + valueRect.width - padding - w;
@@ -467,9 +466,9 @@ void PaintSectionHeader(
             1.0f,
             0.0f,
             false,
-            SurfaceRole::PanelHeader);
+            SurfaceRole::Category);
     } else {
-        context.DrawSurface(rect, SurfaceRole::PanelHeader, 0.0f, "SectionHeader");
+        context.DrawSurface(rect, SurfaceRole::Category, 0.0f, "SectionHeader");
     }
 
     const float padH = RowPaddingH() + indent;
@@ -587,11 +586,25 @@ void PaintPropertyRowBackground(
     PaintContext& context,
     const Rect& rowRect,
     bool hovered,
-    bool selected) {
+    bool selected,
+    int depth) {
+    // Hierarchy: Panel (parent/category) → PanelInner (nested rows) → Input (controls).
+    // depth >= 2 = nested struct/array children under a parent property.
+    const bool nested = depth >= 2;
+    if (nested) {
+        context.DrawSurface(rowRect, SurfaceRole::PanelInner, 0.0f, "PropertyNestedRow");
+    }
+    if (!hovered && !selected) {
+        return;
+    }
     ControlChrome::InteractionState state;
     state.hoverAnim = hovered ? 1.0f : 0.0f;
     state.selected = selected;
-    ControlChrome::PaintListRow(context, rowRect, state);
+    ControlChrome::PaintListRow(
+        context,
+        rowRect,
+        state,
+        nested ? ColorToken::SecondarySurface : ColorToken::PanelBackground);
 }
 
 }

@@ -28,9 +28,11 @@ void ShowPopupBelowButton(const std::shared_ptr<we::runtime::kindui::Widget>& po
     if (!overlay || !button) {
         return;
     }
-    const we::runtime::kindui::Rect anchor = button->GetGeometry();
     overlay->CloseAllPopups();
-    overlay->ShowPopup(popup, we::runtime::kindui::Point{ anchor.x, anchor.y + anchor.height + 2.0f });
+    overlay->ShowAnchoredPopup(
+        popup,
+        button,
+        we::runtime::kindui::PopupPlacementMode::BottomPreferred);
 }
 
 float SnapCameraSpeed(float value) {

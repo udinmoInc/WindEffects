@@ -47,14 +47,17 @@ namespace Sizing {
 }
 
 namespace Typography {
-[[nodiscard]] inline float Menu() { return ResolveFontSize(TypographyToken::Menu); }
-[[nodiscard]] inline float Toolbar() { return ResolveFontSize(TypographyToken::Toolbar); }
-[[nodiscard]] inline float Body() { return ResolveFontSize(TypographyToken::Body); }
-[[nodiscard]] inline float Caption() { return ResolveFontSize(TypographyToken::Caption); }
-[[nodiscard]] inline float Small() { return ResolveMetric(MetricToken::TextSizeSmall); }
-[[nodiscard]] inline float Tabs() { return ResolveMetric(MetricToken::TextSizeTabs); }
+[[nodiscard]] inline float Title() { return ResolveMetric(MetricToken::TextSizeTitle); }
 [[nodiscard]] inline float Header() { return ResolveMetric(MetricToken::TextSizeHeader); }
-[[nodiscard]] inline float Property() { return ResolveMetric(MetricToken::TextSizeProperty); }
+[[nodiscard]] inline float Normal() { return ResolveMetric(MetricToken::TextSizeBody); }
+[[nodiscard]] inline float Caption() { return ResolveMetric(MetricToken::TextSizeCaption); }
+// Aliases — all ordinary UI sizes resolve through the four semantic metrics above.
+[[nodiscard]] inline float Menu() { return Normal(); }
+[[nodiscard]] inline float Toolbar() { return Normal(); }
+[[nodiscard]] inline float Body() { return Normal(); }
+[[nodiscard]] inline float Small() { return Caption(); }
+[[nodiscard]] inline float Tabs() { return Normal(); }
+[[nodiscard]] inline float Property() { return Normal(); }
 }
 
 namespace IconSizing {
@@ -86,6 +89,7 @@ namespace Radius {
 [[nodiscard]] inline float Medium() { return ResolveRadius(RadiusToken::Medium); }
 [[nodiscard]] inline float Large() { return ResolveRadius(RadiusToken::Large); }
 [[nodiscard]] inline float Window() { return ResolveMetric(MetricToken::WindowCornerRadius); }
+[[nodiscard]] inline float Panel() { return ResolveMetric(MetricToken::PanelCornerRadius); }
 [[nodiscard]] inline float IconButton() { return ResolveMetric(MetricToken::IconButtonRadius); }
 }
 
@@ -93,18 +97,24 @@ namespace Surface {
 [[nodiscard]] inline Color Window() { return ResolveSurfaceColor(SurfaceRole::Window); }
 [[nodiscard]] inline Color Workspace() { return ResolveSurfaceColor(SurfaceRole::Workspace); }
 [[nodiscard]] inline Color DockChrome() { return ResolveSurfaceColor(SurfaceRole::DockChrome); }
+[[nodiscard]] inline Color AppBackground() { return ResolveSurfaceColor(SurfaceRole::Workspace); }
 [[nodiscard]] inline Color Panel() { return ResolveSurfaceColor(SurfaceRole::Panel); }
-[[nodiscard]] inline Color Secondary() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
-[[nodiscard]] inline Color Header() { return ResolveSurfaceColor(SurfaceRole::PanelHeader); }
+[[nodiscard]] inline Color PanelInner() { return ResolveSurfaceColor(SurfaceRole::PanelInner); }
+[[nodiscard]] inline Color PanelRaised() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color Secondary() { return ResolveSurfaceColor(SurfaceRole::PanelInner); }
+[[nodiscard]] inline Color Header() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color Category() { return ResolveSurfaceColor(SurfaceRole::Category); }
 [[nodiscard]] inline Color Toolbar() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
 [[nodiscard]] inline Color TabInactive() { return ResolveSurfaceColor(SurfaceRole::TabInactive); }
 [[nodiscard]] inline Color TabActive() { return ResolveSurfaceColor(SurfaceRole::TabActive); }
-[[nodiscard]] inline Color Card() { return ResolveSurfaceColor(SurfaceRole::Control); }
+[[nodiscard]] inline Color Card() { return ResolveSurfaceColor(SurfaceRole::Panel); }
 [[nodiscard]] inline Color Input() { return ResolveSurfaceColor(SurfaceRole::Input); }
+[[nodiscard]] inline Color Button() { return ResolveSurfaceColor(SurfaceRole::Control); }
 [[nodiscard]] inline Color Popup() { return ResolveSurfaceColor(SurfaceRole::Popup); }
 [[nodiscard]] inline Color Hover() { return ResolveSurfaceColor(SurfaceRole::ControlHover); }
 [[nodiscard]] inline Color Pressed() { return ResolveSurfaceColor(SurfaceRole::ControlPressed); }
 [[nodiscard]] inline Color Selected() { return ResolveSurfaceColor(SurfaceRole::Selected); }
+[[nodiscard]] inline Color Separator() { return ResolveSurfaceColor(SurfaceRole::Separator); }
 [[nodiscard]] inline Color Disabled() { return ResolveSurfaceColor(SurfaceRole::Disabled); }
 }
 
@@ -120,17 +130,18 @@ namespace Panel {
 [[nodiscard]] inline float ToolbarHeight() { return ResolveMetric(MetricToken::PanelToolbarHeight); }
 [[nodiscard]] inline float Padding() { return ResolvePadding(PaddingToken::Panel).left; }
 [[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Panel); }
-[[nodiscard]] inline Color ContentWellBackground() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
+[[nodiscard]] inline Color ContentWellBackground() { return ResolveSurfaceColor(SurfaceRole::PanelInner); }
 [[nodiscard]] inline Color PrimaryContentBackground() { return ResolveSurfaceColor(SurfaceRole::Panel); }
-[[nodiscard]] inline Color NavigationBackground() { return ResolveSurfaceColor(SurfaceRole::Recessed); }
+[[nodiscard]] inline Color NavigationBackground() { return ResolveSurfaceColor(SurfaceRole::PanelInner); }
 [[nodiscard]] inline Color ToolbarBackground() { return ResolveSurfaceColor(SurfaceRole::Toolbar); }
-[[nodiscard]] inline Color ListLabelBandBackground() { return ResolveColor(ColorToken::ListLabelBandBackground); }
+[[nodiscard]] inline Color ListLabelBandBackground() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color CategoryBackground() { return ResolveSurfaceColor(SurfaceRole::Category); }
 }
 
 namespace Header {
 [[nodiscard]] inline float Height() { return ResolveMetric(MetricToken::PanelHeaderHeight); }
 [[nodiscard]] inline float ControlHeight() { return ResolveMetric(MetricToken::HeaderControlHeight); }
-[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::PanelHeader); }
+[[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Panel); }
 [[nodiscard]] inline Color ActiveTabLine() { return ResolveColor(ColorToken::ActiveTabLine); }
 }
 
@@ -166,10 +177,18 @@ namespace Input {
 [[nodiscard]] inline float PaddingH() { return ResolvePadding(PaddingToken::Input).left; }
 [[nodiscard]] inline float PaddingV() { return ResolvePadding(PaddingToken::Input).top; }
 [[nodiscard]] inline Color Background() { return ResolveSurfaceColor(SurfaceRole::Input); }
-[[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Hint); }
+[[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Secondary); }
 [[nodiscard]] inline Color InsetInner() { return ResolveColor(ColorToken::InputInsetInner); }
 [[nodiscard]] inline Color InsetOuter() { return ResolveColor(ColorToken::InputInsetOuter); }
 [[nodiscard]] inline Color Outline() { return ResolveColor(ColorToken::BorderSubtle); }
+}
+
+namespace Text {
+[[nodiscard]] inline Color Primary() { return ResolveTextColor(TextRole::Primary); }
+[[nodiscard]] inline Color Secondary() { return ResolveTextColor(TextRole::Secondary); }
+[[nodiscard]] inline Color Disabled() { return ResolveTextColor(TextRole::Disabled); }
+[[nodiscard]] inline Color OnAccent() { return ResolveTextColor(TextRole::OnAccent); }
+[[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Secondary); }
 }
 
 namespace StatusBar {
@@ -186,6 +205,10 @@ namespace Property {
 [[nodiscard]] inline float IndentStep() { return ResolveMetric(MetricToken::PropertyIndentStep); }
 [[nodiscard]] inline float RowHeight() { return ResolveMetric(MetricToken::FormRowHeight); }
 [[nodiscard]] inline float RowGap() { return ResolveMetric(MetricToken::FormRowGap); }
+/// Parent / category chrome: Panel for parents, Category for categorizer bars, PanelInner for nested rows.
+[[nodiscard]] inline Color ParentSurface() { return ResolveSurfaceColor(SurfaceRole::Panel); }
+[[nodiscard]] inline Color CategorySurface() { return ResolveSurfaceColor(SurfaceRole::Category); }
+[[nodiscard]] inline Color NestedSurface() { return ResolveSurfaceColor(SurfaceRole::PanelInner); }
 }
 
 namespace Tree {

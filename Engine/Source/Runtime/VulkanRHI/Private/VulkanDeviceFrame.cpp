@@ -215,11 +215,11 @@ IRHICommandList* VulkanDevice::BeginFrame() {
     }
 
     // Main-thread wait on in-flight GPU fence before acquire/submit.
-    // 50ms timeout — on timeout, recover queue idle & reset stuck fence to prevent main-thread stall loops.
-    constexpr uint64_t kFenceTimeoutNs = 50'000'000ull;
+    // 1000ms timeout — allows heavy frames/hitches (e.g. expand/resize) to complete naturally without timing out at 50ms.
+    constexpr uint64_t kFenceTimeoutNs = 1'000'000'000ull;
     we::runtime::core::LoopExecutionTrace::Enter(
         "Vulkan.vkWaitForFences",
-        "slot=" + std::to_string(m_FrameSlot) + " timeoutMs=50");
+        "slot=" + std::to_string(m_FrameSlot) + " timeoutMs=1000");
     const auto fenceWaitStart = std::chrono::steady_clock::now();
     VkResult waitResult = vkWaitForFences(
         m_Device, 1, &m_InFlight[m_FrameSlot], VK_TRUE, kFenceTimeoutNs);
@@ -231,15 +231,13 @@ IRHICommandList* VulkanDevice::BeginFrame() {
             + " waitMs=" + std::to_string(fenceWaitMs));
     if (waitResult != VK_SUCCESS) {
         if (waitResult == VK_TIMEOUT) {
-            // Fence is still associated with an in-flight queue submit. Vulkan forbids
-            // vkResetFences until the fence is signaled — resetting here caused
-            // VK_ERROR_DEVICE_LOST storms after splitter-drag GPU hitch.
+            // Fence is still associated with an in-flight queue submit.
+            // Avoid calling vkQueueWaitIdle on main thread as it causes WSI presentation deadlocks.
+            // Do not call vkResetFences on an unsignaled fence (Vulkan spec requirement).
             WE_LOG_WARN(we::LogCategory::Vulkan.data(),
                 "vkWaitForFences timed out (slot=" + std::to_string(m_FrameSlot)
                 + " waitMs=" + std::to_string(fenceWaitMs)
-                + "). Waiting for GPU idle before reset (required for valid fence reuse).");
-            vkQueueWaitIdle(m_GraphicsQueue.GetVkQueue());
-            vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
+                + "). Skipping frame slot.");
             if (m_Swapchain) {
                 m_Swapchain->SetNeedsRebuild();
             }
@@ -255,9 +253,9 @@ IRHICommandList* VulkanDevice::BeginFrame() {
         } else {
             WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
                 "vkWaitForFences failed with VkResult=" + std::to_string(static_cast<int>(waitResult)));
-            // Only reset if the fence is known signaled; after unknown errors prefer idle.
-            vkQueueWaitIdle(m_GraphicsQueue.GetVkQueue());
-            vkResetFences(m_Device, 1, &m_InFlight[m_FrameSlot]);
+            if (m_Swapchain) {
+                m_Swapchain->SetNeedsRebuild();
+            }
             m_FrameSlot = (m_FrameSlot + 1) % m_FramesInFlight;
         }
         return nullptr;

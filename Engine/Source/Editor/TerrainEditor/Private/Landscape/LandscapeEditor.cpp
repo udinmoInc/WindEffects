@@ -408,6 +408,7 @@ public:
         FrameLandscapeInViewport();
         TerrainEditorDiagnostics::Get().OnLandscapeCreated();
         m_Dialog = state;
+        PushBrushSettings();
         HE_INFO("[TerrainEditor] Created Landscape '" + state.name
             + "' with visible terrain geometry.");
         return true;
@@ -557,36 +558,40 @@ public:
         return true;
     }
 
+    void PushBrushSettings() {
+        m_BrushPreview.op = m_BrushSettings.op;
+        m_BrushPreview.radiusWorld = m_BrushSettings.radius;
+        m_BrushPreview.strength = m_BrushSettings.strength;
+        m_BrushPreview.falloff = m_BrushSettings.falloff;
+        if (!runtime_terrain::TerrainSystem::Get().IsCreated()) {
+            return;
+        }
+        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(m_BrushSettings);
+    }
+
     void SetBrushOp(runtime_terrain::TerrainBrushOp op) override {
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.op = op;
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
-        m_BrushPreview.op = op;
+        m_BrushSettings.op = op;
+        PushBrushSettings();
     }
 
     void SetBrushRadius(float radius) override {
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.radius = std::max(0.5f, radius);
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
-        m_BrushPreview.radiusWorld = settings.radius;
+        m_BrushSettings.radius = std::max(0.5f, radius);
+        PushBrushSettings();
     }
 
     void SetBrushStrength(float strength) override {
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.strength = std::clamp(strength, 0.f, 1.f);
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
-        m_BrushPreview.strength = settings.strength;
+        m_BrushSettings.strength = std::clamp(strength, 0.f, 1.f);
+        PushBrushSettings();
     }
 
     void SetBrushFalloff(float falloff) override {
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.falloff = std::clamp(falloff, 0.f, 1.f);
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
-        m_BrushPreview.falloff = settings.falloff;
+        m_BrushSettings.falloff = std::clamp(falloff, 0.f, 1.f);
+        PushBrushSettings();
     }
 
+    /// Always safe: never touch TerrainSystem brushes unless a landscape exists.
     [[nodiscard]] const runtime_terrain::TerrainBrushSettings& BrushSettings() const override {
-        return runtime_terrain::TerrainSystem::Get().Brushes().Settings();
+        return m_BrushSettings;
     }
 
     [[nodiscard]] bool BeginBrushStroke() override {
@@ -734,25 +739,21 @@ public:
     [[nodiscard]] const LandscapeBrushUiState& BrushUi() const noexcept override { return m_BrushUi; }
 
     void ClearBrushAlpha() override {
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.alphaMask.clear();
-        settings.alphaWidth = 0;
-        settings.alphaHeight = 0;
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
+        m_BrushSettings.alphaMask.clear();
+        m_BrushSettings.alphaWidth = 0;
+        m_BrushSettings.alphaHeight = 0;
         m_BrushUi.alphaPath.clear();
+        PushBrushSettings();
     }
 
     void SetBrushAlphaPlaceholder(std::string_view path) override {
         m_BrushUi.alphaPath = std::string(path);
         // Placeholder: mark CustomAlpha op readiness; actual mask load is host-provided later.
-        if (!m_BrushUi.alphaPath.empty()) {
-            auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-            if (settings.alphaMask.empty()) {
-                settings.alphaWidth = 1;
-                settings.alphaHeight = 1;
-                settings.alphaMask.assign(1, 255);
-                runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
-            }
+        if (!m_BrushUi.alphaPath.empty() && m_BrushSettings.alphaMask.empty()) {
+            m_BrushSettings.alphaWidth = 1;
+            m_BrushSettings.alphaHeight = 1;
+            m_BrushSettings.alphaMask.assign(1, 255);
+            PushBrushSettings();
         }
     }
 
@@ -835,6 +836,7 @@ public:
         if (!EnsureLandscape()) {
             return false;
         }
+        PushBrushSettings();
         auto& brushes = runtime_terrain::TerrainSystem::Get().Brushes();
         auto settings = brushes.Settings();
         const auto originalOp = settings.op;
@@ -890,15 +892,15 @@ public:
 
     void SetPaintLayer(int layerIndex) override {
         m_PaintLayer = std::clamp(layerIndex, 0, std::max(0, m_LayerCount - 1));
-        auto settings = runtime_terrain::TerrainSystem::Get().Brushes().Settings();
-        settings.paintLayer = m_PaintLayer;
-        runtime_terrain::TerrainSystem::Get().Brushes().SetSettings(settings);
+        m_BrushSettings.paintLayer = m_PaintLayer;
+        PushBrushSettings();
     }
 
     [[nodiscard]] bool PaintLayerAtWorld(float worldX, float worldZ) override {
         if (!EnsureLandscape()) {
             return false;
         }
+        PushBrushSettings();
         auto& terrain = runtime_terrain::TerrainSystem::Get();
         const auto& info = terrain.Info();
         const float localX = worldX - info.worldOrigin.x;
@@ -911,8 +913,8 @@ public:
             (info.worldSizeY > 1e-6f)
                 ? (localZ / info.worldSizeY) * static_cast<float>(info.resolutionY - 1)
                 : 0.f);
-        const auto& brush = terrain.Brushes().Settings();
-        terrain.Materials().PaintWeight(sx, sz, m_PaintLayer, brush.strength, brush.radius);
+        terrain.Materials().PaintWeight(
+            sx, sz, m_PaintLayer, m_BrushSettings.strength, m_BrushSettings.radius);
         return true;
     }
 
@@ -1165,6 +1167,7 @@ private:
     NewLandscapeDialogState m_Dialog{};
     LandscapeBrushPreview m_BrushPreview{};
     LandscapeBrushUiState m_BrushUi{};
+    runtime_terrain::TerrainBrushSettings m_BrushSettings{};
     std::vector<std::uint16_t> m_StrokeBefore;
     bool m_StrokeActive = false;
     int m_PaintLayer = 0;

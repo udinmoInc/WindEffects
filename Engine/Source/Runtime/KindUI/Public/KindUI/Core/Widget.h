@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KindUI/Export.h"
+#include "KindUI/Core/UIStateChange.h"
 
 #include "KindUI/Core/Types.h"
 #include "KindUI/Core/InputEvents.h"
@@ -32,6 +33,8 @@ class IPopupHost;
 #pragma warning(disable: 4251 4275)
 
 class KINDUI_API Widget : public std::enable_shared_from_this<Widget> {
+    friend class UIStateChangeGate;
+
 public:
     Widget() = default;
     virtual ~Widget() = default;
@@ -46,6 +49,17 @@ public:
     /// Shared dirty-subtree paint entry. On paint-only rebuilds, clean subtrees replay
     /// retained commands (no widget traversal). Dirty subtrees call Paint() and refresh retention.
     void PaintSubtree(PaintContext& context);
+
+    /// When false, PaintSubtree never replays/records retained draws for this widget.
+    /// StatusBar clears this so footer chips always paint at current geometry (non-virtual
+    /// flag — avoid ABI breaks from inserting new Widget virtuals across editor DLLs).
+    void SetAllowsPaintRetention(bool allowed) { m_AllowsPaintRetention = allowed; }
+    [[nodiscard]] bool AllowsPaintRetention() const { return m_AllowsPaintRetention; }
+
+    /// When true, parent Tick still visits this widget while hidden so it can sync model→view
+    /// (e.g. selection chrome becoming visible again). Non-virtual flag — same ABI rule as above.
+    void SetTicksWhenHidden(bool enabled) { m_TicksWhenHidden = enabled; }
+    [[nodiscard]] bool TicksWhenHidden() const { return m_TicksWhenHidden; }
 
     virtual void OnMouseDown(const MouseEvent&) {}
     virtual void OnMouseMove(const MouseEvent&) {}
@@ -71,8 +85,14 @@ public:
     /// When true, this container may be returned when no child claims the point.
     [[nodiscard]] virtual bool IsInteractiveContainer() const { return false; }
 
-    virtual void OnFocus() { m_Focused = true; }
-    virtual void OnBlur() { m_Focused = false; }
+    virtual void OnFocus() {
+        m_Focused = true;
+        UIStateChangeGate::Post(*this, StateChangeKind::Focus);
+    }
+    virtual void OnBlur() {
+        m_Focused = false;
+        UIStateChangeGate::Post(*this, StateChangeKind::Focus);
+    }
 
     virtual void ExecutePendingCallback() {}
 
@@ -92,18 +112,23 @@ public:
     /// Release any per-part hover latches (tab rows, header controls) that are only
     /// maintained while this widget keeps receiving mouse moves.
     virtual void OnHoverLost() {}
-    void SetHovered(bool hovered) { 
+    void SetHovered(bool hovered) {
         if (m_Hovered != hovered) {
-            m_Hovered = hovered; 
+            m_Hovered = hovered;
             if (!hovered) {
                 OnHoverLost();
             }
-            InvalidatePaint(); 
+            UIStateChangeGate::Post(*this, StateChangeKind::Hover);
         }
     }
 
     [[nodiscard]] bool IsPressed() const { return m_Pressed; }
-    void SetPressed(bool pressed) { if (m_Pressed != pressed) { m_Pressed = pressed; InvalidatePaint(); } }
+    void SetPressed(bool pressed) {
+        if (m_Pressed != pressed) {
+            m_Pressed = pressed;
+            UIStateChangeGate::Post(*this, StateChangeKind::Pressed);
+        }
+    }
 
     [[nodiscard]] bool IsSelected() const { return m_Selected; }
     void SetSelected(bool selected);
@@ -112,7 +137,12 @@ public:
     void SetLoading(bool loading);
 
     [[nodiscard]] bool IsReadOnly() const { return m_ReadOnly; }
-    void SetReadOnly(bool readOnly) { if (m_ReadOnly != readOnly) { m_ReadOnly = readOnly; InvalidatePaint(); } }
+    void SetReadOnly(bool readOnly) {
+        if (m_ReadOnly != readOnly) {
+            m_ReadOnly = readOnly;
+            UIStateChangeGate::Post(*this, StateChangeKind::Property);
+        }
+    }
 
     [[nodiscard]] bool IsCollapsed() const { return m_Collapsed; }
     void SetCollapsed(bool collapsed);
@@ -157,14 +187,12 @@ public:
     const Size& GetDesiredSize() const { return m_DesiredSize; }
 
     [[nodiscard]] bool IsVisible() const { return m_Visible; }
-    void SetVisible(bool visible) {
-        if (m_Visible == visible) return;
-        m_Visible = visible;
-        InvalidateLayout();
-        InvalidatePaint();
-    }
-    /// Visibility change without invalidation — for batched Expansion transactions.
-    void SetVisibleSilent(bool visible) { m_Visible = visible; }
+    /// True when this widget and every ancestor is visible (on-screen participation).
+    [[nodiscard]] bool IsEffectivelyVisible() const;
+    void SetVisible(bool visible);
+    /// Visibility change without gate invalidation — for batched Expansion transactions.
+    /// Hiding still releases retained-paint memory under this subtree.
+    void SetVisibleSilent(bool visible);
 
     HorizontalAlignment GetHorizontalAlignment() const { return m_HAlign; }
     void SetHorizontalAlignment(HorizontalAlignment align) { if (m_HAlign != align) { m_HAlign = align;
@@ -204,6 +232,9 @@ public:
     void InvalidatePaint();
     void InvalidateStyle();
     [[nodiscard]] bool NeedsLayout() const { return m_NeedsLayout; }
+    /// True when this widget is a floating overlay root (popup/modal/tooltip) under OverlayHost.
+    [[nodiscard]] bool IsOverlayContent() const { return m_IsOverlayContent; }
+    void SetOverlayContent(bool overlayContent) { m_IsOverlayContent = overlayContent; }
     [[nodiscard]] bool NeedsPaint() const { return m_NeedsPaint; }
     [[nodiscard]] bool NeedsStyle() const { return m_NeedsStyle; }
     [[nodiscard]] bool SubtreeNeedsPaint() const;
@@ -214,6 +245,28 @@ public:
     void ClearSubtreePaintDirty();
     void ClearSubtreeLayoutDirty();
 
+    /// Incremental layout: true when Measure can return the cached desired size.
+    [[nodiscard]] bool CanSkipMeasure(const Size& availableSize) const;
+    /// Incremental layout: true when Arrange is a no-op (same rect, clean subtree).
+    [[nodiscard]] bool CanSkipArrange(const Rect& allottedRect) const;
+    /// Record the available size used for the last Measure that ran.
+    void NoteMeasureCache(const Size& availableSize);
+    void InvalidateMeasureCache();
+
+    /// Measure a child, skipping clean subtrees with a matching available size.
+    [[nodiscard]] Size MeasureChild(const std::shared_ptr<Widget>& child, const Size& availableSize);
+    /// Arrange a child, skipping clean subtrees with matching geometry.
+    void ArrangeChild(const std::shared_ptr<Widget>& child, const Rect& allottedRect);
+
+    /// Drop retained command stores for this widget and all descendants.
+    /// Required after external Measure/Arrange (host layout) so paint retention cannot
+    /// replay absolute draw commands at stale geometry (e.g. status-bar chips mid-panel).
+    void ReleaseRetainedPaintSubtree();
+
+    /// Assign geometry; if the rect moved/resized, drop retained paint under this subtree.
+    /// Absolute DrawCommands become stale whenever layout moves a widget.
+    void CommitGeometry(const Rect& rect);
+
     /// Frame counters for paint-retention (reset by UIWidgetAdapter each rebuild).
     struct PaintRetentionStats {
         uint32_t subtreesPainted = 0;
@@ -222,6 +275,11 @@ public:
         uint32_t commandsRecorded = 0;
     };
     static PaintRetentionStats s_PaintRetentionStats;
+
+    /// Approximate retained-paint vector capacity for this widget only (not children).
+    /// Shared stores are attributed fully to each holder; prefer unique-store walk for totals.
+    [[nodiscard]] uint64_t EstimateRetainedPaintCapacityBytes() const;
+    [[nodiscard]] const void* RetainedPaintStorePtr() const { return m_RetainedPaintStore.get(); }
 
     void SetContext(std::shared_ptr<IWidgetContext> context);
     [[nodiscard]] IWidgetContext* GetContext() const { return m_Context.get(); }
@@ -246,6 +304,9 @@ protected:
     /// Shared left-button click-on-release: clears pressed state and returns true when a click should fire.
     [[nodiscard]] bool ShouldFireClickOnLeftUp(const MouseEvent& event);
 
+    /// Paint every visible direct child via PaintSubtree (shared container default).
+    void PaintVisibleChildren(PaintContext& context);
+
     /// Structural child edits that must not re-arm UIRepaintGate during an active Measure/Arrange.
     /// Callers are responsible for arranging/painting the new children in the current pass.
     void ClearChildrenSilent();
@@ -253,6 +314,13 @@ protected:
 
     /// Marks retained paint streams invalid on this widget and all ancestors.
     void InvalidateRetainedPaintUpward();
+    /// Clears retained paint on this subtree and ancestors (scroll/expand-safe).
+    void InvalidateRetainedPaintForRepaint();
+    /// Drop retained stores under this root that are not `keepStore` (private helper).
+    static void ClearStaleRetainedStoresUnder(Widget* root, const std::shared_ptr<void>& keepStore);
+
+    void InvalidateLayoutImpl(bool armGate);
+    void InvalidatePaintImpl(bool armGate);
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
@@ -263,6 +331,9 @@ protected:
 
     Rect m_Geometry;
     Size m_DesiredSize;
+    /// Last Measure available-size cache for incremental layout (skip clean remasures).
+    Size m_LastMeasureAvailable{};
+    bool m_HasValidMeasureCache = false;
 
     bool m_Focused = false;
     bool m_Hovered = false;
@@ -285,6 +356,10 @@ protected:
     bool m_SubtreeNeedsPaint = false;
     /// Opaque retained-paint slice (defined in Widget.cpp).
     bool m_RetainedPaintValid = false;
+    bool m_AllowsPaintRetention = true;
+    bool m_TicksWhenHidden = false;
+    /// Root of a floating overlay subtree — layout invalidation arms overlay gate only.
+    bool m_IsOverlayContent = false;
     uint32_t m_RetainedPaintBegin = 0;
     uint32_t m_RetainedPaintEnd = 0;
 #pragma warning(push)

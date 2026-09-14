@@ -23,7 +23,8 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
     auto& wizard = editor.Wizard();
     wizard.State() = dialog;
 
-    AddFormSectionTitle(layout, "Generator");
+    // 1. Generator Category
+    auto genGroup = AddFormSection(layout, "Generator", true);
     const auto selectGen = [&](runtime_terrain::TerrainGeneratorId id,
                                runtime_terrain::TerrainCreationMethod method) {
         return [&editor, id, method]() {
@@ -35,7 +36,7 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
         };
     };
 
-    AddFormChipRow(layout, {
+    AddFormChipRow(genGroup, {
         {"Flat", WindIcons::Grid16, dialog.generatorId == runtime_terrain::TerrainGeneratorId::Flat
             && dialog.creationMethod != runtime_terrain::TerrainCreationMethod::HeightmapImport,
             selectGen(runtime_terrain::TerrainGeneratorId::Flat,
@@ -67,86 +68,87 @@ void BuildCreateTab(const std::shared_ptr<we::runtime::kindui::Column>& layout, 
             }},
     });
 
-    AddFormSectionTitle(layout, "Terrain Settings");
-    AddFormField(layout, "Name", dialog.name, [&](std::string_view v) {
+    // 2. Terrain Settings Category
+    auto settingsGroup = AddFormSection(layout, "Terrain Settings", true);
+    AddFormField(settingsGroup, "Name", dialog.name, [&](std::string_view v) {
         editor.Dialog().name = std::string(v);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Width", FormFormatFloat(dialog.createInfo.worldSizeX), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Width", FormFormatFloat(dialog.createInfo.worldSizeX), [&](std::string_view v) {
         editor.Dialog().createInfo.worldSizeX = FormParseFloat(v, editor.Dialog().createInfo.worldSizeX);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Height", FormFormatFloat(dialog.createInfo.worldSizeY), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Height", FormFormatFloat(dialog.createInfo.worldSizeY), [&](std::string_view v) {
         editor.Dialog().createInfo.worldSizeY = FormParseFloat(v, editor.Dialog().createInfo.worldSizeY);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Resolution X", FormFormatInt(dialog.createInfo.resolutionX), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Resolution X", FormFormatInt(dialog.createInfo.resolutionX), [&](std::string_view v) {
         editor.Dialog().createInfo.resolutionX = FormParseInt(v, editor.Dialog().createInfo.resolutionX);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Resolution Y", FormFormatInt(dialog.createInfo.resolutionY), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Resolution Y", FormFormatInt(dialog.createInfo.resolutionY), [&](std::string_view v) {
         editor.Dialog().createInfo.resolutionY = FormParseInt(v, editor.Dialog().createInfo.resolutionY);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Chunk Size", FormFormatInt(dialog.createInfo.chunkQuads), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Chunk Size", FormFormatInt(dialog.createInfo.chunkQuads), [&](std::string_view v) {
         editor.Dialog().createInfo.chunkQuads = FormParseInt(v, editor.Dialog().createInfo.chunkQuads);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Section Size", FormFormatInt(dialog.createInfo.tileSize), [&](std::string_view v) {
+    AddFormField(settingsGroup, "Section Size", FormFormatInt(dialog.createInfo.tileSize), [&](std::string_view v) {
         editor.Dialog().createInfo.tileSize = FormParseInt(v, editor.Dialog().createInfo.tileSize);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "World Scale", FormFormatFloat(dialog.createInfo.worldScale.x), [&](std::string_view v) {
+    AddFormField(settingsGroup, "World Scale", FormFormatFloat(dialog.createInfo.worldScale.x), [&](std::string_view v) {
         const float s = FormParseFloat(v, editor.Dialog().createInfo.worldScale.x);
         editor.Dialog().createInfo.worldScale = {s, s, s};
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Initial Height", FormFormatFloat(dialog.createInfo.initialElevation),
+    AddFormField(settingsGroup, "Initial Height", FormFormatFloat(dialog.createInfo.initialElevation),
         [&](std::string_view v) {
         editor.Dialog().createInfo.initialElevation =
             std::clamp(FormParseFloat(v, editor.Dialog().createInfo.initialElevation), 0.f, 1.f);
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormField(layout, "Material", dialog.materialSlot0.empty() ? "None" : dialog.materialSlot0,
+    AddFormField(settingsGroup, "Material", dialog.materialSlot0.empty() ? "None" : dialog.materialSlot0,
         [&](std::string_view v) {
             editor.Dialog().materialSlot0 = (v == "None") ? "" : std::string(v);
             editor.Wizard().State() = editor.Dialog();
         });
-    AddFormField(layout, "Position X", FormFormatFloat(dialog.createInfo.worldOrigin.x), [&](std::string_view v) {
-        editor.Dialog().createInfo.worldOrigin.x = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.x);
-        editor.Wizard().State() = editor.Dialog();
-    });
-    AddFormField(layout, "Position Y", FormFormatFloat(dialog.createInfo.worldOrigin.y), [&](std::string_view v) {
-        editor.Dialog().createInfo.worldOrigin.y = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.y);
-        editor.Wizard().State() = editor.Dialog();
-    });
-    AddFormField(layout, "Position Z", FormFormatFloat(dialog.createInfo.worldOrigin.z), [&](std::string_view v) {
-        editor.Dialog().createInfo.worldOrigin.z = FormParseFloat(v, editor.Dialog().createInfo.worldOrigin.z);
-        editor.Wizard().State() = editor.Dialog();
-    });
 
     if (dialog.creationMethod == runtime_terrain::TerrainCreationMethod::HeightmapImport) {
-        AddFormField(layout, "Heightmap Path", dialog.importHeightmapPath.string(), [&](std::string_view v) {
+        AddFormField(settingsGroup, "Heightmap Path", dialog.importHeightmapPath.string(), [&](std::string_view v) {
             editor.Dialog().importHeightmapPath = std::filesystem::path(std::string(v));
             editor.Wizard().State() = editor.Dialog();
         });
     }
 
-    AddFormSectionTitle(layout, "Streaming");
-    AddFormToggle(layout, "Enable Streaming", dialog.enableStreaming, [&]() {
-        editor.Dialog().enableStreaming = !editor.Dialog().enableStreaming;
+    // 3. Transform Category (Position X, Y, Z combined into Inspector Vector3 row)
+    auto transformGroup = AddFormSection(layout, "Transform", true);
+    AddFormVector3Field(transformGroup, "Position",
+        dialog.createInfo.worldOrigin.x,
+        dialog.createInfo.worldOrigin.y,
+        dialog.createInfo.worldOrigin.z,
+        [&](float x, float y, float z) {
+            editor.Dialog().createInfo.worldOrigin = { x, y, z };
+            editor.Wizard().State() = editor.Dialog();
+        });
+
+    // 4. Streaming & Options Category (Toggles as Inspector CheckBox rows)
+    auto streamingGroup = AddFormSection(layout, "Streaming", true);
+    AddFormToggle(streamingGroup, "Enable Streaming", dialog.enableStreaming, [&](bool val) {
+        editor.Dialog().enableStreaming = val;
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormToggle(layout, "Enable LOD", dialog.enableLod, [&]() {
-        editor.Dialog().enableLod = !editor.Dialog().enableLod;
+    AddFormToggle(streamingGroup, "Enable LOD", dialog.enableLod, [&](bool val) {
+        editor.Dialog().enableLod = val;
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormToggle(layout, "Collision", dialog.enableCollision, [&]() {
-        editor.Dialog().enableCollision = !editor.Dialog().enableCollision;
+    AddFormToggle(streamingGroup, "Collision", dialog.enableCollision, [&](bool val) {
+        editor.Dialog().enableCollision = val;
         editor.Wizard().State() = editor.Dialog();
     });
-    AddFormToggle(layout, "Edit Layers", dialog.enableEditLayers, [&]() {
-        editor.Dialog().enableEditLayers = !editor.Dialog().enableEditLayers;
+    AddFormToggle(streamingGroup, "Edit Layers", dialog.enableEditLayers, [&](bool val) {
+        editor.Dialog().enableEditLayers = val;
         editor.Wizard().State() = editor.Dialog();
     });
 }

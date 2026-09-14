@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -124,12 +125,14 @@ bool UiImmediateRenderer::Init(
         : we::rhi::Format::B8G8R8A8_SRGB;
     m_MaxFramesInFlight = framesInFlight ? framesInFlight : 2;
 
+    WE_LOG_INFO(we::LogCategory::Startup, "UiImmediateRenderer: LoadShaders...");
     if (!LoadShaders()) {
         WE_LOG_ERROR(we::LogCategory::Startup, "UiImmediateRenderer: failed to load UI/TextMSDF shaders.");
         Shutdown();
         return false;
     }
 
+    WE_LOG_INFO(we::LogCategory::Startup, "UiImmediateRenderer: descriptor layouts...");
     we::rhi::DescriptorSetLayoutDesc layoutDesc{};
     layoutDesc.debugName = "UiImmediate.TextureLayout";
     layoutDesc.bindings.push_back({
@@ -180,17 +183,19 @@ bool UiImmediateRenderer::Init(
     }
     m_Pool = *pool;
 
+    WE_LOG_INFO(we::LogCategory::Startup, "UiImmediateRenderer: CreatePipelines...");
     if (!CreatePipelines()) {
         Shutdown();
         return false;
     }
+    WE_LOG_INFO(we::LogCategory::Startup, "UiImmediateRenderer: CreateDummyTexture...");
     if (!CreateDummyTexture()) {
         Shutdown();
         return false;
     }
 
     m_FrameGeometry.resize(m_MaxFramesInFlight);
-    // Opt-in while stabilizing secondary CB reuse (default on when supported).
+    // Secondary CB reuse is the canonical idle path. Disable with WE_UI_SUBMISSION_CACHE=0.
     const char* subCacheEnv = std::getenv("WE_UI_SUBMISSION_CACHE");
     const bool subCacheDisabled = subCacheEnv && subCacheEnv[0] == '0';
     if (!subCacheDisabled) {
@@ -246,9 +251,13 @@ void UiImmediateRenderer::Shutdown() {
         }
         frame.vertexCapacity = 0;
         frame.indexCapacity = 0;
+        frame.uploadedContentHash = 0;
     }
     m_FrameGeometry.clear();
+    FlushRetiredBuffers(true);
+    FlushRetiredTextures(true);
     DestroySubmissionCache();
+    m_GpuStats = {};
 
     if (m_UiPipeline != we::rhi::RHIGraphicsPipelineHandle::Invalid) {
         (void)m_Device->DestroyGraphicsPipeline(m_UiPipeline);
@@ -506,6 +515,25 @@ void UiImmediateRenderer::UnregisterTexture(we::rhi::RHIDescriptorSetHandle set)
     }
 }
 
+void UiImmediateRenderer::RetireTexture(we::rhi::RHIDescriptorSetHandle set) {
+    std::lock_guard lock(m_Mutex);
+    if (set == we::rhi::RHIDescriptorSetHandle::Invalid || set == m_DummySet || !m_Device) {
+        return;
+    }
+    auto it = m_Uploaded.find(static_cast<uint64_t>(set));
+    if (it == m_Uploaded.end()) {
+        return;
+    }
+    RetiredTexture retired{};
+    retired.uploaded = it->second;
+    retired.framesRemaining = std::max(2u, m_MaxFramesInFlight + 1u);
+    m_Uploaded.erase(it);
+    m_RetiredTextures.push_back(retired);
+    ++m_GpuStats.textureRetireCount;
+    // Drop secondaries that may still bind this set; geometry buffers stay.
+    InvalidateGpuSubmissionCache();
+}
+
 we::rhi::RHIDescriptorSetHandle UiImmediateRenderer::UploadRgbaTexture(
     uint32_t width,
     uint32_t height,
@@ -575,7 +603,103 @@ we::rhi::RHIDescriptorSetHandle UiImmediateRenderer::UploadRgbaTexture(
     uploaded.sampler = *sampler;
     uploaded.set = set;
     m_Uploaded.emplace(static_cast<uint64_t>(set), uploaded);
+    ++m_GpuStats.textureCreateCount;
+    m_GpuStats.textureUpdateBytes += rgba.size();
     return set;
+}
+
+bool UiImmediateRenderer::UpdateRgbaTexturePixels(
+    we::rhi::RHIDescriptorSetHandle set,
+    uint32_t width,
+    uint32_t height,
+    std::span<const uint8_t> rgba)
+{
+    std::lock_guard lock(m_Mutex);
+    if (!m_Device || set == we::rhi::RHIDescriptorSetHandle::Invalid || width == 0 || height == 0
+        || rgba.size() < static_cast<size_t>(width) * height * 4) {
+        return false;
+    }
+    auto it = m_Uploaded.find(static_cast<uint64_t>(set));
+    if (it == m_Uploaded.end() || it->second.texture == we::rhi::RHITextureHandle::Invalid) {
+        return false;
+    }
+
+    we::rhi::TextureUpdateDesc update{};
+    update.extent = {width, height, 1};
+    update.data = rgba;
+    if (!m_Device->UpdateTexture(it->second.texture, update)) {
+        return false;
+    }
+    ++m_GpuStats.textureUpdateCount;
+    m_GpuStats.textureUpdateBytes += rgba.size();
+    // Texel-only change: secondary submissions still bind the same descriptors/buffers.
+    return true;
+}
+
+void UiImmediateRenderer::RetireBuffer(we::rhi::RHIBufferHandle handle) {
+    if (handle == we::rhi::RHIBufferHandle::Invalid || !m_Device) {
+        return;
+    }
+    RetiredBuffer retired{};
+    retired.handle = handle;
+    // Keep alive for one full FIF rotation so in-flight draws finish.
+    retired.framesRemaining = std::max(2u, m_MaxFramesInFlight + 1u);
+    m_RetiredBuffers.push_back(retired);
+    ++m_GpuStats.bufferRetireCount;
+}
+
+void UiImmediateRenderer::FlushRetiredBuffers(bool forceAll) {
+    if (!m_Device || m_RetiredBuffers.empty()) {
+        return;
+    }
+    size_t write = 0;
+    for (size_t i = 0; i < m_RetiredBuffers.size(); ++i) {
+        RetiredBuffer& retired = m_RetiredBuffers[i];
+        if (!forceAll && retired.framesRemaining > 0) {
+            --retired.framesRemaining;
+        }
+        if (forceAll || retired.framesRemaining == 0) {
+            (void)m_Device->DestroyBuffer(retired.handle);
+        } else {
+            m_RetiredBuffers[write++] = retired;
+        }
+    }
+    m_RetiredBuffers.resize(write);
+}
+
+void UiImmediateRenderer::FlushRetiredTextures(bool forceAll) {
+    if (!m_Device || m_RetiredTextures.empty()) {
+        return;
+    }
+    size_t write = 0;
+    for (size_t i = 0; i < m_RetiredTextures.size(); ++i) {
+        RetiredTexture& retired = m_RetiredTextures[i];
+        if (!forceAll && retired.framesRemaining > 0) {
+            --retired.framesRemaining;
+        }
+        if (forceAll || retired.framesRemaining == 0) {
+            DestroyUploaded(retired.uploaded);
+        } else {
+            m_RetiredTextures[write++] = retired;
+        }
+    }
+    m_RetiredTextures.resize(write);
+}
+
+uint64_t UiImmediateRenderer::GetGpuVertexCapacityBytes() const {
+    uint64_t total = 0;
+    for (const auto& frame : m_FrameGeometry) {
+        total += frame.vertexCapacity;
+    }
+    return total;
+}
+
+uint64_t UiImmediateRenderer::GetGpuIndexCapacityBytes() const {
+    uint64_t total = 0;
+    for (const auto& frame : m_FrameGeometry) {
+        total += frame.indexCapacity;
+    }
+    return total;
 }
 
 bool UiImmediateRenderer::EnsureBuffer(
@@ -594,11 +718,13 @@ bool UiImmediateRenderer::EnsureBuffer(
     }
     const bool hadBuffer = handle != we::rhi::RHIBufferHandle::Invalid;
     if (hadBuffer) {
-        (void)m_Device->DestroyBuffer(handle);
+        RetireBuffer(handle);
         handle = we::rhi::RHIBufferHandle::Invalid;
         capacity = 0;
+        ++m_GpuStats.bufferReallocCount;
     }
-    const uint64_t newCapacity = std::max(required * 2, required);
+    // Grow with headroom so scrolling / expansion spikes rarely reallocate.
+    const uint64_t newCapacity = std::max({required * 2, required, uint64_t{64 * 1024}});
     we::rhi::BufferDesc desc{};
     desc.size = newCapacity;
     desc.usage = usage;
@@ -610,6 +736,7 @@ bool UiImmediateRenderer::EnsureBuffer(
     }
     handle = *buf;
     capacity = newCapacity;
+    ++m_GpuStats.bufferCreateCount;
     if (outReallocated) {
         *outReallocated = true;
     }
@@ -623,11 +750,13 @@ bool UiImmediateRenderer::EnsureBuffer(
 void UiImmediateRenderer::UpdateGeometryBuffers(
     uint32_t frameSlot,
     const std::vector<we::rhi::UIVertex>& vertices,
-    const std::vector<uint32_t>& indices)
+    const std::vector<uint32_t>& indices,
+    uint64_t contentHash)
 {
     if (frameSlot >= m_FrameGeometry.size() || vertices.empty() || indices.empty() || !m_Device) {
         return;
     }
+    const auto uploadStart = std::chrono::steady_clock::now();
     FrameGeometry& frame = m_FrameGeometry[frameSlot];
     const uint64_t vertexBytes = vertices.size() * sizeof(we::rhi::UIVertex);
     const uint64_t indexBytes = indices.size() * sizeof(uint32_t);
@@ -653,6 +782,7 @@ void UiImmediateRenderer::UpdateGeometryBuffers(
     if (vbRealloc || ibRealloc) {
         // Force a fresh upload association even if geometryGeneration matches.
         frame.uploadedGeneration = 0;
+        frame.uploadedContentHash = 0;
     }
 
     (void)m_Device->UpdateBuffer(
@@ -661,11 +791,22 @@ void UiImmediateRenderer::UpdateGeometryBuffers(
     (void)m_Device->UpdateBuffer(
         frame.indexBuffer,
         std::span(reinterpret_cast<const uint8_t*>(indices.data()), static_cast<size_t>(indexBytes)));
+
+    frame.uploadedContentHash = contentHash;
+    const float uploadMs = static_cast<float>(
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uploadStart).count());
+    m_GpuStats.lastGeometryUploadCpuMs = uploadMs;
+    m_GpuStats.accumGeometryUploadCpuMs += uploadMs;
+    ++m_GpuStats.geometryUploadCount;
+    m_GpuStats.geometryUploadBytes += vertexBytes + indexBytes;
 }
 
 void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) {
     m_LastSubmissionCacheHit = false;
     m_LastSubmissionRebuilt = false;
+    m_UseSecondaryThisFrame = false;
+    FlushRetiredBuffers(false);
+    FlushRetiredTextures(false);
     if (!m_Ready || !m_Device || !params.commandList) {
         return;
     }
@@ -701,8 +842,12 @@ void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) 
     colorAtt.storeOp = we::rhi::StoreOp::Store;
     info.colorAttachments.push_back(colorAtt);
     info.renderArea = {m_CurrentWidth, m_CurrentHeight};
-    // Secondary submission cache executes reusable CBs inside this scope.
-    info.contentsSecondaryCommandBuffers = m_SubmissionCacheEnabled;
+    // Secondary submission is incompatible with primary inline draws. During splitter
+    // drag / post-drag settle we fall back to primary draws — never open the pass with
+    // CONTENTS_SECONDARY or the GPU can hang in BeginFrame fence waits.
+    m_UseSecondaryThisFrame =
+        m_SubmissionCacheEnabled && !Splitter::ShouldDeferHeavyGpuWork();
+    info.contentsSecondaryCommandBuffers = m_UseSecondaryThisFrame;
 
     m_Cmd->BeginRendering(info);
     m_InRenderPass = true;
@@ -710,7 +855,8 @@ void UiImmediateRenderer::BeginFrame(const we::rhi::FramePresentParams& params) 
 
     // With secondary cache, bind/draw state lives inside the reusable secondary.
     // Primary only opens the rendering scope and later ExecuteCommands.
-    if (!m_SubmissionCacheEnabled) {
+    // When drawing on primary this frame, bind pipeline state here.
+    if (!m_UseSecondaryThisFrame) {
         m_Cmd->BindGraphicsPipeline(m_UiPipeline);
         if (m_DummySet != we::rhi::RHIDescriptorSetHandle::Invalid) {
             const we::rhi::RHIDescriptorSetHandle sets[] = {m_DummySet};
@@ -874,7 +1020,8 @@ void UiImmediateRenderer::SubmitDrawList(
         return;
     }
     FrameGeometry& frame = m_FrameGeometry[frameSlot];
-    const bool geometryUnchanged =
+
+    const bool generationMatch =
         geometryGeneration != 0
         && frame.uploadedGeneration == geometryGeneration
         && frame.uploadedVertexCount == list.vertices.size()
@@ -882,14 +1029,50 @@ void UiImmediateRenderer::SubmitDrawList(
         && !list.vertices.empty()
         && !list.indices.empty();
 
-    if (!geometryUnchanged) {
-        if (!list.vertices.empty() && !list.indices.empty()) {
-            UpdateGeometryBuffers(frameSlot, list.vertices, list.indices);
+    bool skipUpload = generationMatch;
+    uint64_t contentHash = 0;
+    if (!skipUpload
+        && !list.vertices.empty()
+        && !list.indices.empty()
+        && frame.uploadedVertexCount == list.vertices.size()
+        && frame.uploadedIndexCount == list.indices.size()
+        && frame.vertexBuffer != we::rhi::RHIBufferHandle::Invalid
+        && frame.indexBuffer != we::rhi::RHIBufferHandle::Invalid) {
+        const uint64_t vertexBytes = list.vertices.size() * sizeof(we::rhi::UIVertex);
+        const uint64_t indexBytes = list.indices.size() * sizeof(uint32_t);
+        contentHash = HashGpuBytesCombine(
+            HashGpuBytes(std::span(
+                reinterpret_cast<const uint8_t*>(list.vertices.data()),
+                static_cast<size_t>(vertexBytes))),
+            HashGpuBytes(std::span(
+                reinterpret_cast<const uint8_t*>(list.indices.data()),
+                static_cast<size_t>(indexBytes))));
+        if (contentHash != 0 && contentHash == frame.uploadedContentHash) {
+            skipUpload = true;
+            ++m_GpuStats.geometryContentHashSkipCount;
             frame.uploadedGeneration = geometryGeneration;
-            frame.uploadedVertexCount = static_cast<uint32_t>(list.vertices.size());
-            frame.uploadedIndexCount = static_cast<uint32_t>(list.indices.size());
-            m_LastSubmitUploadedGeometry = true;
         }
+    }
+
+    if (skipUpload) {
+        ++m_GpuStats.geometryUploadSkipCount;
+    } else if (!list.vertices.empty() && !list.indices.empty()) {
+        if (contentHash == 0) {
+            const uint64_t vertexBytes = list.vertices.size() * sizeof(we::rhi::UIVertex);
+            const uint64_t indexBytes = list.indices.size() * sizeof(uint32_t);
+            contentHash = HashGpuBytesCombine(
+                HashGpuBytes(std::span(
+                    reinterpret_cast<const uint8_t*>(list.vertices.data()),
+                    static_cast<size_t>(vertexBytes))),
+                HashGpuBytes(std::span(
+                    reinterpret_cast<const uint8_t*>(list.indices.data()),
+                    static_cast<size_t>(indexBytes))));
+        }
+        UpdateGeometryBuffers(frameSlot, list.vertices, list.indices, contentHash);
+        frame.uploadedGeneration = geometryGeneration;
+        frame.uploadedVertexCount = static_cast<uint32_t>(list.vertices.size());
+        frame.uploadedIndexCount = static_cast<uint32_t>(list.indices.size());
+        m_LastSubmitUploadedGeometry = true;
     }
 
     const FrameGeometry& buffers = m_FrameGeometry[frameSlot];
@@ -899,8 +1082,7 @@ void UiImmediateRenderer::SubmitDrawList(
         return;
     }
 
-    if (m_SubmissionCacheEnabled
-        && !Splitter::ShouldDeferHeavyGpuWork()
+    if (m_UseSecondaryThisFrame
         && frameSlot < m_SubmissionSlots.size()
         && m_SubmissionSlots[frameSlot].secondary) {
         SubmissionSlot& slot = m_SubmissionSlots[frameSlot];
@@ -924,9 +1106,12 @@ void UiImmediateRenderer::SubmitDrawList(
         inheritance.colorFormat = m_SwapchainFormat;
         inheritance.renderArea = {m_CurrentWidth, m_CurrentHeight};
         if (!slot.secondary->BeginSecondary(inheritance)) {
+            // Pass was opened for secondary contents — cannot safely fall back to
+            // primary draws without hanging the GPU. Skip UI this frame.
             slot.valid = false;
-            RecordDrawList(m_Cmd, list, buffers);
             ++m_SubmissionCacheMissCount;
+            WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                "UiImmediateRenderer: BeginSecondary failed; skipping UI draws this frame.");
             return;
         }
         RecordDrawList(slot.secondary, list, buffers);
@@ -947,9 +1132,12 @@ void UiImmediateRenderer::SubmitDrawList(
         return;
     }
 
-    // Fallback: record draws directly into the primary frame command list.
+    // Primary path (cache off, or splitter drag / post-drag settle deferral).
     RecordDrawList(m_Cmd, list, buffers);
-    ++m_SubmissionCacheMissCount;
+    // Only count as a cache miss when the cache is enabled but unused this frame.
+    if (m_SubmissionCacheEnabled) {
+        ++m_SubmissionCacheMissCount;
+    }
 }
 
 bool UiImmediateRenderer::CreateSubmissionCache() {

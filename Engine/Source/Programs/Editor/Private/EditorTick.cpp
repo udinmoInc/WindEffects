@@ -24,9 +24,18 @@ namespace we::programs::editor {
 
 void Editor::TickSimulation(float dt) {
     we::runtime::kindui::Animator::Tick(dt);
+
+    // Selection → Details must commit before widget-tree Tick so chrome SyncVisibility
+    // reads the current HasSelection() and can InvalidateLayout/Paint before host layout.
+    // Always run: viewport/scene selection can change while the UI gate is idle.
+    if (m_WorldOutliner) {
+        m_WorldOutliner->Outliner().Tick(dt);
+    }
+
     // Central idle gate: skip widget-tree Tick when layout/paint/animation are clean.
     // Sticky animating latch (from last MarkAnimating/Damp) keeps PeekNeedsWidgetTick
     // true across ConsumeNeedsPaint; MarkSettled clears it so Tick must re-arm.
+    // Peek AFTER selection sync so Details invalidation arms Tick the same frame.
     const bool needsWidgetTick = we::runtime::kindui::UIRepaintGate::PeekNeedsWidgetTick();
     if (needsWidgetTick) {
         we::runtime::kindui::UIRepaintGate::MarkSettled();
@@ -46,9 +55,6 @@ void Editor::TickSimulation(float dt) {
         env.SyncFromScene(m_Camera->GetPosition());
     }
     ::we::editor::environment::TickEditor();
-    if (needsWidgetTick && m_WorldOutliner) {
-        m_WorldOutliner->Outliner().Tick(dt);
-    }
     // ContentBrowser may live outside the root tick path for service hooks; still
     // honor the same central gate (hover alpha uses MarkAnimating).
     if (needsWidgetTick && m_ContentBrowser) {

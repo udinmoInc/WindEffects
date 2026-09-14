@@ -11,6 +11,7 @@
 #include "RHI/GpuBackends.h"
 #include "RHI/IRHI.h"
 #include "RHI/Types.h"
+#include "Rendering/UiGpuUpload.h"
 
 #include <cstdint>
 #include <mutex>
@@ -20,9 +21,8 @@
 
 namespace we::runtime::kindui {
 
-/// Backend-agnostic immediate-mode UI recorder. All GPU work goes through IRHI only.
-/// When the device supports secondary command buffers, each frames-in-flight slot keeps
-/// a reusable secondary submission keyed by geometry + invalidation generations.
+/// Canonical KindUI GPU recorder: FIF host-visible VB/IB, content-hash skip upload,
+/// deferred buffer retire, optional secondary submission cache. All UI screens inherit this.
 class UiImmediateRenderer {
 public:
     UiImmediateRenderer() = default;
@@ -35,6 +35,7 @@ public:
     void Shutdown();
 
     [[nodiscard]] bool IsReady() const { return m_Ready; }
+    [[nodiscard]] uint32_t FramesInFlight() const { return m_MaxFramesInFlight; }
 
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle RegisterTexture(
         we::rhi::RHITextureViewHandle view, we::rhi::RHISamplerHandle sampler);
@@ -43,12 +44,22 @@ public:
         we::rhi::RHITextureViewHandle view,
         we::rhi::RHISamplerHandle sampler);
     void UnregisterTexture(we::rhi::RHIDescriptorSetHandle set);
+    /// Remove from the live upload map and destroy after FIF frames (safe with
+    /// submission cache / in-flight draws). Prefer this for residency eviction.
+    void RetireTexture(we::rhi::RHIDescriptorSetHandle set);
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle UploadRgbaTexture(
         uint32_t width,
         uint32_t height,
         std::span<const uint8_t> rgba,
         bool linearFilter,
         bool srgb = false);
+    /// In-place pixel refresh for an existing uploaded RGBA texture (same dimensions).
+    /// Avoids destroy/recreate and secondary-cache invalidation when only texels change.
+    [[nodiscard]] bool UpdateRgbaTexturePixels(
+        we::rhi::RHIDescriptorSetHandle set,
+        uint32_t width,
+        uint32_t height,
+        std::span<const uint8_t> rgba);
 
     [[nodiscard]] we::rhi::RHIDescriptorSetHandle GetDummyTexture() const { return m_DummySet; }
     [[nodiscard]] we::rhi::RHISamplerHandle GetDefaultSampler() const { return m_DummySampler; }
@@ -62,8 +73,15 @@ public:
     [[nodiscard]] uint64_t SubmissionInvalidationGeneration() const { return m_SubmissionInvalidationGeneration; }
     [[nodiscard]] uint64_t SubmissionCacheHitCount() const { return m_SubmissionCacheHitCount; }
     [[nodiscard]] uint64_t SubmissionCacheMissCount() const { return m_SubmissionCacheMissCount; }
+    [[nodiscard]] uint32_t SubmissionCacheSlotCount() const {
+        return static_cast<uint32_t>(m_SubmissionSlots.size());
+    }
     [[nodiscard]] uint64_t SubmissionRebuildCount() const { return m_SubmissionRebuildCount; }
     [[nodiscard]] uint64_t SubmissionInvalidationCount() const { return m_SubmissionInvalidationCount; }
+    [[nodiscard]] bool SubmissionCacheEnabled() const { return m_SubmissionCacheEnabled; }
+    [[nodiscard]] const UiGpuPathStats& GetGpuPathStats() const { return m_GpuStats; }
+    [[nodiscard]] uint64_t GetGpuVertexCapacityBytes() const;
+    [[nodiscard]] uint64_t GetGpuIndexCapacityBytes() const;
 
     /// Hard-invalidate reusable secondary submissions (swapchain recreate, format/size,
     /// descriptor recycle, buffer realloc, pipeline rebuild). Geometry buffers are kept.
@@ -81,8 +99,14 @@ private:
         uint64_t vertexCapacity = 0;
         uint64_t indexCapacity = 0;
         uint64_t uploadedGeneration = 0;
+        uint64_t uploadedContentHash = 0;
         uint32_t uploadedVertexCount = 0;
         uint32_t uploadedIndexCount = 0;
+    };
+
+    struct RetiredBuffer {
+        we::rhi::RHIBufferHandle handle = we::rhi::RHIBufferHandle::Invalid;
+        uint32_t framesRemaining = 0;
     };
 
     struct SubmissionSlot {
@@ -100,6 +124,11 @@ private:
         we::rhi::RHITextureViewHandle view = we::rhi::RHITextureViewHandle::Invalid;
         we::rhi::RHISamplerHandle sampler = we::rhi::RHISamplerHandle::Invalid;
         we::rhi::RHIDescriptorSetHandle set = we::rhi::RHIDescriptorSetHandle::Invalid;
+    };
+
+    struct RetiredTexture {
+        UploadedTexture uploaded{};
+        uint32_t framesRemaining = 0;
     };
 
     bool LoadShaders();
@@ -121,7 +150,8 @@ private:
     void UpdateGeometryBuffers(
         uint32_t frameSlot,
         const std::vector<we::rhi::UIVertex>& vertices,
-        const std::vector<uint32_t>& indices);
+        const std::vector<uint32_t>& indices,
+        uint64_t contentHash);
     [[nodiscard]] bool EnsureBuffer(
         we::rhi::RHIBufferHandle& handle,
         uint64_t& capacity,
@@ -129,6 +159,9 @@ private:
         we::rhi::BufferUsage usage,
         const char* debugName,
         bool* outReallocated = nullptr);
+    void RetireBuffer(we::rhi::RHIBufferHandle handle);
+    void FlushRetiredBuffers(bool forceAll);
+    void FlushRetiredTextures(bool forceAll);
 
     we::rhi::IRHIDevice* m_Device = nullptr;
     we::rhi::IRHICommandList* m_Cmd = nullptr;
@@ -140,6 +173,8 @@ private:
     bool m_InRenderPass = false;
     bool m_LastSubmitUploadedGeometry = false;
     bool m_SubmissionCacheEnabled = false;
+    /// Chosen in BeginFrame; SubmitDrawList must honor this (secondary bit vs primary draws).
+    bool m_UseSecondaryThisFrame = false;
     bool m_LastSubmissionCacheHit = false;
     bool m_LastSubmissionRebuilt = false;
 
@@ -148,6 +183,7 @@ private:
     uint64_t m_SubmissionCacheMissCount = 0;
     uint64_t m_SubmissionRebuildCount = 0;
     uint64_t m_SubmissionInvalidationCount = 0;
+    UiGpuPathStats m_GpuStats{};
 
     we::rhi::RHIShaderHandle m_UiVs = we::rhi::RHIShaderHandle::Invalid;
     we::rhi::RHIShaderHandle m_UiPs = we::rhi::RHIShaderHandle::Invalid;
@@ -177,6 +213,8 @@ private:
 
     std::unordered_map<uint64_t, UploadedTexture> m_Uploaded;
     std::vector<FrameGeometry> m_FrameGeometry;
+    std::vector<RetiredBuffer> m_RetiredBuffers;
+    std::vector<RetiredTexture> m_RetiredTextures;
     std::recursive_mutex m_Mutex;
 };
 

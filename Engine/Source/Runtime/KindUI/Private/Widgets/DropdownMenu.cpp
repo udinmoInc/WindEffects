@@ -28,6 +28,39 @@ namespace WindIcons = ::we::runtime::kindui::WindIcons;
 using ::we::runtime::kindui::kWindIconNone;
 
 namespace we::runtime::kindui {
+namespace {
+
+class TooltipBubble final : public Widget {
+public:
+    explicit TooltipBubble(std::string text) : m_Text(std::move(text)) {}
+    Size Measure(const Size& availableSize) override {
+        (void)availableSize;
+        const float padX = 8.0f;
+        const float padY = 5.0f;
+        const float textSize = ThemeMetric(MetricToken::TextSizeSmall);
+        const float textW = TextMetrics::MeasureWidth(m_Text, textSize);
+        m_DesiredSize = Size{ textW + padX * 2.0f, textSize + padY * 2.0f };
+        return m_DesiredSize;
+    }
+    void Arrange(const Rect& allottedRect) override {
+        CommitGeometry(allottedRect);
+        ClearLayoutDirty();
+    }
+    void Paint(PaintContext& context) override {
+        ClearPaintDirty();
+        ControlChrome::PaintTooltipSurface(context, m_Geometry);
+        context.DrawText(
+            m_Text,
+            Point{ m_Geometry.x + 8.0f, m_Geometry.y + 5.0f },
+            ResolveColor(ColorToken::TextPrimary),
+            ThemeMetric(MetricToken::TextSizeSmall));
+    }
+    [[nodiscard]] bool IsPointerTransparent() const override { return true; }
+private:
+    std::string m_Text;
+};
+
+} // namespace
 
 DropdownMenu::DropdownMenu(const std::vector<std::shared_ptr<MenuItem>>& items)
     : m_Items(items)
@@ -159,41 +192,44 @@ void DropdownMenu::Paint(PaintContext& context) {
     }
 
     context.PopClipRect();
-
-    if (m_HoveredItem >= 0 && m_HoveredItem < static_cast<int>(m_Items.size())) {
-        const auto& hoveredItem = m_Items[static_cast<size_t>(m_HoveredItem)];
-        if (hoveredItem && !hoveredItem->tooltip.empty()) {
-            const float tooltipPadX = 8.0f;
-            const float tooltipPadY = 5.0f;
-            const float tooltipTextSize = ThemeMetric(MetricToken::TextSizeSmall);
-            const float tooltipTextW = TextMetrics::MeasureWidth(hoveredItem->tooltip, tooltipTextSize);
-            const float tooltipW = tooltipTextW + tooltipPadX * 2.0f;
-            const float tooltipH = tooltipTextSize + tooltipPadY * 2.0f;
-
-            const float hoveredY = m_Geometry.y + m_PaddingY + static_cast<float>(m_HoveredItem) * m_ItemHeight -
-                m_ScrollOffset;
-            const Rect tooltipRect{
-                m_Geometry.x + m_Geometry.width + 6.0f,
-                hoveredY + (m_ItemHeight - tooltipH) * 0.5f,
-                tooltipW,
-                tooltipH
-            };
-
-            ControlChrome::PaintTooltipSurface(context, tooltipRect);
-            context.DrawText(
-                hoveredItem->tooltip,
-                Point{ tooltipRect.x + tooltipPadX, tooltipRect.y + tooltipPadY },
-                ResolveColor(ColorToken::TextPrimary),
-                tooltipTextSize);
-        }
-    }
 }
 
 void DropdownMenu::OnMouseMove(const MouseEvent& event) {
     const int hovered = HitItemAt(event.position);
-    if (hovered != m_HoveredItem) {
-        m_HoveredItem = hovered;
-        InvalidatePaint();
+    if (hovered == m_HoveredItem) {
+        return;
+    }
+    m_HoveredItem = hovered;
+    InvalidatePaint();
+
+    auto* overlay = dynamic_cast<OverlayHost*>(GetPopupHost());
+    if (!overlay) {
+        return;
+    }
+    if (m_HoveredItem < 0 || m_HoveredItem >= static_cast<int>(m_Items.size())) {
+        overlay->CloseTooltips();
+        return;
+    }
+    const auto& hoveredItem = m_Items[static_cast<size_t>(m_HoveredItem)];
+    if (!hoveredItem || hoveredItem->tooltip.empty()) {
+        overlay->CloseTooltips();
+        return;
+    }
+    const float hoveredY = m_Geometry.y + m_PaddingY + static_cast<float>(m_HoveredItem) * m_ItemHeight
+        - m_ScrollOffset;
+    const Rect anchor{
+        m_Geometry.x + m_Geometry.width,
+        hoveredY,
+        1.0f,
+        m_ItemHeight
+    };
+    overlay->ShowTooltip(std::make_shared<TooltipBubble>(hoveredItem->tooltip), anchor);
+}
+
+void DropdownMenu::OnHoverLost() {
+    m_HoveredItem = -1;
+    if (auto* overlay = dynamic_cast<OverlayHost*>(GetPopupHost())) {
+        overlay->CloseTooltips();
     }
 }
 

@@ -123,7 +123,7 @@ public:
         m_FrameIndex = frameIndex;
     }
 
-    void EvictUnused(const size_t maxEntries) override
+    void EvictUnused(size_t maxEntries) override
     {
         std::lock_guard lock(m_Mutex);
         if (m_Cache.size() <= maxEntries) {
@@ -139,23 +139,19 @@ public:
             return a.second < b.second;
         });
 
+        // Incremental: drop oldest glyph entries only. Leave page pixels in place
+        // (dead rects) so remaining UV mappings stay valid — no generation bump,
+        // no full atlas wipe (that forced mass re-upload / thrash).
         const size_t removeCount = m_Cache.size() - maxEntries;
         for (size_t i = 0; i < removeCount; ++i) {
             m_Cache.erase(ages[i].first);
         }
-        for (auto& page : m_Pages) {
-            ++page.version;
-            page.dirty = true;
-        }
-        // Reset packer state after eviction — next packs grow cleanly.
-        for (auto& page : m_Pages) {
-            page.packX = kGlyphPadding;
-            page.packY = kGlyphPadding;
-            page.rowHeight = 0;
-            std::fill(page.page.rgba.begin(), page.page.rgba.end(), static_cast<uint8_t>(0));
-        }
-        m_Cache.clear();
-        ++m_Generation;
+    }
+
+    size_t GlyphCount() const override
+    {
+        std::lock_guard lock(m_Mutex);
+        return m_Cache.size();
     }
 
     const AtlasPageRuntime* GetPage(const uint32_t pageIndex) const override
