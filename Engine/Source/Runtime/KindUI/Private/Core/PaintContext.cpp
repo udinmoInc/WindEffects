@@ -37,7 +37,8 @@ bool AllowsChromeOutline(const Color& color) {
     }
     return ColorsMatch(color, ResolveColor(ColorToken::BorderFocus))
         || ColorsMatch(color, ResolveColor(ColorToken::AccentPrimary))
-        || ColorsMatch(color, ResolveColor(ColorToken::BorderError));
+        || ColorsMatch(color, ResolveColor(ColorToken::BorderError))
+        || ColorsMatch(color, ResolveColor(ColorToken::InputOutline));
 }
 
 } // namespace

@@ -163,7 +163,7 @@ ResolvedStyle StyleResolver::Resolve(StyleRole role) const {
     case StyleRole::Popup:
         style.background = ResolveColor(ColorToken::PopupBackground);
         style.foreground = ResolveColor(ColorToken::TextPrimary);
-        style.border = ResolveColor(ColorToken::BorderSubtle);
+        style.border = ResolveColor(ColorToken::BorderLight);
         style.cornerRadius = Scaled(theme.ResolveMetric(MetricToken::CornerRadiusMedium));
         style.elevation = theme.ResolveElevation(ElevationToken::Popup);
         break;

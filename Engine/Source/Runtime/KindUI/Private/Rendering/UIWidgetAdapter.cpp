@@ -927,22 +927,11 @@ void UIWidgetAdapter::GenerateIconGeometry(const DrawCommand& cmd) {
     const float x = SnapPx(cmd.rect.x + (cmd.rect.width - w) * 0.5f);
     const float y = SnapPx(cmd.rect.y + (cmd.rect.height - h) * 0.5f);
 
-    // Vertex color multiplies authored icon RGB (white = unchanged). Used for hover brightness.
+    // Vertex color multiplies authored icon RGB (white = unchanged). Used for theme tint / hover.
     // Folder icons keep their authored colors — never force a theme brown override.
     Color tint = (cmd.color.a > 0.0f) ? cmd.color : Color::White();
 
-    // Check if this is a folder icon - if so, keep the passed tint
-    const std::string_view stem(cmd.iconStem);
-    const bool isFolderIcon =
-        stem == "folder" ||
-        stem == "folder-open" ||
-        stem == "folder-mask" ||
-        stem == "folder-open-mask" ||
-        stem == "content-folder";
-
-    if (!isFolderIcon) {
-        tint = Color{ 0.72f, 0.72f, 0.72f, 1.0f };
-    }
+    // Do not crush mono icons to a fixed gray — callers already pass IconPrimary/Secondary.
 
     const float shaderType = 4.0f;
 

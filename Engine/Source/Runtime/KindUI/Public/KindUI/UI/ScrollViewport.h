@@ -23,6 +23,7 @@ struct KINDUI_API ScrollViewportMetrics {
     Rect thumb{};
     float scrollbarWidth = 0.0f;
     bool showsScrollbar = false;
+    bool isScrollable = false;
 };
 
 // Shared vertical scroll state used by ScrollLayout and immediate-mode list widgets.
@@ -82,6 +83,8 @@ public:
 
     [[nodiscard]] bool IsDraggingThumb() const { return m_DraggingThumb; }
     [[nodiscard]] bool IsThumbHovered() const { return m_ThumbHovered; }
+    void SetAlwaysReserveScrollbar(bool reserve) { m_AlwaysReserveScrollbar = reserve; }
+    [[nodiscard]] bool AlwaysReserveScrollbar() const { return m_AlwaysReserveScrollbar; }
 
 private:
     void JumpToTrack(
@@ -92,6 +95,7 @@ private:
 
     bool m_DraggingThumb = false;
     bool m_ThumbHovered = false;
+    bool m_AlwaysReserveScrollbar = false;
     float m_DragStartY = 0.0f;
     float m_DragStartOffset = 0.0f;
 };

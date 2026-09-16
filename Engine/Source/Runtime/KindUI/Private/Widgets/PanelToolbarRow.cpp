@@ -18,14 +18,13 @@ PanelToolbarRow::PanelToolbarRow(std::string searchPlaceholder)
     : m_SearchPlaceholder(std::move(searchPlaceholder)) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float padV = 1.0f * uiScale;
+    const float padV = 3.0f * uiScale;
     Padding(Margin{ padH, padV, padH, padV });
     Gap(ThemeMetric(MetricToken::ChromeSeparationGapWide));
     Align(AlignItems::Center);
 
     m_SearchBox = std::make_shared<SearchBoxControl>(m_SearchPlaceholder);
     m_SearchBox->SetToolbarInset(true);
-    m_SearchBox->SetMargin(Margin{ 0.0f, 0.0f, ThemeMetric(MetricToken::Space1), 0.0f });
     m_SearchBox->SetFillWidth(false);
     m_SearchBox->SetWidth(ThemeMetric(MetricToken::InputWidthLarge) * uiScale);
     m_SearchBox->SetFlexGrow(1.0f);

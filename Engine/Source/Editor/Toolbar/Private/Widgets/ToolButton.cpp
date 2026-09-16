@@ -10,6 +10,8 @@
 #include <KindUI/EditorUI.h>
 #include "KindUI/Diagnostics/UiInputDebug.h"
 #include "Text/Layout/TextStyle.h"
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
 
 #include <algorithm>
 #include <cctype>
@@ -204,7 +206,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         const float chevGap  = ChevronGapPx(uiScale);
         const float chevW    = kChevronSlotPx;
         const float textSize = ThemeMetric(MetricToken::TextSizeToolbar) * uiScale;
-        const float controlH = ToolbarButtonChrome::RowContentHeight(uiScale);
+        const float controlH = ToolbarButtonChrome::ItemSize(uiScale);
         const bool hasIcon = m_Icon.IsValid();
 
         float textW = LabelWidth(m_Label, textSize, m_CachedLabelWidthTextSize, m_CachedLabelWidth);
@@ -260,7 +262,7 @@ Size ToolButton::Measure(const Size& availableSize) {
         return m_DesiredSize;
     }
 
-    const float height  = ToolbarButtonChrome::RowContentHeight(uiScale);
+    const float height  = ToolbarButtonChrome::ItemSize(uiScale);
     const float padL    = 10.0f * uiScale;
     const float padR    = 10.0f * uiScale;
     const float iconSz  = IconSize(uiScale);
@@ -291,6 +293,16 @@ void ToolButton::Arrange(const Rect& allottedRect) {
 }
 
 void ToolButton::Tick(float deltaTime) {
+    if (m_Hovered != m_LastHoverLogged) {
+        m_LastHoverLogged = m_Hovered;
+        std::string label = !m_Tooltip.empty() ? m_Tooltip : (!m_Label.empty() ? m_Label : GetId());
+        WE_LOG_INFO(we::LogCategory::Editor.data(),
+            std::string("[ToolbarDetector] Cursor ") + (m_Hovered ? "ENTER" : "LEAVE") +
+            " on icon/button: '" + label + "' (bounds: [" +
+            std::to_string(m_Geometry.x) + ", " + std::to_string(m_Geometry.y) + ", " +
+            std::to_string(m_Geometry.width) + ", " + std::to_string(m_Geometry.height) + "])");
+    }
+
     const float targetHover = m_Hovered ? 1.0f : 0.0f;
     const float targetPress = m_Pressed ? 1.0f : 0.0f;
     const float targetActive = m_Active ? 1.0f : 0.0f;
@@ -298,7 +310,6 @@ void ToolButton::Tick(float deltaTime) {
     m_HoverAnim = Animator::Damp(m_HoverAnim, targetHover, HoverDamping() * 0.8f);
     m_PressAnim = Animator::Damp(m_PressAnim, targetPress, PressDamping());
     m_ActiveAnim = Animator::Damp(m_ActiveAnim, targetActive, HoverDamping());
-
 
     Widget::Tick(deltaTime);
 }
@@ -311,13 +322,14 @@ void ToolButton::Paint(PaintContext& context) {
     Rect renderRect = m_Geometry;
     float centerY   = renderRect.y + renderRect.height / 2.0f;
 
-    const bool isWindowControl = (m_ButtonStyle == ToolButtonStyle::WindowControl ||
-                                   m_ButtonStyle == ToolButtonStyle::WindowClose);
+    const bool isWindowControl = (m_ButtonStyle == ToolButtonStyle::WindowControl);
     const bool isViewportChip  = (m_ButtonStyle == ToolButtonStyle::ViewportChip);
+    const bool iconOnly        = (m_Icon.IsValid() && m_Label.empty() && !m_IsDropdown);
+    const bool hasButtonChrome = !isWindowControl;
 
-    if (activeStrength > 0.01f && !m_Chromeless && !isViewportChip) {
+    if (activeStrength > 0.01f && hasButtonChrome) {
         Color hoverBg;
-        float radius = 4.0f * uiScale;
+        float radius = isViewportChip ? (3.0f * uiScale) : (4.0f * uiScale);
         if (m_ButtonStyle == ToolButtonStyle::WindowClose) {
             hoverBg = m_Pressed ? ThemeColor(ColorToken::ButtonDangerPressed) :
                 ThemeColor(ColorToken::CloseButtonHover);
@@ -346,8 +358,6 @@ void ToolButton::Paint(PaintContext& context) {
         const float iconGap  = IconGapPx(uiScale);
         const float chevGap  = ChevronGapPx(uiScale);
         const float padH     = ChipHorizontalPad(uiScale);
-
-        const bool iconOnly = m_Icon.IsValid() && m_Label.empty() && !m_IsDropdown;
 
         if (iconOnly) {
             PaintFloatingIcon(
@@ -413,6 +423,11 @@ void ToolButton::Paint(PaintContext& context) {
 }
 
 void ToolButton::OnMouseDown(const MouseEvent& event) {
+    std::string label = !m_Tooltip.empty() ? m_Tooltip : (!m_Label.empty() ? m_Label : GetId());
+    WE_LOG_INFO(we::LogCategory::Editor.data(),
+        std::string("[ToolbarDetector] MouseDown on icon/button: '") + label + "' at pos=[" +
+        std::to_string(event.position.x) + ", " + std::to_string(event.position.y) + "]");
+
     if (event.button == MouseButton::Left) {
         SetPressed(true);
         m_PressAnim = 1.0f;
@@ -420,11 +435,18 @@ void ToolButton::OnMouseDown(const MouseEvent& event) {
 }
 
 void ToolButton::OnMouseUp(const MouseEvent& event) {
-    if (ShouldFireClickOnLeftUp(event) && m_OnClicked) {
-        std::string label = !m_Tooltip.empty() ? m_Tooltip
-            : (!m_Label.empty() ? m_Label
-                : (!GetId().empty() ? GetId() : "ToolButton"));
+    std::string label = !m_Tooltip.empty() ? m_Tooltip : (!m_Label.empty() ? m_Label : GetId());
+    const bool isClickValid = ShouldFireClickOnLeftUp(event);
+
+    WE_LOG_INFO(we::LogCategory::Editor.data(),
+        std::string("[ToolbarDetector] MouseUp on icon/button: '") + label + "' at pos=[" +
+        std::to_string(event.position.x) + ", " + std::to_string(event.position.y) + "], clickValid=" +
+        std::to_string(isClickValid) + ", m_OnClickedValid=" + std::to_string(static_cast<bool>(m_OnClicked)));
+
+    if (isClickValid && m_OnClicked) {
         we::runtime::kindui::UiInputDebug::OnClickInvoked("ToolButton", label);
+        WE_LOG_INFO(we::LogCategory::Editor.data(),
+            std::string("[ToolbarDetector] Invoking click action for '") + label + "'");
         m_OnClicked();
     }
 }

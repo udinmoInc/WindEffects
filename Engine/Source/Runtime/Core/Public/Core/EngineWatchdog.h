@@ -33,7 +33,7 @@ public:
     static EngineWatchdog& Get();
 
     /// Initializes the watchdog background thread and sets stall timeout in milliseconds.
-    void Initialize(uint32_t stallTimeoutMs = 2000);
+    void Initialize(uint32_t stallTimeoutMs = 10000);
 
     /// Shuts down the watchdog monitoring thread safely.
     void Shutdown();

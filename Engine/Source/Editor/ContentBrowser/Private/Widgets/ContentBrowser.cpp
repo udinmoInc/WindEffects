@@ -311,19 +311,13 @@ void ContentBrowser::PaintTileChrome(PaintContext& context, const Rect& cell, bo
 
     if (selected) {
         Color selectionFill = ThemeColor(ColorToken::AccentPrimary);
-        selectionFill.a = 0.16f;
+        selectionFill.a = 0.15f;
         context.DrawRoundedRect(cell, selectionFill, radius);
 
         Color selectionBorder = ThemeColor(ColorToken::AccentPrimary);
-        selectionBorder.a = 0.92f;
+        selectionBorder.a = 0.50f;
         const float borderWidth = std::max(1.0f, ThemeMetric(MetricToken::BorderWidth));
         context.DrawRoundedRectOutline(cell, selectionBorder, borderWidth, radius);
-
-        const float railHeight = std::max(2.0f, borderWidth);
-        context.DrawRoundedRect(
-            Rect{ cell.x + radius, cell.y, std::max(0.0f, cell.width - radius * 2.0f), railHeight },
-            selectionBorder,
-            railHeight * 0.5f);
     }
 }
 
@@ -414,20 +408,21 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
 }
 
 void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth,
-    int maxLines) {
+    int maxLines, bool selected) {
     const GridMetrics metrics = GetGridMetrics();
     const float fontSize = ThemeMetric(MetricToken::TextSizeNormal);
     const float lineH = metrics.labelLineHeight;
     const int lineCount = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : maxLines;
 
     const float labelTop = cell.y + metrics.thumbSize + metrics.labelGap;
+    const Color textColor = selected ? Color::White() : ThemeColor(ColorToken::TextPrimary);
 
     const auto lines = WrapLabelText(context, name, maxWidth, fontSize, lineCount);
     for (size_t i = 0; i < lines.size(); ++i) {
         const float textW = context.GetTextWidth(lines[i], fontSize);
         const float x = cell.x + (cell.width - textW) * 0.5f;
         const float y = labelTop + static_cast<float>(i) * lineH;
-        context.DrawText(lines[i], Point{ x, y }, ThemeColor(ColorToken::TextPrimary), fontSize, false);
+        context.DrawText(lines[i], Point{ x, y }, textColor, fontSize, false);
     }
 }
 
@@ -435,21 +430,56 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const auto& item = renderItem.item;
     const bool selected = IsSelected(item.id);
     const bool hovered = item.id == m_HoveredId;
-    const float hoverAlpha = hovered ? m_ItemHoverAlpha : 0.0f;
+    const GridMetrics metrics = GetGridMetrics();
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float radius = ThemeMetric(MetricToken::CornerRadiusSmall);
 
-    PaintTileChrome(context, renderItem.geometry, selected, hoverAlpha);
+    const Rect& cell = renderItem.geometry;
+
+    // 2. Base tile card background surface
+    Color cardBg = ThemeColor(ColorToken::PanelBackground);
+    context.DrawRoundedRect(cell, cardBg, radius);
+
+    // 3. Label box geometry (bottom section of card below thumbnail)
+    const float labelTopY = cell.y + metrics.thumbSize + 4.0f * scale;
+    const Rect labelBox{ cell.x, labelTopY, cell.width, cell.y + cell.height - labelTopY };
+
+    if (selected) {
+        // Soft ambient drop shadow around selected card
+        PanelChrome::PaintPanelAmbientShadow(context, cell);
+
+        // UE5 Selected state: blue label box + bright cyan top accent line + 1px blue card outline
+        Color ue5SelectBlue{ 0.05f, 0.43f, 0.81f, 1.0f }; // #0E6ECE UE5 selection blue fill
+        Color cyanAccent{ 0.0f, 0.82f, 1.0f, 1.0f };       // #00E5FF bright cyan accent stripe line
+
+        // Fill label box at bottom of card
+        context.DrawRoundedRect(labelBox, ue5SelectBlue, radius);
+
+        // Top accent line separating thumbnail & label box
+        context.DrawRect(Rect{ cell.x, labelTopY, cell.width, 2.0f * scale }, cyanAccent);
+
+        // Crisp 1px card outline
+        context.DrawRoundedRectOutline(cell, ue5SelectBlue, 1.0f * scale, radius);
+    } else if (hovered) {
+        Color hoverBg = ThemeColor(ColorToken::HoverBackground);
+        context.DrawRoundedRect(cell, hoverBg, radius);
+    }
+
+    // 4. Paint Asset Thumbnail
     PaintAssetThumbnail(context, renderItem.thumbGeometry, item, selected, hovered);
 
+    // 5. Paint Item Label Text
     const int labelLines = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : 2;
-    PaintItemLabel(context, renderItem.geometry, item.name, renderItem.geometry.width - 4.0f, labelLines);
+    PaintItemLabel(context, renderItem.geometry, item.name, renderItem.geometry.width - 4.0f, labelLines, selected);
 
+    // 6. Paint Asset Type Text (for Tiles view)
     if (GetEffectiveViewMode() == ContentViewMode::Tiles && !item.isFolder) {
         const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeCaption));
         const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
         const float typeLineH = ThemeMetric(MetricToken::TextSizeCaption) + ThemeMetric(MetricToken::Space2);
         const float y = renderItem.geometry.y + renderItem.geometry.height - typeLineH;
-        context.DrawText(item.type, Point{ x, y }, ThemeColor(ColorToken::TextSecondary),
-            ThemeMetric(MetricToken::TextSizeCaption));
+        Color typeColor = selected ? Color::White() : ThemeColor(ColorToken::TextSecondary);
+        context.DrawText(item.type, Point{ x, y }, typeColor, ThemeMetric(MetricToken::TextSizeCaption));
     }
 }
 

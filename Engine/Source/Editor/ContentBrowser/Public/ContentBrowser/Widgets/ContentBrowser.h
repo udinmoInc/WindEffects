@@ -131,7 +131,7 @@ private:
     void PaintAssetThumbnail(PaintContext& context, const Rect& thumbRect, const ContentItem& item, bool selected,
         bool hovered);
     void PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth,
-        int maxLines = 2);
+        int maxLines = 2, bool selected = false);
     std::vector<std::string> WrapLabelText(PaintContext& context, const std::string& text, float maxWidth,
         float fontSize, int maxLines) const;
 

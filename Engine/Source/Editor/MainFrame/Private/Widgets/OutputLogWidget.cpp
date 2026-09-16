@@ -16,6 +16,9 @@ using ::we::runtime::kindui::Point;
 using ::we::runtime::kindui::Color;
 using ::we::runtime::kindui::Size;
 using ::we::runtime::kindui::Rect;
+using ::we::runtime::kindui::DPIContext;
+using ::we::runtime::kindui::IconPainter;
+namespace WindIcons = ::we::runtime::kindui::WindIcons;
 
 namespace we::editor::panels {
 
@@ -53,55 +56,111 @@ void OutputLogWidget::Tick(float /*deltaTime*/) {
         }
     }
     RebuildVisibleLines();
+    InvalidatePaint();
 }
 
 void OutputLogWidget::OnMouseWheel(const ::we::runtime::kindui::MouseEvent& event) {
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
     const float rowH = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
-    const float delta = event.wheelDeltaY * rowH * 3.0f;
     std::lock_guard<std::recursive_mutex> lock(m_Mutex);
-    const float contentHeight = static_cast<float>(m_VisibleLines.size()) * rowH;
-    const float maxScroll = std::max(0.0f, contentHeight - m_Geometry.height);
-    m_ScrollOffset = std::clamp(m_ScrollOffset - delta, 0.0f, maxScroll);
-    if (delta > 0.0f) {
+    const float contentHeight = static_cast<float>(m_VisibleRecords.size()) * rowH;
+    const float bodyHeight = std::max(0.0f, m_Geometry.height - 20.0f * scale);
+    m_Scroll.ApplyWheel(event.wheelDeltaY, rowH * 3.0f, bodyHeight, contentHeight);
+    if (event.wheelDeltaY > 0.0f) {
         m_AutoScroll = false;
     }
+    InvalidatePaint();
+}
+
+void OutputLogWidget::OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) {
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float rowH = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
+    const float contentHeight = static_cast<float>(m_VisibleRecords.size()) * rowH;
+    const float bodyHeight = std::max(0.0f, m_Geometry.height - 20.0f * scale);
+    if (m_Scroll.OnMouseDown(event, m_ScrollMetrics, bodyHeight, contentHeight)) {
+        m_AutoScroll = false;
+        InvalidatePaint();
+    }
+}
+
+void OutputLogWidget::OnMouseMove(const ::we::runtime::kindui::MouseEvent& event) {
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float rowH = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
+    std::lock_guard<std::recursive_mutex> lock(m_Mutex);
+    const float contentHeight = static_cast<float>(m_VisibleRecords.size()) * rowH;
+    const float bodyHeight = std::max(0.0f, m_Geometry.height - 20.0f * scale);
+    const bool wasHovered = m_Scroll.IsThumbHovered();
+    m_Scroll.OnMouseMove(event, m_ScrollMetrics, bodyHeight, contentHeight);
+    if (m_Scroll.IsDraggingThumb() || m_Scroll.IsThumbHovered() != wasHovered) {
+        if (m_Scroll.IsDraggingThumb()) {
+            m_AutoScroll = false;
+        }
+        InvalidatePaint();
+    }
+}
+
+void OutputLogWidget::OnMouseUp(const ::we::runtime::kindui::MouseEvent& event) {
+    m_Scroll.OnMouseUp(event);
+    InvalidatePaint();
+}
+
+void OutputLogWidget::OnHoverLost() {
+    m_Scroll.OnMouseMove(::we::runtime::kindui::MouseEvent{}, m_ScrollMetrics, 0.0f, 0.0f);
+    InvalidatePaint();
+}
+
+bool OutputLogWidget::ShowsPointerCursor(const ::we::runtime::kindui::Point& position) const {
+    return ::we::runtime::kindui::ScrollViewport::ShowsScrollbarCursor(m_ScrollMetrics, position);
 }
 
 void OutputLogWidget::Clear() {
     std::lock_guard<std::recursive_mutex> lock(m_Mutex);
     m_Records.clear();
-    m_VisibleLines.clear();
-    m_VisibleLevels.clear();
-    m_ScrollOffset = 0.0f;
+    m_VisibleRecords.clear();
+    m_Scroll.offset = 0.0f;
     m_InfoCount = 0;
     m_WarningCount = 0;
     m_ErrorCount = 0;
     m_TotalCount = 0;
+    InvalidatePaint();
 }
 
 void OutputLogWidget::SetSearchQuery(const std::string& query) {
     m_SearchQuery = query;
     RebuildVisibleLines();
+    InvalidatePaint();
 }
 
 void OutputLogWidget::SetMinimumLevel(we::Logger::Level level) {
     m_MinLevel = level;
     RebuildVisibleLines();
+    InvalidatePaint();
 }
 
 void OutputLogWidget::SetCategoryFilter(const std::string& category) {
     m_CategoryFilter = category;
     RebuildVisibleLines();
+    InvalidatePaint();
+}
+
+Color OutputLogWidget::GetRecordColor(const we::Logger::LogRecord& record) const {
+    if (record.category == "Cmd" || record.category == "Command" || record.category == "Exec" ||
+        record.message.rfind(">", 0) == 0 || record.message.find("Cmd:") != std::string::npos || record.message.find("Command:") != std::string::npos ||
+        record.formattedText.rfind(">", 0) == 0 || record.formattedText.find("Cmd:") != std::string::npos) {
+        return Color{ 0.45f, 0.75f, 0.52f, 1.0f }; // Soft theme-harmonized emerald green for user commands
+    }
+    return LevelColor(record.level);
 }
 
 Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
     switch (level) {
-        case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextSecondary);
-        case we::Logger::Level::Debug: return ThemeColor(ColorToken::TextSecondary);
+        case we::Logger::Level::Trace: return ThemeColor(ColorToken::TextPrimary);
+        case we::Logger::Level::Debug: return ThemeColor(ColorToken::TextPrimary);
         case we::Logger::Level::Info: return ThemeColor(ColorToken::TextPrimary);
-        case we::Logger::Level::Warning: return ThemeColor(ColorToken::Warning);
-        case we::Logger::Level::Error: return ThemeColor(ColorToken::ErrorForeground);
-        case we::Logger::Level::Critical: return ThemeColor(ColorToken::ErrorForeground);
+        case we::Logger::Level::Warning: return Color{ 0.88f, 0.70f, 0.32f, 1.0f }; // Soft theme amber/gold
+        case we::Logger::Level::Error: return Color{ 0.85f, 0.42f, 0.42f, 1.0f };   // Soft theme muted coral/red
+        case we::Logger::Level::Critical: return Color{ 0.85f, 0.42f, 0.42f, 1.0f };// Soft theme muted coral/red
     }
     return ThemeColor(ColorToken::TextPrimary);
 }
@@ -109,7 +168,7 @@ Color OutputLogWidget::LevelColor(we::Logger::Level level) const {
 bool OutputLogWidget::PassesFilter(const we::Logger::LogRecord& record) const {
     if (static_cast<int>(record.level) < static_cast<int>(m_MinLevel)) return false;
     if (!m_CategoryFilter.empty() && record.category != m_CategoryFilter) return false;
-    if (!m_SearchQuery.empty() && record.formattedText.find(m_SearchQuery) == std::string::npos) return false;
+    if (!m_SearchQuery.empty() && record.formattedText.find(m_SearchQuery) == std::string::npos && record.message.find(m_SearchQuery) == std::string::npos) return false;
     return true;
 }
 
@@ -119,8 +178,7 @@ void OutputLogWidget::RebuildVisibleLines() {
 }
 
 void OutputLogWidget::RebuildVisibleLinesUnlocked() {
-    m_VisibleLines.clear();
-    m_VisibleLevels.clear();
+    m_VisibleRecords.clear();
     m_InfoCount = 0;
     m_WarningCount = 0;
     m_ErrorCount = 0;
@@ -137,60 +195,98 @@ void OutputLogWidget::RebuildVisibleLinesUnlocked() {
         }
 
         if (!PassesFilter(record)) continue;
-        m_VisibleLines.push_back(record.formattedText);
-        m_VisibleLevels.push_back(record.level);
+        m_VisibleRecords.push_back(record);
     }
     if (m_AutoScroll) {
-        const float contentHeight = static_cast<float>(m_VisibleLines.size()) *
+        const float scale = (std::max)(1.0f, DPIContext::GetScale());
+        const float contentHeight = static_cast<float>(m_VisibleRecords.size()) *
             ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
-        m_ScrollOffset = std::max(0.0f, contentHeight - m_Geometry.height);
+        const float bodyHeight = std::max(0.0f, m_Geometry.height - 20.0f * scale);
+        m_Scroll.offset = std::max(0.0f, contentHeight - bodyHeight);
     }
 }
 
 void OutputLogWidget::Paint(PaintContext& context) {
     if (!m_Visible) return;
 
-    std::vector<std::string> visibleLines;
-    std::vector<we::Logger::Level> visibleLevels;
-    float scrollOffset = 0.0f;
-    Rect geometry;
+    std::vector<we::Logger::LogRecord> visibleRecords;
+    Rect rawGeometry;
     {
         std::lock_guard<std::recursive_mutex> lock(m_Mutex);
-        visibleLines = m_VisibleLines;
-        visibleLevels = m_VisibleLevels;
-        scrollOffset = m_ScrollOffset;
-        geometry = m_Geometry;
+        visibleRecords = m_VisibleRecords;
+        rawGeometry = m_Geometry;
     }
 
-    ::we::runtime::kindui::panels::PanelChrome::PaintContentRegion(context, geometry);
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float marginH = 4.0f * scale;
+    const float marginV = 2.0f * scale;
+    const float paddingV = 8.0f * scale;
 
-    const float lineHeight = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
-    float y = geometry.y - scrollOffset;
-    const float maxY = geometry.y + geometry.height;
+    const Rect geometry{
+        rawGeometry.x + marginH,
+        rawGeometry.y + marginV,
+        std::max(0.0f, rawGeometry.width - marginH * 2.0f),
+        std::max(0.0f, rawGeometry.height - marginV * 2.0f)
+    };
 
-    for (size_t i = 0; i < visibleLines.size(); ++i) {
-        if (y + lineHeight < geometry.y) {
-            y += lineHeight;
+    // 1. Recessed background surface for entire log container
+    context.DrawSurface(geometry, SurfaceRole::Recessed, 3.0f * scale, "OutputLogRecessedBody");
+
+    const float paddingH = 8.0f * scale;
+    const float fontSize = ThemeMetric(MetricToken::TextSizeCaption);
+
+    const float bodyYStart = geometry.y + paddingV;
+    const float bodyHeight = std::max(0.0f, geometry.height - paddingV * 2.0f);
+
+    // Update ScrollViewport metrics
+    const float rowH = ::we::runtime::kindui::panels::PanelChrome::ListRowHeight();
+    const float contentHeight = static_cast<float>(visibleRecords.size()) * rowH;
+    const Rect fullBodyRect{ geometry.x, bodyYStart, geometry.width, bodyHeight };
+    m_ScrollMetrics = m_Scroll.UpdateMetrics(fullBodyRect, bodyHeight, contentHeight, scale);
+
+    // Viewport rect for content area (adjusts automatically for reserved scrollbar)
+    const Rect contentViewport = m_ScrollMetrics.viewport;
+
+    // Message Column takes full row width
+    const float colMsgX = contentViewport.x + paddingH;
+    const float colMsgW = std::max(0.0f, contentViewport.width - paddingH * 2.0f);
+
+    // 2. Paint Log Body Rows
+    context.PushClipRect(contentViewport);
+
+    float y = bodyYStart - m_Scroll.offset;
+    const float maxY = bodyYStart + bodyHeight;
+
+    const Color textPrimary = ThemeColor(ColorToken::TextPrimary);
+
+    for (size_t i = 0; i < visibleRecords.size(); ++i) {
+        if (y + rowH < bodyYStart) {
+            y += rowH;
             continue;
         }
         if (y > maxY) break;
 
-        if (i % 2 == 1) {
-            context.DrawSurface(
-                Rect{ geometry.x, y, geometry.width, lineHeight },
-                SurfaceRole::Recessed,
-                0.0f,
-                "LogSubtleRow");
-        }
+        const Rect fullRowRect{ geometry.x, y, geometry.width, rowH };
+        ::we::runtime::kindui::panels::PanelChrome::PaintAlternatingListRowBackground(context, fullRowRect, static_cast<int>(i));
 
-        context.DrawText(
-            visibleLines[i],
-            Point{ geometry.x + ::we::runtime::kindui::panels::PanelChrome::PanelPaddingH(), y + (lineHeight -
-                ThemeMetric(MetricToken::TextSizeCaption)) * 0.5f },
-            LevelColor(visibleLevels[i]),
-            ThemeMetric(MetricToken::TextSizeCaption));
-        y += lineHeight;
+        const auto& rec = visibleRecords[i];
+        const float textY = y + (rowH - fontSize) * 0.5f - 1.0f * scale;
+
+        // Log Message taking full row width with level/command-based color highlighting
+        const Color msgColor = GetRecordColor(rec);
+        const std::string& msgStr = !rec.formattedText.empty() ? rec.formattedText : rec.message;
+
+        context.PushClipRect(Rect{ colMsgX, y, colMsgW, rowH });
+        context.DrawText(msgStr, Point{ colMsgX, textY }, msgColor, fontSize);
+        context.PopClipRect();
+
+        y += rowH;
     }
+
+    context.PopClipRect();
+
+    // 3. Paint Standard Engine Scrollbar (using ScrollViewport)
+    m_Scroll.Paint(context, m_ScrollMetrics, m_Scroll.IsThumbHovered());
 }
 
 } // namespace we::editor::panels

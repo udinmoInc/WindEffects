@@ -33,7 +33,7 @@ struct ResourceId {
 struct ResourceDescriptor {
     ResourceId id;
     std::string path;
-    std::string type; // icon, font, texture, svg
+    std::string type;
 };
 
 using ResourceLoader = std::function<bool(const ResourceDescriptor& descriptor, void* outHandle)>;

@@ -270,9 +270,11 @@ void DockContainer::LayoutTabGeometries() {
     if (m_ActiveTabIndex >= 0) {
         state.activeIndex = static_cast<size_t>(m_ActiveTabIndex);
     }
-    state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
-        const auto& tabInfo = m_Tabs[index];
-        return isActive || tabInfo.isHovered;
+    state.showClose = [this](size_t /*index*/, bool /*isActive*/, bool /*isHovered*/) {
+        if (m_PreventCloseWhenSingle && m_Tabs.size() <= 1) {
+            return false;
+        }
+        return true;
     };
 
     Rect tabStripRect = m_HeaderRect;
@@ -342,7 +344,7 @@ float DockContainer::MeasureTabWidth(PaintContext& context, const TabInfo& tabIn
     descriptor.hasBrand = tabInfo.panel->HasTabBrand();
     descriptor.brandDescriptor = tabInfo.panel->GetTabBrandDescriptor();
     descriptor.brandLogicalSize = tabInfo.panel->GetTabBrandLogicalSize();
-    const bool showClose = isActive || tabInfo.isHovered;
+    const bool showClose = (isActive || tabInfo.isHovered) && !(m_PreventCloseWhenSingle && m_Tabs.size() <= 1);
     return PanelChrome::MeasureDockTabWidth(context, descriptor, isActive, showClose, flushLeft);
 }
 
@@ -379,6 +381,9 @@ void DockContainer::Paint(PaintContext& context) {
     state.optionsMenuHovered = m_OptionsMenuHovered;
     state.showOptionsMenu = m_ShowOptionsMenu;
     state.showClose = [this](size_t index, bool isActive, bool /*isHovered*/) {
+        if (m_PreventCloseWhenSingle && m_Tabs.size() <= 1) {
+            return false;
+        }
         const auto& tabInfo = m_Tabs[index];
         return isActive || tabInfo.isHovered;
     };
@@ -421,6 +426,9 @@ void DockContainer::OnMouseDown(const MouseEvent& event) {
             auto& tabInfo = m_Tabs[static_cast<size_t>(i)];
             if (tabInfo.tabRect.Contains(event.position)) {
                 if ((i == m_ActiveTabIndex || tabInfo.isHovered) && tabInfo.closeRect.Contains(event.position)) {
+                    if (m_PreventCloseWhenSingle && m_Tabs.size() <= 1) {
+                        return;
+                    }
                     if (m_OnTabClosed) {
                         m_OnTabClosed(tabInfo.panel);
                     }
@@ -487,9 +495,10 @@ void DockContainer::OnMouseMove(const MouseEvent& event) {
             m_OptionsMenuHovered = newOptionsHover;
             tabStateChanged = true;
         }
+        const bool canClose = !(m_PreventCloseWhenSingle && m_Tabs.size() <= 1);
         for (auto& tabInfo : m_Tabs) {
             const bool newH = tabInfo.tabRect.Contains(event.position);
-            const bool newCH = newH && tabInfo.closeRect.Contains(event.position);
+            const bool newCH = canClose && newH && !tabInfo.closeRect.IsEmpty() && tabInfo.closeRect.Contains(event.position);
             if (tabInfo.isHovered != newH || tabInfo.isCloseHovered != newCH) {
                 tabInfo.isHovered = newH;
                 tabInfo.isCloseHovered = newCH;
@@ -599,5 +608,3 @@ void DockContainer::ShowPanelOptionsMenu(const Point& pos) {
 }
 
 } // namespace we::runtime::kindui::docking
-
- 

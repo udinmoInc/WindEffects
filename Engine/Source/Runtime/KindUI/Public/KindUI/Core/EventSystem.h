@@ -1,6 +1,6 @@
 // ==============================================================================
 // WindEffects — KindUI — EventSystem
-// Public API surface for the KindUI module.
+// Maintained by Vijay Singh and Raksha Singh.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the

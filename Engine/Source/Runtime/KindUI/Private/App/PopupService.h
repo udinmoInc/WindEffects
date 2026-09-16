@@ -25,7 +25,6 @@ public:
 
     void ShowMenu(Element menu, Point position);
     void ShowMenuAt(Element menu, const Widget& anchor);
-    void ShowDropdown(Element menu, Point position);
     void DismissTop();
     void DismissAll();
 
@@ -36,7 +35,6 @@ private:
 
     IPopupHost* m_Host = nullptr;
     std::shared_ptr<IWidgetContext> m_Context;
-    std::unique_ptr<ViewHost> m_ViewHost;
 };
 
 } // namespace we::runtime::kindui

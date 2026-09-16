@@ -289,7 +289,7 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
 
     auto searchRow = std::make_shared<we::runtime::kindui::Row>();
     searchRow->Background(we::runtime::kindui::ResolveSurfaceColor(we::runtime::kindui::SurfaceRole::Panel));
-    searchRow->Padding(Margin{ 6.0f, 3.0f, 6.0f, 3.0f });
+    searchRow->Padding(Margin{ 6.0f, 2.0f, 6.0f, 2.0f });
     searchRow->Gap(4.0f);
     searchRow->Align(AlignItems::Center);
     searchRow->SetFlexShrink(0.0f);
@@ -300,11 +300,8 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
     auto searchBox = std::make_shared<::we::runtime::kindui::SearchBoxControl>();
     searchBox->SetPlaceholder("Search Assets...");
     searchBox->SetToolbarInset(true);
-    searchBox->SetFillWidth(false);
-    const float uiScale = (std::max)(1.0f, we::runtime::kindui::DPIContext::GetScale());
-    searchBox->SetWidth(450.0f * uiScale);
-    searchBox->SetFlexGrow(0.0f);
-    searchBox->SetFlexShrink(0.0f);
+    searchBox->SetFlexGrow(1.0f);
+    searchBox->SetFlexShrink(1.0f);
 
     searchRow->AddChild(filterBtn);
     searchRow->AddChild(searchBox);

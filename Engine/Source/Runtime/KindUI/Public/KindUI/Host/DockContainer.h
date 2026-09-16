@@ -1,6 +1,6 @@
 // ==============================================================================
 // WindEffects — KindUI — DockContainer
-// Public API surface for the KindUI module.
+// Maintained by Vijay Singh and Raksha Singh.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
@@ -74,6 +74,8 @@ public:
     [[nodiscard]] float GetLeadingReservedWidth() const { return m_LeadingReservedWidth; }
     void SetShowOptionsMenu(bool show);
     [[nodiscard]] bool ShowsOptionsMenu() const { return m_ShowOptionsMenu; }
+    void SetPreventCloseWhenSingle(bool prevent) { m_PreventCloseWhenSingle = prevent; }
+    [[nodiscard]] bool PreventsCloseWhenSingle() const { return m_PreventCloseWhenSingle; }
     /// True when pos hits a tab, tab-close, or options control (not empty drag area).
     [[nodiscard]] bool IsTabStripInteractiveHit(const Point& pos) const;
 
@@ -111,6 +113,7 @@ private:
     float m_TrailingReservedWidth = 0.0f;
     float m_LeadingReservedWidth = 0.0f;
     bool m_ShowOptionsMenu = false;
+    bool m_PreventCloseWhenSingle = false;
     Rect m_HeaderRect;
     Rect m_HeaderContentGapRect;
     Rect m_ContentRect;

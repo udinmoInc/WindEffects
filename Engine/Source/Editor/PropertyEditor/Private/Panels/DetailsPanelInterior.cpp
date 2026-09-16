@@ -214,8 +214,8 @@ void PopulateDetailsPanelRegions(
     auto mainColumn = std::make_shared<Column>();
     mainColumn->SetFlexGrow(1.0f);
     mainColumn->SetFlexShrink(1.0f);
-    mainColumn->Gap(rowGap);
-    mainColumn->Padding(Margin{ 0.0f, rowGap, 0.0f, 0.0f });
+    mainColumn->Gap(0.0f);
+    mainColumn->Padding(Margin{ 0.0f, 0.0f, 0.0f, 0.0f });
 
     mainColumn->AddChild(objectHeader);
     mainColumn->AddChild(toolbar);

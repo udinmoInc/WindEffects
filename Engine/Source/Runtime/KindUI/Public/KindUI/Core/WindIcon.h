@@ -61,6 +61,7 @@ namespace WindIconAssets {
     inline constexpr const char* ChevronUp = "chevron-up";
     inline constexpr const char* ChevronUpV2 = "chevron-up-v2";
     inline constexpr const char* CircleArrowLeft = "circle-arrow-left";
+    inline constexpr const char* CircleArrowLeftV2 = "circle-arrow-left-v2";
     inline constexpr const char* CircleArrowRight = "circle-arrow-right";
     inline constexpr const char* CircleHelp = "circle-help";
     inline constexpr const char* CirclePlus = "circle-plus";
@@ -97,6 +98,7 @@ namespace WindIconAssets {
     inline constexpr const char* FolderOpen = "folder-open";
     inline constexpr const char* FolderOpenMask = "folder-open-mask";
     inline constexpr const char* FolderSearch = "folder-search";
+    inline constexpr const char* FolderSearchV2 = "folder-search-v2";
     inline constexpr const char* Fps = "fps";
     inline constexpr const char* GameController = "game-controller";
     inline constexpr const char* GitPullRequestDraft = "git-pull-request-draft";
@@ -156,6 +158,7 @@ namespace WindIconAssets {
     inline constexpr const char* ToolbarVideocameraOff = "toolbar-videocamera-off";
     inline constexpr const char* ToolbarVideocameraOutlined = "toolbar-videocamera-outlined";
     inline constexpr const char* ToolbarScaling = "toolbar_scaling";
+    inline constexpr const char* Trash = "trash";
     inline constexpr const char* TriangleDown = "triangle-down";
     inline constexpr const char* TriangleLeft = "triangle-left";
     inline constexpr const char* TriangleRight = "triangle-right";
@@ -220,6 +223,7 @@ namespace WindIcons {
     inline constexpr WindIconRef ChevronUp24{ WindIconAssets::ChevronUp, 24 };
     inline constexpr WindIconRef ChevronUpV212{ WindIconAssets::ChevronUpV2, 12 };
     inline constexpr WindIconRef CircleArrowLeft16{ WindIconAssets::CircleArrowLeft, 16 };
+    inline constexpr WindIconRef CircleArrowLeftV216{ WindIconAssets::CircleArrowLeftV2, 16 };
     inline constexpr WindIconRef CircleArrowLeft24{ WindIconAssets::CircleArrowLeft, 24 };
     inline constexpr WindIconRef CircleArrowRight16{ WindIconAssets::CircleArrowRight, 16 };
     inline constexpr WindIconRef CircleArrowRight24{ WindIconAssets::CircleArrowRight, 24 };
@@ -291,6 +295,7 @@ namespace WindIcons {
     inline constexpr WindIconRef FolderOpenMask16{ WindIconAssets::FolderOpenMask, 16 };
     inline constexpr WindIconRef FolderOpenMask24{ WindIconAssets::FolderOpenMask, 24 };
     inline constexpr WindIconRef FolderSearch16{ WindIconAssets::FolderSearch, 16 };
+    inline constexpr WindIconRef FolderSearchV216{ WindIconAssets::FolderSearchV2, 16 };
     inline constexpr WindIconRef FolderSearch24{ WindIconAssets::FolderSearch, 24 };
     inline constexpr WindIconRef Fps16{ WindIconAssets::Fps, 16 };
     inline constexpr WindIconRef Fps24{ WindIconAssets::Fps, 24 };
@@ -406,6 +411,7 @@ namespace WindIcons {
     inline constexpr WindIconRef ToolbarVideocameraOutlined24{ WindIconAssets::ToolbarVideocameraOutlined, 24 };
     inline constexpr WindIconRef ToolbarScaling16{ WindIconAssets::ToolbarScaling, 16 };
     inline constexpr WindIconRef ToolbarScaling24{ WindIconAssets::ToolbarScaling, 24 };
+    inline constexpr WindIconRef Trash16{ WindIconAssets::Trash, 16 };
     inline constexpr WindIconRef TriangleDown16{ WindIconAssets::TriangleDown, 16 };
     inline constexpr WindIconRef TriangleDown24{ WindIconAssets::TriangleDown, 24 };
     inline constexpr WindIconRef TriangleLeft16{ WindIconAssets::TriangleLeft, 16 };

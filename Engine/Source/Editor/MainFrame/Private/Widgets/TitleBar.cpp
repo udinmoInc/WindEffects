@@ -348,12 +348,14 @@ void TitleBar::UpdateMaximizeIcon() {
 we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
     Point p{ static_cast<float>(point.x), static_cast<float>(point.y) };
 
-    // Use the live widget tree so menus / title-bar tools / window controls stay
-    // HTCLIENT even when left/right Row desired-size lags a frame behind paint.
-    // Returning HTCAPTION over those glyphs makes Windows steal the click as a
-    // caption drag — the header icons appear dead.
+    // Use live widget tree hit testing so interactive controls (menu bar, tools,
+    // window controls) return Client, while container gaps remain Draggable.
     if (auto hit = HitTestPoint(p, nullptr)) {
-        if (hit.get() != static_cast<Widget*>(this)) {
+        Widget* raw = hit.get();
+        if (raw != static_cast<Widget*>(this) &&
+            raw != static_cast<Widget*>(m_LeftContainer.get()) &&
+            raw != static_cast<Widget*>(m_RightContainer.get()) &&
+            raw != static_cast<Widget*>(m_CenterContainer.get())) {
             return we::platform::WindowHitTestResult::Client;
         }
     }
@@ -366,17 +368,6 @@ we::platform::WindowHitTestResult TitleBar::HitTest(we::platform::Int2 point) {
         if (g.width > 0.0f && g.height > 0.0f && g.Contains(p)) {
             return we::platform::WindowHitTestResult::Client;
         }
-    }
-
-    if (m_LeftContainer && m_LeftContainer->GetGeometry().Contains(p)) {
-        return we::platform::WindowHitTestResult::Client;
-    }
-    if (m_RightContainer && m_RightContainer->GetGeometry().Contains(p)) {
-        return we::platform::WindowHitTestResult::Client;
-    }
-    if (m_CenterContainer && m_CenterContainer->GetGeometry().width > 0.0f
-        && m_CenterContainer->GetGeometry().Contains(p)) {
-        return we::platform::WindowHitTestResult::Client;
     }
 
     if (m_Geometry.Contains(p)) {

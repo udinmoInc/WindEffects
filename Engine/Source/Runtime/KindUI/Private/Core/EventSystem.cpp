@@ -13,6 +13,8 @@
 #include "KindUI/UI/ScrollLayout.h"
 #include "KindUI/Diagnostics/UiInputDebug.h"
 #include "KindUI/Diagnostics/UiInputLatencyAudit.h"
+#include "Core/LogCategory.h"
+#include "Core/Logger.h"
 #include "Platform/Platform.h"
 
 #include <cmath>
@@ -294,6 +296,7 @@ void EventSystem::ClearAllInputState() {
     ClearCapture();
     SetFocusedWidget(nullptr);
     ClearHover();
+    m_LastMousePos = Point{ -10000.0f, -10000.0f };
 }
 
 void EventSystem::ProcessKeyEvent(const KeyEvent& event) {
@@ -367,4 +370,3 @@ void EventSystem::SetFocusedWidget(const std::shared_ptr<Widget>& widget) {
 }
 
 } // namespace we::runtime::kindui
- 

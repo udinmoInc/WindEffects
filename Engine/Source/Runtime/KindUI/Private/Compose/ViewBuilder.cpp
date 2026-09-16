@@ -12,7 +12,6 @@
 #include "KindUI/UI/DesignSystemControls.h"
 #include "KindUI/UI/Flex.h"
 #include "KindUI/UI/ScrollLayout.h"
-#include "KindUI/UI/Flex.h"
 #include "KindUI/UI/CheckBox.h"
 #include "KindUI/UI/Components.h"
 #include "KindUI/UI/Label.h"

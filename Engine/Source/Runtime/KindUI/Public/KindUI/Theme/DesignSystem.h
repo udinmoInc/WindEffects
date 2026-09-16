@@ -180,7 +180,7 @@ namespace Input {
 [[nodiscard]] inline Color Placeholder() { return ResolveTextColor(TextRole::Secondary); }
 [[nodiscard]] inline Color InsetInner() { return ResolveColor(ColorToken::InputInsetInner); }
 [[nodiscard]] inline Color InsetOuter() { return ResolveColor(ColorToken::InputInsetOuter); }
-[[nodiscard]] inline Color Outline() { return ResolveColor(ColorToken::BorderSubtle); }
+[[nodiscard]] inline Color Outline() { return ResolveColor(ColorToken::InputOutline); }
 }
 
 namespace Text {

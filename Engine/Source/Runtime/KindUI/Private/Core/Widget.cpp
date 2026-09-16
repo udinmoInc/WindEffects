@@ -17,6 +17,7 @@
 #include "KindUI/UI/IPopupHost.h"
 #include "KindUI/Diagnostics/UiPathDiagnostics.h"
 #include "KindUI/Diagnostics/UiInputLatencyAudit.h"
+#include "KindUI/Diagnostics/UiInputDebug.h"
 #include "Theming/StyleClass.h"
 #include "KindUI/Theme/ThemeAccess.h"
 
@@ -339,6 +340,7 @@ void Widget::SetVisible(bool visible) {
     if (m_Visible == visible) {
         return;
     }
+    UiInputDebug::OnWidgetStateChange(*this, "Visible", m_Visible, visible, "Widget::SetVisible");
     m_Visible = visible;
     if (!visible) {
         ReleaseRetainedPaintSubtree();
@@ -708,6 +710,7 @@ ResolvedStyle Widget::ResolveEffectiveStyle(StyleRole fallbackRole) const {
 
 void Widget::SetEnabled(bool enabled) {
     if (m_Enabled == enabled) return;
+    UiInputDebug::OnWidgetStateChange(*this, "Enabled", m_Enabled, enabled, "Widget::SetEnabled");
     m_Enabled = enabled;
     m_NeedsStyle = true;
     UIStateChangeGate::Post(*this, StateChangeKind::Enabled);
@@ -806,7 +809,7 @@ std::shared_ptr<Widget> Widget::HitTestPoint(const Point& pos, const Rect* clip)
         return nullptr;
     }
 
-  const std::optional<Rect> localClip = GetHitTestClipRect();
+    const std::optional<Rect> localClip = GetHitTestClipRect();
     const Rect effectiveClip = EffectiveChildClip(clip, localClip);
     const Rect* childClip = clip;
     if (localClip.has_value() || clip != nullptr) {

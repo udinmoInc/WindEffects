@@ -128,7 +128,7 @@ std::shared_ptr<::we::runtime::kindui::docking::DockContainer> EditorWorkspaceCo
     if (panelId == "Details") {
         return m_Layout.detailsDock;
     }
-    if (panelId == "ContentBrowser") {
+    if (panelId == "ContentBrowser" || panelId == "OutputLog") {
         return m_Layout.contentBrowserDock;
     }
     return nullptr;
@@ -161,7 +161,7 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
         "[Workspace] SetPanelVisible: panel=" + panelId + " visible=" + (visible ? "true" : "false"));
     we::runtime::kindui::UIRepaintGate::ScopedBatch batch;
 
-    if (panelId == "ContentBrowser" && visible && !m_ContentBrowserExpanded) {
+    if ((panelId == "ContentBrowser" || panelId == "OutputLog") && visible && !m_ContentBrowserExpanded) {
         m_ContentBrowserExpanded = true;
         if (m_Layout.rootVerticalSplitter) {
             const float targetHeight = SanitizeContentBrowserHeight(m_ContentBrowserBottomHeight);
@@ -217,6 +217,11 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
             }
             dock->FocusPanel(it->second.panel);
         } else if (dock->ContainsPanel(it->second.panel)) {
+            if (dock->PreventsCloseWhenSingle() && dock->GetTabCount() <= 1) {
+                it->second.visible = true;
+                it->second.panel->SetVisible(true);
+                return;
+            }
             dock->RemovePanel(it->second.panel);
         }
     } else if (auto zoneDock = DockForZone(it->second.zone)) {
@@ -226,6 +231,11 @@ void EditorWorkspaceController::SetPanelVisible(const std::string& panelId, bool
             }
             zoneDock->FocusPanel(it->second.panel);
         } else if (zoneDock->ContainsPanel(it->second.panel)) {
+            if (zoneDock->PreventsCloseWhenSingle() && zoneDock->GetTabCount() <= 1) {
+                it->second.visible = true;
+                it->second.panel->SetVisible(true);
+                return;
+            }
             zoneDock->RemovePanel(it->second.panel);
         }
     }
@@ -1001,11 +1011,9 @@ void EditorWorkspaceController::ApplyToolsPanelVisibility(bool visible) {
 
 void EditorWorkspaceController::SetBottomPanelIndex(int index) {
     if (index == 0) {
-        SetPanelVisible("ContentBrowser", true);
-        SetPanelVisible("OutputLog", false);
+        FocusPanel("ContentBrowser");
     } else {
-        SetPanelVisible("OutputLog", true);
-        SetPanelVisible("ContentBrowser", false);
+        FocusPanel("OutputLog");
     }
 }
 

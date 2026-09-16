@@ -34,10 +34,15 @@ public:
     void Paint(PaintContext& context) override;
 
     void OnMouseWheel(const ::we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseDown(const ::we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseMove(const ::we::runtime::kindui::MouseEvent& event) override;
+    void OnMouseUp(const ::we::runtime::kindui::MouseEvent& event) override;
+    void OnHoverLost() override;
+    bool ShowsPointerCursor(const ::we::runtime::kindui::Point& position) const override;
 
-    void SetPaused(bool paused) { m_Paused = paused; }
+    void SetPaused(bool paused) { m_Paused = paused; InvalidatePaint(); }
     bool IsPaused() const { return m_Paused; }
-    void SetAutoScroll(bool enabled) { m_AutoScroll = enabled; }
+    void SetAutoScroll(bool enabled) { m_AutoScroll = enabled; InvalidatePaint(); }
     bool IsAutoScroll() const { return m_AutoScroll; }
     void Clear();
     void SetSearchQuery(const std::string& query);
@@ -50,21 +55,22 @@ public:
     size_t GetTotalCount() const { return m_TotalCount; }
 
 private:
+    we::runtime::kindui::Color GetRecordColor(const we::Logger::LogRecord& record) const;
     we::runtime::kindui::Color LevelColor(we::Logger::Level level) const;
     bool PassesFilter(const we::Logger::LogRecord& record) const;
     void RebuildVisibleLines();
     void RebuildVisibleLinesUnlocked();
 
     std::deque<we::Logger::LogRecord> m_Records;
-    std::vector<std::string> m_VisibleLines;
-    std::vector<we::Logger::Level> m_VisibleLevels;
+    std::vector<we::Logger::LogRecord> m_VisibleRecords;
     std::recursive_mutex m_Mutex;
     std::string m_SearchQuery;
     std::string m_CategoryFilter;
     we::Logger::Level m_MinLevel = we::Logger::Level::Trace;
     bool m_Paused = false;
     bool m_AutoScroll = true;
-    float m_ScrollOffset = 0.0f;
+    we::runtime::kindui::ScrollViewport m_Scroll;
+    we::runtime::kindui::ScrollViewportMetrics m_ScrollMetrics{};
     size_t m_InfoCount = 0;
     size_t m_WarningCount = 0;
     size_t m_ErrorCount = 0;

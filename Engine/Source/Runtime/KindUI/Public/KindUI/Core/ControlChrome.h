@@ -69,6 +69,25 @@ KINDUI_API void PaintSubtleDropShadow(
     float radius,
     float strength = 1.0f);
 
+/// Shared 2.5D recessed rim colors (dark top/left, softer bottom/right).
+struct RecessedBorderColors {
+    Color dark{};
+    Color soft{};
+};
+
+[[nodiscard]] KINDUI_API RecessedBorderColors ResolveRecessedBorderColors(float strength = 1.0f);
+/// Default recessed rim thickness in device px (at least 2 so it reads clearly).
+[[nodiscard]] KINDUI_API float RecessedBorderThicknessPx();
+
+/// Reusable recessed dark border for panels, inputs, and buttons.
+/// `thickness <= 0` uses RecessedBorderThicknessPx().
+KINDUI_API void PaintRecessedBorder(
+    PaintContext& context,
+    const Rect& rect,
+    float radius = 0.0f,
+    float strength = 1.0f,
+    float thickness = 0.0f);
+
 /// Top/left highlight + bottom/right shade for a raised 3D control face.
 KINDUI_API void PaintRaisedBevel(
     PaintContext& context,
@@ -76,18 +95,25 @@ KINDUI_API void PaintRaisedBevel(
     float radius,
     float strength = 1.0f);
 
-/// Single 1px top inner highlight for recessed inputs (no side or bottom rims).
+/// Top inner shade for recessed wells (inset depth without changing fill colors).
 KINDUI_API void PaintInsetBevel(
     PaintContext& context,
     const Rect& rect,
     float radius,
     float strength = 1.0f);
 
-/// Soft outer edge depth for panels, cards, and region borders.
+/// Soft outer edge depth for panels, cards, and region borders (recessed rim + falloff).
 KINDUI_API void PaintSubtleBorderDepth(
     PaintContext& context,
     const Rect& rect,
     float radius,
+    float strength = 1.0f);
+
+/// Shared inset well depth used by inputs and panels (recessed rim + top shade).
+KINDUI_API void PaintWellDepth(
+    PaintContext& context,
+    const Rect& rect,
+    float radius = 0.0f,
     float strength = 1.0f);
 
 /// Toolbar/panel button edge — top highlight + bottom shade.
@@ -136,6 +162,13 @@ KINDUI_API void PaintBorderlessIconButton(
     PaintContext& context,
     const Rect& rect,
     const InteractionState& state);
+
+/// Soft gray 1px outline for inputs / search / status fields (theme InputOutline).
+KINDUI_API void PaintSoftInputBorder(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    const InteractionState& state = {});
 
 KINDUI_API void PaintInputFrame(
     PaintContext& context,

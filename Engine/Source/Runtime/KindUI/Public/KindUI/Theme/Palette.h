@@ -28,24 +28,24 @@ struct GraphiteDark {
     static constexpr Color Foldout           = Hex("#202020"); // Category / foldout headers (distinct from Panel)
     static constexpr Color Category          = Hex("#202020"); // alias → Foldout — property categorizer bars
     static constexpr Color Input             = Hex("#0E0E0E"); // InputSurface
-    static constexpr Color InputOutline      = Hex("#292929");
-    static constexpr Color BorderSeparator   = Hex("#101010");
-    static constexpr Color BorderSubtle      = Hex("#202020");
-    static constexpr Color BorderDefault     = Hex("#2A2A2A");
-    static constexpr Color BorderLight       = Hex("#353535");
+    static constexpr Color InputOutline      = Hex("#1E1E1E"); // soft gray hairline, no glow
+    static constexpr Color BorderSeparator   = Hex("#0F0F0F");
+    static constexpr Color BorderSubtle      = Hex("#1C1C1C");
+    static constexpr Color BorderDefault     = Hex("#1E1E1E");
+    static constexpr Color BorderLight       = Hex("#242424");
     static constexpr Color BorderFocus       = Hex("#0068D0");
     static constexpr Color BorderError       = Hex("#963B3B");
     static constexpr Color AxisX            = Hex("#8A3F3F");
     static constexpr Color AxisY            = Hex("#5D783F");
     static constexpr Color AxisZ            = Hex("#315F8A");
-    static constexpr Color InputInsetInner   = Hex("#08080866");
-    static constexpr Color InputInsetOuter   = Hex("#00000080");
-    static constexpr Color Recessed          = Hex("#141414"); // legacy alias → InnerPanel
-    static constexpr Color InnerPanel        = Hex("#141414"); // PanelInner — nested rows / trees / wells
+    static constexpr Color InputInsetInner   = Hex("#00000038");
+    static constexpr Color InputInsetOuter   = Hex("#00000059");
+    static constexpr Color Recessed          = Hex("#121212"); // legacy alias → InnerPanel
+    static constexpr Color InnerPanel        = Hex("#121212"); // PanelInner — nested rows / trees / wells
     static constexpr Color Panel             = Hex("#181818"); // shared PanelSurface
     static constexpr Color Header            = Hex("#181818"); // same as Panel
-    static constexpr Color Dropdown          = Hex("#1A1A1A"); // Popup / card
-    static constexpr Color DropdownOutline   = Hex("#2C2C2C");
+    static constexpr Color Dropdown          = Hex("#262626"); // Popup / dropdown elevated surface
+    static constexpr Color DropdownOutline   = Hex("#3C3C3C"); // Popup border outline
     static constexpr Color Hover             = Hex("#2C2C2C"); // HoverSurface
     static constexpr Color Hover2            = Hex("#2E2E2E");
     static constexpr Color Highlight         = Hex("#0068D0");
@@ -89,19 +89,16 @@ struct GraphiteDark {
     static constexpr Color SecondaryText     = Hex("#929292");
     static constexpr Color Notifications     = SecondaryText; // alias
 
-    // ── Icons (mono atlas tint targets — separate from body text) ───────────
-
-    // Normal inactive toolbar / panel icons — lifted for dark-surface contrast
-    static constexpr Color IconNormal        = Hex("#D6D9DD");
+    // ── Icons (mono atlas tint — no separate "normal"; default = PrimaryText) ─
 
     // Hovered icon emphasis
-    static constexpr Color IconHoverTint     = White;
+    static constexpr Color IconHoverTint     = Hex("#D8D8D8");
 
     // Selected / active / important icons
-    static constexpr Color IconActiveTint    = White;
+    static constexpr Color IconActiveTint    = Hex("#D8D8D8");
 
-    // Disabled / subdued icons
-    static constexpr Color IconSubdued       = Hex("#8B9198");
+    // Disabled / subdued / secondary icons
+    static constexpr Color IconSubdued       = Hex("#8A8A8A");
 
     // 1px contact silhouette under glyphs (alpha; not a glow/box)
     static constexpr Color IconContactShadow = Hex("#00000073");

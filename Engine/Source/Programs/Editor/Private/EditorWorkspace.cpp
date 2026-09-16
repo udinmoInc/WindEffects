@@ -18,6 +18,7 @@
 #include "Environment/EnvironmentSystem.h"
 #include "Explorer/WorldOutlinerApi.h"
 #include <KindUI/EditorUI.h>
+#include "KindUI/Diagnostics/UiInputDebug.h"
 #include "Platform/PlatformSDK.h"
 #include "Prefab/Prefab.h"
 #include "PrefabEditor/PrefabEditor.h"
@@ -483,6 +484,13 @@ void Editor::EnterProjectWorkspace(const std::filesystem::path& weprojPath) {
             &m_WindowHitTestData);
 
         SetRootWidget(shellResult.rootWidget);
+        if (::we::runtime::kindui::UiInputDebug::IsEnabled()) {
+            ::we::runtime::kindui::UiInputDebug::AuditControlTree(shellResult.rootWidget, "EDITOR INITIALIZATION AUDIT");
+            ::we::runtime::kindui::UiInputDebug::RunFullToolbarStatusBarDiagnostic(shellResult.rootWidget);
+            ::we::runtime::kindui::UiInputDebug::TestFullInteractionPipeline(
+                shellResult.rootWidget,
+                m_UIEventSystem.get());
+        }
 
         // Ensure Explorer TreeView is bound after panel construction.
         if (m_WorldOutliner) {

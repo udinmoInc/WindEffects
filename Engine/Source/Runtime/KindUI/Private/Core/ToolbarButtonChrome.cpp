@@ -79,13 +79,19 @@ Rect PlaceIconInControl(const Rect& controlBounds, float glyphTierPx) {
 }
 
 Color ResolveIconColor(float hoverAnim, float pressStrength, bool active) {
-
-    return Color{ 0.72f, 0.72f, 0.72f, 1.0f };
+    if (active) {
+        return ResolveColor(ColorToken::IconActive);
+    }
+    const Color base = ResolveColor(ColorToken::IconPrimary);
+    if (hoverAnim > 0.001f || pressStrength > 0.001f) {
+        const float t = std::clamp(std::max(hoverAnim, pressStrength), 0.0f, 1.0f);
+        return Color::Pick(base, Color::White(), t);
+    }
+    return base;
 }
 
 Color ResolvePlayIconColor(float hoverAnim, float pressStrength, bool active) {
-
-    return Color{ 0.72f, 0.72f, 0.72f, 1.0f };
+    return ResolveIconColor(hoverAnim, pressStrength, active);
 }
 
 [[nodiscard]] bool IsAuthoredColorIcon(WindIconRef icon) {

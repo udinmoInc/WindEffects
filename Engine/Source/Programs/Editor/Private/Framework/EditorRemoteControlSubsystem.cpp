@@ -321,6 +321,14 @@ std::string EditorRemoteControlSubsystem::HandleRequestJson(const std::string& r
 }
 
 void EditorRemoteControlSubsystem::DrainInbox() {
+    using clock = std::chrono::steady_clock;
+    static auto s_LastScanTime = clock::now() - std::chrono::seconds(2);
+    const auto now = clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_LastScanTime).count() < 1000) {
+        return;
+    }
+    s_LastScanTime = now;
+
     const auto inbox = we::runtime::core::EngineRemoteProtocol::InboxDirectory(m_Root);
     const auto outbox = we::runtime::core::EngineRemoteProtocol::OutboxDirectory(m_Root);
     std::error_code ec;

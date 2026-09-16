@@ -158,6 +158,8 @@ PlaceActorsPanel::PlaceActorsPanel() {
     m_SearchRow->AddIconButton(WindIcons::ListFilter16, []() {});
     m_SearchRow->Finalize();
 
+    m_ColumnHeader = std::make_shared<::we::runtime::kindui::TreeColumnHeader>("Item", "Type");
+
     m_ContentHost = std::make_shared<PlaceActorsContentHost>(this);
 
     LoadPanelState();
@@ -176,6 +178,7 @@ PlaceActorsPanel::~PlaceActorsPanel() {
         RemoveChild(m_BodyLayout);
     }
     m_ContentHost.reset();
+    m_ColumnHeader.reset();
     m_SearchRow.reset();
     m_BodyLayout.reset();
 }
@@ -185,6 +188,7 @@ void PlaceActorsPanel::InitializeCallbacks(const std::shared_ptr<PlaceActorsPane
     if (m_BodyLayout && m_BodyLayout->GetParent() != self) {
         AddChild(m_BodyLayout);
         m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Search, m_SearchRow);
+        m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::ColumnHeader, m_ColumnHeader);
         m_BodyLayout->SetRegion(::we::runtime::kindui::panels::PanelBodyRegion::Content, m_ContentHost);
     }
     if (m_SearchRow) {

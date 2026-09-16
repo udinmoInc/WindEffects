@@ -247,17 +247,23 @@ Rect LayoutPropertyControlRect(const Rect& valueRect) {
     const float scale = UiScale();
     const float standardRowH = RowHeight();
     const float padding = ResolveMetric(MetricToken::Space1) * scale;
+    const float defaultW = ResolveMetric(MetricToken::InputWidthDefault) * scale;
+    const float maxFieldW = defaultW * 1.30f; // at most +30% beyond default
+    const float availW = std::max(0.0f, valueRect.width - padding * 2.0f);
 
     if (valueRect.height > standardRowH + 2.0f * scale) {
-        const float w = std::max(0.0f, valueRect.width - padding * 2.0f);
-        const float x = valueRect.x + valueRect.width - padding - w;
+        // Tall composites (asset ref): field max + thumbnail/gap budget — never full column.
+        const float thumbBudget = 72.0f * scale;
+        const float maxW = maxFieldW + thumbBudget;
+        const float w = std::min(availW, maxW);
+        const float x = valueRect.x + padding;
         return Rect{ x, valueRect.y + padding, w, std::max(0.0f, valueRect.height - padding * 2.0f) };
     }
 
     const float controlH = ResolveMetric(MetricToken::SearchBoxHeight) * scale;
     const float y = valueRect.y + (valueRect.height - controlH) * 0.5f;
-    const float w = std::max(0.0f, valueRect.width - padding * 2.0f);
-    const float x = valueRect.x + valueRect.width - padding - w;
+    const float w = std::min(availW, maxFieldW);
+    const float x = valueRect.x + padding;
     return Rect{ x, y, w, controlH };
 }
 
@@ -283,22 +289,9 @@ PropertyActionLayout LayoutPropertyActions(const Rect& actionsRect) {
 }
 
 void PaintPropertyControlBorder(PaintContext& context, const Rect& valueRect) {
-    const Rect controlRect = LayoutPropertyControlRect(valueRect);
-    if (controlRect.IsEmpty()) {
-        return;
-    }
-
-    // Inputs already own their fill and interaction state. This final pass
-    // establishes a consistent Inspector grid edge across text, numeric, and
-    // vector editors, using the theme's raised-control border color.
-    const float scale = UiScale();
-    const float radius = ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
-    const float width = std::max(1.0f, ResolveMetric(MetricToken::BorderWidth) * scale);
-    context.DrawRoundedRectOutline(
-        controlRect,
-        ResolveColor(ColorToken::BorderLight),
-        width,
-        radius);
+    (void)context;
+    (void)valueRect;
+    // Input wells stay flat — panel chrome owns depth, not per-field rims.
 }
 
 void PaintPropertyDivider(
@@ -310,9 +303,7 @@ void PaintPropertyDivider(
     if (bottom - top <= 1.0f) {
         return;
     }
-    // Dark mid-tone input outline — darker than BorderLight, not near-black Separator.
-    // Uses BorderSeparator from JSON theme configuration.
-    // Use 1.0f thickness to match label text thickness instead of BorderWidth
+    // Soft dark column rule — darker than panel, not a light hairline.
     ControlChrome::PaintVerticalSeparator(
         context,
         x,
@@ -332,7 +323,6 @@ void PaintPropertyHorizontalDivider(
     if (width <= 1.0f) {
         return;
     }
-    // Use 1.0f thickness to match label text thickness instead of BorderWidth
     const float borderW = std::max(1.0f, 1.0f * UiScale());
     const float snappedY = std::floor(y - borderW);
     context.DrawRect(
@@ -408,7 +398,8 @@ void PaintInlineIconLabelRow(
         IconPainter::Draw(
             context,
             icon,
-            Rect{ rect.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize });
+            Rect{ rect.x + padH, centerY - iconSize * 0.5f, iconSize, iconSize },
+            ResolveColor(emphasized ? ColorToken::IconPrimary : ColorToken::IconSecondary));
     }
 
     const float textX = rect.x + padH + (icon.IsValid() ? iconSize + gap : 0.0f);

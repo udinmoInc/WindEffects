@@ -76,9 +76,20 @@ private:
 /// Explorer tree column header row (Item Label / Type) as its own layout slot.
 class KINDUI_API TreeColumnHeader : public Widget {
 public:
+    TreeColumnHeader(std::string itemLabel = "Item", std::string typeLabel = "Type");
+
+    void SetItemLabel(std::string label) { m_ItemLabel = std::move(label); InvalidatePaint(); }
+    void SetTypeLabel(std::string label) { m_TypeLabel = std::move(label); InvalidatePaint(); }
+    [[nodiscard]] const std::string& GetItemLabel() const { return m_ItemLabel; }
+    [[nodiscard]] const std::string& GetTypeLabel() const { return m_TypeLabel; }
+
     Size Measure(const Size& availableSize) override;
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
+
+private:
+    std::string m_ItemLabel = "Item";
+    std::string m_TypeLabel = "Type";
 };
 
 } // namespace we::runtime::kindui

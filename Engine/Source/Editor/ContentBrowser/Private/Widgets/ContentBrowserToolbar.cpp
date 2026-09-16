@@ -180,7 +180,8 @@ void ContentBrowserToolbarControls::InitializeChildren() {
     m_FolderBtn->SetFlexShrink(0.0f);
 
     m_Breadcrumb = std::make_shared<Breadcrumb>();
-    m_Breadcrumb->SetFlexShrink(0.0f);
+    m_Breadcrumb->SetFlexGrow(1.0f);
+    m_Breadcrumb->SetFlexShrink(1.0f);
     m_Breadcrumb->SetPath({ "All", "Content" });
 
     m_SettingsBtn = std::make_shared<ToolbarIconButton>(WindIcons::Settings16, "Settings");
@@ -251,18 +252,15 @@ void ContentBrowserToolbarControls::InitializeChildren() {
         if (m_OnCreateClicked) m_OnCreateClicked();
     });
 
-    auto spacer = std::make_shared<we::runtime::kindui::Spacer>();
-    spacer->SetFlexGrow(1.0f);
-    spacer->SetFlexShrink(1.0f);
-
     AddChild(m_CreateBtn);
     AddChild(m_ImportBtn);
     AddChild(m_SaveBtn);
+    AddChild(MakeToolbarDivider());
     AddChild(m_BackBtn);
     AddChild(m_ForwardBtn);
     AddChild(m_FolderBtn);
     AddChild(m_Breadcrumb);
-    AddChild(spacer);
+    AddChild(MakeToolbarDivider());
     AddChild(m_SettingsBtn);
     AddChild(m_MoreBtn);
 }
@@ -290,7 +288,7 @@ void ContentBrowserToolbarControls::Paint(PaintContext& context) {
     if (m_DrawBottomBorder) {
         const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
         const float borderH = 1.0f * uiScale;
-        const Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::BorderDefault);
+        const Color borderColor = we::runtime::kindui::ResolveColor(ColorToken::Separator);
         context.DrawRect(Rect{ m_Geometry.x, m_Geometry.y + m_Geometry.height - borderH, m_Geometry.width, borderH }, borderColor);
     }
 

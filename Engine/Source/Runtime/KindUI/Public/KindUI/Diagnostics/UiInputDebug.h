@@ -13,11 +13,42 @@
 #include "KindUI/Core/InputEvents.h"
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace we::runtime::kindui {
 
 class Widget;
+class EventSystem;
+
+struct ControlDiagnosticResult {
+    std::string name;
+    std::string parentName;
+    bool visible = false;
+    bool effectivelyVisible = false;
+    bool enabled = false;
+    bool active = false;
+    bool interactive = false;
+    bool hitTestEnabled = false;
+    bool focusable = false;
+    bool hovered = false;
+    bool pressed = false;
+    bool focused = false;
+    bool mouseCaptured = false;
+    bool disabledByParent = false;
+    bool hasClickHandler = false;
+
+    Rect geometry{};
+    Rect hitTestGeometry{};
+
+    std::vector<std::string> warnings;
+    std::vector<std::string> parentChain;
+    std::string rootFailureReason;
+    std::string hitTestActualTarget;
+    std::string blockingWidgetName;
+    bool pass = true;
+};
 
 /// Runtime input/coordinate diagnostics for the click path root.
 /// Enable with WE_UI_INPUT_DEBUG=1 (also enables verbose move/geometry logs).
@@ -27,6 +58,28 @@ public:
     static bool IsEnabled();
     /// True only when WE_UI_INPUT_DEBUG=1 (extra verbosity).
     static bool IsVerbose();
+
+    static ControlDiagnosticResult ValidateInteractiveControl(
+        const std::shared_ptr<Widget>& control,
+        const std::shared_ptr<Widget>& rootWidget = nullptr);
+
+    static void AuditControlTree(
+        const std::shared_ptr<Widget>& rootWidget,
+        const char* contextTag = "UI HEALTH");
+
+    static void RunFullToolbarStatusBarDiagnostic(
+        const std::shared_ptr<Widget>& rootWidget);
+
+    static void TestFullInteractionPipeline(
+        const std::shared_ptr<Widget>& rootWidget,
+        EventSystem* eventSystem = nullptr);
+
+    static void OnWidgetStateChange(
+        const Widget& widget,
+        const char* propertyName,
+        bool oldValue,
+        bool newValue,
+        const char* callerInfo = nullptr);
 
     static void OnMouseEvent(
         const MouseEvent& event,
@@ -48,8 +101,8 @@ public:
 
     static void LogWidgetGeometry(const char* label, const std::shared_ptr<Widget>& widget);
 
-private:
     static std::string WidgetLabel(const std::shared_ptr<Widget>& widget);
 };
 
 } // namespace we::runtime::kindui
+

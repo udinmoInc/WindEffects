@@ -114,6 +114,7 @@ private:
     void BuildQuickAccessCategory(const std::string& query);
 
     std::shared_ptr<we::runtime::kindui::PanelToolbarRow> m_SearchRow;
+    std::shared_ptr<we::runtime::kindui::TreeColumnHeader> m_ColumnHeader;
     std::shared_ptr<::we::runtime::kindui::panels::PanelBodyLayout> m_BodyLayout;
     std::shared_ptr<we::runtime::kindui::Widget> m_ContentHost;
 

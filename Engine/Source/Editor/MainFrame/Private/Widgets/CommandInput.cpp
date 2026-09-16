@@ -36,16 +36,20 @@ CommandInput::CommandInput()
 Size CommandInput::Measure(const Size& availableSize) {
     (void)availableSize;
     const float uiScale = std::max(1.0f, DPIContext::GetScale());
-    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch) * uiScale;
     const float padH = ThemeMetric(MetricToken::SpaceMD) * uiScale;
-    const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
 
     PaintContext ctx;
     const std::string& displayStr = m_Text.empty() ? m_Placeholder : m_Text;
     const float textW = ctx.GetTextWidth(displayStr, fontSize);
 
-    float width = padH * 2.0f + iconSize + iconGap + textW;
+    float width = padH * 2.0f + textW;
+    if (m_DrawIconInside) {
+        const float iconSize = ThemeMetric(MetricToken::IconSizeSearch) * uiScale;
+        const float iconGap = ThemeMetric(MetricToken::Space1) * uiScale;
+        width += iconSize + iconGap;
+    }
+
     if (m_Width > 0.0f) {
         width = std::max(width, m_Width * uiScale);
     }
@@ -79,12 +83,16 @@ void CommandInput::Paint(PaintContext& context) {
         return;
     }
 
-    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
     const float padH = ThemeMetric(MetricToken::SpaceMD);
-    Rect iconBand{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height };
-    IconPainter::Draw(context, WindIcons::Console16, iconBand, static_cast<uint32_t>(iconSize));
+    float textX = m_Geometry.x + padH;
 
-    const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
+    if (m_DrawIconInside) {
+        const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
+        Rect iconBand{ m_Geometry.x + padH, m_Geometry.y, iconSize, m_Geometry.height };
+        IconPainter::Draw(context, WindIcons::Console16, iconBand, static_cast<uint32_t>(iconSize));
+        textX += iconSize + ThemeMetric(MetricToken::Space1);
+    }
+
     const float fontSize = ThemeMetric(MetricToken::TextSizeSmall);
     const float textY = LayoutMetrics::AlignTextTopY(m_Geometry, fontSize);
 
@@ -105,9 +113,12 @@ void CommandInput::OnMouseDown(const MouseEvent& event) {
         return;
     }
 
-    const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
     const float padH = ThemeMetric(MetricToken::SpaceMD);
-    const float textX = m_Geometry.x + padH + iconSize + ThemeMetric(MetricToken::Space1);
+    float textX = m_Geometry.x + padH;
+    if (m_DrawIconInside) {
+        const float iconSize = ThemeMetric(MetricToken::IconSizeSearch);
+        textX += iconSize + ThemeMetric(MetricToken::Space1);
+    }
     const float clickX = std::max(0.0f, event.position.x - textX);
     const float charWidth = ThemeMetric(MetricToken::TextSizeSmall) * ThemeMetric(MetricToken::TextCharWidthRatio);
     size_t closestPos = 0;

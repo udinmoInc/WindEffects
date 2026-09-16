@@ -47,6 +47,15 @@ private:
     bool m_FirstFrame = true;
     bool m_BeganFrame = false;
     uint32_t m_BeginFrameFailStreak = 0;
+    uint32_t m_ForceRenderFrames = 3;
+
+    // Telemetry & Power Diagnostics
+    uint64_t m_TotalTicksInWindow = 0;
+    uint64_t m_PresentedInWindow = 0;
+    uint64_t m_UiPaintsInWindow = 0;
+    uint64_t m_UiLayoutsInWindow = 0;
+    double m_LastPowerReportTimeMs = 0.0;
+    const char* m_LastRenderReason = "Idle (skipped)";
 };
 
 } // namespace we::programs::editor

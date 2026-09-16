@@ -333,7 +333,19 @@ Color ResolveIconColor(
         return ResolveColor(ColorToken::IconDisabled);
     }
 
-    return ResolveColor(ColorToken::IconSecondary);
+    const Color baseColor = (role == IconColorRole::Secondary)
+        ? ResolveColor(ColorToken::IconSecondary)
+        : ResolveColor(ColorToken::IconPrimary);
+
+    if (hoverAnim > 0.001f || pressStrength > 0.001f) {
+        const float t = Clamp01(std::max(hoverAnim, pressStrength));
+        return ColorSpace::LerpColor(
+            baseColor,
+            Color::White(),
+            t);
+    }
+
+    return baseColor;
 }
 
 Color ResolveIconColorForState(bool hovered, bool accent, bool disabled, bool secondary) {

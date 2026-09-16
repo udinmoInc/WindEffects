@@ -87,10 +87,22 @@ void WindowsPlatform::PollGamepads() {
         return;
     }
 
+    using clock = std::chrono::steady_clock;
+    static std::array<clock::time_point, kMaxGamepads> s_LastCheck{};
+
+    const auto now = clock::now();
+
     for (uint32_t i = 0; i < kMaxGamepads; ++i) {
+        GamepadState& pad = m_Gamepads[i];
+
+        // If disconnected, only retry XInputGetState once per 1.0 second.
+        if (!pad.connected && std::chrono::duration_cast<std::chrono::milliseconds>(now - s_LastCheck[i]).count() < 1000) {
+            continue;
+        }
+        s_LastCheck[i] = now;
+
         XINPUT_STATE xstate{};
         const DWORD result = XInputGetState(i, &xstate);
-        GamepadState& pad = m_Gamepads[i];
         const bool connected = result == ERROR_SUCCESS;
 
         if (connected != pad.connected) {

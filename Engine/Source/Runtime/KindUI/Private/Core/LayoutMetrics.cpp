@@ -47,7 +47,7 @@ float SearchInputHeight() {
 }
 
 float ToolbarSearchInputHeight() {
-    return InputMinHeight();
+    return std::floor(22.0f * UiScale());
 }
 
 float SearchRowHeight() {

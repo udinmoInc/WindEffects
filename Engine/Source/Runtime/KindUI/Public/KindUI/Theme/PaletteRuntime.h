@@ -64,6 +64,7 @@ struct GraphiteDarkColors {
     Color ForegroundInverted{};
     Color ForegroundHeader{};
     Color Notifications{};
+    // Legacy alias of PrimaryText (IconNormal theme key removed).
     Color IconNormal{};
     Color IconHoverTint{};
     Color IconActiveTint{};
@@ -129,8 +130,8 @@ struct GraphiteDarkMetrics {
     float ControlHeightCompact = 24.0f;
     float ControlHeightLarge = 34.0f;
     float InputWidthCompact = 80.0f;
-    float InputWidthDefault = 100.0f;
-    float InputWidthLarge = 120.0f;
+    float InputWidthDefault = 120.0f;
+    float InputWidthLarge = 160.0f;
     float FormRowHeight = 36.0f;
     float MenuItemHeight = 26.0f;
     float PageMargin = 16.0f;

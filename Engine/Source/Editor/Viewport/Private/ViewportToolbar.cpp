@@ -109,18 +109,27 @@ void ShowPerspectiveMenu(const ::we::runtime::kindui::Rect& anchor) {
         ? editor->Camera().GetProjection()
         : ::we::editor::viewportedit::CameraProjection::Perspective;
 
-    auto makeCheckedItem = [](const std::string& label, bool checked) {
+    auto makeItem = [editor](const std::string& label, ::we::editor::viewportedit::CameraProjection proj, bool checked) {
         auto item = std::make_shared<::we::editor::menus::MenuItem>();
         item->label = label;
         item->checked = checked;
-        item->enabled = checked;
+        item->onClick = [editor, proj]() {
+            if (editor) {
+                editor->Camera().SetProjection(proj);
+            }
+        };
         return item;
     };
 
     std::vector<std::shared_ptr<::we::editor::menus::MenuItem>> items;
-    items.push_back(makeCheckedItem(
+    items.push_back(makeItem(
         "Perspective",
+        ::we::editor::viewportedit::CameraProjection::Perspective,
         current == ::we::editor::viewportedit::CameraProjection::Perspective));
+    items.push_back(makeItem(
+        "Orthographic",
+        ::we::editor::viewportedit::CameraProjection::Orthographic,
+        current == ::we::editor::viewportedit::CameraProjection::Orthographic));
     ShowPopupMenu(anchor, items);
 }
 
@@ -180,10 +189,12 @@ void ShowLitMenu(const ::we::runtime::kindui::Rect& anchor) {
     auto lit = std::make_shared<::we::editor::menus::MenuItem>();
     lit->label = "Lit";
     lit->checked = true;
-    lit->enabled = true;
+    lit->onClick = []() {};
     items.push_back(lit);
     auto unlit = std::make_shared<::we::editor::menus::MenuItem>();
     unlit->label = "Unlit";
+    unlit->checked = false;
+    unlit->onClick = []() {};
     items.push_back(unlit);
     ShowPopupMenu(anchor, items);
 }

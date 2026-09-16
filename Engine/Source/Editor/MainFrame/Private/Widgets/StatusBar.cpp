@@ -100,9 +100,10 @@ void StatusBar::Construct() {
     AddChild(m_DiagnosticsPanelButton);
     AddChild(m_Divider2);
 
-    // Command input field
+    // Command input field (with console icon OUTSIDE on the status bar, not inside the input box)
     m_CommandInput = std::make_shared<CommandInput>();
     m_CommandInput->SetFlatChrome(true);
+    m_CommandInput->SetDrawIconInside(false);
     m_CommandInput->SetVerticalAlignment(VerticalAlignment::Center);
     m_CommandInput->SetPlaceholder("Output Log Commands...");
     m_CommandInput->SetFlexGrow(0.0f);
@@ -298,6 +299,9 @@ void StatusBar::SetOnOutputLogClicked(std::function<void()> onClicked) {
                 m_OnOutputLogClicked();
             }
         });
+    }
+    if (m_OutputLogButton) {
+        m_OutputLogButton->SetOnClicked(m_OnOutputLogClicked);
     }
 }
 

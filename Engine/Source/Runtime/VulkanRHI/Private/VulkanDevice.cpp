@@ -23,11 +23,14 @@
 #include <string>
 #include <vector>
 
+#include "Core/EngineWatchdog.h"
+
 namespace we::rhi::vulkan {
 VulkanDevice::VulkanDevice(const DeviceDesc& desc)
     : m_Desc(desc)
     , m_FramesInFlight(desc.framesInFlight ? desc.framesInFlight : 2)
 {
+    we::runtime::core::EngineWatchdog::Scoped watchdog("VulkanRHI.DeviceInit");
     const auto start = std::chrono::steady_clock::now();
 
     if (volkInitialize() != VK_SUCCESS) {

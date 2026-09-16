@@ -84,9 +84,9 @@ struct VectorComponentGrid {
 [[nodiscard]] VectorComponentGrid LayoutVectorComponentGrid(const Rect& frame, int componentCount) {
     const float scale = DPIContext::GetScale();
     const float sidePadding = 0.0f;
-    const float pad = 4.0f * scale;
-    const float gap = 4.0f * scale;
-    const float accentW = std::max(2.0f, ResolveMetric(MetricToken::BorderWidth) * 2.0f);
+    const float pad = 2.0f * scale;
+    const float gap = 2.0f * scale;
+    const float accentW = std::max(2.0f, ResolveMetric(MetricToken::BorderWidth) * 1.5f);
     const Rect paddedFrame{
         frame.x + sidePadding,
         frame.y,
@@ -582,26 +582,42 @@ public:
                     // Separate input frame per component field with gap
                     Chrome::PaintInputFrame(context, field, state);
 
-                    float valueX = field.x + 6.0f * scale;
+                    float valueX = field.x + 4.0f * scale;
 
                     // Axis indicator rail (X=Red, Y=Green, Z=Blue) is drawn INSIDE all Transform properties (Position, Rotation, Scale, Location)
                     if (isTransform) {
-                        const float inset = 3.0f * scale;
-                        const float accentW = 3.0f * scale;
+                        const float inset = 2.0f * scale;
+                        const float accentW = 2.0f * scale;
                         const Rect accent{
                             field.x + inset,
                             field.y + inset,
                             accentW,
                             std::max(0.0f, field.height - inset * 2.0f)
                         };
-                        context.DrawRoundedRect(accent, AxisTint(index), 1.5f);
-                        valueX = accent.x + accent.width + 5.0f * scale;
+                        context.DrawRoundedRect(accent, AxisTint(index), 1.0f);
+                        valueX = accent.x + accent.width + 3.0f * scale;
                     }
 
                     char value[32]{};
-                    std::snprintf(value, sizeof(value), "%.3g", m_Values[index]);
+                    const float val = m_Values[index];
+                    const float roundVal = std::round(val);
+                    if (std::abs(val - roundVal) < 1e-4f && std::abs(val) < 1e6f) {
+                        std::snprintf(value, sizeof(value), "%d", static_cast<int>(roundVal));
+                    } else {
+                        std::snprintf(value, sizeof(value), "%.3g", val);
+                    }
+
                     const float textY = LayoutMetrics::AlignTextTopY(field, fontSize);
+                    const float rightPad = 5.0f * scale;
+                    const Rect textClip{
+                        field.x,
+                        field.y,
+                        std::max(0.0f, field.width - rightPad),
+                        field.height
+                    };
+                    context.PushClipRect(textClip);
                     context.DrawText(value, Point{ valueX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize);
+                    context.PopClipRect();
                 }
             }
 
@@ -1662,36 +1678,38 @@ public:
             }
 
             void Arrange(const Rect& r) override {
+                // DetailsView already applied LayoutPropertyControlRect (default +30% cap).
                 m_Geometry = r;
-                const Rect frame = EditorControlRect(r);
+                const Rect frame = r;
                 const float scale = DPIContext::GetScale();
                 const float pad = 2.0f * scale;
 
                 Read();
-
 
                 const float thumbSize = std::min(frame.height - pad * 2.0f, 64.0f * scale);
                 m_ThumbRect = Rect{ frame.x, frame.y + (frame.height - thumbSize) * 0.5f, thumbSize, thumbSize };
 
                 const float colX = m_ThumbRect.x + m_ThumbRect.width + 8.0f * scale;
                 const float btnW = 20.0f * scale;
-                const float rightEdge = frame.x + frame.width;
 
                 const float pillH = 26.0f * scale;
                 const float pillY = frame.y + pad;
 
-                // Top-row: Asset Pill Dropdown Selector occupies full available width
-                const float availW = std::max(0.0f, rightEdge - colX);
-                m_PillRect = Rect{ colX, pillY, availW, pillH };
+                // Same scalar rule: InputWidthDefault, grow at most +30%, left-locked.
+                const float defaultPillW = ResolveMetric(MetricToken::InputWidthDefault) * scale;
+                const float maxPillW = defaultPillW * 1.30f;
+                const float availPillW = std::max(0.0f, (frame.x + frame.width) - colX);
+                const float pillW = std::min(availPillW, maxPillW);
+                m_PillRect = Rect{ colX, pillY, pillW, pillH };
 
-                // Bottom-row navigation action buttons (Use Selected, Locate in Content Browser, Clear/Trash)
                 const float btnY = m_PillRect.y + m_PillRect.height + 6.0f * scale;
                 m_UseSelectedBtnRect = Rect{ colX, btnY, btnW, btnW };
                 m_LocateBtnRect = Rect{ colX + btnW + 4.0f * scale, btnY, btnW, btnW };
-                m_ClearBtnRect = Rect{ colX + (btnW + 4.0f * scale) * 2.0f, btnY, btnW, btnW };
+                m_ClearBtnRect = Rect{};
 
                 m_IconRect = Rect{};
-                m_FieldRect = Rect{ frame.x, frame.y, frame.width, frame.height };
+                const float contentW = (m_PillRect.x + m_PillRect.width) - frame.x;
+                m_FieldRect = Rect{ frame.x, frame.y, contentW, frame.height };
             }
 
             void Paint(PaintContext& context) override {
@@ -1711,7 +1729,6 @@ public:
 
 
                 Chrome::InteractionState thumbState;
-                thumbState.hoverAnim = m_Hovered ? 0.4f : 0.0f;
                 Chrome::PaintInputFrame(context, m_ThumbRect, thumbState);
 
                 // Centered asset-type icon / thumbnail inside preview box
@@ -1727,7 +1744,6 @@ public:
 
                 // 2. Top-Row: Asset Pill Dropdown Selector with Reusable Extension-Preserving Text Truncation
                 Chrome::InteractionState pillState;
-                pillState.hoverAnim = m_Hovered ? 1.0f : 0.0f;
                 Chrome::PaintInputFrame(context, m_PillRect, pillState);
 
                 const float chevronSize = 12.0f * scale;
@@ -1737,9 +1753,9 @@ public:
                 const float textY = LayoutMetrics::AlignTextTopY(m_PillRect, fontSize);
                 if (hasAsset) {
                     const std::string truncated = we::runtime::kindui::TextMetrics::TruncateText(
-                        basename, maxTextWidth, fontSize, true, we::runtime::kindui::TruncateMode::Middle);
+                        basename, maxTextWidth, fontSize, false, we::runtime::kindui::TruncateMode::Middle);
                     context.DrawText(truncated, Point{ textX, textY }, ThemeColor(ColorToken::TextPrimary), fontSize,
-                        true);
+                        false);
                 } else {
                     context.DrawText("None", Point{ textX, textY }, ThemeColor(ColorToken::TextSecondary), fontSize);
                 }
@@ -1749,32 +1765,23 @@ public:
                 IconPainter::Draw(context, WindIcons::ChevronDownV212, chevronR, ThemeColor(ColorToken::IconSecondary));
 
                 // 3. Navigation Action Buttons (Bottom Row)
-                // (a) Circle Arrow Left (Use Selected from Content Browser)
+                // (a) Circle Arrow Left v2 (Use Selected from Content Browser)
                 Chrome::InteractionState useSelState;
                 useSelState.hoverAnim = m_UseSelectedHovered ? 1.0f : 0.0f;
                 Chrome::PaintBorderlessIconButton(context, m_UseSelectedBtnRect, useSelState);
-                IconPainter::Draw(context, WindIcons::CircleArrowLeft16, m_UseSelectedBtnRect,
+                IconPainter::Draw(context, WindIcons::CircleArrowLeftV216, m_UseSelectedBtnRect,
                     ThemeColor(m_UseSelectedHovered ? ColorToken::IconPrimary : ColorToken::IconSecondary));
 
-                // (b) Folder Search (Locate in Content Browser)
+                // (b) Folder Search v2 (Locate in Content Browser)
                 Chrome::InteractionState locateState;
                 locateState.hoverAnim = m_LocateHovered ? 1.0f : 0.0f;
                 Chrome::PaintBorderlessIconButton(context, m_LocateBtnRect, locateState);
-                IconPainter::Draw(context, WindIcons::FolderSearch16, m_LocateBtnRect,
+                IconPainter::Draw(context, WindIcons::FolderSearchV216, m_LocateBtnRect,
                     ThemeColor(m_LocateHovered ? ColorToken::IconPrimary : ColorToken::IconSecondary));
-
-                // (c) Trash / Clear Button (Clear Asset to None)
-                if (hasAsset) {
-                    Chrome::InteractionState clearState;
-                    clearState.hoverAnim = m_ClearHovered ? 1.0f : 0.0f;
-                    Chrome::PaintBorderlessIconButton(context, m_ClearBtnRect, clearState);
-                    IconPainter::Draw(context, WindIcons::CircleX16, m_ClearBtnRect,
-                        ThemeColor(m_ClearHovered ? ColorToken::IconPrimary : ColorToken::IconSecondary));
-                }
 
                 // 4. Hover Tooltip for Full Asset Name Display
                 if (m_Hovered && hasAsset) {
-                    const float fullWidth = we::runtime::kindui::TextMetrics::MeasureWidth(basename, fontSize, true);
+                    const float fullWidth = we::runtime::kindui::TextMetrics::MeasureWidth(basename, fontSize, false);
                     if (fullWidth > maxTextWidth) {
                         const float padH = 8.0f * scale;
                         const float padV = 4.0f * scale;
@@ -1798,7 +1805,7 @@ public:
                     m_ThumbRect.Contains(event.position);
                 m_UseSelectedHovered = m_UseSelectedBtnRect.Contains(event.position);
                 m_LocateHovered = m_LocateBtnRect.Contains(event.position);
-                m_ClearHovered = m_ClearBtnRect.Contains(event.position);
+                m_ClearHovered = false;
                 InvalidatePaint();
             }
 
@@ -1819,14 +1826,6 @@ public:
                     } else {
                         (void)m_Handle->SetString("Assets/Textures/T_Rock_Albedo.png");
                     }
-                    InvalidatePaint();
-                    return;
-                }
-
-                // Clear button clicked
-                if (!m_Path.empty() && m_ClearBtnRect.Contains(event.position)) {
-                    m_Path.clear();
-                    (void)m_Handle->SetString("");
                     InvalidatePaint();
                     return;
                 }

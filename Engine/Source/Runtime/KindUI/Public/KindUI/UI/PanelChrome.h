@@ -63,7 +63,7 @@ KINDUI_API float HeaderButtonSize();
 KINDUI_API void PaintPanelSurface(PaintContext& context, const Rect& rect);
 /// Barely-visible ambient drop shadow behind panel chrome. Does not alter edges.
 KINDUI_API void PaintPanelAmbientShadow(PaintContext& context, const Rect& rect);
-/// Soft 1px raised frame (brighter top/left, darker bottom/right) around a panel chrome rect.
+/// Soft dark recessed rim only (no inset shade — keeps Panel fill untinted).
 KINDUI_API void PaintPanelFrameBevel(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintToolbarRegion(PaintContext& context, const Rect& rect);
 KINDUI_API void PaintListLabelBand(PaintContext& context, const Rect& rect);
@@ -81,7 +81,13 @@ KINDUI_API void PaintDockHeaderBand(PaintContext& context, const Rect& headerRec
 KINDUI_API void PaintExplorerColumnHeader(
     PaintContext& context,
     const Rect& rect,
-    std::string_view labelText = "Item Label");
+    std::string_view labelText);
+
+KINDUI_API void PaintExplorerColumnHeader(
+    PaintContext& context,
+    const Rect& rect,
+    std::string_view labelText,
+    std::string_view typeText);
 
 struct DockTabDescriptor {
     std::string title;

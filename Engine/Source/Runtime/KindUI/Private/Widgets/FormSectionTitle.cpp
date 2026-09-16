@@ -66,11 +66,12 @@ void FormSectionTitle::Paint(PaintContext& context) {
     }
     PanelChrome::PaintListLabelBand(context, m_TitleBand);
     const float scale = std::max(1.0f, DPIContext::GetScale());
+    const float padH = ResolveMetric(MetricToken::Space2) * scale;
     const float fontSize = ResolveMetric(MetricToken::TextSizeCategory) * scale;
     const float textY = LayoutMetrics::AlignTextTopY(m_TitleBand, fontSize);
     context.DrawText(
         m_Title,
-        Point{ m_TitleBand.x, textY },
+        Point{ m_TitleBand.x + padH, textY },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);

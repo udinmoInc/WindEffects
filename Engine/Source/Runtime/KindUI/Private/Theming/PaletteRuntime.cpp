@@ -123,7 +123,8 @@ void ResetToCompileDefaults(GraphiteDarkColors& c) {
     c.ForegroundInverted = D::ForegroundInverted;
     c.ForegroundHeader = D::ForegroundHeader;
     c.Notifications = D::Notifications;
-    c.IconNormal = D::IconNormal;
+    // IconNormal removed from theme — legacy runtime field aliases PrimaryText.
+    c.IconNormal = D::PrimaryText;
     c.IconHoverTint = D::IconHoverTint;
     c.IconActiveTint = D::IconActiveTint;
     c.IconSubdued = D::IconSubdued;
@@ -457,6 +458,10 @@ void ApplyAliasFallbacks(GraphiteDarkColors& c) {
     }
     if (c.IconActiveTint.a <= 0.0f) {
         c.IconActiveTint = c.White;
+    }
+    // Legacy IconNormal slot — always track PrimaryText when unset/stale.
+    if (c.IconNormal.a <= 0.0f) {
+        c.IconNormal = c.PrimaryText;
     }
     if (c.AccentWhite.a <= 0.0f) {
         c.AccentWhite = c.White;

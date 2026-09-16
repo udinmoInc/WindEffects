@@ -12,11 +12,36 @@
 #include "KindUI/UI/TextBox.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
+#include "KindUI/UI/PanelChrome.h"
 #include <algorithm>
 
 namespace we::editor::dsl {
 
 using namespace ::we::runtime::kindui;
+
+namespace {
+
+class DSLToolbarRow : public Row {
+public:
+    DSLToolbarRow() {
+        const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+        const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
+        const float padV = 1.0f * uiScale;
+        Padding(Margin{ padH, padV, padH, padV });
+        Gap(6.0f * uiScale);
+        Align(AlignItems::Center);
+    }
+
+    Size Measure(const Size& availableSize) override {
+        Size size = Row::Measure(availableSize);
+        size.height = ::we::runtime::kindui::panels::PanelChrome::ToolbarRowHeight();
+        m_DesiredSize = size;
+        return m_DesiredSize;
+    }
+};
+
+} // namespace
+
 
 // ------------------------------------------------------------------------------
 // SectionContext Implementation
@@ -213,9 +238,35 @@ void ToolbarContext::Button(std::string label, std::function<void()> onClicked) 
     m_Items.push_back(std::move(btn));
 }
 
+void ToolbarContext::Button(std::string label, std::function<void(std::shared_ptr<Widget>)> onClicked) {
+    auto btn = std::make_shared<ToolbarButton>(label);
+    if (onClicked) {
+        std::weak_ptr<Widget> weakBtn = btn;
+        btn->SetOnClicked([onClicked, weakBtn]() {
+            if (auto b = weakBtn.lock()) {
+                onClicked(b);
+            }
+        });
+    }
+    m_Items.push_back(std::move(btn));
+}
+
 void ToolbarContext::Button(std::string label, WindIconRef icon, std::function<void()> onClicked) {
     auto btn = std::make_shared<ToolbarButton>(label, icon);
     if (onClicked) btn->SetOnClicked(std::move(onClicked));
+    m_Items.push_back(std::move(btn));
+}
+
+void ToolbarContext::Button(std::string label, WindIconRef icon, std::function<void(std::shared_ptr<Widget>)> onClicked) {
+    auto btn = std::make_shared<ToolbarButton>(label, icon);
+    if (onClicked) {
+        std::weak_ptr<Widget> weakBtn = btn;
+        btn->SetOnClicked([onClicked, weakBtn]() {
+            if (auto b = weakBtn.lock()) {
+                onClicked(b);
+            }
+        });
+    }
     m_Items.push_back(std::move(btn));
 }
 
@@ -225,9 +276,27 @@ void ToolbarContext::IconButton(WindIconRef icon, std::function<void()> onClicke
     m_Items.push_back(std::move(btn));
 }
 
-void ToolbarContext::Search(std::string placeholder, std::function<void(const std::string&)> onQueryChanged) {
+void ToolbarContext::IconButton(WindIconRef icon, std::function<void(std::shared_ptr<Widget>)> onClicked) {
+    auto btn = std::make_shared<::we::runtime::kindui::IconButton>(icon);
+    if (onClicked) {
+        std::weak_ptr<Widget> weakBtn = btn;
+        btn->SetOnClicked([onClicked, weakBtn]() {
+            if (auto b = weakBtn.lock()) {
+                onClicked(b);
+            }
+        });
+    }
+    m_Items.push_back(std::move(btn));
+}
+
+void ToolbarContext::Search(std::string placeholder, std::function<void(const std::string&)> onQueryChanged, float width) {
     auto search = std::make_shared<SearchBoxControl>();
     search->SetPlaceholder(placeholder);
+    search->SetToolbarInset(true);
+    search->SetWidth(width);
+    search->SetFillWidth(false);
+    search->SetFlexGrow(0.0f);
+    search->SetFlexShrink(1.0f);
     if (onQueryChanged) search->SetOnTextChanged(std::move(onQueryChanged));
     m_Items.push_back(std::move(search));
 }
@@ -237,14 +306,18 @@ void ToolbarContext::Separator() {
     m_Items.push_back(std::move(sep));
 }
 
+void ToolbarContext::Spacer() {
+    auto spacer = std::make_shared<::we::runtime::kindui::Spacer>();
+    spacer->SetFlexGrow(1.0f);
+    m_Items.push_back(std::move(spacer));
+}
+
 void ToolbarContext::Custom(KindUIWidgetPtr widget) {
     if (widget) m_Items.push_back(std::move(widget));
 }
 
 KindUIWidgetPtr ToolbarContext::BuildWidget() const {
-    auto row = std::make_shared<Row>();
-    row->Padding(Margin{ 4.0f, 2.0f, 4.0f, 2.0f });
-    row->Gap(6.0f);
+    auto row = std::make_shared<DSLToolbarRow>();
     for (const auto& item : m_Items) {
         row->AddChild(item);
     }

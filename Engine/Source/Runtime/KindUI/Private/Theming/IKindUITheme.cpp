@@ -28,7 +28,7 @@ Color IKindUITheme::IconForState(bool hovered, bool active) const {
     if (hovered) {
         return this->ResolveColor(ColorToken::IconHover);
     }
-    return this->ResolveColor(ColorToken::IconSecondary);
+    return this->ResolveColor(ColorToken::IconPrimary);
 }
 
 Color IKindUITheme::TextForState(bool hovered, bool active) const {

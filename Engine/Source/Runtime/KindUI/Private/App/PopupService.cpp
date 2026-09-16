@@ -45,10 +45,6 @@ void PopupService::ShowMenuAt(Element menu, const Widget& anchor) {
     }
 }
 
-void PopupService::ShowDropdown(Element menu, Point position) {
-    ShowMenu(std::move(menu), position);
-}
-
 void PopupService::DismissTop() {
     if (m_Host) {
         m_Host->CloseTopPopup();

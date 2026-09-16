@@ -141,6 +141,102 @@ void PaintSubtleDropShadow(PaintContext& context, const Rect& rect, float radius
     context.DrawShadow(shadowRect, shadow, radius, blur);
 }
 
+RecessedBorderColors ResolveRecessedBorderColors(float strength) {
+    RecessedBorderColors out{};
+    const float s = std::clamp(strength, 0.0f, 1.0f);
+    const Color panel = ColorSpace::OpaqueSurface(
+        ResolveColor(ColorToken::PanelBackground));
+
+    // Soft dark rims only — never light edges. soft = same dark family, lower alpha.
+    out.dark = ColorSpace::CompositeSrcOverOpaque(
+        panel,
+        ResolveColor(ColorToken::InputInsetOuter));
+    out.dark = ColorSpace::OpaqueSurface(
+        ColorSpace::LerpColor(
+            out.dark,
+            ResolveColor(ColorToken::Separator),
+            0.45f * s));
+    out.dark.a = 0.62f + 0.32f * s;
+
+    out.soft = ColorSpace::CompositeSrcOverOpaque(
+        panel,
+        ResolveColor(ColorToken::InputInsetInner));
+    out.soft = ColorSpace::OpaqueSurface(
+        ColorSpace::LerpColor(
+            out.soft,
+            ResolveColor(ColorToken::Separator),
+            0.28f * s));
+    out.soft.a = 0.42f + 0.30f * s;
+
+    return out;
+}
+
+float RecessedBorderThicknessPx() {
+    // Single pixel — subtle, blendable, not a heavy frame.
+    return EdgeWidthPx();
+}
+
+void PaintRecessedBorder(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    float strength,
+    float thickness)
+{
+    if (strength <= 0.01f || rect.width < 2.0f || rect.height < 2.0f) {
+        return;
+    }
+
+    const float edge = thickness > 0.5f ? thickness : RecessedBorderThicknessPx();
+    const RecessedBorderColors colors = ResolveRecessedBorderColors(strength);
+    const float s = std::clamp(strength, 0.0f, 1.0f);
+
+    if (radius > 0.5f) {
+        // Rounded wells: outline + inset top shade + bottom falloff for real depth.
+        context.DrawControlOutline(rect, colors.dark, edge, radius);
+
+        const float trim = std::min(radius * 0.42f, std::max(0.0f, rect.width * 0.22f));
+        const float lineW = std::max(0.0f, rect.width - trim * 2.0f);
+        if (lineW > 0.0f) {
+            Color topInset = ResolveColor(ColorToken::InputInsetOuter);
+            topInset.a *= 0.70f * s;
+            context.DrawRect(
+                Rect{ rect.x + trim, rect.y + edge, lineW, edge },
+                topInset);
+
+            Color bottomShade = ResolveColor(ColorToken::InputInsetInner);
+            bottomShade.a *= 0.55f * s;
+            context.DrawRect(
+                Rect{ rect.x + trim, rect.y + rect.height - edge * 2.0f, lineW, edge },
+                bottomShade);
+        }
+        return;
+    }
+
+    // Square panels: dark top/left, softer bottom/right.
+    const float x0 = IconMetrics::SnapPx(rect.x);
+    const float y0 = IconMetrics::SnapPx(rect.y);
+    float x1 = IconMetrics::SnapPx(rect.x + rect.width);
+    float y1 = IconMetrics::SnapPx(rect.y + rect.height);
+    if (x1 < x0 + edge * 2.0f) {
+        x1 = x0 + edge * 2.0f;
+    }
+    if (y1 < y0 + edge * 2.0f) {
+        y1 = y0 + edge * 2.0f;
+    }
+
+    const float w = x1 - x0;
+    const float h = y1 - y0;
+    const float innerH = std::max(0.0f, h - edge * 2.0f);
+
+    context.DrawRect(Rect{ x0, y0, w, edge }, colors.dark);
+    if (innerH > 0.0f) {
+        context.DrawRect(Rect{ x0, y0 + edge, edge, innerH }, colors.dark);
+    }
+    context.DrawRect(Rect{ x0, y1 - edge, w, edge }, colors.soft);
+    context.DrawRect(Rect{ x1 - edge, y0, edge, h }, colors.soft);
+}
+
 void PaintRaisedBevel(PaintContext& context, const Rect& rect, float radius, float strength) {
     if (strength <= 0.01f || rect.width <= 0.0f || rect.height <= 0.0f) {
         return;
@@ -170,33 +266,26 @@ void PaintInsetBevel(PaintContext& context, const Rect& rect, float radius, floa
         return;
     }
 
-    Color highlight = ResolveColor(ColorToken::InputInsetInner);
-    highlight.a *= strength;
-
+    // Top inner shade — pushes the well down without changing fill/outline colors.
+    Color shade = ResolveColor(ColorToken::InputInsetOuter);
+    shade.a *= strength;
     context.DrawRect(
         Rect{ rect.x + edgeTrim, rect.y + inset, lineW, w },
-        highlight);
+        shade);
 }
 
 void PaintSubtleBorderDepth(PaintContext& context, const Rect& rect, float radius, float strength) {
+    PaintRecessedBorder(context, rect, radius, strength, RecessedBorderThicknessPx());
+}
+
+void PaintWellDepth(PaintContext& context, const Rect& rect, float radius, float strength) {
     if (strength <= 0.01f) {
         return;
     }
-    const float w = EdgeWidthPx();
-    const float trim = radius * 0.25f;
-
-    Color inner = ResolveColor(ColorToken::InputInsetInner);
-    inner.a *= strength * 0.85f;
-    Color shade = ResolveColor(ColorToken::InputInsetOuter);
-    shade.a *= strength * 0.75f;
-
-    context.DrawRect(
-        Rect{ rect.x + trim, rect.y, std::max(0.0f, rect.width - trim * 2.0f), w },
-        inner);
-    context.DrawRect(
-        Rect{ rect.x + trim, rect.y + rect.height - w, std::max(0.0f, rect.width - trim * 2.0f), w },
-        shade);
-    context.DrawControlOutline(rect, shade, w, radius);
+    // Same recipe as Inspector input wells — dark recessed rim + top inset shade.
+    const float s = std::clamp(strength, 0.0f, 1.0f);
+    PaintRecessedBorder(context, rect, radius, 0.92f * s, RecessedBorderThicknessPx());
+    PaintInsetBevel(context, rect, radius, 0.85f * s);
 }
 
 void PaintPanelButtonFace(
@@ -222,16 +311,12 @@ void PaintPanelButtonFace(
     }
 
     context.DrawRoundedRect(rect, bgColor, radius);
-
-    Color borderColor = ResolveColor(ColorToken::BorderDefault);
-    if (hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(hoverAnim, 0.0f,
-            1.0f));
-    } else if (pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(pressAnim, 0.0f,
-            1.0f));
-    }
-    context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), radius);
+    PaintRecessedBorder(
+        context,
+        rect,
+        radius,
+        pressAnim > 0.001f ? 0.45f : 0.60f,
+        RecessedBorderThicknessPx());
 }
 
 namespace {
@@ -265,17 +350,10 @@ void PaintInputFrameInternal(
     }
     context.DrawSurface(rect, fillRole, cornerRadius, "Input");
 
-    Color borderColor = ResolveColor(ColorToken::InputOutline);
-    if (state.focused) {
-        borderColor = ResolveColor(ColorToken::BorderFocus);
-    } else if (state.hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f,
-            1.0f));
-    }
-    context.DrawRoundedRectOutline(rect, borderColor, ResolveMetric(MetricToken::BorderWidth), cornerRadius);
-
     if (state.focused) {
         PaintFocusRing(context, rect, cornerRadius);
+    } else {
+        PaintSoftInputBorder(context, rect, cornerRadius, state);
     }
 
     context.PopSurfaceOwner();
@@ -383,16 +461,12 @@ void PaintFilledButton(
     const float radius = base.cornerRadius > 0.0f ? base.cornerRadius : ResolveMetric(MetricToken::CornerRadiusSmall) * scale;
     context.DrawRoundedRect(rect, bgColor, radius);
 
-    Color borderColor = base.border.a > 0.01f ? base.border : ResolveColor(ColorToken::BorderDefault);
-    if (state.hoverAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderLight), std::clamp(state.hoverAnim, 0.0f,
-            1.0f));
-    } else if (state.pressAnim > 0.001f) {
-        borderColor = Color::Pick(borderColor, ResolveColor(ColorToken::BorderFocus), std::clamp(state.pressAnim, 0.0f,
-            1.0f));
-    }
-    const float borderWidth = base.borderWidth > 0.0f ? base.borderWidth : ResolveMetric(MetricToken::BorderWidth);
-    context.DrawRoundedRectOutline(rect, borderColor, borderWidth, radius);
+    PaintRecessedBorder(
+        context,
+        rect,
+        radius,
+        state.pressAnim > 0.001f ? 0.45f : 0.60f,
+        RecessedBorderThicknessPx());
 }
 
 void PaintGhostButton(
@@ -434,6 +508,41 @@ void PaintBorderlessIconButton(
     (void)state;
 }
 
+void PaintSoftInputBorder(
+    PaintContext& context,
+    const Rect& rect,
+    float radius,
+    const InteractionState& state)
+{
+    if (rect.width < 2.0f || rect.height < 2.0f) {
+        return;
+    }
+
+    // Crisp 1px hairline — solid edges, no SDF outline glow/depth.
+    Color border = ResolveColor(ColorToken::InputOutline);
+    if (state.disabled) {
+        border.a *= 0.55f;
+    }
+
+    if (radius > 1.0f) {
+        context.DrawControlOutline(rect, border, 1.0f, radius);
+        return;
+    }
+
+    const float t = 1.0f;
+    const float x0 = IconMetrics::SnapPx(rect.x);
+    const float y0 = IconMetrics::SnapPx(rect.y);
+    const float x1 = IconMetrics::SnapPx(rect.x + rect.width);
+    const float y1 = IconMetrics::SnapPx(rect.y + rect.height);
+    const float w = std::max(t, x1 - x0);
+    const float h = std::max(t, y1 - y0);
+
+    context.DrawRect(Rect{ x0, y0, w, t }, border);
+    context.DrawRect(Rect{ x0, y1 - t, w, t }, border);
+    context.DrawRect(Rect{ x0, y0, t, h }, border);
+    context.DrawRect(Rect{ x1 - t, y0, t, h }, border);
+}
+
 void PaintInputFrame(
     PaintContext& context,
     const Rect& rect,
@@ -451,9 +560,10 @@ void PaintStatusBarCommandField(
     }
     const float radius = ResolveMetric(MetricToken::CornerRadiusSmall);
     context.DrawSurface(rect, fillRole, radius, "StatusBarCommandField");
-    PaintInsetBevel(context, rect, radius, state.disabled ? 0.55f : 1.0f);
     if (state.focused) {
         PaintFocusRing(context, rect, radius);
+    } else {
+        PaintSoftInputBorder(context, rect, radius, state);
     }
 }
 
@@ -647,16 +757,17 @@ void PaintDangerButton(
     frame.hoverBackground = ResolveColor(ColorToken::ButtonDangerHover);
     frame.pressedBackground = ResolveColor(ColorToken::ButtonDangerPressed);
     frame.cornerRadius = base.cornerRadius;
-    const float bevelStrength = std::max(0.0f, 1.0f - state.pressAnim * 0.8f);
-    PaintControlFrame(context, rect, state, frame, ControlBorderMode::Styled, base.border);
-    PaintRaisedBevel(context, rect, frame.cornerRadius, bevelStrength);
+    const float bevelStrength = std::max(0.0f, 0.60f - state.pressAnim * 0.25f);
+    PaintControlFrame(context, rect, state, frame, ControlBorderMode::None, base.border);
+    PaintRecessedBorder(context, rect, frame.cornerRadius, bevelStrength);
 }
 
 void PaintPopupSurface(PaintContext& context, const Rect& rect) {
     const ResolvedStyle style = Role(StyleRole::Popup);
     PaintElevation(context, rect, style.elevation > 0 ? style.elevation : 2, style.cornerRadius);
     context.DrawRoundedRect(rect, style.background, style.cornerRadius);
-    context.DrawRoundedRectOutline(rect, ResolveColor(ColorToken::BorderSubtle), 1.0f, style.cornerRadius);
+    const Color borderCol = style.border.a > 0.01f ? style.border : ResolveColor(ColorToken::BorderLight);
+    context.DrawRoundedRectOutline(rect, borderCol, 1.0f, style.cornerRadius);
 }
 
 void PaintTooltipSurface(PaintContext& context, const Rect& rect) {
@@ -704,13 +815,13 @@ void PaintPanelTab(
             radius);
     } else {
         const Color tabBg = ResolveInteractiveBackground(
-            state.hoverAnim,
+            0.0f,
             state.pressAnim,
             false,
             ColorToken::TabBackground);
         if (tabBg.a > 0.01f) {
             PaintPanelButtonFace(
-                context, bounds, tabBg, radius, state.hoverAnim, state.pressAnim, false);
+                context, bounds, tabBg, radius, 0.0f, state.pressAnim, false);
         }
     }
 

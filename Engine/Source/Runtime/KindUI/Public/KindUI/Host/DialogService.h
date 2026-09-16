@@ -50,7 +50,6 @@ public:
     void Show(ViewFactory factory, DialogSpec spec = {});
     void Refresh();
     void Dismiss(const std::string& id = {});
-    void DismissAll();
 
     [[nodiscard]] bool IsOpen() const { return m_Open; }
     [[nodiscard]] bool IsOpen(const std::string& id) const;

@@ -160,8 +160,9 @@ Color GraphiteDarkTheme::ResolveColor(ColorToken token) const {
     case ColorToken::IconDisabled:
         return P.IconSubdued;
     case ColorToken::IconPrimary:
+        return P.PrimaryText;
     case ColorToken::IconSecondary:
-        return P.IconNormal;
+        return P.SecondaryText;
     case ColorToken::AccentHover:
         return P.PrimaryHover;
     case ColorToken::AccentOrange:

@@ -142,6 +142,7 @@ std::shared_ptr<Panel> CreateWorldOutlinerPanel() {
              EditorWorkspaceController::Get().SetPanelVisible("WorldOutliner", false);
          })
          .Search(g_ExplorerHeader)
+         .ColumnHeader(columnHeader)
          .Content(treeView)
          .Footer(statusRow);
     });

@@ -58,6 +58,9 @@ public:
     /// Force core editor panels into their assigned docks (clears accidental floats).
     void EnsureDefaultDockPlacement();
     void FocusPanel(const std::string& panelId);
+    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForPanel(const std::string& panelId) const;
+    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForZone(
+        ::we::editor::docking::DockZone zone) const;
 
     void ApplyToolsPanelVisibility(bool visible);
     void SetBottomPanelIndex(int index);
@@ -118,10 +121,6 @@ private:
     [[nodiscard]] ::we::editor::docking::DockZone ZoneForDock(
         const std::shared_ptr<::we::runtime::kindui::docking::DockContainer>& dock) const;
     [[nodiscard]] std::string FindPanelId(const ::we::runtime::kindui::panels::Panel* panel) const;
-
-    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForPanel(const std::string& panelId) const;
-    std::shared_ptr<::we::runtime::kindui::docking::DockContainer> DockForZone(
-        ::we::editor::docking::DockZone zone) const;
 
     ::we::editor::shell::DockLayoutBuildResult m_Layout;
     std::unordered_map<std::string, PanelEntry> m_Panels;

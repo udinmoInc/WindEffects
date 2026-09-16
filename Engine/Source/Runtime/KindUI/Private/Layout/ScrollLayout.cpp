@@ -211,7 +211,7 @@ std::shared_ptr<Widget> ScrollLayout::HitTestPoint(const Point& pos, const Rect*
         return nullptr;
     }
 
-    if (m_Metrics.showsScrollbar
+    if (m_Metrics.isScrollable
         && (m_Metrics.thumb.Contains(pos) || m_Metrics.track.Contains(pos))) {
         return shared_from_this();
     }

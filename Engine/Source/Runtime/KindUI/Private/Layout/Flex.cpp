@@ -412,7 +412,9 @@ std::shared_ptr<Column> MakeColumn() {
     return std::make_shared<Column>();
 }
 
-Spacer::Spacer() = default;
+Spacer::Spacer() {
+    SetFlexGrow(1.0f);
+}
 Spacer::~Spacer() = default;
 
 Size Spacer::Measure(const Size& availableSize) {

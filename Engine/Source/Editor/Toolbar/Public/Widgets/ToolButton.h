@@ -65,7 +65,7 @@ public:
     void SetTooltip(const std::string& tooltip);
     void SetOnClicked(std::function<void()> onClicked);
     void SetActive(bool active) { m_Active = active; }
-    bool IsActive() const { return m_Active; }
+    bool IsToolActive() const { return m_Active; }
     void SetButtonStyle(ToolButtonStyle style) { m_ButtonStyle = style; }
     void SetIsDropdown(bool isDropdown) { m_IsDropdown = isDropdown; }
     bool IsDropdown() const { return m_IsDropdown; }
@@ -85,7 +85,7 @@ private:
     mutable float m_CachedLabelWidthTextSize = -1.0f;
     mutable float m_CachedLabelWidth = 0.0f;
 
-    // Animation states [0.0, 1.0]
+    bool m_LastHoverLogged = false;
     float m_HoverAnim = 0.0f;
     float m_PressAnim = 0.0f;
     float m_ActiveAnim = 0.0f;

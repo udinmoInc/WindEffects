@@ -98,7 +98,7 @@ bool ScrollViewport::CanReceiveWheelAt(
 }
 
 bool ScrollViewport::ShowsScrollbarCursor(const ScrollViewportMetrics& metrics, const Point& pos) {
-    return metrics.showsScrollbar
+    return metrics.isScrollable
         && (metrics.thumb.Contains(pos) || metrics.track.Contains(pos));
 }
 
@@ -121,7 +121,8 @@ ScrollViewportMetrics ScrollViewport::ComputeMetrics(
     float uiScale) const
 {
     ScrollViewportMetrics metrics{};
-    metrics.showsScrollbar = NeedsScrollbar(bounds.height, contentHeight);
+    metrics.isScrollable = NeedsScrollbar(bounds.height, contentHeight);
+    metrics.showsScrollbar = m_AlwaysReserveScrollbar || metrics.isScrollable;
     metrics.scrollbarWidth = metrics.showsScrollbar ? ScrollbarWidth(uiScale) : 0.0f;
 
     metrics.viewport = Rect{
@@ -171,7 +172,7 @@ void ScrollViewport::Paint(
     bool thumbHovered,
     const Color* trackColor) const
 {
-    if (!metrics.showsScrollbar) {
+    if (!metrics.showsScrollbar || !metrics.isScrollable) {
         return;
     }
 
@@ -195,7 +196,7 @@ bool ScrollViewport::OnMouseDown(
     float viewportHeight,
     float contentHeight)
 {
-    if (event.button != MouseButton::Left || !metrics.showsScrollbar) {
+    if (event.button != MouseButton::Left || !metrics.isScrollable) {
         return false;
     }
 
@@ -223,9 +224,9 @@ void ScrollViewport::OnMouseMove(
     float viewportHeight,
     float contentHeight)
 {
-    m_ThumbHovered = metrics.showsScrollbar && metrics.thumb.Contains(event.position);
+    m_ThumbHovered = metrics.isScrollable && metrics.thumb.Contains(event.position);
 
-    if (!m_DraggingThumb || !metrics.showsScrollbar) {
+    if (!m_DraggingThumb || !metrics.isScrollable) {
         return;
     }
 

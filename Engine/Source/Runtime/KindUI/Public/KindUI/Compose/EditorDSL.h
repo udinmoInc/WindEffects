@@ -132,11 +132,15 @@ public:
     ToolbarContext() = default;
 
     void Button(std::string label, std::function<void()> onClicked);
+    void Button(std::string label, std::function<void(std::shared_ptr<Widget>)> onClicked);
     void Button(std::string label, WindIconRef icon, std::function<void()> onClicked);
+    void Button(std::string label, WindIconRef icon, std::function<void(std::shared_ptr<Widget>)> onClicked);
     void IconButton(WindIconRef icon, std::function<void()> onClicked);
+    void IconButton(WindIconRef icon, std::function<void(std::shared_ptr<Widget>)> onClicked);
     void Search(std::string placeholder = "Search...", std::function<void(const std::string&)> onQueryChanged =
-        nullptr);
+        nullptr, float width = 450.0f);
     void Separator();
+    void Spacer();
     void Custom(KindUIWidgetPtr widget);
 
     [[nodiscard]] KindUIWidgetPtr BuildWidget() const;

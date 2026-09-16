@@ -174,7 +174,7 @@ private:
 
         const char* renderState = m_Minimized
             ? "minimized"
-            : (m_BeganFrame ? "presented" : (renderer ? "beginFrame-FAIL" : "no-renderer"));
+            : (m_BeganFrame ? "presented" : (m_FailStreak > 0 ? "beginFrame-FAIL" : (renderer ? "idle-skipped" : "no-renderer")));
         std::ostringstream line;
         line << "[Loop] state=" << renderState
              << " min=" << (m_Minimized ? 1 : 0)

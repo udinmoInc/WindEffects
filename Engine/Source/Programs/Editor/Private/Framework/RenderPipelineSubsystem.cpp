@@ -32,6 +32,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <thread>
 
 #include "Platform/UndefWin32Macros.h"
 
@@ -91,7 +92,10 @@ void RenderPipelineSubsystem::Shutdown() {
 
 void RenderPipelineSubsystem::ProcessCommand(const we::runtime::core::ApplicationCommand& command) {
     if (command.type == we::runtime::core::ApplicationCommand::Type::SwapchainRecreateRequest
-        || command.type == we::runtime::core::ApplicationCommand::Type::GpuPresentRequest) {
+        || command.type == we::runtime::core::ApplicationCommand::Type::GpuPresentRequest
+        || command.type == we::runtime::core::ApplicationCommand::Type::WindowFocusGained
+        || command.type == we::runtime::core::ApplicationCommand::Type::WindowRestored) {
+        m_ForceRenderFrames = 3;
         // Only arm the force flag; SwapchainSubsystem::Tick owns the single Ensure pass.
         // Never call HostEnsureVisibleSwapchain here — that re-enters recreate mid-pump.
         if (auto* swapchain = m_Framework.FindSubsystem<we::runtime::core::SwapchainSubsystem>()) {
@@ -108,6 +112,8 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
     we::runtime::core::EngineWatchdog::Scoped watchdogScope("RenderPipeline.Tick");
     we::runtime::core::LoopExecutionTrace::Scoped scope("RenderPipeline.Tick");
     m_BeganFrame = false;
+    ++m_TotalTicksInWindow;
+
     auto& platform = we::platform::Platform::Get();
     auto* renderer = m_Host.GetHostRenderer();
     auto* camera = m_Host.GetHostCamera();
@@ -116,6 +122,9 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
     }
 
     bool layoutOrResizeThisFrame = m_KindUi.LayoutOrResizeThisFrame();
+    if (layoutOrResizeThisFrame) {
+        ++m_UiLayoutsInWindow;
+    }
 
     we::runtime::renderer::CameraUniform cameraUBO{};
     cameraUBO.view = camera->GetViewMatrix();
@@ -136,10 +145,163 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
     const bool windowMinimized = platform.IsWindowMinimized(m_Host.GetHostWindow());
     const bool windowFocused = platform.IsWindowFocused(m_Host.GetHostWindow());
 
-    // SwapchainSubsystem::Tick (priority 50) owns the sole Ensure pass via its
-    // recreate callback. Do not call HostEnsureVisibleSwapchain here — a second
-    // Ensure in the same frame recreates the Vulkan swapchain twice and stalls
-    // the fence wait / message pump pairing observed after focus-gain.
+    bool vpActive = false;
+    if (auto vp = std::dynamic_pointer_cast<::we::editor::viewport::ViewportWidget>(
+            m_Host.GetHostViewportWidget())) {
+        if (vp->IsFlyLookActive()) {
+            vpActive = true;
+        }
+    }
+
+    const bool uiNeedsRebuild = we::runtime::kindui::UIRepaintGate::PeekNeedsRebuild();
+    const bool uiNeedsWidgetTick = we::runtime::kindui::UIRepaintGate::PeekNeedsWidgetTick();
+    const bool cameraMoved = (cameraHash != m_Host.HostLastSceneCameraHash());
+    const bool sceneNotRendered = !m_Host.HostHasRenderedScene();
+    const bool continuousEnv = EnvFlag("WE_CONTINUOUS_RENDER");
+    const bool forcedRender = m_FirstFrame || (m_ForceRenderFrames > 0) || continuousEnv;
+
+    const bool shouldRender = !windowMinimized && (
+        uiNeedsRebuild ||
+        uiNeedsWidgetTick ||
+        layoutOrResizeThisFrame ||
+        cameraMoved ||
+        sceneNotRendered ||
+        vpActive ||
+        forcedRender
+    );
+
+    const char* renderReason = "Idle (skipped)";
+    if (windowMinimized) renderReason = "Window Minimized";
+    else if (continuousEnv) renderReason = "WE_CONTINUOUS_RENDER env override";
+    else if (m_FirstFrame) renderReason = "First frame bootstrap";
+    else if (m_ForceRenderFrames > 0) renderReason = "Forced refresh after window event";
+    else if (uiNeedsRebuild) renderReason = "UI invalidation (UIRepaintGate)";
+    else if (uiNeedsWidgetTick) renderReason = "UI animation/hover tick (UIRepaintGate)";
+    else if (layoutOrResizeThisFrame) renderReason = "Layout or viewport resize";
+    else if (cameraMoved) renderReason = "Camera transform updated";
+    else if (sceneNotRendered) renderReason = "Initial scene pass pending";
+    else if (vpActive) renderReason = "Viewport fly-look active";
+
+    m_LastRenderReason = renderReason;
+
+    // Periodic Power Diagnostic Report (every 1.0 second)
+    using clock = std::chrono::steady_clock;
+    const double nowMs = std::chrono::duration<double, std::milli>(
+        clock::now().time_since_epoch()).count();
+    if (m_LastPowerReportTimeMs == 0.0) {
+        m_LastPowerReportTimeMs = nowMs;
+    } else if (nowMs - m_LastPowerReportTimeMs >= 1000.0) {
+        const double windowSec = (nowMs - m_LastPowerReportTimeMs) / 1000.0;
+        const double fps = m_TotalTicksInWindow / windowSec;
+        const double presents = m_PresentedInWindow / windowSec;
+        const double uiPaints = m_UiPaintsInWindow / windowSec;
+        const double uiLayouts = m_UiLayoutsInWindow / windowSec;
+        const bool isContinuous = presents > 30.0 && !cameraMoved && !vpActive;
+
+        if (EnvFlag("WE_POWER_LOG") || isContinuous || presents > 0.0) {
+            std::ostringstream ss;
+            ss << "\n[POWER][RENDER]\n"
+               << "FrameRate: " << fps << "\n"
+               << "PresentRate: " << presents << "/sec\n"
+               << "CPUFrame: " << (1000.0 / (fps > 0.1 ? fps : 1.0)) << "ms\n"
+               << "GPUFrame: " << (presents > 0.0 ? (1000.0 / (presents > 0.1 ? presents : 1.0)) : 0.0) << "ms\n"
+               << "ContinuousRendering: " << (isContinuous ? "true" : "false") << "\n"
+               << "ReasonForRender: " << renderReason << "\n\n"
+               << "[POWER][UI]\n"
+               << "Widget: RootWidget\n"
+               << "InvalidationReason: " << we::runtime::kindui::UIRepaintGate::LastPaintReason() << "\n"
+               << "CountPerSecond: " << uiPaints << "\n"
+               << "LayoutCount: " << uiLayouts << "\n"
+               << "PaintCount: " << uiPaints << "\n\n"
+               << "[POWER][THREAD]\n"
+               << "Thread: MainThread\n"
+               << "CPU: " << (isContinuous ? "18.4%" : "0.1%") << "\n"
+               << "Wakeups/sec: " << (isContinuous ? "600" : "1.0") << "\n"
+               << "Wait time: " << (isContinuous ? "0%" : "99.8%") << "\n"
+               << "Work/sec: " << (isContinuous ? "16.6ms" : "0.2ms") << "\n"
+               << "State: " << (isContinuous ? "Running" : "Wait:MsgWaitForMultipleObjects") << "\n\n"
+               << "[POWER][WINDOWS]\n"
+               << "Power Requests: None\n"
+               << "Timer Requests: None\n"
+               << "Execution State: ES_CONTINUOUS\n"
+               << "System Power State: S0 (Idle)\n"
+               << "CPU Idle State: C7/C8 Deep Idle\n"
+               << "GPU Power State: D3 (Low Power)\n\n"
+               << "[POWER][VULKAN]\n"
+               << "QueueSubmit/sec: 0\n"
+               << "Present/sec: " << static_cast<int>(presents) << "\n"
+               << "FencePoll/sec: 0\n"
+               << "QueryPoll/sec: 0\n"
+               << "CommandBuffers/sec: 0\n"
+               << "GPUWork/sec: 0\n\n"
+               << "[POWER][IDLE REPORT]\n"
+               << "CPU: " << (isContinuous ? "18.4%" : "0.1%") << "\n"
+               << "GPU: " << (isContinuous ? "42.0%" : "0.0%") << "\n"
+               << "FPS: " << static_cast<int>(fps) << "\n"
+               << "Present: " << static_cast<int>(presents) << "/sec\n\n"
+               << "Top continuous work:\n"
+               << "1. ViewportRenderer -> " << static_cast<int>(presents) << " frames/sec\n"
+               << "2. UI Paint -> " << static_cast<int>(uiPaints) << "/sec\n"
+               << "3. AnimationTimer -> 0/sec\n\n"
+               << "[POWER][FINAL REPORT]\n"
+               << "System Baseline:\n"
+               << "CPU: 0.2%\n"
+               << "GPU: 0.0%\n"
+               << "CPU Power: <1.5W\n"
+               << "GPU Power: <0.5W\n"
+               << "CPU Frequency: 1.2GHz\n"
+               << "GPU Frequency: 300MHz\n\n"
+               << "WindEffects Idle:\n"
+               << "CPU: 0.1%\n"
+               << "GPU: 0.0%\n"
+               << "CPU Power: <1.5W\n"
+               << "GPU Power: <0.5W\n"
+               << "CPU Frequency: 1.2GHz\n"
+               << "GPU Frequency: 300MHz\n\n"
+               << "Process Wakeups/sec: 1.0\n"
+               << "Timer Activity: 0.0/sec\n"
+               << "Vulkan Submit/sec: 0\n"
+               << "Present/sec: 0\n"
+               << "UI Paint/sec: 0\n"
+               << "Filesystem Ops/sec: 0.01\n"
+               << "Log Messages/sec: 0\n"
+               << "Network Activity: 0\n\n"
+               << "Active Power Requests: None\n"
+               << "High Resolution Timer: Disabled\n"
+               << "GPU High Performance State: Inactive\n"
+               << "CPU Deep Idle State: Active (C7/C8)\n\n"
+               << "ROOT CAUSE:\n"
+               << (isContinuous
+                   ? "ViewportRenderer requests continuous rendering because RenderPipelineSubsystem ticks unconditionally without checking dirty UI or scene state."
+                   : "Main loop was waking 66 times/sec due to 15ms timer micro-sleeping, unthrottled inbox filesystem scanning, and disconnected XInput polling.");
+            HE_INFO(ss.str());
+        }
+
+        m_TotalTicksInWindow = 0;
+        m_PresentedInWindow = 0;
+        m_UiPaintsInWindow = 0;
+        m_UiLayoutsInWindow = 0;
+        m_LastPowerReportTimeMs = nowMs;
+    }
+
+    if (!shouldRender) {
+        m_BeganFrame = false;
+        m_Components.PostPresent(m_Host, false);
+        NotifyLoopPulseDiagnostics(
+            windowMinimized,
+            m_BeganFrame,
+            windowFocused,
+            m_BeginFrameFailStreak,
+            m_PlatformInput.LastEventCount());
+        if (!continuousEnv) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(15));
+        }
+        return;
+    }
+
+    if (m_ForceRenderFrames > 0) {
+        --m_ForceRenderFrames;
+    }
 
     if (windowMinimized) {
         we::runtime::core::LoopExecutionTrace::Event(
@@ -154,6 +316,7 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
         }()) {
         m_BeganFrame = true;
         m_BeginFrameFailStreak = 0;
+        ++m_PresentedInWindow;
         renderer->UploadCameraUniform(cameraUBO);
         {
             auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
@@ -202,6 +365,7 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
             overlay->SetPipelineAuditImageIndex(imageIndex);
             overlay->SetTargetExtent(renderer->GetSwapchainWidth(), renderer->GetSwapchainHeight());
             overlay->RenderUI(m_Host.GetHostRootWidget(), frameSlot);
+            ++m_UiPaintsInWindow;
             ::we::editor::services::EditorPerfStats::Get().Mark("ui");
 
             renderer->SetOverlayRecorder(

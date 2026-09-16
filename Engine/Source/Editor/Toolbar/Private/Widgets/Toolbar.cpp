@@ -360,9 +360,6 @@ ToolbarGroup::ToolbarGroup() = default;
 
 void ToolbarGroup::AddChildWidget(const std::shared_ptr<Widget>& child) {
     if (child) {
-        if (auto button = std::dynamic_pointer_cast<ToolButton>(child)) {
-            button->SetChromeless(true);
-        }
         m_Items.push_back(child);
         AddChild(child);
     }
@@ -443,8 +440,9 @@ void ToolbarGroup::Paint(PaintContext& context) {
 
 std::shared_ptr<Widget> ToolbarGroup::HitChildAt(const Point& position) const {
     for (auto it = m_Items.rbegin(); it != m_Items.rend(); ++it) {
-        if (*it && (*it)->IsVisible() && (*it)->GetGeometry().Contains(position)) {
-            return *it;
+        if (!*it || !(*it)->IsVisible()) continue;
+        if (auto hit = (*it)->HitTestPoint(position, nullptr)) {
+            return hit;
         }
     }
     return nullptr;

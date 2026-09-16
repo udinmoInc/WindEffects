@@ -99,8 +99,7 @@ void PaintTreeNodeIcon(PaintContext& context, const TreeNode& node, const Rect& 
         return;
     }
 
-    const Color iconColor = we::runtime::kindui::ResolveColor(ColorToken::IconSecondary);
-    IconPainter::Draw(context, node.icon, iconRect, iconColor);
+    IconPainter::Draw(context, node.icon, iconRect);
 }
 
 }
@@ -122,11 +121,11 @@ void TreeView::SyncScrollMetrics() {
     const float headerHeight = (m_ExplorerStyle && m_ShowColumnHeader)
         ? PanelChrome::ColumnHeaderRowHeight()
         : 0.0f;
-    const float topPad = std::floor(4.0f * uiScale);
-    const float bottomPad = std::floor(6.0f * uiScale);
+    // No top/bottom pad — those gutters showed Panel (#181818) through the
+    // PanelInner tree fill and read as duplicate-color padding.
     Rect viewportGeom = m_Geometry;
-    viewportGeom.y += (headerHeight + topPad);
-    viewportGeom.height = (std::max)(0.0f, viewportGeom.height - headerHeight - topPad - bottomPad);
+    viewportGeom.y += headerHeight;
+    viewportGeom.height = (std::max)(0.0f, viewportGeom.height - headerHeight);
     m_ScrollMetrics = m_Scroll.UpdateMetrics(viewportGeom, viewportGeom.height, m_ContentHeight, uiScale);
 }
 
@@ -217,8 +216,9 @@ TreeView::TreeRowLayoutSlots TreeView::ComputeTreeRowLayout(const RenderItem& it
     const float rowHeight = m_ItemHeight * uiScale;
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
+    const float fullRowWidth = (std::max)(0.0f, m_Geometry.x + m_Geometry.width - viewportX);
 
-    layout.rowBounds = Rect{ viewportX, item.geometry.y, viewportWidth, rowHeight };
+    layout.rowBounds = Rect{ viewportX, item.geometry.y, fullRowWidth, rowHeight };
 
     const float accessorySize = static_cast<float>(16u) * uiScale;
     const float prefixOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
@@ -292,15 +292,19 @@ void TreeView::Paint(PaintContext& context) {
     SyncScrollMetrics();
     UpdateVisibleRange();
 
-    if (m_PaintNavigationBackground && m_ScrollMetrics.viewport.width > 0.0f && m_ScrollMetrics.viewport.height >
-        0.0f) {
-        PanelChrome::PaintNavigationRegion(context, m_ScrollMetrics.viewport);
+    if (m_PaintNavigationBackground && m_Geometry.width > 0.0f && m_Geometry.height > 0.0f) {
+        const float headerHeight = (m_ExplorerStyle && m_ShowColumnHeader)
+            ? PanelChrome::ColumnHeaderRowHeight()
+            : 0.0f;
+        const Rect bgRect{ m_Geometry.x, m_Geometry.y + headerHeight, m_Geometry.width, (std::max)(0.0f, m_Geometry.height - headerHeight) };
+        PanelChrome::PaintNavigationRegion(context, bgRect);
     }
 
     const float viewTop = m_ScrollMetrics.viewport.y;
     const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
 
-    context.PushClipRect(m_ScrollMetrics.viewport);
+    const Rect treeClipRect{ m_Geometry.x, m_ScrollMetrics.viewport.y, m_Geometry.width, m_ScrollMetrics.viewport.height };
+    context.PushClipRect(treeClipRect);
 
     const int firstVisible = std::max(0, m_FirstVisibleIndex);
     const int lastVisible = std::min(static_cast<int>(m_RenderList.size()) - 1, m_LastVisibleIndex);
@@ -323,16 +327,9 @@ void TreeView::Paint(PaintContext& context) {
         const bool hovered = node->id == m_HoveredId;
 
         if (m_ShowRowHighlight && (selected || hovered)) {
-            // Inset selection/hover like CompactTreeWidget (Space2), not edge-to-edge.
-            const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-            Rect highlightRect{
-                layout.rowBounds.x + padH,
-                layout.rowBounds.y,
-                (std::max)(0.0f, layout.rowBounds.width - padH * 2.0f),
-                layout.rowBounds.height
-            };
+            // Full-bleed row highlight — no side gutters of a different panel color.
             PanelChrome::PaintListRowBackground(
-                context, highlightRect, hovered, selected, IsFocused());
+                context, layout.rowBounds, hovered, selected, IsFocused());
         } else if (m_ShowAlternatingRowBackground) {
             PanelChrome::PaintAlternatingListRowBackground(
                 context, layout.rowBounds, item.flatIndex);
@@ -468,18 +465,14 @@ void TreeView::Paint(PaintContext& context) {
             const float fillBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
             int fillerIndex = static_cast<int>(m_RenderList.size());
             for (float fillerY = contentBottom; fillerY < fillBottom; fillerY += fillerRowHeight, ++fillerIndex) {
-                if ((fillerIndex % 2) == 0) {
-                    continue;
-                }
+                const float fullRowWidth = (std::max)(0.0f, m_Geometry.x + m_Geometry.width - m_ScrollMetrics.viewport.x);
                 const Rect fillerRow{
                     m_ScrollMetrics.viewport.x,
                     fillerY,
-                    m_ScrollMetrics.viewport.width,
+                    fullRowWidth,
                     (std::min)(fillerRowHeight, fillBottom - fillerY)
                 };
-                Color stripe = ThemeColor(ColorToken::PanelBackground);
-                stripe.a *= 0.3f;
-                context.DrawRect(fillerRow, stripe);
+                PanelChrome::PaintAlternatingListRowBackground(context, fillerRow, fillerIndex);
             }
         }
     }

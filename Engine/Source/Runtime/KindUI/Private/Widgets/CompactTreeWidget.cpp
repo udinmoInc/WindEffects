@@ -297,6 +297,9 @@ void CompactTreeWidget::OnMouseDown(const MouseEvent& event) {
     }
 }
 
+TreeColumnHeader::TreeColumnHeader(std::string itemLabel, std::string typeLabel)
+    : m_ItemLabel(std::move(itemLabel)), m_TypeLabel(std::move(typeLabel)) {}
+
 Size TreeColumnHeader::Measure(const Size& availableSize) {
     m_DesiredSize = Size{
         availableSize.width < 1.0e8f ? availableSize.width : 0.0f,
@@ -310,7 +313,7 @@ void TreeColumnHeader::Arrange(const Rect& allottedRect) {
 }
 
 void TreeColumnHeader::Paint(PaintContext& context) {
-    panels::PanelChrome::PaintExplorerColumnHeader(context, m_Geometry, "Item Label");
+    panels::PanelChrome::PaintExplorerColumnHeader(context, m_Geometry, m_ItemLabel, m_TypeLabel);
 }
 
 } // namespace we::runtime::kindui

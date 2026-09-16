@@ -64,19 +64,13 @@ void PaintRegionBackground(PanelBodyRegion region, PaintContext& context, const 
 void PaintRegionChrome(PanelBodyRegion region, PaintContext& context, const Rect& geometry) {
     switch (region) {
     case PanelBodyRegion::ModeTabs:
+        Chrome::PaintDockTabStripDivider(context, geometry);
+        break;
     case PanelBodyRegion::Toolbar:
-        Chrome::PaintDockTabStripDivider(context, geometry);
-        break;
     case PanelBodyRegion::Search:
-        break;
     case PanelBodyRegion::ColumnHeader:
-        Chrome::PaintDockTabStripDivider(context, geometry);
-        break;
     case PanelBodyRegion::Content:
-        break;
     case PanelBodyRegion::Footer:
-        Chrome::PaintDockFooterDivider(context, geometry);
-        break;
     case PanelBodyRegion::Count:
         break;
     }
@@ -203,7 +197,9 @@ Size PanelBodyLayout::Measure(const Size& availableSize) {
     auto countGap = [&](PanelBodyRegion region) {
         const auto& slot = m_Regions[RegionIndex(region)];
         if (slot.widget && slot.widget->IsVisible()) {
-            ++regionGapCount;
+            if (region != PanelBodyRegion::ColumnHeader && region != PanelBodyRegion::Footer) {
+                ++regionGapCount;
+            }
         }
     };
     countGap(PanelBodyRegion::ModeTabs);
@@ -268,7 +264,7 @@ void PanelBodyLayout::ArrangeFixedRegion(
     AssertLayoutRectValid("PanelBodyLayout.region", slot.geometry, allottedRect);
     ArrangeChild(slot.widget, InsetRegionContent(slot.geometry, region));
     currentY += slot.geometry.height;
-    if (slot.geometry.height > 0.01f) {
+    if (slot.geometry.height > 0.01f && region != PanelBodyRegion::ColumnHeader) {
         currentY += RegionSeparationGap();
     }
 }
@@ -304,10 +300,7 @@ void PanelBodyLayout::Arrange(const Rect& allottedRect) {
             availableH);
     }
 
-    float footerGap = 0.0f;
-    if (footerSlot.widget && footerSlot.widget->IsVisible() && footerHeight > 0.0f) {
-        footerGap = RegionSeparationGap();
-    }
+    const float footerGap = 0.0f;
 
     const float contentHeight = std::max(0.0f, totalBottom - currentY - footerHeight - footerGap);
     auto& contentSlot = m_Regions[RegionIndex(PanelBodyRegion::Content)];

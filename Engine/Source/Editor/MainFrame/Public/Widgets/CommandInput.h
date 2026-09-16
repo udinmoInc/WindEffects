@@ -43,6 +43,7 @@ public:
     void SetPlaceholder(const std::string& placeholder) { m_Placeholder = placeholder; }
     void SetOnCommandSubmitted(OnCommandSubmitted callback) { m_OnCommandSubmitted = std::move(callback); }
     void SetFlatChrome(bool flat) { m_FlatChrome = flat; }
+    void SetDrawIconInside(bool draw) { m_DrawIconInside = draw; InvalidateLayout(); }
     void SetWidth(float width) { m_Width = width; InvalidateLayout(); }
     void SetHeight(float height) { m_Height = height; InvalidateLayout(); }
 
@@ -52,6 +53,7 @@ private:
     size_t m_CaretPosition = 0;
     bool m_ShowCaret = false;
     bool m_FlatChrome = false;
+    bool m_DrawIconInside = false;
 
     float m_Height = 0.0f;
     float m_Width = 0.0f;

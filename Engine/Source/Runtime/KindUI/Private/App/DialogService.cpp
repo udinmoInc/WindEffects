@@ -79,10 +79,6 @@ void DialogService::Dismiss(const std::string& id) {
     }
 }
 
-void DialogService::DismissAll() {
-    Dismiss();
-}
-
 bool DialogService::IsOpen(const std::string& id) const {
     return m_Open && m_ActiveId && *m_ActiveId == id;
 }

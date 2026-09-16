@@ -38,13 +38,19 @@ void ScrollContainer::SetContentWidget(std::shared_ptr<Widget> contentWidget) {
 }
 
 void ScrollContainer::SyncScroll() {
+    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     float contentH = m_Geometry.height;
     if (m_ContentWidget) {
         const Size contentSize = MeasureChild(m_ContentWidget, Size{ m_Geometry.width, 1e9f });
         contentH = contentSize.height;
     }
-    const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, contentH, uiScale);
+    if (m_ContentWidget && m_ScrollMetrics.showsScrollbar && m_ScrollMetrics.scrollbarWidth > 0.0f) {
+        const float reducedW = (std::max)(0.0f, m_Geometry.width - m_ScrollMetrics.scrollbarWidth);
+        const Size contentSize = MeasureChild(m_ContentWidget, Size{ reducedW, 1e9f });
+        contentH = contentSize.height;
+        m_ScrollMetrics = m_Scroll.UpdateMetrics(m_Geometry, m_Geometry.height, contentH, uiScale);
+    }
 }
 
 Size ScrollContainer::Measure(const Size& availableSize) {
@@ -69,12 +75,12 @@ void ScrollContainer::Arrange(const Rect& allottedRect) {
         if (contentSize.height > 0.0f) {
             contentH = contentSize.height;
         } else {
-            contentH = MeasureChild(m_ContentWidget, Size{ m_Geometry.width, 1e9f }).height;
+            contentH = MeasureChild(m_ContentWidget, Size{ m_ScrollMetrics.viewport.width, 1e9f }).height;
         }
         const Rect contentRect{
-            allottedRect.x,
-            allottedRect.y - m_Scroll.offset,
-            allottedRect.width,
+            m_ScrollMetrics.viewport.x,
+            m_ScrollMetrics.viewport.y - m_Scroll.offset,
+            m_ScrollMetrics.viewport.width,
             contentH
         };
         ArrangeChild(m_ContentWidget, contentRect);
@@ -93,8 +99,8 @@ void ScrollContainer::Paint(PaintContext& context) {
 
 void ScrollContainer::OnMouseWheel(const MouseEvent& event) {
     SyncScroll();
-    if (ScrollViewport::NeedsScrollbar(m_ScrollMetrics.viewport.height, m_Geometry.height)) {
-        m_Scroll.ApplyWheel(event.deltaY, 36.0f, m_ScrollMetrics.viewport.height, m_Geometry.height);
+    if (m_ScrollMetrics.isScrollable) {
+        m_Scroll.ApplyWheel(event.deltaY, 36.0f, m_ScrollMetrics.viewport.height, m_ScrollMetrics.viewport.height);
         // Scroll offset is arrangement-local — do not re-arm full shell layout.
         Arrange(m_Geometry);
         InvalidatePaint();

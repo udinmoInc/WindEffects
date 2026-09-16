@@ -358,6 +358,7 @@ EditorShellResult EditorShellBuilder::Build(
     }
 
     if (shellResult.layout.viewportDock) {
+        shellResult.layout.viewportDock->SetPreventCloseWhenSingle(true);
         shellResult.layout.viewportDock->SetOnTabClosed([](const std::shared_ptr<Panel>& panel) {
             we::programs::editor::EditorWorkspaceController::Get().HidePanelWidget(panel);
         });
@@ -416,6 +417,25 @@ EditorShellResult EditorShellBuilder::Build(
         const auto panelIt = shellResult.layout.panels.find(panelId);
         if (panelIt != shellResult.layout.panels.end() && panelIt->second) {
             workspace.RegisterPanel(panelId, panelIt->second, reg.descriptor.defaultZone);
+        } else if (reg.factory && panelId != "ViewportNavigation") {
+            auto panel = reg.factory();
+            if (panel) {
+                panel->SetHeaderHeight(0.0f);
+                ApplyPanelDescriptor(panel, reg.descriptor);
+                shellResult.layout.panels[panelId] = panel;
+                workspace.RegisterPanel(panelId, panel, reg.descriptor.defaultZone);
+                if (reg.descriptor.defaultVisible) {
+                    if (auto dock = workspace.DockForPanel(panelId)) {
+                        if (!dock->ContainsPanel(panel)) {
+                            dock->AddPanel(panel);
+                        }
+                    } else if (auto zoneDock = workspace.DockForZone(reg.descriptor.defaultZone)) {
+                        if (!zoneDock->ContainsPanel(panel)) {
+                            zoneDock->AddPanel(panel);
+                        }
+                    }
+                }
+            }
         }
     }
 

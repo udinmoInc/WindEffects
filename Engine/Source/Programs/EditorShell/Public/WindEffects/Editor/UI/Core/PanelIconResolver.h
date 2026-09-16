@@ -20,7 +20,7 @@ inline we::runtime::kindui::WindIconRef ResolvePanelTabIcon(std::string_view pan
         return WindIcons::FolderSearch16;
     }
     if (panelId == "output-log" || panelId == "OutputLog" || panelId == "terminal" || panelId == "Terminal") {
-        return WindIcons::SettingsV224;
+        return WindIcons::Console16;
     }
     if (panelId == "viewport" || panelId == "Viewport") {
         return WindIcons::ConstructV224;

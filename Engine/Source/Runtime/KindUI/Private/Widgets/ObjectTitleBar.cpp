@@ -64,9 +64,9 @@ ObjectTitleBar::ObjectTitleBar(std::string title, WindIconRef icon)
     : m_Title(std::move(title)), m_Icon(icon) {
     const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
     const float padH = ThemeMetric(MetricToken::Space2) * uiScale;
-    const float padV = 1.0f * uiScale;
+    const float padV = 2.0f * uiScale;
     Padding(Margin{ padH, padV, padH, padV });
-    Gap(ThemeMetric(MetricToken::Space1) * uiScale);
+    Gap(ThemeMetric(MetricToken::Space2) * uiScale);
     Align(AlignItems::Center);
 
     auto labelWidget = std::make_shared<TitleLabelWidget>(m_Title, m_Icon);

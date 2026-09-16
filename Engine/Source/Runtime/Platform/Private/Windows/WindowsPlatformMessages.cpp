@@ -256,14 +256,20 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 false
             });
         }
-        break;
+        return 0;
 
     case WM_NCMOUSELEAVE:
     case WM_MOUSELEAVE:
         if (window) {
-            if (m_CursorInWindow) {
-                m_CursorInWindow = false;
-                PushEvent(CursorEnterEvent{window->id, false});
+            POINT pt{};
+            GetCursorPos(&pt);
+            RECT wr{};
+            GetWindowRect(hwnd, &wr);
+            if (!PtInRect(&wr, pt)) {
+                if (m_CursorInWindow) {
+                    m_CursorInWindow = false;
+                    PushEvent(CursorEnterEvent{window->id, false});
+                }
             }
         }
         return 0;
@@ -280,6 +286,16 @@ LRESULT WindowsPlatform::HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 {pt.x, pt.y},
                 1
             });
+            const LRESULT res = DefWindowProcW(hwnd, msg, wParam, lParam);
+            PushEvent(MouseButtonEvent{
+                window->id,
+                MouseButton::Left,
+                QueryModifiers(),
+                false,
+                {pt.x, pt.y},
+                1
+            });
+            return res;
         }
         break;
 
