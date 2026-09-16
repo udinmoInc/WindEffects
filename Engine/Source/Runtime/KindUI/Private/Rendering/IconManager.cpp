@@ -14,6 +14,7 @@
 
 #include "Icons/Assets/PngLoader.h"
 #include "Core/Logger.h"
+#include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/UIResourceResidency.h"
 #include "KindUI/Core/Widget.h"
 #include "KindUI/Host/OverlayRenderer.h"
@@ -343,7 +344,7 @@ IconManager::CachedTexture* IconManager::LoadTexture(WindIconRef icon) const
         return nullptr;
     }
 
-    const bool linearFilter = width > 32 || height > 32;
+    const bool linearFilter = true;
     const we::rhi::RHIDescriptorSetHandle descriptorSet =
         m_Renderer->UploadRgbaTexture(width, height, rgba, linearFilter, true);
     if (descriptorSet == we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -402,6 +403,24 @@ IconDrawInfo IconManager::ResolveIcon(WindIconRef icon) const
     IconDrawInfo info;
     if (!m_Ready || !icon.IsValid()) {
         return info;
+    }
+
+    // Under DPI scaling > 1.0, prefer 24px native atlas asset tier if available when 16px is requested
+    const float dpiScale = we::runtime::kindui::DPIContext::GetScale();
+    if (dpiScale > 1.1f && icon.sizePx < 24) {
+        WindIconRef icon24{ icon.stem, 24 };
+        CachedTexture* texture24 = LoadTexture(icon24);
+        if (texture24 && texture24->ready && !texture24->missing) {
+            info.descriptorSet = texture24->descriptorSet;
+            info.uvMin[0] = 0.0f;
+            info.uvMin[1] = 0.0f;
+            info.uvMax[0] = 1.0f;
+            info.uvMax[1] = 1.0f;
+            info.shaderType = texture24->shaderType;
+            info.sizePx = icon.sizePx;
+            info.valid = true;
+            return info;
+        }
     }
 
     CachedTexture* texture = LoadTexture(icon);

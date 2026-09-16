@@ -46,6 +46,13 @@ ProjectValidationResult ProjectContext::Load(const std::filesystem::path& weproj
     m_ProjectRoot = m_WeprojPath.parent_path();
     m_Descriptor = std::move(*descriptor);
 
+    if (EngineContext::Get().IsInitialized() && !EngineContext::Get().EngineVersion().empty()) {
+        if (m_Descriptor.engineVersion != EngineContext::Get().EngineVersion()) {
+            m_Descriptor.engineVersion = EngineContext::Get().EngineVersion();
+            (void)SaveDescriptor();
+        }
+    }
+
     const std::string contentRel = m_Descriptor.contentDirectory.empty()
         ? we::core::layout::kContent
         : m_Descriptor.contentDirectory;

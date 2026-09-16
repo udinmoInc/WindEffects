@@ -15,7 +15,7 @@
 namespace we::editor::contentbrowser {
 
 namespace {
-constexpr uint64_t kThumbnailCacheSchema = 5;
+constexpr uint64_t kThumbnailCacheSchema = 6;
 }
 
 ThumbnailManager::ThumbnailManager() {

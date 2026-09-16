@@ -19,6 +19,7 @@
 #include "Widgets/WindowsPanelMenuButton.h"
 #include "Widgets/DropdownMenu.h"
 #include "WindEffects/Editor/UI/Shell/EditorWorkspaceController.h"
+#include "Projects/ProjectContext.h"
 
 #include "Core/DiagnosticMacros.h"
 #include "Core/LogCategory.h"

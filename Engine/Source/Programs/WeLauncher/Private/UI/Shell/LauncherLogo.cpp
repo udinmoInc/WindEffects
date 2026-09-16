@@ -143,13 +143,29 @@ bool LoadPngRgbaWic(
 
 std::filesystem::path ResolveLauncherLogoPath(const std::filesystem::path& engineRoot) {
     if (!engineRoot.empty()) {
-        const auto candidate = engineRoot / "Assets" / "Editor" / "Logo" / "Logo_UI.png";
+        auto candidate = engineRoot / "Engine" / "Assets" / "Editor" / "Logo" / "Logo_UI.png";
+        if (std::filesystem::exists(candidate)) {
+            return candidate;
+        }
+        candidate = engineRoot / "Engine" / "Content" / "Editor" / "Logo" / "Logo_UI.png";
+        if (std::filesystem::exists(candidate)) {
+            return candidate;
+        }
+        candidate = engineRoot / "Content" / "Editor" / "Logo" / "Logo_UI.png";
         if (std::filesystem::exists(candidate)) {
             return candidate;
         }
     }
     if (auto root = PathUtils::FindEngineRoot(PathUtils::GetExecutableDirectory())) {
-        const auto candidate = *root / "Assets" / "Editor" / "Logo" / "Logo_UI.png";
+        auto candidate = *root / "Engine" / "Assets" / "Editor" / "Logo" / "Logo_UI.png";
+        if (std::filesystem::exists(candidate)) {
+            return candidate;
+        }
+        candidate = *root / "Engine" / "Content" / "Editor" / "Logo" / "Logo_UI.png";
+        if (std::filesystem::exists(candidate)) {
+            return candidate;
+        }
+        candidate = *root / "Content" / "Editor" / "Logo" / "Logo_UI.png";
         if (std::filesystem::exists(candidate)) {
             return candidate;
         }

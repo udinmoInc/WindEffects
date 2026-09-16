@@ -46,8 +46,8 @@ float3 WE_ACESFilm(float3 x)
 
 float WE_ExposureFromEV100(float ev100)
 {
-    // EV100 to exposure scale used in physically based camera models.
-    return 1.0 / max(pow(2.0, ev100), 1e-5);
+    // Native GPU instruction: 2^(-ev100) avoids log2, pow, and division instructions.
+    return min(exp2(-ev100), 1e5);
 }
 
 float3 WE_ApplyFilmicTonemap(float3 linearColor, float exposureScale)

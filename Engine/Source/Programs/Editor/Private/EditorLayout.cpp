@@ -63,6 +63,27 @@ void Editor::UpdateUiScaleFromWindow() {
         we::runtime::kindui::ThemeManager::Get().SetDpiScale(clamped);
     }
     we::runtime::kindui::UIRepaintGate::Request();
+
+    const float contextScale = we::runtime::kindui::DPIContext::GetScale();
+    const float themeScale = we::runtime::kindui::ThemeManager::Get().GetDpiScale();
+    const char* consistency = (std::abs(contextScale - themeScale) < 0.001f && contextScale >= 1.0f) ? "PASS" : "FAIL";
+
+    if (m_Window != we::platform::WindowId::Invalid) {
+        auto& platform = we::platform::Platform::Get();
+        const auto physical = platform.GetWindowPixelSize(m_Window);
+        const auto logicalX = static_cast<uint32_t>(std::round(static_cast<float>(physical.x) / clamped));
+        const auto logicalY = static_cast<uint32_t>(std::round(static_cast<float>(physical.y) / clamped));
+        const uint32_t dpi = static_cast<uint32_t>(std::round(clamped * 96.0f));
+        const uint32_t swW = m_Renderer ? m_Renderer->GetSwapchainWidth() : 0;
+        const uint32_t swH = m_Renderer ? m_Renderer->GetSwapchainHeight() : 0;
+
+        HE_INFO("[UI][GLOBAL DPI]\nDPI: " + std::to_string(dpi) +
+                "\nScale: " + std::to_string(clamped) +
+                "\nLogicalSize: " + std::to_string(logicalX) + "x" + std::to_string(logicalY) +
+                "\nPhysicalSize: " + std::to_string(physical.x) + "x" + std::to_string(physical.y) +
+                "\nFramebufferSize: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                "\nScaleConsistency: " + std::string(consistency));
+    }
 }
 
 void Editor::EnsureVisibleSwapchain() {

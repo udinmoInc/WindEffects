@@ -44,6 +44,8 @@ public:
             || lower == ".wefont") return AssetType::Font;
         if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts")
             return AssetType::Script;
+        if (lower == ".md" || lower == ".markdown" || lower == ".txt" || lower == ".doc" || lower == ".docx")
+            return AssetType::Document;
         if (lower == ".mp4" || lower == ".avi" || lower == ".mov" || lower == ".webm") return AssetType::Video;
         if (lower == ".wetex" || lower == ".weasset") {
             if (lower == ".wetex") return AssetType::Texture;

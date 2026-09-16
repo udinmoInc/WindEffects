@@ -41,7 +41,10 @@ void ConfigureModuleSearchPath() {
 }
 
 [[nodiscard]] bool NeedsWeLauncher(const we::projects::EditorCommandLine& commandLine) {
-    return false;
+    if (commandLine.forceProjectManager) {
+        return true;
+    }
+    return !commandLine.projectPath.has_value();
 }
 
 }

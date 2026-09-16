@@ -16,9 +16,35 @@ float WE_ComputeAutoExposureEV(float avgLuminance, float skyLumHint, float bloom
     return log2(effectiveAvg * bloomHeadroom / middleGray);
 }
 
+groupshared float s_ExposureScale;
+
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dtid : SV_DispatchThreadID)
+void CSMain(uint3 dtid : SV_DispatchThreadID, uint gidx : SV_GroupIndex)
 {
+    if (gidx == 0)
+    {
+        if (pipelineBypassToneMapping != 0)
+        {
+            const float evScale = max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0);
+            s_ExposureScale = pipelineFixedExposureMultiplier > 0.0
+                ? pipelineFixedExposureMultiplier
+                : evScale;
+        }
+        else
+        {
+            const float avgLum = max(luminanceAvg.Load(int3(0, 0, 0)), 1e-6);
+            const float autoEV = clamp(
+                WE_ComputeAutoExposureEV(avgLum, hdrSkyLuminance, bloomIntensity) + exposureCompensation,
+                -2.0, 14.0);
+            const float ev = lerp(exposureEV, autoEV, saturate(enableAutoExposure));
+            const float evScale = max(WE_ExposureFromEV100(ev), 1.0 / 4096.0);
+            s_ExposureScale = (enableAutoExposure < 0.5 && pipelineFixedExposureMultiplier > 0.0)
+                ? pipelineFixedExposureMultiplier
+                : evScale;
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+
     uint width = 0;
     uint height = 0;
     sceneOutput.GetDimensions(width, height);
@@ -29,11 +55,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
 
     if (pipelineBypassToneMapping != 0)
     {
-        const float evScale = max(WE_ExposureFromEV100(exposureEV), 1.0 / 4096.0);
-        const float exposureScale = pipelineFixedExposureMultiplier > 0.0
-            ? pipelineFixedExposureMultiplier
-            : evScale;
-        color = max(color * exposureScale, 0.0);
+        color = max(color * s_ExposureScale, 0.0);
         sceneOutput[dtid.xy] = float4(color, 1.0);
         return;
     }
@@ -42,17 +64,7 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
     const float3 bloom = bloomTexture.SampleLevel(linearSampler, bloomUv, 0.0).rgb;
     color += bloom * bloomIntensity;
 
-    const float avgLum = max(luminanceAvg.Load(int3(0, 0, 0)), 1e-6);
-    const float autoEV = clamp(
-        WE_ComputeAutoExposureEV(avgLum, hdrSkyLuminance, bloomIntensity) + exposureCompensation,
-        -2.0, 14.0);
-    const float ev = lerp(exposureEV, autoEV, saturate(enableAutoExposure));
-
-    const float evScale = max(WE_ExposureFromEV100(ev), 1.0 / 4096.0);
-    const float exposureScale = (enableAutoExposure < 0.5 && pipelineFixedExposureMultiplier > 0.0)
-        ? pipelineFixedExposureMultiplier
-        : evScale;
-    color = WE_ApplyFilmicTonemap(color, exposureScale);
+    color = WE_ApplyFilmicTonemap(color, s_ExposureScale);
     color = WE_LinearToSRGB(color);
     sceneOutput[dtid.xy] = float4(color, 1.0);
 }

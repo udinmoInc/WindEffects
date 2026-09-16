@@ -621,9 +621,9 @@ void UIWidgetAdapter::GenerateRectGeometry(const DrawCommand& cmd) {
         m_Indices.push_back(startIndex + 3);
         m_Indices.push_back(startIndex + 0);
 
-        // Opaque-replace + shader discard outside the SDF: interior writes replace, corners
-        // leave the parent untouched — same look as alpha blend with a=1, better batching.
-        AddOrMergeBatch(6, false, 0, 0, 0.0f, true);
+        // Use alpha blending for rounded shapes so subpixel AA corners blend smoothly
+        // over panel backgrounds without replace-blend dark box artifacts outside curves.
+        AddOrMergeBatch(6, false, 0, 0, 0.0f, false);
 
         if (UiColorDebug::IsEnabled()) {
             ColorToken token{};

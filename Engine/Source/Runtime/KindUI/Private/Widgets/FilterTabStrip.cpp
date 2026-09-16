@@ -12,6 +12,7 @@
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 #include "KindUI/UI/PanelChrome.h"
+#include "KindUI/Host/IconMetrics.h"
 #include "KindUI/Theme/ThemeAccess.h"
 #include "KindUI/Theme/DesignToken.h"
 
@@ -112,8 +113,10 @@ void FilterTabStrip::Paint(PaintContext& context) {
     // Structural separator where header block meets property content
     const float scale = (std::max)(1.0f, DPIContext::GetScale());
     const float borderH = std::max(1.0f, 1.0f * scale);
-    const float borderY = m_Geometry.y + m_Geometry.height - borderH;
-    context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderH }, ResolveColor(ColorToken::Separator));
+    const float borderY = IconMetrics::SnapPx(m_Geometry.y + m_Geometry.height - borderH);
+    context.DrawRect(
+        Rect{ IconMetrics::SnapPx(m_Geometry.x), borderY, IconMetrics::SnapPx(m_Geometry.width), borderH },
+        ResolveColor(ColorToken::Separator));
 }
 
 void FilterTabStrip::OnMouseMove(const MouseEvent& event) {

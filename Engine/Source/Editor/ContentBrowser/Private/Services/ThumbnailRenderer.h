@@ -35,6 +35,7 @@ public:
     static BitmapRGBA RenderAudioWaveform(const AssetRecord& asset);
     static BitmapRGBA RenderFontSample(const AssetRecord& asset);
     static BitmapRGBA RenderScriptIcon(const AssetRecord& asset);
+    static BitmapRGBA RenderDocumentPreview(const AssetRecord& asset);
     static BitmapRGBA RenderScenePreview(const AssetRecord& asset);
     static BitmapRGBA RenderGenericIcon(AssetType type);
     static BitmapRGBA RenderContentBrowserFolder(uint32_t heightPx, float hoverBrightness = 0.0f, bool opened = false,

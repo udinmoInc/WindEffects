@@ -192,24 +192,8 @@ void PaintRecessedBorder(
     const float s = std::clamp(strength, 0.0f, 1.0f);
 
     if (radius > 0.5f) {
-        // Rounded wells: outline + inset top shade + bottom falloff for real depth.
+        // Rounded wells: clean control outline using exact inset rounded ring SDF geometry.
         context.DrawControlOutline(rect, colors.dark, edge, radius);
-
-        const float trim = std::min(radius * 0.42f, std::max(0.0f, rect.width * 0.22f));
-        const float lineW = std::max(0.0f, rect.width - trim * 2.0f);
-        if (lineW > 0.0f) {
-            Color topInset = ResolveColor(ColorToken::InputInsetOuter);
-            topInset.a *= 0.70f * s;
-            context.DrawRect(
-                Rect{ rect.x + trim, rect.y + edge, lineW, edge },
-                topInset);
-
-            Color bottomShade = ResolveColor(ColorToken::InputInsetInner);
-            bottomShade.a *= 0.55f * s;
-            context.DrawRect(
-                Rect{ rect.x + trim, rect.y + rect.height - edge * 2.0f, lineW, edge },
-                bottomShade);
-        }
         return;
     }
 

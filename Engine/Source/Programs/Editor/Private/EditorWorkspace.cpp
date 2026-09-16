@@ -47,7 +47,46 @@ using ::we::editor::viewport::ViewportWidget;
 using ::we::runtime::world::DefaultSceneBuilder;
 
 bool Editor::LaunchWeLauncher(const std::vector<std::string>& extraArgs) {
-    HE_WARN("[Startup] WeLauncher launch blocked by user request.");
+    auto& platform = we::platform::Platform::Get();
+    const std::filesystem::path exeDir(platform.GetExecutableDirectory());
+
+    const std::filesystem::path candidates[] = {
+        exeDir / "WeLauncher.exe",
+        exeDir / "Engine" / "Binaries" / "WeLauncher.exe",
+        exeDir / "Programs" / "WeLauncher" / "WeLauncher.exe",
+    };
+
+    std::filesystem::path launcherPath;
+    for (const auto& candidate : candidates) {
+        std::error_code ec;
+        if (std::filesystem::exists(candidate, ec)) {
+            launcherPath = candidate;
+            break;
+        }
+    }
+
+    if (launcherPath.empty()) {
+        HE_ERROR("[Startup] WeLauncher.exe not found next to the Editor.");
+        return false;
+    }
+
+    const std::string launcherStr = launcherPath.string();
+    const std::string exeDirStr = exeDir.string();
+    we::platform::ProcessLaunchDesc desc{};
+    desc.executable = launcherStr.c_str();
+    desc.arguments = extraArgs;
+    desc.workingDirectory = exeDirStr.c_str();
+    desc.detach = true;
+    desc.waitForExit = false;
+
+    const auto result = platform.LaunchProcess(desc);
+    if (result.Ok() && result.value.launched) {
+        HE_INFO("[Startup] Launched WeLauncher.exe fallback (PID: "
+            + std::to_string(result.value.processId) + ").");
+        return true;
+    }
+
+    HE_ERROR("[Startup] Failed to launch WeLauncher.exe process.");
     return false;
 }
 

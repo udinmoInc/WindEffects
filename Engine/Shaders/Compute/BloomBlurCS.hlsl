@@ -15,18 +15,23 @@ void CSMain(uint3 dtid : SV_DispatchThreadID)
     uint width = 0;
     uint height = 0;
     bloomTarget.GetDimensions(width, height);
+    const int maxW = int(width) - 1;
+    const int maxH = int(height) - 1;
+
     if (dtid.x >= width || dtid.y >= height)
         return;
 
+    const int2 base = int2(dtid.xy);
     float3 accum = float3(0.0, 0.0, 0.0);
+
     [unroll]
     for (int i = -2; i <= 2; ++i)
     {
-        const float2 offset = blurDirection * float(i);
-        const int2 coord = int2(dtid.xy) + int2(offset);
+        const int2 offset = int2(blurDirection * float(i));
+        const int2 coord = base + offset;
         const int2 clamped = int2(
-            clamp(coord.x, 0, int(width) - 1),
-            clamp(coord.y, 0, int(height) - 1));
+            clamp(coord.x, 0, maxW),
+            clamp(coord.y, 0, maxH));
         accum += bloomSource[clamped].rgb * kKernel[i + 2];
     }
 

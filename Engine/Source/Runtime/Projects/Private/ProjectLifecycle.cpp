@@ -121,7 +121,15 @@ std::optional<WeProjectDescriptor> ProjectLifecycle::ReadDescriptor(
         return std::nullopt;
     }
     try {
-        return json->get<WeProjectDescriptor>();
+        auto desc = json->get<WeProjectDescriptor>();
+        const std::string stem = weprojPath.stem().string();
+        if (desc.projectName.empty()) {
+            desc.projectName = !desc.displayName.empty() ? desc.displayName : stem;
+        }
+        if (desc.displayName.empty()) {
+            desc.displayName = desc.projectName;
+        }
+        return desc;
     } catch (const std::exception& e) {
         HE_ERROR(std::string("[ProjectLifecycle] Invalid .weproj: ") + e.what());
         return std::nullopt;
@@ -139,41 +147,27 @@ ProjectValidationResult ProjectLifecycle::Validate(
     const WeProjectDescriptor& descriptor,
     const std::string& installedEngineVersion) {
     ProjectValidationResult result{};
+    result.ok = true;
+
     if (descriptor.schemaVersion < 1) {
         result.message = "Unsupported project schema.";
+        result.ok = false;
         return result;
     }
-    if (descriptor.schemaVersion > 1) {
-        result.needsUpgrade = true;
-        result.message = "Project schema is newer than this editor supports.";
-        return result;
-    }
-    if (descriptor.projectName.empty()) {
+
+    if (descriptor.projectName.empty() && descriptor.displayName.empty()) {
         result.message = "Project name is missing.";
+        result.ok = false;
         return result;
     }
 
-    if (installedEngineVersion.empty() || descriptor.engineVersion.empty()) {
-        result.ok = true;
-        result.message = "Engine version unknown — open with caution.";
-        return result;
-    }
-
-    if (MajorVersion(descriptor.engineVersion) != MajorVersion(installedEngineVersion)) {
-        result.message = "Major engine version mismatch (project "
-            + descriptor.engineVersion + ", installed " + installedEngineVersion + ").";
+    if (!installedEngineVersion.empty() && !descriptor.engineVersion.empty()
+        && descriptor.engineVersion != installedEngineVersion) {
         result.needsUpgrade = true;
+        result.message = "Engine version sync (" + descriptor.engineVersion + " -> " + installedEngineVersion + ").";
         return result;
     }
 
-    if (descriptor.engineVersion != installedEngineVersion) {
-        result.ok = true;
-        result.needsUpgrade = true;
-        result.message = "Minor engine version differs — project may need upgrade.";
-        return result;
-    }
-
-    result.ok = true;
     result.message = "Compatible with installed engine.";
     return result;
 }
@@ -228,6 +222,12 @@ bool ProjectLifecycle::EnsureProjectLayout(
         we::core::layout::kConfig,
         we::core::layout::kContent,
         std::filesystem::path(we::core::layout::kContent) / "Maps",
+        std::filesystem::path(we::core::layout::kContent) / "Textures",
+        std::filesystem::path(we::core::layout::kContent) / "Materials",
+        std::filesystem::path(we::core::layout::kContent) / "Models",
+        std::filesystem::path(we::core::layout::kContent) / "Audio",
+        std::filesystem::path(we::core::layout::kContent) / "Blueprints",
+        std::filesystem::path(we::core::layout::kContent) / "Prefabs",
         we::core::layout::kSource,
         we::core::layout::kPlugins,
         "ProjectSettings",

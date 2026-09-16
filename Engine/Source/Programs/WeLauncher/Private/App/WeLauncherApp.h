@@ -62,6 +62,7 @@ private:
     uint32_t m_LastLayoutSwapchainW = 0;
     uint32_t m_LastLayoutSwapchainH = 0;
     we::rhi::RHIDescriptorSetHandle m_LogoSet = we::rhi::RHIDescriptorSetHandle::Invalid;
+    bool m_DpiDiagnosticsLogged = false;
 };
 
 } // namespace we::programs::welauncher

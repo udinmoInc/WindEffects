@@ -12,6 +12,8 @@
 #include "Widgets/ToolButton.h"
 #include "Platform/Platform.h"
 #include "Core/LoopExecutionTrace.h"
+#include "Projects/ProjectContext.h"
+#include "Projects/EngineContext.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -94,75 +96,55 @@ namespace {
     float WindowPadLeft() { return 8.0f; }
     float LogoToMenuGap() { return 6.0f; }
 
-    class ProjectSelectorWidget : public Widget {
+    class CenteredProjectTitleWidget : public Widget {
     public:
-        static constexpr const char* kProjectName = "MyProject";
+        CenteredProjectTitleWidget() {}
 
-        static float ControlHeight() {
-            return we::runtime::kindui::ResolveMetric(MetricToken::HeaderControlHeight);
+        static std::string GetHeaderTitleText() {
+            std::string engineVer = "0.1.0";
+            if (we::projects::EngineContext::Get().IsInitialized() && !we::projects::EngineContext::Get().EngineVersion().empty()) {
+                engineVer = we::projects::EngineContext::Get().EngineVersion();
+            }
+
+            std::string projName = "No Project";
+            if (we::projects::ProjectContext::Get().IsLoaded()) {
+                const auto& desc = we::projects::ProjectContext::Get().Descriptor();
+                projName = !desc.displayName.empty() ? desc.displayName : desc.projectName;
+                if (projName.empty() && !we::projects::ProjectContext::Get().WeprojPath().empty()) {
+                    projName = we::projects::ProjectContext::Get().WeprojPath().stem().string();
+                }
+            }
+
+            return "Windeffects (v" + engineVer + ") - " + projName;
         }
 
-        ProjectSelectorWidget() {}
         Size Measure(const Size& availableSize) override {
             (void)availableSize;
-            const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
-            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizePrimary);
+            const std::string titleText = GetHeaderTitleText();
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu);
-            float textW = kProjectName[0] ? static_cast<float>(strlen(kProjectName)) * textSize * 0.55f : 0.0f;
-            float width = padH + iconSize + padH + textW + padH + static_cast<float>(16u) + padH;
-            m_DesiredSize = Size{ width, ControlHeight() };
+            float textW = !titleText.empty() ? static_cast<float>(titleText.size()) * textSize * 0.55f : 0.0f;
+            float height = we::runtime::kindui::ResolveMetric(MetricToken::TitleBarHeight);
+            m_DesiredSize = Size{ textW, height };
             return m_DesiredSize;
         }
+
         void Arrange(const Rect& allottedRect) override {
             m_Geometry = allottedRect;
-            if (allottedRect.height > m_DesiredSize.height) {
-                m_Geometry.y += (allottedRect.height - m_DesiredSize.height) * 0.5f;
-                m_Geometry.height = m_DesiredSize.height;
-            }
         }
-        void Tick(float deltaTime) override {
-            (void)deltaTime;
-            m_HoverAnim = Animator::Damp(
-                m_HoverAnim,
-                m_Hovered ? 1.0f : 0.0f,
-                ThemeMetric(MetricToken::HoverAnimationDamping));
-            Widget::Tick(deltaTime);
-        }
+
         void Paint(PaintContext& context) override {
             const float uiScale = (std::max)(1.0f, DPIContext::GetScale());
+            const std::string titleText = GetHeaderTitleText();
 
-            const float radius = ThemeMetric(MetricToken::CornerRadiusMedium) * uiScale;
-            const Color fill = Color::Pick(
-                ThemeColor(ColorToken::ButtonPrimaryBackground),
-                ThemeColor(ColorToken::ButtonPrimaryHover),
-                m_HoverAnim * 0.62f);
-            context.DrawRoundedRect(m_Geometry, fill, radius);
-
-            const float padH = we::runtime::kindui::ResolveMetric(MetricToken::Space2);
             const float centerY = m_Geometry.y + m_Geometry.height * 0.5f;
-            const float iconSize = we::runtime::kindui::ResolveMetric(MetricToken::IconSizeToolbar);
             const float textSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeMenu) * uiScale;
-            const Rect iconBand{
-                m_Geometry.x + padH * uiScale,
-                m_Geometry.y,
-                iconSize,
-                m_Geometry.height
-            };
-            IconPainter::Draw(context, WindIcons::Folder16, iconBand, static_cast<uint32_t>(iconSize));
 
-            const float textX = m_Geometry.x + (padH + iconSize + padH) * uiScale;
-            context.DrawText(kProjectName,
-                Point{ textX, centerY - textSize * 0.5f },
-                ThemeColor(ColorToken::TextPrimary), textSize);
-
-            const float chevronX = m_Geometry.x + m_Geometry.width - (padH + 16.0f) * uiScale;
-            Rect chevronBand{ chevronX, m_Geometry.y, 16.0f * uiScale, m_Geometry.height };
-            IconPainter::Draw(
-                context, WindIcons::ChevronDownV212, chevronBand);
+            context.DrawText(titleText,
+                Point{ m_Geometry.x, centerY - textSize * 0.5f },
+                ThemeColor(ColorToken::TextSecondary), textSize);
         }
-        bool ShowsPointerCursor(const Point&) const override { return true; }
-    private:
-        float m_HoverAnim = 0.0f;
+
+        bool ShowsPointerCursor(const Point&) const override { return false; }
     };
 
 }
@@ -198,6 +180,9 @@ void TitleBar::Construct() {
         auto titleLabel = std::make_shared<::we::runtime::kindui::Label>(m_Title,
             we::runtime::kindui::TypographyToken::Caption);
         m_CenterContainer->AddChild(titleLabel);
+    } else {
+        auto projectWidget = std::make_shared<CenteredProjectTitleWidget>();
+        m_CenterContainer->AddChild(projectWidget);
     }
 
     m_RightContainer = std::make_shared<Row>();

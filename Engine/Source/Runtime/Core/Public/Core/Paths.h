@@ -128,6 +128,7 @@ public:
     [[nodiscard]] std::filesystem::path ExecutableDirectory() const;
     [[nodiscard]] std::filesystem::path EngineRoot() const;
     [[nodiscard]] std::filesystem::path EngineContentRoot() const;
+    [[nodiscard]] std::filesystem::path EngineAssetsRoot() const;
     [[nodiscard]] std::filesystem::path EngineConfigRoot() const;
     [[nodiscard]] std::filesystem::path EngineShadersRoot() const;
     [[nodiscard]] std::filesystem::path EngineShaderBytecodesRoot() const;
@@ -153,8 +154,14 @@ public:
     [[nodiscard]] std::filesystem::path ProjectCacheRoot() const;
     [[nodiscard]] std::filesystem::path ThumbnailCacheRoot() const;
 
-    /// Runtime Saved under the staged product (exe directory) when no project is loaded.
     [[nodiscard]] std::filesystem::path RuntimeSavedRoot() const;
+    [[nodiscard]] std::filesystem::path EngineSavedRoot() const;
+    [[nodiscard]] std::filesystem::path EngineLogsRoot() const;
+    [[nodiscard]] std::filesystem::path EngineCacheRoot() const;
+    [[nodiscard]] std::filesystem::path EngineFontCacheRoot() const;
+    [[nodiscard]] std::filesystem::path EngineIconCacheRoot() const;
+    [[nodiscard]] std::filesystem::path ProjectShaderCacheRoot() const;
+
     [[nodiscard]] std::filesystem::path LogsRoot() const;
     [[nodiscard]] std::filesystem::path CrashesRoot() const;
     [[nodiscard]] std::filesystem::path CrashLatestRoot() const;

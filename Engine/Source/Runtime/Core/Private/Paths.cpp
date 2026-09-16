@@ -261,6 +261,10 @@ std::filesystem::path PathService::EngineContentRoot() const {
     return Join(EngineRoot(), layout::kEngine, layout::kContent);
 }
 
+std::filesystem::path PathService::EngineAssetsRoot() const {
+    return Join(EngineRoot(), layout::kEngine, layout::kAssets);
+}
+
 std::filesystem::path PathService::EngineConfigRoot() const {
     return Join(EngineRoot(), layout::kEngine, layout::kConfig);
 }
@@ -282,10 +286,20 @@ std::filesystem::path PathService::EngineResourcesRoot() const {
 }
 
 std::filesystem::path PathService::EngineFontsRoot() const {
+    const auto assetsFonts = EngineAssetsRoot() / layout::kFonts;
+    std::error_code ec;
+    if (std::filesystem::exists(assetsFonts, ec)) {
+        return assetsFonts;
+    }
     return Join(EngineContentRoot(), layout::kFonts);
 }
 
 std::filesystem::path PathService::EngineIconsRoot() const {
+    const auto assetsIcons = EngineAssetsRoot() / layout::kIcons;
+    std::error_code ec;
+    if (std::filesystem::exists(assetsIcons, ec)) {
+        return assetsIcons;
+    }
     return Join(EngineContentRoot(), layout::kIcons);
 }
 
@@ -393,7 +407,10 @@ std::filesystem::path PathService::ProjectCacheRoot() const {
     if (!m_Config.cacheRoot.empty()) {
         return m_Config.cacheRoot;
     }
-    return SavedRoot() / layout::kCache;
+    if (!m_Config.projectRoot.empty()) {
+        return m_Config.projectRoot / layout::kSaved / layout::kCache;
+    }
+    return EngineCacheRoot();
 }
 
 std::filesystem::path PathService::ThumbnailCacheRoot() const {
@@ -404,12 +421,44 @@ std::filesystem::path PathService::RuntimeSavedRoot() const {
     return Join(ExecutableDirectory(), layout::kSaved);
 }
 
+std::filesystem::path PathService::EngineSavedRoot() const {
+    return Join(EngineRoot(), layout::kEngine, layout::kSaved);
+}
+
+std::filesystem::path PathService::EngineLogsRoot() const {
+    const auto engineSavedLogs = EngineSavedRoot() / layout::kLogs;
+    std::error_code ec;
+    if (std::filesystem::exists(engineSavedLogs, ec)) {
+        return engineSavedLogs;
+    }
+    return RuntimeSavedRoot() / layout::kLogs;
+}
+
+std::filesystem::path PathService::EngineCacheRoot() const {
+    return EngineSavedRoot() / layout::kCache;
+}
+
+std::filesystem::path PathService::EngineFontCacheRoot() const {
+    return EngineCacheRoot() / layout::kFonts;
+}
+
+std::filesystem::path PathService::EngineIconCacheRoot() const {
+    return EngineCacheRoot() / layout::kIcons;
+}
+
+std::filesystem::path PathService::ProjectShaderCacheRoot() const {
+    return SavedRoot() / layout::kShaders;
+}
+
 std::filesystem::path PathService::LogsRoot() const {
     EnsureBootstrapped();
     if (!m_Config.logsRoot.empty()) {
         return m_Config.logsRoot;
     }
-    return SavedRoot() / layout::kLogs;
+    if (!m_Config.projectRoot.empty()) {
+        return m_Config.projectRoot / layout::kSaved / layout::kLogs;
+    }
+    return EngineLogsRoot();
 }
 
 std::filesystem::path PathService::CrashesRoot() const {
@@ -570,6 +619,7 @@ std::vector<std::filesystem::path> PathService::ResourceCandidates(
         out.push_back(root / relativeUnderRoots);
     };
 
+    add(EngineAssetsRoot());
     add(EngineContentRoot());
     add(Join(EngineRoot(), layout::kEngine));
     add(StagedAssetsRoot());
@@ -592,6 +642,7 @@ std::vector<std::filesystem::path> PathService::FontCandidates(
     const std::filesystem::path& fileName) const {
     std::vector<std::filesystem::path> out;
     out.push_back(EngineFontsRoot() / fileName);
+    out.push_back(EngineAssetsRoot() / layout::kFonts / fileName);
     out.push_back(StagedAssetsRoot() / layout::kFonts / fileName);
     out.push_back(ExecutableDirectory() / layout::kFonts / fileName);
     out.push_back(Join(EngineConfigRoot(), layout::kFonts) / fileName);
@@ -602,6 +653,8 @@ std::vector<std::filesystem::path> PathService::IconCandidates(
     const std::filesystem::path& relativeUnderIcons) const {
     std::vector<std::filesystem::path> out;
     out.push_back(EngineIconsRoot() / relativeUnderIcons);
+    out.push_back(EngineAssetsRoot() / layout::kIcons / relativeUnderIcons);
+    out.push_back(EngineAssetsRoot() / layout::kEditor / relativeUnderIcons);
     out.push_back(StagedAssetsRoot() / layout::kIcons / relativeUnderIcons);
     out.push_back(ExecutableDirectory() / layout::kIcons / relativeUnderIcons);
     out.push_back(StagedAssetsRoot() / layout::kEditor / relativeUnderIcons);

@@ -158,6 +158,7 @@ namespace WindIconAssets {
     inline constexpr const char* ToolbarVideocameraOff = "toolbar-videocamera-off";
     inline constexpr const char* ToolbarVideocameraOutlined = "toolbar-videocamera-outlined";
     inline constexpr const char* ToolbarScaling = "toolbar_scaling";
+    inline constexpr const char* ThumbnailMd = "thumbnail-md";
     inline constexpr const char* Trash = "trash";
     inline constexpr const char* TriangleDown = "triangle-down";
     inline constexpr const char* TriangleLeft = "triangle-left";
@@ -411,6 +412,7 @@ namespace WindIcons {
     inline constexpr WindIconRef ToolbarVideocameraOutlined24{ WindIconAssets::ToolbarVideocameraOutlined, 24 };
     inline constexpr WindIconRef ToolbarScaling16{ WindIconAssets::ToolbarScaling, 16 };
     inline constexpr WindIconRef ToolbarScaling24{ WindIconAssets::ToolbarScaling, 24 };
+    inline constexpr WindIconRef ThumbnailMd512{ WindIconAssets::ThumbnailMd, 512 };
     inline constexpr WindIconRef Trash16{ WindIconAssets::Trash, 16 };
     inline constexpr WindIconRef TriangleDown16{ WindIconAssets::TriangleDown, 16 };
     inline constexpr WindIconRef TriangleDown24{ WindIconAssets::TriangleDown, 24 };

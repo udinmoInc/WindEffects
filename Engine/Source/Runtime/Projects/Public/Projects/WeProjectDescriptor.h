@@ -58,7 +58,12 @@ inline void to_json(nlohmann::json& j, const WeProjectDescriptor& d) {
 inline void from_json(const nlohmann::json& j, WeProjectDescriptor& d) {
     d.schemaVersion = j.value("schemaVersion", 1);
     d.projectName = j.value("projectName", std::string{});
-    d.displayName = j.value("displayName", d.projectName);
+    d.displayName = j.value("displayName", std::string{});
+    if (d.projectName.empty() && !d.displayName.empty()) {
+        d.projectName = d.displayName;
+    } else if (d.displayName.empty() && !d.projectName.empty()) {
+        d.displayName = d.projectName;
+    }
     d.templateId = j.value("templateId", "Blank");
     d.engineVersion = j.value("engineVersion", std::string{});
     d.engineRoot = j.value("engineRoot", std::string{});

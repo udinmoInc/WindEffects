@@ -335,13 +335,18 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
         context.DrawTexture(thumbRect, item.iconTexture);
     } else {
-        const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
-        Rect iconRect{
-            thumbRect.x + (thumbRect.width - iconSize) * 0.5f,
-            thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
-            iconSize, iconSize
-        };
-        IconPainter::Draw(context, ResolveItemIcon(item), iconRect);
+        const WindIconRef iconRef = ResolveItemIcon(item);
+        if (iconRef.sizePx >= 128) {
+            IconPainter::Draw(context, iconRef, thumbRect);
+        } else {
+            const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
+            Rect iconRect{
+                thumbRect.x + (thumbRect.width - iconSize) * 0.5f,
+                thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
+                iconSize, iconSize
+            };
+            IconPainter::Draw(context, iconRef, iconRect);
+        }
     }
 
     if (item.isFavorite) {

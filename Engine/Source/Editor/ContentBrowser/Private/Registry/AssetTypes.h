@@ -31,7 +31,8 @@ enum class AssetType {
     Audio,
     Font,
     Script,
-    Video
+    Video,
+    Document
 };
 
 inline std::string AssetTypeToString(AssetType type) {
@@ -51,6 +52,7 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Font: return "Font";
         case AssetType::Script: return "Script";
         case AssetType::Video: return "Video";
+        case AssetType::Document: return "Document";
         default: return "Unknown";
     }
 }
@@ -86,6 +88,8 @@ inline std::string AssetTypeToString(AssetType type) {
             return WindIcons::Console16;
         case AssetType::Video:
             return WindIcons::ToolbarVideocamera16;
+        case AssetType::Document:
+            return WindIcons::ThumbnailMd512;
         default:
             return WindIcons::Square16;
     }
@@ -108,6 +112,7 @@ inline std::string AssetTypeToKey(AssetType type) {
         case AssetType::Font: return "font";
         case AssetType::Script: return "script";
         case AssetType::Video: return "video";
+        case AssetType::Document: return "document";
         default: return "unknown";
     }
 }

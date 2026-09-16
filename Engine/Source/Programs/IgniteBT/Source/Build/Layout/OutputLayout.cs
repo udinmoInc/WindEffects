@@ -451,7 +451,11 @@ public sealed class OutputLayout
 
     private void StageEngineContent()
     {
-        var sourceContent = Path.Combine(_engineRoot, "Content");
+        var sourceContent = Path.Combine(_engineRoot, "Engine", "Content");
+        if (!Directory.Exists(sourceContent))
+        {
+            sourceContent = Path.Combine(_engineRoot, "Content");
+        }
         if (!Directory.Exists(sourceContent))
         {
             return;
@@ -514,7 +518,11 @@ public sealed class OutputLayout
 
     private void StageConfig()
     {
-        var sourceConfig = Path.Combine(_engineRoot, "Config");
+        var sourceConfig = Path.Combine(_engineRoot, "Engine", "Config");
+        if (!Directory.Exists(sourceConfig))
+        {
+            sourceConfig = Path.Combine(_engineRoot, "Config");
+        }
         if (!Directory.Exists(sourceConfig))
         {
             return;
@@ -583,7 +591,11 @@ public sealed class OutputLayout
 
     private void StageEngineTreeLink(string sourceFolderName, string destinationRelativePath)
     {
-        var sourcePath = Path.Combine(_engineRoot, sourceFolderName);
+        var sourcePath = Path.Combine(_engineRoot, "Engine", sourceFolderName);
+        if (!Directory.Exists(sourcePath))
+        {
+            sourcePath = Path.Combine(_engineRoot, sourceFolderName);
+        }
         if (!Directory.Exists(sourcePath))
         {
             return;

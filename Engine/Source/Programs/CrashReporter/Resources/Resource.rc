@@ -8,4 +8,4 @@
 // ==============================================================================
 #include "../../Windows/Resources/resource.h"
 
-IDI_ICON1 ICON "../../../../../Assets/Editor/Ico/cr-appicon.ico"
+IDI_ICON1 ICON "../../../../../Engine/Assets/Editor/Ico/cr-appicon.ico"

@@ -24,6 +24,7 @@ public class MainFrame : ModuleRules
         PublicDependencies.Add("Text");
         PublicDependencies.Add("Toolbar");
         PublicDependencies.Add("Menus");
+        PublicDependencies.Add("Projects");
         PrivateDependencies.Add("EditorShell");
 
         Definitions.Add("MAINFRAME_EXPORTS");

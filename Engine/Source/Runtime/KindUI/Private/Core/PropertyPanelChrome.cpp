@@ -324,9 +324,12 @@ void PaintPropertyHorizontalDivider(
         return;
     }
     const float borderW = std::max(1.0f, 1.0f * UiScale());
-    const float snappedY = std::floor(y - borderW);
+    const float snappedY = IconMetrics::SnapPx(y - borderW);
+    const float snappedLeft = IconMetrics::SnapPx(left);
+    const float snappedRight = IconMetrics::SnapPx(right);
+    const float snappedWidth = std::max(0.0f, snappedRight - snappedLeft);
     context.DrawRect(
-        Rect{ left, snappedY, width, borderW },
+        Rect{ snappedLeft, snappedY, snappedWidth, borderW },
         ResolveColor(ColorToken::Separator));
 }
 
@@ -483,9 +486,11 @@ void PaintSectionHeader(
         we::runtime::text::layout::FontWeight::Regular);
 
     const float borderW = std::max(1.0f, 1.0f * scale);
-    const float snappedY = std::floor(rect.y + rect.height - borderW);
+    const float snappedY = IconMetrics::SnapPx(rect.y + rect.height - borderW);
+    const float snappedX = IconMetrics::SnapPx(rect.x);
+    const float snappedW = IconMetrics::SnapPx(rect.width);
     context.DrawRect(
-        Rect{ rect.x, snappedY, rect.width, borderW },
+        Rect{ snappedX, snappedY, snappedW, borderW },
         ResolveColor(ColorToken::Separator));
 }
 

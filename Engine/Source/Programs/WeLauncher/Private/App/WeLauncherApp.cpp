@@ -28,6 +28,7 @@
 #include "KindUI/Core/ApplicationContext.h"
 #include "KindUI/Core/WidgetContext.h"
 #include "UI/Theming/LauncherTheme.h"
+#include "KindUI/Theme/ThemeManager.h"
 #include "KindUI/Core/DPIContext.h"
 
 #include <algorithm>
@@ -131,19 +132,17 @@ void WeLauncherApp::UpdateUiScaleFromWindow() {
     float scale = 1.0f;
     if (m_Window != we::platform::WindowId::Invalid) {
         auto& platform = we::platform::Platform::Get();
-        const auto logical = platform.GetWindowSize(m_Window);
-        const auto pixels = platform.GetWindowPixelSize(m_Window);
-        if (logical.x > 0 && pixels.x > 0) {
-            scale = static_cast<float>(pixels.x) / static_cast<float>(logical.x);
-        } else {
-            scale = platform.GetWindowDpiScale(m_Window);
+        scale = platform.GetWindowDpiScale(m_Window);
+        if (scale <= 0.0f) {
+            scale = 1.0f;
         }
     }
 
     const float clamped = std::clamp(scale, 1.0f, 3.0f);
     const float previous = we::runtime::kindui::DPIContext::GetScale();
     we::runtime::kindui::DPIContext::SetScale(clamped);
-    if (std::abs(clamped - previous) > 0.001f) {
+    if (std::abs(clamped - previous) > 0.001f || !m_DpiDiagnosticsLogged) {
+        m_DpiDiagnosticsLogged = true;
         if (m_AppContext) {
             m_AppContext->Initialize(clamped);
         }
@@ -153,11 +152,60 @@ void WeLauncherApp::UpdateUiScaleFromWindow() {
             if (auto root = PathUtils::FindEngineRoot(PathUtils::GetExecutableDirectory())) {
                 engineRoot = *root;
             }
-            m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18,
-                logoPx)));
+            m_LogoSet = LoadLauncherLogoTexture(m_UIRenderer.get(), engineRoot, static_cast<uint32_t>(std::max(18, logoPx)));
             m_UI->SetLogoTexture(m_LogoSet);
         }
         we::runtime::kindui::UIRepaintGate::Request();
+
+        if (m_Window != we::platform::WindowId::Invalid) {
+            auto& platform = we::platform::Platform::Get();
+            const auto physical = platform.GetWindowPixelSize(m_Window);
+            const auto logicalX = static_cast<uint32_t>(std::round(static_cast<float>(physical.x) / clamped));
+            const auto logicalY = static_cast<uint32_t>(std::round(static_cast<float>(physical.y) / clamped));
+            const uint32_t dpi = static_cast<uint32_t>(std::round(clamped * 96.0f));
+            const uint32_t swW = m_Presenter ? m_Presenter->GetSwapchainWidth() : 0;
+            const uint32_t swH = m_Presenter ? m_Presenter->GetSwapchainHeight() : 0;
+
+            const float contextScale = we::runtime::kindui::DPIContext::GetScale();
+            const float themeScale = we::runtime::kindui::ThemeManager::Get().GetDpiScale();
+            const char* consistency = (std::abs(contextScale - themeScale) < 0.001f && contextScale >= 1.0f) ? "PASS" : "FAIL";
+
+            HE_INFO("[UI][GLOBAL DPI]\nDPI: " + std::to_string(dpi) +
+                    "\nScale: " + std::to_string(clamped) +
+                    "\nLogicalSize: " + std::to_string(logicalX) + "x" + std::to_string(logicalY) +
+                    "\nPhysicalSize: " + std::to_string(physical.x) + "x" + std::to_string(physical.y) +
+                    "\nFramebufferSize: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nScaleConsistency: " + std::string(consistency));
+
+            HE_INFO("[UI][FRAMEBUFFER]\nWindowLogical: " + std::to_string(logicalX) + "x" + std::to_string(logicalY) +
+                    "\nWindowPhysical: " + std::to_string(physical.x) + "x" + std::to_string(physical.y) +
+                    "\nSwapchain: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nViewport: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nScissor: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nScale: " + std::to_string(clamped));
+
+            const uint32_t fontAtlasPages = m_UIRenderer ? m_UIRenderer->GetFontAtlasPageCount() : 0;
+            const uint32_t iconRasterSize = static_cast<uint32_t>(std::round(24.0f * clamped));
+            HE_INFO("[UI][QUALITY]\nDPI: " + std::to_string(dpi) +
+                    "\nScale: " + std::to_string(clamped) +
+                    "\nLogical: " + std::to_string(logicalX) + "x" + std::to_string(logicalY) +
+                    "\nPhysical: " + std::to_string(physical.x) + "x" + std::to_string(physical.y) +
+                    "\nSwapchain: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nFontAtlas: " + std::to_string(fontAtlasPages) + " page(s)" +
+                    "\nIconRasterSize: " + std::to_string(iconRasterSize) + "px" +
+                    "\nFinalFramebuffer: " + std::to_string(swW) + "x" + std::to_string(swH));
+
+            HE_INFO("[UI][QUALITY VERIFY]\nDPI: " + std::to_string(dpi) +
+                    "\nScale: " + std::to_string(clamped) +
+                    "\nLogicalSize: " + std::to_string(logicalX) + "x" + std::to_string(logicalY) +
+                    "\nPhysicalSize: " + std::to_string(physical.x) + "x" + std::to_string(physical.y) +
+                    "\nFramebufferSize: " + std::to_string(swW) + "x" + std::to_string(swH) +
+                    "\nTextScale: " + std::to_string(clamped) +
+                    "\nIconTier: " + (clamped > 1.1f ? "24px" : "16px") +
+                    "\nRoundedRectAA: fwidth * 0.75" +
+                    "\nBorderPhysicalWidth: " + std::to_string(std::max(1.0f, std::round(1.0f * clamped))) + "px" +
+                    "\nScaleConsistency: " + std::string(consistency));
+        }
     }
 }
 

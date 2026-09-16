@@ -421,6 +421,33 @@ BitmapRGBA ThumbnailRenderer::RenderScriptIcon(const AssetRecord&) {
     return bmp;
 }
 
+BitmapRGBA ThumbnailRenderer::RenderDocumentPreview(const AssetRecord& asset) {
+    const std::string ext = asset.extension;
+    std::string lower = ext;
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (lower == ".md" || lower == ".markdown" || lower == "md") {
+        const std::string mdPath = ResolveFirstExisting({
+            std::filesystem::path(we::core::layout::kIcons) / "WindIcons" / "thumbnail-md_512.png",
+            std::filesystem::path(we::core::layout::kIcons) / "thumbnail-md_512.png",
+            std::filesystem::path("Icons/WindIcons/thumbnail-md_512.png"),
+            std::filesystem::path("Assets/Icons/WindIcons/thumbnail-md_512.png"),
+            std::filesystem::path("Engine/Assets/Icons/WindIcons/thumbnail-md_512.png")
+        });
+        if (!mdPath.empty()) {
+            return LoadImageFile(mdPath, kThumbnailSize);
+        }
+    }
+
+    auto bmp = CreateEmpty(kThumbnailSize);
+    FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 32, 34, 40, 255);
+    for (int i = 0; i < 6; ++i) {
+        FillRect(bmp, 24, 24 + i * 14, 80, 4, 180, 190, 205, 255);
+    }
+    return bmp;
+}
+
 BitmapRGBA ThumbnailRenderer::RenderScenePreview(const AssetRecord&) {
     auto bmp = CreateEmpty(kThumbnailSize);
     FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 18, 20, 26, 255);
@@ -470,6 +497,8 @@ BitmapRGBA ThumbnailRenderer::Render(const AssetRecord& asset) {
             return RenderFontSample(asset);
         case AssetType::Script:
             return RenderScriptIcon(asset);
+        case AssetType::Document:
+            return RenderDocumentPreview(asset);
         case AssetType::Video:
             return RenderGenericIcon(AssetType::Video);
         default:

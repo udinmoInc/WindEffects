@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "Rendering/TextUIService.h"
 
+#include "KindUI/Core/DPIContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Host/FontImportService.h"
 #include "KindUI/Core/UIResourceResidency.h"
@@ -436,6 +437,7 @@ uint64_t TextUIService::HashGeometryKey(
     mix(static_cast<uint64_t>(fontSize * 1000.0f));
     mix(static_cast<uint64_t>(weight));
     mix(italic ? 1ULL : 0ULL);
+    mix(static_cast<uint64_t>(std::max(1.0f, DPIContext::GetScale()) * 1000.0f));
     return h;
 }
 
@@ -463,7 +465,7 @@ const TextUIService::GeometryCacheEntry* TextUIService::GetOrBuildGeometry(
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;
     constraints.wordWrap = false;
-    constraints.dpiScale = 1.0f;
+    constraints.dpiScale = std::max(1.0f, DPIContext::GetScale());
 
     const we::runtime::text::layout::LayoutResult* layoutPtr =
         m_TextEngine->GetOrCreateLayout(text, style, constraints, font);
@@ -537,7 +539,7 @@ float TextUIService::MeasureText(
     we::runtime::text::layout::LayoutConstraints constraints{};
     constraints.maxWidth = 1.0e9f;
     constraints.wordWrap = false;
-    constraints.dpiScale = 1.0f;
+    constraints.dpiScale = std::max(1.0f, DPIContext::GetScale());
 
     const we::runtime::text::FontHandle fontHandle = ResolveFont(weight);
     // Single layout cache — no KindUI-side string measure cache.
