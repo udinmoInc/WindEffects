@@ -109,6 +109,15 @@ void TextBox::Paint(PaintContext& context) {
 
     EnsureTextLayoutCache(m_CachedStyle.fontSize);
     const auto& text = m_Session->Text();
+
+    const Rect textClipBounds{
+        m_Geometry.x + 2.0f,
+        m_Geometry.y,
+        std::max(0.0f, m_Geometry.width - 4.0f),
+        m_Geometry.height
+    };
+    context.PushClipRect(textClipBounds);
+
     const auto sel = m_Session->Caret().Selection();
     if (!sel.Empty()) {
         const size_t start = std::min(sel.Start(), m_CachedCodepoints.size());
@@ -140,6 +149,8 @@ void TextBox::Paint(PaintContext& context) {
             ResolveColor(ColorToken::AccentPrimary),
             1.5f);
     }
+
+    context.PopClipRect();
 }
 
 void TextBox::OnMouseDown(const MouseEvent& event) {

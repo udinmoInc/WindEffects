@@ -404,12 +404,16 @@ void PaintInlineIconLabelRow(
 
     const float textX = rect.x + padH + (icon.IsValid() ? iconSize + gap : 0.0f);
     const float textY = AutoAlign::AlignTextTopY(rect, fontSize);
+    const float maxW = std::max(0.0f, (rect.x + rect.width) - textX - padH);
+    const Rect textClip{ textX, rect.y, maxW, rect.height };
+    context.PushClipRect(textClip);
     context.DrawText(
         text,
         Point{ textX, textY },
         ResolveColor(ColorToken::TextPrimary),
         fontSize,
         we::runtime::text::layout::FontWeight::Regular);
+    context.PopClipRect();
 }
 
 }

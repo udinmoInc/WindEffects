@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "KindUI/UI/PropertyRowLayout.h"
 #include "KindUI/Core/LayoutMetrics.h"
+#include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/PropertyPanelChrome.h"
 
 namespace we::runtime::kindui {
@@ -88,7 +89,9 @@ void PropertyRowLayout::Paint(PaintContext& context) {
     PropertyPanelChrome::PaintPropertyRowBackground(context, m_Geometry, m_Hovered, false);
     PropertyPanelChrome::PaintPropertyRowLabel(context, layout.label, m_Label, false);
     if (m_ValueWidget) {
+        context.PushClipRect(layout.value);
         m_ValueWidget->PaintSubtree(context);
+        context.PopClipRect();
     }
     PropertyPanelChrome::PaintPropertyRowGrid(context, layout);
 }

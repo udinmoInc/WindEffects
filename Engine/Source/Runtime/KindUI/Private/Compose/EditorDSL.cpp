@@ -9,6 +9,7 @@
 #include "KindUI/Compose/EditorDSL.h"
 #include "KindUI/UI/Flex.h"
 #include "KindUI/UI/Label.h"
+#include "KindUI/UI/Slider.h"
 #include "KindUI/UI/TextBox.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/DPIContext.h"
@@ -101,8 +102,14 @@ void SectionContext::Double(std::string label, double& value, std::function<void
 
 void SectionContext::Slider(std::string label, double& value, double minVal, double maxVal, double step,
     std::function<void(FieldConfig&)> config) {
-    (void)value; (void)minVal; (void)maxVal; (void)step;
-    Field(std::move(label), std::make_shared<TextBox>(label), std::move(config));
+    auto slider = std::make_shared<we::runtime::kindui::Slider>(value, minVal, maxVal, step);
+    double* valPtr = &value;
+    slider->SetOnValueChanged([valPtr](double v) {
+        if (valPtr) {
+            *valPtr = v;
+        }
+    });
+    Field(std::move(label), slider, std::move(config));
 }
 
 void SectionContext::String(std::string label, std::string& value, bool multiline, std::function<void(FieldConfig&)>

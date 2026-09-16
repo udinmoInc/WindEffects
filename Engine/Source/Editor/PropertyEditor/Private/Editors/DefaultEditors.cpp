@@ -346,11 +346,14 @@ public:
                     m_Handle && m_Handle->GetValueState() == PropertyValueState::Mixed ? "—" : m_CurrentName;
                 const float fontSize = ResolveMetric(MetricToken::TextSizeProperty);
                 const float pad = ResolveMetric(MetricToken::Space2);
+                const Rect clipR{ frame.x + pad, frame.y, std::max(0.0f, frame.width - pad * 2.0f), frame.height };
+                context.PushClipRect(clipR);
                 context.DrawText(
                     label,
                     Point{ frame.x + pad, LayoutMetrics::AlignTextTopY(frame, fontSize) },
                     ThemeColor(ColorToken::TextPrimary),
                     fontSize);
+                context.PopClipRect();
             }
             void OnMouseDown(const MouseEvent& event) override {
                 if (event.button != MouseButton::Left || !m_Handle || m_Handle->IsReadOnly() || m_Values.empty()) {
@@ -582,7 +585,7 @@ public:
                     // Separate input frame per component field with gap
                     Chrome::PaintInputFrame(context, field, state);
 
-                    float valueX = field.x + 4.0f * scale;
+                    float valueX = field.x + 3.0f * scale;
 
                     // Axis indicator rail (X=Red, Y=Green, Z=Blue) is drawn INSIDE all Transform properties (Position, Rotation, Scale, Location)
                     if (isTransform) {
@@ -595,7 +598,7 @@ public:
                             std::max(0.0f, field.height - inset * 2.0f)
                         };
                         context.DrawRoundedRect(accent, AxisTint(index), 1.0f);
-                        valueX = accent.x + accent.width + 3.0f * scale;
+                        valueX = accent.x + accent.width + 2.0f * scale;
                     }
 
                     char value[32]{};
@@ -608,11 +611,11 @@ public:
                     }
 
                     const float textY = LayoutMetrics::AlignTextTopY(field, fontSize);
-                    const float rightPad = 5.0f * scale;
+                    const float rightPad = 1.0f * scale;
                     const Rect textClip{
-                        field.x,
+                        valueX,
                         field.y,
-                        std::max(0.0f, field.width - rightPad),
+                        std::max(0.0f, (field.x + field.width - rightPad) - valueX),
                         field.height
                     };
                     context.PushClipRect(textClip);

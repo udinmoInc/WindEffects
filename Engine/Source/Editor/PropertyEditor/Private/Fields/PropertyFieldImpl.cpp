@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "Fields/PropertyFieldImpl.h"
 #include <KindUI/EditorUI.h>
+#include <KindUI/UI/Slider.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -315,6 +316,27 @@ void NumericPropertyField::SetDoubleValue(double val) {
 }
 
 std::shared_ptr<we::runtime::kindui::Widget> NumericPropertyField::CreateWidget() {
+    if (m_Type == FieldType::RangeSlider || m_HasBounds) {
+        const double initial = GetDoubleValue();
+        const double minV = m_HasBounds ? m_Min : 0.0;
+        const double maxV = m_HasBounds ? m_Max : 100.0;
+        const double stepV = m_HasBounds && m_Step > 0.0 ? m_Step : 0.01;
+        auto slider = std::make_shared<we::runtime::kindui::Slider>(initial, minV, maxV, stepV);
+        auto* owner = this;
+        slider->SetOnValueChanged([owner](double val) {
+            if (owner) {
+                owner->SetDoubleValue(val);
+            }
+        });
+        slider->SetOnValueCommitted([owner](double val) {
+            if (owner) {
+                owner->SetDoubleValue(val);
+                owner->NotifyValueCommitted();
+            }
+        });
+        return slider;
+    }
+
     class NumericWidget final : public we::runtime::kindui::Widget {
     public:
         explicit NumericWidget(NumericPropertyField* owner) : m_Owner(owner) {}

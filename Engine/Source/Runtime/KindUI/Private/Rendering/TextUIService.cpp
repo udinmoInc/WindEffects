@@ -783,25 +783,25 @@ bool TextUIService::GenerateTextGeometry(
             {x0, y0},
             {q.u0, q.v0},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, q.w, q.h},
+            {cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.width, cmd.clipRect.height},
             {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v1{
             {x1, y0},
             {q.u1, q.v0},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, q.w, q.h},
+            {cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.width, cmd.clipRect.height},
             {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v2{
             {x1, y1},
             {q.u1, q.v1},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, q.w, q.h},
+            {cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.width, cmd.clipRect.height},
             {0.0f, type, q.msdf, 0.0f}};
         UIVertex2 v3{
             {x0, y1},
             {q.u0, q.v1},
             {cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a},
-            {x0, y0, q.w, q.h},
+            {cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.width, cmd.clipRect.height},
             {0.0f, type, q.msdf, 0.0f}};
 
         const uint32_t base = static_cast<uint32_t>(vertices.size());
