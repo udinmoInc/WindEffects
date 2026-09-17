@@ -47,11 +47,9 @@ public class DotNetProvider : BaseSDKProvider
         "/opt/dotnet"
     };
     
-    protected override List<string> ExpectedTools => new()
-    {
-        "dotnet.exe",
-        "dotnet"
-    };
+    protected override List<string> ExpectedTools => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? new() { "dotnet.exe" }
+        : new() { "dotnet" };
     
     public override async Task<SDKResult<List<string>>> LocateHeadersAsync(string path)
     {
@@ -102,8 +100,17 @@ public class DotNetProvider : BaseSDKProvider
         return await Task.FromResult(result);
     }
     
+    private static string? _cachedVersion;
+    private static readonly object _versionLock = new();
+
     public override async Task<SDKResult<string>> GetVersionAsync(string path)
     {
+        lock (_versionLock)
+        {
+            if (_cachedVersion != null)
+                return SDKResult<string>.Ok(_cachedVersion);
+        }
+
         try
         {
             var dotnetExe = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
@@ -135,6 +142,7 @@ public class DotNetProvider : BaseSDKProvider
                 var version = output.Trim();
                 if (!string.IsNullOrEmpty(version))
                 {
+                    lock (_versionLock) { _cachedVersion = version; }
                     return SDKResult<string>.Ok(version);
                 }
             }

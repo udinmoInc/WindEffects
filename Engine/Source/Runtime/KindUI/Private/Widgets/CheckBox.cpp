@@ -9,6 +9,7 @@
 #include "KindUI/UI/CheckBox.h"
 #include "KindUI/Core/Animator.h"
 #include "KindUI/Core/ControlChrome.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
 #include "KindUI/Theme/ThemeAccess.h"
@@ -71,7 +72,7 @@ void CheckBox::Paint(PaintContext& context) {
     const float gap = ResolveMetric(MetricToken::Space2);
     context.DrawText(
         m_Label,
-        Point{ m_Geometry.x + m_BoxSize + gap, m_Geometry.y + (m_Geometry.height - m_Style.size) * 0.5f },
+        Point{ m_Geometry.x + m_BoxSize + gap, LayoutMetrics::AlignTextTopY(m_Geometry, m_Style.size) },
         m_Style.color,
         m_Style.size,
         m_Style.bold,

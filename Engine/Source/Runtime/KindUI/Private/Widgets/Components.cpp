@@ -24,12 +24,12 @@ EmptyState::EmptyState(std::string title, std::string subtitle) {
     Justify(JustifyContent::Center);
     Gap(8.0f);
 
-    auto titleLabel = std::make_shared<Label>(std::move(title), TypographyToken::Caption);
+    auto titleLabel = std::make_shared<Label>(std::move(title), TypographyToken::Title);
     titleLabel->SetHorizontalAlignment(HorizontalAlignment::Center);
     AddChild(titleLabel);
 
     if (!subtitle.empty()) {
-        auto sub = std::make_shared<Label>(std::move(subtitle), TypographyToken::Caption);
+        auto sub = std::make_shared<Label>(std::move(subtitle), TypographyToken::Hint);
         sub->SetHorizontalAlignment(HorizontalAlignment::Center);
         AddChild(sub);
     }

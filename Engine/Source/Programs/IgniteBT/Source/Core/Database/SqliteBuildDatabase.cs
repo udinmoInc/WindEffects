@@ -113,15 +113,36 @@ public sealed class SqliteBuildDatabase : IDisposable
                 source_path TEXT NOT NULL,
                 module_name TEXT,
                 compile_time_ms INTEGER,
+                header_count INTEGER DEFAULT 0,
+                pch_used INTEGER DEFAULT 0,
+                pch_name TEXT DEFAULT '',
                 recorded_utc TEXT,
                 PRIMARY KEY (source_path, recorded_utc)
+            );
+
+            CREATE TABLE IF NOT EXISTS source_signatures (
+                file_path TEXT PRIMARY KEY,
+                content_hash TEXT NOT NULL,
+                symbol_hash TEXT NOT NULL,
+                include_hash TEXT NOT NULL,
+                functions_summary TEXT,
+                classes_summary TEXT,
+                compiler_identity TEXT,
+                pch_identity TEXT,
+                object_identity TEXT,
+                last_classified_utc TEXT
             );
 
             CREATE INDEX IF NOT EXISTS idx_header_deps_header ON header_deps(header_path);
             CREATE INDEX IF NOT EXISTS idx_objects_cas ON objects(cas_key);
             CREATE INDEX IF NOT EXISTS idx_compile_history_source ON compile_history(source_path);
             CREATE INDEX IF NOT EXISTS idx_compile_history_module ON compile_history(module_name);
+            CREATE INDEX IF NOT EXISTS idx_source_signatures_file ON source_signatures(file_path);
             """);
+
+        try { ExecuteBatch("ALTER TABLE compile_history ADD COLUMN header_count INTEGER DEFAULT 0;"); } catch { }
+        try { ExecuteBatch("ALTER TABLE compile_history ADD COLUMN pch_used INTEGER DEFAULT 0;"); } catch { }
+        try { ExecuteBatch("ALTER TABLE compile_history ADD COLUMN pch_name TEXT DEFAULT '';"); } catch { }
     }
 
     public void SetModuleHash(string module, string hash)
@@ -204,6 +225,102 @@ public sealed class SqliteBuildDatabase : IDisposable
         }
     }
 
+    public List<string> GetTUsIncludingHeader(string headerPath)
+    {
+        lock (_connectionLock)
+        {
+            var tus = new List<string>();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT DISTINCT source_path FROM header_deps WHERE header_path = $h OR header_path LIKE $hLike";
+            cmd.Parameters.AddWithValue("$h", headerPath);
+            cmd.Parameters.AddWithValue("$hLike", "%" + Path.GetFileName(headerPath));
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) tus.Add(reader.GetString(0));
+            return tus;
+        }
+    }
+
+    public List<string> GetTransitiveIncludeTUs(string headerPath)
+    {
+        lock (_connectionLock)
+        {
+            var tus = new List<string>();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                WITH RECURSIVE DependentHeaders(h_path) AS (
+                    SELECT $h
+                    UNION
+                    SELECT hd.header_path
+                    FROM header_deps hd
+                    JOIN DependentHeaders dh ON hd.source_path = dh.h_path
+                )
+                SELECT DISTINCT hd.source_path
+                FROM header_deps hd
+                WHERE hd.header_path IN (SELECT h_path FROM DependentHeaders)
+                   OR hd.header_path LIKE $hLike;
+                """;
+            cmd.Parameters.AddWithValue("$h", headerPath);
+            cmd.Parameters.AddWithValue("$hLike", "%" + Path.GetFileName(headerPath));
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) tus.Add(reader.GetString(0));
+            return tus;
+        }
+    }
+
+    public void UpsertSourceSignature(SourceSignatureRecord record)
+    {
+        lock (_connectionLock)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO source_signatures (file_path, content_hash, symbol_hash, include_hash, functions_summary, classes_summary, compiler_identity, pch_identity, object_identity, last_classified_utc)
+                VALUES ($f, $c, $s, $i, $fn, $cl, $ci, $pi, $oi, $u)
+                ON CONFLICT(file_path) DO UPDATE SET content_hash=$c, symbol_hash=$s, include_hash=$i, functions_summary=$fn, classes_summary=$cl, compiler_identity=$ci, pch_identity=$pi, object_identity=$oi, last_classified_utc=$u;
+                """;
+            cmd.Parameters.AddWithValue("$f", record.FilePath);
+            cmd.Parameters.AddWithValue("$c", record.ContentHash);
+            cmd.Parameters.AddWithValue("$s", record.SymbolHash);
+            cmd.Parameters.AddWithValue("$i", record.IncludeHash);
+            cmd.Parameters.AddWithValue("$fn", record.FunctionsSummary);
+            cmd.Parameters.AddWithValue("$cl", record.ClassesSummary);
+            cmd.Parameters.AddWithValue("$ci", record.CompilerIdentity);
+            cmd.Parameters.AddWithValue("$pi", record.PchIdentity);
+            cmd.Parameters.AddWithValue("$oi", record.ObjectIdentity);
+            cmd.Parameters.AddWithValue("$u", record.LastClassifiedUtc);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public bool TryGetSourceSignature(string filePath, out SourceSignatureRecord? record)
+    {
+        lock (_connectionLock)
+        {
+            record = null;
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT file_path, content_hash, symbol_hash, include_hash, functions_summary, classes_summary, compiler_identity, pch_identity, object_identity, last_classified_utc FROM source_signatures WHERE file_path = $f";
+            cmd.Parameters.AddWithValue("$f", filePath);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                record = new SourceSignatureRecord
+                {
+                    FilePath = reader.GetString(0),
+                    ContentHash = reader.GetString(1),
+                    SymbolHash = reader.GetString(2),
+                    IncludeHash = reader.GetString(3),
+                    FunctionsSummary = reader.IsDBNull(4) ? "" : reader.GetString(4),
+                    ClassesSummary = reader.IsDBNull(5) ? "" : reader.GetString(5),
+                    CompilerIdentity = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                    PchIdentity = reader.IsDBNull(7) ? "" : reader.GetString(7),
+                    ObjectIdentity = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                    LastClassifiedUtc = reader.IsDBNull(9) ? "" : reader.GetString(9)
+                };
+                return true;
+            }
+            return false;
+        }
+    }
+
     public void SetCommandHash(string key, string hash)
     {
         lock (_connectionLock)
@@ -212,16 +329,24 @@ public sealed class SqliteBuildDatabase : IDisposable
 
     public void RecordCompileTime(string sourcePath, string moduleName, long compileTimeMs)
     {
+        RecordTuCostMetrics(sourcePath, moduleName, compileTimeMs, 0, false, null);
+    }
+
+    public void RecordTuCostMetrics(string sourcePath, string moduleName, long compileTimeMs, int headerCount, bool pchUsed, string? pchName)
+    {
         lock (_connectionLock)
         {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO compile_history (source_path, module_name, compile_time_ms, recorded_utc)
-            VALUES ($s, $m, $t, $u)
+            INSERT INTO compile_history (source_path, module_name, compile_time_ms, header_count, pch_used, pch_name, recorded_utc)
+            VALUES ($s, $m, $t, $hc, $pu, $pn, $u)
             """;
         cmd.Parameters.AddWithValue("$s", sourcePath);
         cmd.Parameters.AddWithValue("$m", moduleName);
         cmd.Parameters.AddWithValue("$t", compileTimeMs);
+        cmd.Parameters.AddWithValue("$hc", headerCount);
+        cmd.Parameters.AddWithValue("$pu", pchUsed ? 1 : 0);
+        cmd.Parameters.AddWithValue("$pn", pchName ?? string.Empty);
         cmd.Parameters.AddWithValue("$u", DateTime.UtcNow.ToString("O"));
         cmd.ExecuteNonQuery();
 
@@ -241,6 +366,99 @@ public sealed class SqliteBuildDatabase : IDisposable
                 "SELECT AVG(compile_time_ms) FROM compile_history WHERE source_path = $s",
                 ("$s", sourcePath));
             return long.TryParse(val, out var ms) ? ms : 0;
+        }
+    }
+
+    public TuCostStats GetTuCostStats(string sourcePath)
+    {
+        lock (_connectionLock)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT compile_time_ms, header_count, pch_used, pch_name
+                FROM compile_history WHERE source_path = $s
+                ORDER BY recorded_utc ASC
+                """;
+            cmd.Parameters.AddWithValue("$s", sourcePath);
+            using var reader = cmd.ExecuteReader();
+            var times = new List<long>();
+            int lastHeaderCount = 0;
+            bool lastPchUsed = false;
+            string lastPchName = string.Empty;
+            while (reader.Read())
+            {
+                times.Add(reader.GetInt64(0));
+                lastHeaderCount = reader.GetInt32(1);
+                lastPchUsed = reader.GetInt32(2) == 1;
+                lastPchName = reader.GetString(3);
+            }
+            if (times.Count == 0) return new TuCostStats { SourcePath = sourcePath };
+
+            times.Sort();
+            long avg = (long)times.Average();
+            long min = times.First();
+            long max = times.Last();
+            long median = times[times.Count / 2];
+            int p95Idx = (int)Math.Ceiling(times.Count * 0.95) - 1;
+            long p95 = times[Math.Clamp(p95Idx, 0, times.Count - 1)];
+
+            string trend = "STABLE";
+            if (times.Count >= 2)
+            {
+                var recent = times.TakeLast(Math.Max(1, times.Count / 2)).Average();
+                var older = times.Take(Math.Max(1, times.Count / 2)).Average();
+                if (recent < older * 0.9) trend = $"-{(1.0 - recent / older):P0}";
+                else if (recent > older * 1.1) trend = $"+{(recent / older - 1.0):P0}";
+            }
+
+            return new TuCostStats
+            {
+                SourcePath = sourcePath,
+                AverageMs = avg,
+                MedianMs = median,
+                P95Ms = p95,
+                MinMs = min,
+                MaxMs = max,
+                RunCount = times.Count,
+                HeaderCount = lastHeaderCount,
+                PchUsed = lastPchUsed,
+                PchName = lastPchName,
+                Trend = trend
+            };
+        }
+    }
+
+    public List<TuCostRecord> GetTopSlowestTUs(int count = 20)
+    {
+        lock (_connectionLock)
+        {
+            var results = new List<TuCostRecord>();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT source_path, module_name, AVG(compile_time_ms) as avg_ms, MAX(compile_time_ms) as max_ms,
+                       MAX(header_count) as hc, MAX(pch_used) as pu, MAX(pch_name) as pn, COUNT(*) as cnt
+                FROM compile_history
+                GROUP BY source_path, module_name
+                ORDER BY avg_ms DESC
+                LIMIT $c
+                """;
+            cmd.Parameters.AddWithValue("$c", count);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new TuCostRecord
+                {
+                    SourcePath = reader.GetString(0),
+                    ModuleName = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
+                    AverageMs = Convert.ToInt64(reader.GetDouble(2)),
+                    MaxMs = reader.GetInt64(3),
+                    HeaderCount = reader.GetInt32(4),
+                    PchUsed = reader.GetInt32(5) == 1,
+                    PchName = reader.GetString(6),
+                    RunCount = reader.GetInt32(7)
+                });
+            }
+            return results;
         }
     }
 
@@ -391,6 +609,33 @@ public sealed class DatabaseHealth
     public long ModuleCount { get; init; }
     public long CompileHistoryCount { get; init; }
     public long DatabaseSizeBytes { get; init; }
+}
+
+public sealed class TuCostStats
+{
+    public string SourcePath { get; init; } = string.Empty;
+    public long AverageMs { get; init; }
+    public long MedianMs { get; init; }
+    public long P95Ms { get; init; }
+    public long MinMs { get; init; }
+    public long MaxMs { get; init; }
+    public int RunCount { get; init; }
+    public int HeaderCount { get; init; }
+    public bool PchUsed { get; init; }
+    public string PchName { get; init; } = string.Empty;
+    public string Trend { get; init; } = "STABLE";
+}
+
+public sealed class TuCostRecord
+{
+    public string SourcePath { get; init; } = string.Empty;
+    public string ModuleName { get; init; } = string.Empty;
+    public long AverageMs { get; init; }
+    public long MaxMs { get; init; }
+    public int HeaderCount { get; init; }
+    public bool PchUsed { get; init; }
+    public string PchName { get; init; } = string.Empty;
+    public int RunCount { get; init; }
 }
 
 /// <summary>Reads legacy binary Build.db for one-time migration.</summary>

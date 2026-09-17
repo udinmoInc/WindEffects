@@ -86,6 +86,15 @@ void ContentBrowserService::RefreshBrowserModel(const
         item.icon = asset->isFolder
             ? WindIcons::ContentFolder512
             : IconForAssetType(asset->type);
+        if (asset->isFolder) {
+            item.thumbnailIcon = WindIcons::ContentFolder512;
+        } else if (asset->type == AssetType::Markdown) {
+            item.thumbnailIcon = WindIcons::ThumbnailMd512;
+        } else if (asset->type == AssetType::Unknown) {
+            item.thumbnailIcon = WindIcons::ThumnailUnknownDocument512;
+        } else {
+            item.thumbnailIcon = IconForAssetType(asset->type);
+        }
         if (!asset->isFolder) {
             item.iconTexture = m_ThumbnailManager.GetCachedTexture(asset->id);
             item.thumbnailRequested = item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid;

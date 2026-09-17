@@ -40,7 +40,6 @@ public static class ThirdPartyBootstrapper
             return false;
         }
 
-        SDK.SDKManager.Instance.ClearCache();
         return true;
     }
 

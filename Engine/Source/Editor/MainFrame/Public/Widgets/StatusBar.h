@@ -50,6 +50,7 @@ public:
     void SetOnBuildMenuClicked(std::function<void()> onClicked);
     void SetOnTraceClicked(std::function<void()> onClicked);
     void SetOnQualityMenuClicked(std::function<void()> onClicked);
+    void SetQualityLabel(const std::string& label, const std::string& tooltip = {});
 
 private:
     void SelectPanelTab(int index, bool notify);

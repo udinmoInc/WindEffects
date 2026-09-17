@@ -1,0 +1,101 @@
+{
+  "Name": "High-End",
+  "Resolution": {
+    "ScreenPercentage": 100.0,
+    "MaxShadowMapResolution": 4096,
+    "MSAASamples": 1,
+    "DynamicResolution": false
+  },
+  "Geometry": {
+    "Quality": 4,
+    "LodBias": 0.0,
+    "MeshShaders": true,
+    "MeshShaderRequirement": 2
+  },
+  "Textures": {
+    "Quality": 4,
+    "Anisotropy": 16.0,
+    "StreamingPoolMb": 1024
+  },
+  "Lighting": {
+    "Enabled": true,
+    "Quality": 3,
+    "MaxLocalLights": 128
+  },
+  "Shadows": {
+    "Enabled": true,
+    "Quality": 4,
+    "CascadeCount": 4,
+    "ResolutionScale": 1.0,
+    "SoftShadows": true,
+    "ContactShadows": true
+  },
+  "Reflections": {
+    "Enabled": true,
+    "Quality": 3,
+    "ScreenSpace": true,
+    "RayTraced": true
+  },
+  "GI": {
+    "Enabled": true,
+    "Quality": 3,
+    "RayTraced": true
+  },
+  "Terrain": {
+    "Enabled": true,
+    "Quality": 4,
+    "LodBias": 0.75,
+    "ClipmapLevels": 10
+  },
+  "Foliage": {
+    "Enabled": true,
+    "Quality": 4,
+    "DensityScale": 1.0,
+    "LodBias": 0.0
+  },
+  "Atmosphere": {
+    "Enabled": true,
+    "Quality": 3
+  },
+  "Volumetrics": {
+    "Enabled": true,
+    "Quality": 3,
+    "ResolutionScale": 0.75,
+    "MaxSteps": 64
+  },
+  "Clouds": {
+    "Enabled": true,
+    "Quality": 3,
+    "MaxSteps": 64,
+    "ResolutionScale": 1.0,
+    "TemporalReprojection": true
+  },
+  "Water": {
+    "Enabled": true,
+    "Quality": 3,
+    "Reflections": true,
+    "Caustics": true
+  },
+  "Particles": {
+    "Enabled": true,
+    "Quality": 3,
+    "BudgetScale": 1.0
+  },
+  "PostProcess": {
+    "Enabled": true,
+    "Quality": 3,
+    "Bloom": true,
+    "MotionBlur": true,
+    "AmbientOcclusion": true,
+    "TemporalAA": true
+  },
+  "LOD": {
+    "GlobalBias": 0.0,
+    "CullDistanceScale": 1.0
+  },
+  "Streaming": {
+    "TexturePoolMb": 1024,
+    "MeshPoolMb": 512,
+    "IoBudgetScale": 1.0
+  }
+}

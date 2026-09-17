@@ -16,6 +16,7 @@
 #include "KindUI/Diagnostics/ScreenRecorder.h"
 #include "KindUI/Diagnostics/UiGeometryDebug.h"
 #include "Text/Layout/TextStyle.h"
+#include "KindUI/Theme/TypographySystem.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -26,6 +27,9 @@ using ::we::runtime::kindui::ColorToken;
 using ::we::runtime::kindui::MetricToken;
 using ::we::runtime::kindui::PaddingToken;
 using ::we::runtime::kindui::Point;
+using ::we::runtime::kindui::TypographySystem;
+using ::we::runtime::kindui::TypographyToken;
+using ::we::runtime::kindui::TypographySpec;
 
 namespace we::editor::contentbrowser {
 using ::we::runtime::kindui::IconPainter;
@@ -135,13 +139,15 @@ void TreeView::ScrollSelectionIntoView() {
     }
 
     const std::string& selectedId = m_SelectedIds.back();
-    const float rowHeight = m_ItemHeight * TreeUiScale();
+    const float uiScale = TreeUiScale();
+    const float rowHeight = m_ItemHeight * uiScale;
+    const float topPadding = 4.0f * uiScale;
     for (size_t i = 0; i < m_RenderList.size(); ++i) {
         const auto& item = m_RenderList[i];
         if (!item.node || item.node->id != selectedId) {
             continue;
         }
-        const float top = static_cast<float>(i) * rowHeight;
+        const float top = topPadding + static_cast<float>(i) * rowHeight;
         const float bottom = top + rowHeight;
         if (m_Scroll.ScrollToRange(top, bottom, m_Geometry.height, m_ContentHeight)) {
             Arrange(m_Geometry);
@@ -154,7 +160,10 @@ Size TreeView::Measure(const Size& availableSize) {
     if (m_RenderListDirty) {
         BuildRenderList();
     }
-    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * TreeUiScale();
+    const float uiScale = TreeUiScale();
+    const float topPadding = 4.0f * uiScale;
+    const float bottomPadding = 4.0f * uiScale;
+    m_ContentHeight = static_cast<float>(m_RenderList.size()) * m_ItemHeight * uiScale + topPadding + bottomPadding;
     return Size{ availableSize.width, availableSize.height };
 }
 
@@ -171,6 +180,7 @@ void TreeView::Arrange(const Rect& allottedRect) {
 
     const float uiScale = TreeUiScale();
     const float rowHeight = m_ItemHeight * uiScale;
+    const float topPadding = 4.0f * uiScale;
     const float viewportX = m_ScrollMetrics.viewport.x;
     const float viewportWidth = m_ScrollMetrics.viewport.width;
     const float indentOffset = m_ExplorerStyle ? TreeExplorerPrefix(uiScale) : 0.0f;
@@ -193,7 +203,7 @@ void TreeView::Arrange(const Rect& allottedRect) {
         }
         auto& item = m_RenderList[static_cast<size_t>(i)];
         item.flatIndex = i;
-        const float itemY = m_ScrollMetrics.viewport.y - m_Scroll.offset + static_cast<float>(i) * rowHeight;
+        const float itemY = m_ScrollMetrics.viewport.y + topPadding - m_Scroll.offset + static_cast<float>(i) * rowHeight;
         item.geometry = Rect{
             viewportX + indentOffset + item.depth * m_IndentWidth,
             itemY,
@@ -368,7 +378,7 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         const float textY = LayoutMetrics::AlignTextTopY(layout.rowBounds, fontSize);
-        Color textColor = ThemeColor(ColorToken::TextSecondary);
+        Color textColor = selected ? ThemeColor(ColorToken::TextOnAccent) : ThemeColor(ColorToken::TextPrimary);
         if (!node->visible) {
             textColor = ThemeColor(ColorToken::TextDisabled);
         }
@@ -437,13 +447,14 @@ void TreeView::Paint(PaintContext& context) {
         }
 
         if (!node->typeName.empty()) {
-            const float typeFontSize = fontSize * 0.9f;
-            const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize);
+            const auto typeSpec = TypographySystem::GetSpec(TypographyToken::Caption);
+            const float typeFontSize = typeSpec.sizePx * m_ZoomLevel;
+            const float typeWidth = context.GetTextWidth(node->typeName, typeFontSize, static_cast<we::runtime::text::layout::FontWeight>(typeSpec.weight));
             const float typeColumnReserve = we::runtime::kindui::ResolveMetric(MetricToken::Space6) * uiScale;
             const float typeRightX = m_ScrollMetrics.viewport.x + m_ScrollMetrics.viewport.width - typeColumnReserve;
             const float typeY = LayoutMetrics::AlignTextTopY(layout.rowBounds, typeFontSize);
             context.DrawText(node->typeName, Point{ typeRightX - typeWidth, typeY },
-                ThemeColor(ColorToken::TextSecondary), typeFontSize);
+                typeSpec.color, typeFontSize, static_cast<we::runtime::text::layout::FontWeight>(typeSpec.weight));
         }
 
         if (m_ShowRowControls && !m_ExplorerStyle) {
@@ -576,6 +587,9 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
     const double elapsed = static_cast<double>(now - lastClickTime) / static_cast<double>(freq);
 
     if (item->node->id == lastClickedId && elapsed < 0.3) {
+        if (!item->node->children.empty()) {
+            ToggleExpand(item->node->id);
+        }
         if (m_OnItemDoubleClicked) {
             m_OnItemDoubleClicked(item->node->id);
         }
@@ -659,8 +673,9 @@ void TreeView::SetZoomLevel(float zoomLevel) {
     m_ZoomLevel = std::clamp(zoomLevel, kMinTreeZoom, kMaxTreeZoom);
     m_ItemHeight = m_BaseItemHeight * m_ZoomLevel;
     m_IndentWidth = m_BaseIndentWidth * m_ZoomLevel;
+    const float baseSize = TypographySystem::GetFontSize(TypographyToken::Body);
     m_Style.text.size = std::clamp(
-        ThemeMetric(MetricToken::TextSizeSmall) * m_ZoomLevel,
+        baseSize * m_ZoomLevel,
         10.0f,
         20.0f);
 }
@@ -876,10 +891,11 @@ void TreeView::BuildRenderList() {
                     m_RenderList.push_back({ node, depth, 0, Rect{} });
                 }
 
-                // Always expand children if searching or if parent matches
-                if (nodeMatches || parentMatches || !m_SearchQuery.empty()) {
-                    for (const auto& child : node->children) {
-                        if (child) buildRecursive(child, depth + 1, shouldShow);
+                if (!m_SearchQuery.empty()) {
+                    if (shouldShow) {
+                        for (const auto& child : node->children) {
+                            if (child) buildRecursive(child, depth + 1, shouldShow);
+                        }
                     }
                 } else if (node->expanded) {
                     for (const auto& child : node->children) {
@@ -911,9 +927,11 @@ void TreeView::BuildRenderList() {
 }
 
 void TreeView::UpdateVisibleRange() {
-    const float rowHeight = m_ItemHeight * TreeUiScale();
+    const float uiScale = TreeUiScale();
+    const float rowHeight = m_ItemHeight * uiScale;
+    const float topPadding = 4.0f * uiScale;
     const auto range = we::runtime::kindui::ComputeFixedVisibleRange(
-        m_Scroll.offset,
+        (std::max)(0.0f, m_Scroll.offset - topPadding),
         m_Geometry.height,
         m_RenderList.size(),
         rowHeight,
@@ -930,9 +948,11 @@ void TreeView::UpdateVisibleRange() {
 TreeView::RenderItem* TreeView::GetItemAtPosition(const Point& pos) {
     if (m_RenderList.empty()) return nullptr;
 
-    const float rowHeight = m_ItemHeight * TreeUiScale();
+    const float uiScale = TreeUiScale();
+    const float rowHeight = m_ItemHeight * uiScale;
+    const float topPadding = 4.0f * uiScale;
     if (rowHeight > 0.0f) {
-        const float viewTop = m_ScrollMetrics.viewport.y - m_Scroll.offset;
+        const float viewTop = m_ScrollMetrics.viewport.y + topPadding - m_Scroll.offset;
         const float relY = pos.y - viewTop;
         if (relY >= 0.0f) {
             const size_t index = static_cast<size_t>(relY / rowHeight);

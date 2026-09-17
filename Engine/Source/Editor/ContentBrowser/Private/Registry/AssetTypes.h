@@ -32,7 +32,8 @@ enum class AssetType {
     Font,
     Script,
     Video,
-    Document
+    Document,
+    Markdown
 };
 
 inline std::string AssetTypeToString(AssetType type) {
@@ -53,6 +54,7 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Script: return "Script";
         case AssetType::Video: return "Video";
         case AssetType::Document: return "Document";
+        case AssetType::Markdown: return "Markdown";
         default: return "Unknown";
     }
 }
@@ -62,7 +64,7 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Folder:
             return folderExpanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
         case AssetType::Texture:
-            return WindIcons::Grid16;
+            return WindIcons::Layers16;
         case AssetType::Material:
         case AssetType::MaterialInstance:
             return WindIcons::Sun16;
@@ -83,15 +85,18 @@ inline std::string AssetTypeToString(AssetType type) {
         case AssetType::Audio:
             return WindIcons::Cloud16;
         case AssetType::Font:
-            return WindIcons::Square16;
+            return WindIcons::Document16;
         case AssetType::Script:
             return WindIcons::Console16;
         case AssetType::Video:
             return WindIcons::ToolbarVideocamera16;
+        case AssetType::Markdown:
+            return WindIcons::ThumbnailMd16;
         case AssetType::Document:
-            return WindIcons::ThumbnailMd512;
+            return WindIcons::DocumentText16;
+        case AssetType::Unknown:
         default:
-            return WindIcons::Square16;
+            return WindIcons::ThumnailUnknownDocument512;
     }
 }
 
@@ -113,6 +118,7 @@ inline std::string AssetTypeToKey(AssetType type) {
         case AssetType::Script: return "script";
         case AssetType::Video: return "video";
         case AssetType::Document: return "document";
+        case AssetType::Markdown: return "markdown";
         default: return "unknown";
     }
 }

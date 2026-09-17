@@ -9,6 +9,7 @@
 #include "Platform/Platform.h"
 #include "ContentBrowser/Widgets/ContentBrowser.h"
 #include <KindUI/EditorUI.h>
+#include <KindUI/Theme/TypographySystem.h>
 #include "Controllers/FilterController.h"
 #include "Controllers/SearchController.h"
 #include "Services/ContentBrowserService.h"
@@ -50,7 +51,7 @@ WindIconRef ResolveItemIcon(const ContentItem& item) {
     if (item.icon.IsValid()) {
         return item.icon;
     }
-    return item.isFolder ? WindIcons::ContentFolder512 : WindIcons::Square16;
+    return item.isFolder ? WindIcons::ContentFolder512 : WindIcons::Document16;
 }
 }
 
@@ -108,7 +109,7 @@ ContentBrowser::GridMetrics ContentBrowser::GetGridMetrics() const {
     m.padding = ThemeMetric(MetricToken::ContentBrowserGridPadding);
     m.hSpacing = ThemeMetric(MetricToken::ContentBrowserGridHSpacing);
     m.vSpacing = ThemeMetric(MetricToken::ContentBrowserGridVSpacing);
-    m.labelLineHeight = ThemeMetric(MetricToken::TextSizeNormal) * 1.25f;
+    m.labelLineHeight = ::we::runtime::kindui::TypographySystem::GetLineHeight(::we::runtime::kindui::TypographyToken::Body);
     m.labelGap = ThemeMetric(MetricToken::Space1);
 
     switch (GetEffectiveViewMode()) {
@@ -242,8 +243,8 @@ void ContentBrowser::UpdateVisibleRange() {
     m_LastVisibleIndex = static_cast<int>(m_RenderList.size()) - 1;
     if (m_RenderList.empty()) return;
 
-    const float viewTop = m_Geometry.y;
-    const float viewBottom = m_Geometry.y + m_Geometry.height;
+    const float viewTop = m_ScrollMetrics.viewport.y;
+    const float viewBottom = m_ScrollMetrics.viewport.y + m_ScrollMetrics.viewport.height;
 
     m_FirstVisibleIndex = static_cast<int>(m_RenderList.size());
     m_LastVisibleIndex = -1;
@@ -333,20 +334,33 @@ void ContentBrowser::PaintAssetThumbnail(PaintContext& context, const Rect& thum
     if (IsBlueprintItem(item)) {
         ContentBrowserBlueprintArt::Get().PaintThumbnail(context, thumbRect, hovered);
     } else if (item.iconTexture != we::rhi::RHIDescriptorSetHandle::Invalid) {
-        context.DrawTexture(thumbRect, item.iconTexture);
+        // Apply the same fill-fraction inset as folder thumbnails so that all
+        // thumbnail types (folder, generated texture, fallback icon) share
+        // identical display size, padding, and centering within the cell.
+        // kThumbnailWidthFill / kThumbnailHeightFill == 0.92f (ContentBrowserFolderArt).
+        constexpr float kTextureFill = ContentBrowserFolderArt::kThumbnailWidthFill;
+        const float artSize = std::min(thumbRect.width, thumbRect.height) * kTextureFill;
+        const Rect artRect{
+            thumbRect.x + (thumbRect.width  - artSize) * 0.5f,
+            thumbRect.y + (thumbRect.height - artSize) * 0.5f,
+            artSize, artSize
+        };
+        context.DrawTexture(artRect, item.iconTexture);
     } else {
-        const WindIconRef iconRef = ResolveItemIcon(item);
-        if (iconRef.sizePx >= 128) {
-            IconPainter::Draw(context, iconRef, thumbRect);
-        } else {
-            const float iconSize = std::min(thumbRect.width, thumbRect.height) * 0.42f;
-            Rect iconRect{
-                thumbRect.x + (thumbRect.width - iconSize) * 0.5f,
-                thumbRect.y + (thumbRect.height - iconSize) * 0.5f,
-                iconSize, iconSize
-            };
-            IconPainter::Draw(context, iconRef, iconRect);
-        }
+        const float fill = 0.82f;
+        const float artSize = std::min(thumbRect.width, thumbRect.height) * fill;
+        const Rect artRect{
+            thumbRect.x + (thumbRect.width - artSize) * 0.5f,
+            thumbRect.y + (thumbRect.height - artSize) * 0.5f,
+            artSize, artSize
+        };
+        // Use the large thumbnail icon (≥512px) so the glyph fills the cell
+        // correctly. The 16px list/tree icon (ResolveItemIcon) must NOT be used
+        // here — it would render as a postage-stamp inside the artRect.
+        const WindIconRef thumbIcon = item.thumbnailIcon.IsValid()
+            ? item.thumbnailIcon
+            : ResolveItemIcon(item);
+        context.DrawWindIcon(thumbIcon, artRect);
     }
 
     if (item.isFavorite) {
@@ -415,19 +429,20 @@ std::vector<std::string> ContentBrowser::WrapLabelText(
 void ContentBrowser::PaintItemLabel(PaintContext& context, const Rect& cell, const std::string& name, float maxWidth,
     int maxLines, bool selected) {
     const GridMetrics metrics = GetGridMetrics();
-    const float fontSize = ThemeMetric(MetricToken::TextSizeNormal);
+    const auto spec = ::we::runtime::kindui::TypographySystem::GetSpec(::we::runtime::kindui::TypographyToken::Body);
+    const float fontSize = spec.sizePx;
     const float lineH = metrics.labelLineHeight;
     const int lineCount = GetEffectiveViewMode() == ContentViewMode::SmallIcons ? 1 : maxLines;
 
     const float labelTop = cell.y + metrics.thumbSize + metrics.labelGap;
-    const Color textColor = selected ? Color::White() : ThemeColor(ColorToken::TextPrimary);
+    const Color textColor = selected ? ThemeColor(ColorToken::TextPrimary) : ThemeColor(ColorToken::TextSecondary);
 
     const auto lines = WrapLabelText(context, name, maxWidth, fontSize, lineCount);
     for (size_t i = 0; i < lines.size(); ++i) {
-        const float textW = context.GetTextWidth(lines[i], fontSize);
+        const float textW = context.GetTextWidth(lines[i], fontSize, static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
         const float x = cell.x + (cell.width - textW) * 0.5f;
         const float y = labelTop + static_cast<float>(i) * lineH;
-        context.DrawText(lines[i], Point{ x, y }, textColor, fontSize, false);
+        context.DrawText(lines[i], Point{ x, y }, textColor, fontSize, static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
     }
 }
 
@@ -450,21 +465,13 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
     const Rect labelBox{ cell.x, labelTopY, cell.width, cell.y + cell.height - labelTopY };
 
     if (selected) {
-        // Soft ambient drop shadow around selected card
         PanelChrome::PaintPanelAmbientShadow(context, cell);
-
-        // UE5 Selected state: blue label box + bright cyan top accent line + 1px blue card outline
-        Color ue5SelectBlue{ 0.05f, 0.43f, 0.81f, 1.0f }; // #0E6ECE UE5 selection blue fill
-        Color cyanAccent{ 0.0f, 0.82f, 1.0f, 1.0f };       // #00E5FF bright cyan accent stripe line
-
-        // Fill label box at bottom of card
-        context.DrawRoundedRect(labelBox, ue5SelectBlue, radius);
-
-        // Top accent line separating thumbnail & label box
-        context.DrawRect(Rect{ cell.x, labelTopY, cell.width, 2.0f * scale }, cyanAccent);
-
-        // Crisp 1px card outline
-        context.DrawRoundedRectOutline(cell, ue5SelectBlue, 1.0f * scale, radius);
+        Color selectBg = ThemeColor(ColorToken::SelectedBackground);
+        if (selectBg.a <= 0.01f || (selectBg.r < 0.05f && selectBg.g < 0.05f && selectBg.b < 0.05f)) {
+            selectBg = ThemeColor(ColorToken::HoverBackground);
+        }
+        context.DrawRoundedRect(cell, selectBg, radius);
+        context.DrawRoundedRectOutline(cell, ThemeColor(ColorToken::BorderLight), 1.0f * scale, radius);
     } else if (hovered) {
         Color hoverBg = ThemeColor(ColorToken::HoverBackground);
         context.DrawRoundedRect(cell, hoverBg, radius);
@@ -479,12 +486,13 @@ void ContentBrowser::PaintGridItem(PaintContext& context, const RenderItem& rend
 
     // 6. Paint Asset Type Text (for Tiles view)
     if (GetEffectiveViewMode() == ContentViewMode::Tiles && !item.isFolder) {
-        const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeCaption));
+        const auto typeSpec = ::we::runtime::kindui::TypographySystem::GetSpec(::we::runtime::kindui::TypographyToken::Caption);
+        const float typeW = context.GetTextWidth(item.type, typeSpec.sizePx, static_cast<we::runtime::text::layout::FontWeight>(typeSpec.weight));
         const float x = renderItem.geometry.x + (renderItem.geometry.width - typeW) * 0.5f;
-        const float typeLineH = ThemeMetric(MetricToken::TextSizeCaption) + ThemeMetric(MetricToken::Space2);
+        const float typeLineH = typeSpec.lineHeightPx + ThemeMetric(MetricToken::Space2);
         const float y = renderItem.geometry.y + renderItem.geometry.height - typeLineH;
-        Color typeColor = selected ? Color::White() : ThemeColor(ColorToken::TextSecondary);
-        context.DrawText(item.type, Point{ x, y }, typeColor, ThemeMetric(MetricToken::TextSizeCaption));
+        Color typeColor = selected ? ThemeColor(ColorToken::TextPrimary) : typeSpec.color;
+        context.DrawText(item.type, Point{ x, y }, typeColor, typeSpec.sizePx, static_cast<we::runtime::text::layout::FontWeight>(typeSpec.weight));
     }
 }
 
@@ -511,31 +519,35 @@ void ContentBrowser::PaintListItem(PaintContext& context, const RenderItem& rend
         IconPainter::Draw(context, ResolveItemIcon(item), IconMetrics::PlaceGlyphCentered(iconRect, 16u));
     }
 
+    const auto nameSpec = ::we::runtime::kindui::TypographySystem::GetSpec(::we::runtime::kindui::TypographyToken::Body);
+    const auto typeSpec = ::we::runtime::kindui::TypographySystem::GetSpec(::we::runtime::kindui::TypographyToken::Caption);
     const float nameX = iconX + iconSize + ThemeMetric(MetricToken::Space2);
-    const float nameY = renderItem.geometry.y + (renderItem.geometry.height - ThemeMetric(MetricToken::TextSizeBody)) *
-        0.5f;
-    const float typeW = context.GetTextWidth(item.type, ThemeMetric(MetricToken::TextSizeBody));
+    const float nameY = ::we::runtime::kindui::TypographySystem::AlignTextTopY(renderItem.geometry, nameSpec.sizePx);
+    const auto nameWeight = static_cast<we::runtime::text::layout::FontWeight>(nameSpec.weight);
+    const auto typeWeight = static_cast<we::runtime::text::layout::FontWeight>(typeSpec.weight);
+    const float typeW = context.GetTextWidth(item.type, typeSpec.sizePx, typeWeight);
     const float maxNameWidth = renderItem.geometry.width - (nameX - renderItem.geometry.x) - typeW -
         PanelChrome::PanelPaddingH() * 2.0f;
     const std::string_view displayName = item.name;
-    if (context.GetTextWidth(displayName, ThemeMetric(MetricToken::TextSizeBody)) <= maxNameWidth) {
-        context.DrawText(displayName, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary),
-            ThemeMetric(MetricToken::TextSizeBody), false);
+    if (context.GetTextWidth(displayName, nameSpec.sizePx, nameWeight) <= maxNameWidth) {
+        context.DrawText(displayName, Point{ nameX, nameY }, nameSpec.color,
+            nameSpec.sizePx, nameWeight);
     } else {
         std::string truncated(displayName);
         std::string truncatedEllipsis = truncated + "...";
         while (truncated.length() > 1 && context.GetTextWidth(truncatedEllipsis,
-            ThemeMetric(MetricToken::TextSizeBody)) > maxNameWidth) {
+            nameSpec.sizePx, nameWeight) > maxNameWidth) {
             truncated.pop_back();
             truncatedEllipsis.pop_back();
         }
         truncated += "...";
-        context.DrawText(truncated, Point{ nameX, nameY }, ThemeColor(ColorToken::TextPrimary),
-            ThemeMetric(MetricToken::TextSizeBody), false);
+        context.DrawText(truncated, Point{ nameX, nameY }, nameSpec.color,
+            nameSpec.sizePx, nameWeight);
     }
+    const float typeY = ::we::runtime::kindui::TypographySystem::AlignTextTopY(renderItem.geometry, typeSpec.sizePx);
     context.DrawText(item.type, Point{ renderItem.geometry.x + renderItem.geometry.width - typeW -
-        PanelChrome::PanelPaddingH(), nameY },
-        ThemeColor(ColorToken::TextSecondary), ThemeMetric(MetricToken::TextSizeBody));
+        PanelChrome::PanelPaddingH(), typeY },
+        typeSpec.color, typeSpec.sizePx, typeWeight);
 }
 
 void ContentBrowser::Paint(PaintContext& context) {
@@ -603,14 +615,14 @@ void ContentBrowser::Paint(PaintContext& context) {
         context.DrawRect(Rect{ m_Geometry.x, borderY, m_Geometry.width, borderThickness },
             ThemeColor(ColorToken::BorderDefault));
 
-        const float textSize = ThemeMetric(MetricToken::TextSizeSmall) * uiScale;
+        const auto statusSpec = ::we::runtime::kindui::TypographySystem::GetSpec(::we::runtime::kindui::TypographyToken::StatusBar);
         const float padX = std::floor(12.0f * uiScale);
-        const float textY = std::floor(borderY + (statusHeight - textSize) * 0.5f);
+        const float textY = ::we::runtime::kindui::TypographySystem::AlignTextTopY(Rect{ m_Geometry.x, borderY, m_Geometry.width, statusHeight }, statusSpec.sizePx);
         std::string status = std::to_string(m_Model->assetCount + m_Model->folderCount) + " items";
         if (!m_Model->selectedIds.empty()) {
             status += " (" + std::to_string(m_Model->selectedIds.size()) + " selected)";
         }
-        context.DrawText(status, Point{ m_Geometry.x + padX, textY }, ThemeColor(ColorToken::TextSecondary), textSize);
+        context.DrawText(status, Point{ m_Geometry.x + padX, textY }, statusSpec.color, statusSpec.sizePx, static_cast<we::runtime::text::layout::FontWeight>(statusSpec.weight));
     }
 
     if (m_IsDragging && m_Model && !m_Model->selectedIds.empty()) {
@@ -1027,7 +1039,7 @@ void ContentBrowserStatusBar::Paint(PaintContext& context) {
             m_CachedText += " (" + std::to_string(m_SelectedCount) + " selected)";
         }
     }
-    const float textY = m_Geometry.y + (m_Geometry.height - textSize) * 0.5f;
+    const float textY = ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(m_Geometry, textSize);
     context.DrawText(m_CachedText, Point{ m_Geometry.x + ThemeMetric(MetricToken::Space3), textY },
         ThemeColor(ColorToken::TextSecondary), textSize);
 }

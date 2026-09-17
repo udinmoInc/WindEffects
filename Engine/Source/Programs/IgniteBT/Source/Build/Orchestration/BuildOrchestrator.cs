@@ -1,3 +1,12 @@
+// ==============================================================================
+// WindEffects — IgniteBT — BuildOrchestrator
+// Core build orchestrator and execution engine.
+// Maintained and authored by Vijay Singh and John Anderson.
+//
+// Copyright (c) 2026 WindEffects. All rights reserved.
+// This file is part of WindEffects Engine and is governed by the
+// WindEffects Engine EULA (see Legal/EULA.md at the repository root).
+// ==============================================================================
 using System.Collections.Concurrent;
 using Serilog;
 using IgniteBT.Build.Compiler;
@@ -28,6 +37,7 @@ public sealed class BuildOrchestrator : IDisposable
     private readonly PathNormalizer _pathNormalizer;
     private readonly BuildDb _buildDb;
     private readonly BuildProfiler _profiler;
+    private readonly Diagnostics.Telemetry.IBuildTelemetry _telemetry;
     private readonly BuildStatistics _stats = new();
     private readonly CompilerWorkerPool? _compilerPool;
     private readonly LinkerWorkerPool? _linkerPool;
@@ -40,6 +50,7 @@ public sealed class BuildOrchestrator : IDisposable
     private readonly AdaptiveUnityFilter _adaptiveUnity;
     private readonly string _linkerVersion;
     private readonly ConcurrentDictionary<string, List<string>> _moduleObjects = new();
+    private readonly ConcurrentDictionary<string, Task<CompilationResult>> _inFlightCompilations = new();
 
     public BuildOrchestrator(BuildContext ctx)
     {
@@ -49,6 +60,7 @@ public sealed class BuildOrchestrator : IDisposable
         _pathNormalizer = new PathNormalizer();
         _buildDb = new BuildDb(ctx.Layout.DatabaseDirectory);
         _profiler = ctx.Profiler ?? new BuildProfiler();
+        _telemetry = ctx.Telemetry ?? (ctx.Profiler != null ? new Diagnostics.Telemetry.BuildProfilerTelemetry(ctx.Profiler, verbose: ctx.EnableProfile) : Diagnostics.Telemetry.NullBuildTelemetry.Instance);
         _casStore = new ObjectCasStore(ctx.Layout.CacheDirectory);
         _autoTuner = new BuildAutoTuner(ctx.Layout.DatabaseDirectory);
         _linkerCache = new LinkerCache(ctx.Layout.CacheDirectory);
@@ -148,7 +160,7 @@ public sealed class BuildOrchestrator : IDisposable
         using (_profiler.Scope(BuildStages.AssetStaging))
             _ctx.OutputLayout.StageEngineAssets(modules);
 
-        GraphSerializer.Save(Path.Combine(_ctx.Layout.DatabaseDirectory, "dependency_graph.json"), graph, configHash);
+        Task.Run(() => GraphSerializer.Save(Path.Combine(_ctx.Layout.DatabaseDirectory, "dependency_graph.json"), graph, configHash));
 
         var jobGraph = new JobGraph();
         var unitySettings = BuildUnitySettings();
@@ -212,10 +224,14 @@ public sealed class BuildOrchestrator : IDisposable
             jobGraph.Add(linkNode);
         }
 
+        int compileJobCount = jobGraph.Nodes.Count(n => n.Id.StartsWith("compile:", StringComparison.OrdinalIgnoreCase));
+        var plan = AdaptiveScheduler.DetermineExecutionPlan(compileJobCount, _ctx.Jobs);
+        Log.Information("[SCHEDULER] {Rationale}", plan.Rationale);
+
         bool success;
         using (_profiler.Scope(BuildStages.JobGraphExecution))
         {
-            using var scheduler = new JobGraphScheduler(jobGraph, _ctx.Jobs, _prioritizer);
+            using var scheduler = new JobGraphScheduler(jobGraph, plan.TargetWorkerCount, _prioritizer);
             success = await scheduler.ExecuteAsync();
             _stats.SchedulerIdleMs = scheduler.IdleMs;
             _profiler.RecordSchedulerStall(scheduler.IdleMs);
@@ -254,6 +270,7 @@ public sealed class BuildOrchestrator : IDisposable
 
     private async Task CompileBlobAsync(BuildNode node, UnityBlob blob, string primarySource, string depsDir)
     {
+        var totalSw = System.Diagnostics.Stopwatch.StartNew();
         var objectDir = _ctx.Layout.GetModuleObjectsDirectory(node.Name);
         Directory.CreateDirectory(objectDir);
         var objectFile = Path.Combine(objectDir, Path.GetFileNameWithoutExtension(primarySource) + ".obj");
@@ -272,6 +289,7 @@ public sealed class BuildOrchestrator : IDisposable
             }
         }
 
+        double depCheckMs = 0;
         List<string> headers;
         using (_profiler.Scope(BuildStages.HeaderScan))
         {
@@ -292,58 +310,106 @@ public sealed class BuildOrchestrator : IDisposable
                 _buildDb.SetIncludeGraph(primarySource, headers);
                 _stats.RecordHeaderCacheMiss();
             }
+            scanSw.Stop();
+            depCheckMs = scanSw.Elapsed.TotalMilliseconds;
             _profiler.RecordScanTime(scanSw.ElapsedMilliseconds);
         }
 
+        var keyGenSw = System.Diagnostics.Stopwatch.StartNew();
         var sdkHash = FastHash.HashString(string.Join("|", _ctx.DependencyResult.SDKs.Values.Select(s => s.Version)));
-        var casKey = _casStore.ComputeCasKey(primarySource, headers, compileOptions, _ctx.CompilerVersion, sdkHash);
+        var casKey = _casStore.ComputeCasKey(primarySource, headers, compileOptions, _ctx.CompilerVersion, sdkHash, _fileHashes);
+        var cacheKey = _ctx.Cache.ComputeCacheKey(primarySource, headers, compileOptions, _ctx.CompilerVersion, _fileHashes);
+        keyGenSw.Stop();
+        double keyGenMs = keyGenSw.Elapsed.TotalMilliseconds;
 
-        if (_casStore.TryGet(casKey, out var casObject))
+        double cacheLookupMs = 0;
+        double compileMs = 0;
+        double objectWriteMs = 0;
+        double cacheStoreMs = 0;
+
+        var lookupSw = System.Diagnostics.Stopwatch.StartNew();
+        string? cachedObj = null;
+        bool casHit = _casStore.TryGet(casKey, out var casObject);
+        bool cacheHit = !casHit && _ctx.Cache.TryGetCachedObject(cacheKey, out cachedObj) && !string.IsNullOrEmpty(cachedObj);
+        lookupSw.Stop();
+        cacheLookupMs = lookupSw.Elapsed.TotalMilliseconds;
+
+        if (casHit || cacheHit)
         {
+            var sourceObj = casHit ? casObject : cachedObj!;
+            var writeSw = System.Diagnostics.Stopwatch.StartNew();
             using (_profiler.Scope(BuildStages.CacheLookup))
-                File.Copy(casObject, objectFile, true);
+                File.Copy(sourceObj, objectFile, true);
+            writeSw.Stop();
+            objectWriteMs = writeSw.Elapsed.TotalMilliseconds;
+
             _stats.RecordObjectCacheHit(); _stats.RecordFileSkipped(); _profiler.RecordCacheHit();
             _buildDb.IncrementCacheStat("object", true);
+
+            totalSw.Stop();
+            Log.Debug("[BUILD] {FileName}\n  Cache lookup:     {Lookup:F1} ms\n  Dependency check: {Dep:F1} ms\n  Key generation:   {Key:F1} ms\n  Scheduler wait:   0.0 ms\n  MSVC compile:     0.0 ms\n  Object write:     {Write:F1} ms\n  Cache store:      0.0 ms\n  Total:            {Total:F1} ms",
+                Path.GetFileName(primarySource), cacheLookupMs, depCheckMs, keyGenMs, objectWriteMs, totalSw.Elapsed.TotalMilliseconds);
         }
         else
         {
-            var cacheKey = _ctx.Cache.ComputeCacheKey(primarySource, headers, compileOptions, _ctx.CompilerVersion);
-            if (_ctx.Cache.TryGetCachedObject(cacheKey, out var cachedObj) && !string.IsNullOrEmpty(cachedObj))
+            using (_profiler.Scope(BuildStages.Compile))
             {
-                using (_profiler.Scope(BuildStages.CacheLookup))
-                    File.Copy(cachedObj, objectFile, true);
-                _stats.RecordObjectCacheHit(); _stats.RecordFileSkipped(); _profiler.RecordCacheHit();
-            }
-            else
-            {
-                using (_profiler.Scope(BuildStages.Compile))
+                var compileTask = _inFlightCompilations.GetOrAdd(cacheKey, _ => Task.Run(async () =>
                 {
-                    var compileSw = System.Diagnostics.Stopwatch.StartNew();
-                    var result = _compilerPool != null
-                        ? await _compilerPool.CompileAsync(compileOptions)
-                        : await CreateCompiler().CompileAsync(compileOptions);
-                    if (!result.Success) {
-                        var details = string.Join(
-                            Environment.NewLine,
-                            new[] { result.StandardError, result.StandardOutput }
-                                .Where(text => !string.IsNullOrWhiteSpace(text)));
-                        throw new InvalidOperationException(
-                            string.IsNullOrWhiteSpace(details)
-                                ? $"Compilation failed for {primarySource} (exit {result.ExitCode})"
-                                : $"Compilation failed: {details}");
-                    }
-                    compileSw.Stop();
-                    _profiler.RecordCompilerWait(compileSw.ElapsedMilliseconds);
-                    _profiler.RecordTranslationUnitTiming(primarySource, compileSw.ElapsedMilliseconds);
-                    _buildDb.RecordCompileTime(primarySource, node.Name, compileSw.ElapsedMilliseconds);
-                    _ctx.Cache.CacheObject(cacheKey, primarySource, headers, compileOptions, _ctx.CompilerVersion, objectFile, result.CompilationTimeMs);
-                    _casStore.Store(casKey, objectFile, result.CompilationTimeMs);
-                    _stats.RecordObjectCacheMiss(); _stats.RecordFileCompiled();
-                    _stats.RecordSlowCompile(primarySource, compileSw.ElapsedMilliseconds);
-                    _profiler.RecordCacheMiss();
-                    _buildDb.IncrementCacheStat("object", false);
+                    if (_compilerPool != null)
+                        return await _compilerPool.CompileAsync(compileOptions);
+                    return await CreateCompiler().CompileAsync(compileOptions);
+                }));
+
+                var compileSw = System.Diagnostics.Stopwatch.StartNew();
+                var result = await compileTask;
+                compileSw.Stop();
+                compileMs = compileSw.Elapsed.TotalMilliseconds;
+
+                if (!result.Success)
+                {
+                    _inFlightCompilations.TryRemove(cacheKey, out _);
+                    var details = string.Join(
+                        Environment.NewLine,
+                        new[] { result.StandardError, result.StandardOutput }
+                            .Where(text => !string.IsNullOrWhiteSpace(text)));
+                    throw new InvalidOperationException(
+                        string.IsNullOrWhiteSpace(details)
+                            ? $"Compilation failed for {primarySource} (exit {result.ExitCode})"
+                            : $"Compilation failed: {details}");
                 }
+
+                _profiler.RecordCompilerWait(compileSw.ElapsedMilliseconds);
+                _profiler.RecordTranslationUnitTiming(primarySource, compileSw.ElapsedMilliseconds);
+                bool pchUsed = !string.IsNullOrEmpty(compileOptions.PrecompiledHeader) || compileOptions.IsPrecompiledHeader;
+                _buildDb.RecordTuCostMetrics(primarySource, node.Name, compileSw.ElapsedMilliseconds, headers.Count, pchUsed, compileOptions.PrecompiledHeader);
+
+                var storeSw = System.Diagnostics.Stopwatch.StartNew();
+                _ctx.Cache.CacheObject(cacheKey, primarySource, headers, compileOptions, _ctx.CompilerVersion, objectFile, result.CompilationTimeMs, _fileHashes);
+                _casStore.Store(casKey, objectFile, result.CompilationTimeMs);
+                storeSw.Stop();
+                cacheStoreMs = storeSw.Elapsed.TotalMilliseconds;
+
+                _stats.RecordObjectCacheMiss(); _stats.RecordFileCompiled();
+                _stats.RecordSlowCompile(primarySource, compileSw.ElapsedMilliseconds);
+                _profiler.RecordCacheMiss();
+                _buildDb.IncrementCacheStat("object", false);
+
+                totalSw.Stop();
+                Log.Information("[BUILD] {FileName}\n  Cache lookup:     {Lookup:F1} ms\n  Dependency check: {Dep:F1} ms\n  Key generation:   {Key:F1} ms\n  Scheduler wait:   0.0 ms\n  MSVC compile:     {Compile:F1} ms\n  Object write:     {Write:F1} ms\n  Cache store:      {Store:F1} ms\n  Total:            {Total:F1} ms",
+                    Path.GetFileName(primarySource), cacheLookupMs, depCheckMs, keyGenMs, compileMs, objectWriteMs, cacheStoreMs, totalSw.Elapsed.TotalMilliseconds);
             }
+        }
+
+        if (File.Exists(primarySource))
+        {
+            try
+            {
+                var content = File.ReadAllText(primarySource);
+                var sig = SourceSignatureDatabase.ComputeSignature(primarySource, content, _ctx.CompilerVersion, compileOptions.PrecompiledHeader ?? "");
+                _buildDb.UpsertSourceSignature(sig);
+            }
+            catch { }
         }
 
         _adaptiveUnity.RecordBuild(primarySource);
@@ -625,4 +691,7 @@ public sealed class BuildContext
     public string? TargetName { get; init; }
     public HashSet<string>? UnityDisabledModules { get; init; }
     public BuildProfiler? Profiler { get; init; }
+    public Diagnostics.Telemetry.IBuildTelemetry? Telemetry { get; init; }
+    public bool EnableProfile { get; init; }
+    public bool IsHotBuild { get; init; }
 }

@@ -23,7 +23,9 @@ public:
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
         if (lower == ".png" || lower == ".jpg" || lower == ".jpeg" || lower == ".tga" ||
-            lower == ".bmp" || lower == ".svg" || lower == ".webp" || lower == ".hdr") {
+            lower == ".bmp" || lower == ".svg" || lower == ".webp" || lower == ".hdr" ||
+            lower == ".gif" || lower == ".psd" || lower == ".exr" || lower == ".tif" ||
+            lower == ".tiff" || lower == ".ico" || lower == ".dds" || lower == ".pic") {
             return AssetType::Texture;
         }
         if (lower == ".mat") return AssetType::Material;
@@ -42,9 +44,16 @@ public:
         if (lower == ".wav" || lower == ".mp3" || lower == ".ogg" || lower == ".flac") return AssetType::Audio;
         if (lower == ".ttf" || lower == ".otf" || lower == ".woff" || lower == ".woff2"
             || lower == ".wefont") return AssetType::Font;
-        if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts")
+        if (lower == ".lua" || lower == ".cs" || lower == ".py" || lower == ".js" || lower == ".ts"
+            || lower == ".cpp" || lower == ".hpp" || lower == ".h" || lower == ".c" || lower == ".cc"
+            || lower == ".cxx" || lower == ".hlsl" || lower == ".glsl" || lower == ".sh" || lower == ".bat"
+            || lower == ".ps1" || lower == ".sql" || lower == ".html" || lower == ".css")
             return AssetType::Script;
-        if (lower == ".md" || lower == ".markdown" || lower == ".txt" || lower == ".doc" || lower == ".docx")
+        if (lower == ".md" || lower == ".markdown") return AssetType::Markdown;
+        if (lower == ".txt" || lower == ".doc" || lower == ".docx" || lower == ".json" || lower == ".xml"
+            || lower == ".csv" || lower == ".tsv" || lower == ".ini" || lower == ".config" || lower == ".cfg"
+            || lower == ".log" || lower == ".yaml" || lower == ".yml" || lower == ".toml" || lower == ".rtf"
+            || lower == ".pdf" || lower == ".info" || lower == ".manifest")
             return AssetType::Document;
         if (lower == ".mp4" || lower == ".avi" || lower == ".mov" || lower == ".webm") return AssetType::Video;
         if (lower == ".wetex" || lower == ".weasset") {

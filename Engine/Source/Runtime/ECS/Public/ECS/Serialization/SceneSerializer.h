@@ -12,7 +12,7 @@
 #pragma warning(disable: 4251)
 
 #include "ECS/Export.h"
-#include "ECS/Registry.h"
+#include "ECS/Entity.h"
 #include "ECS/Components/CoreComponents.h"
 
 #include <cstdint>
@@ -20,6 +20,8 @@
 #include <vector>
 
 namespace we::runtime::ecs {
+
+class Registry;
 
 inline constexpr std::uint32_t kSceneSerializeVersion = 1;
 

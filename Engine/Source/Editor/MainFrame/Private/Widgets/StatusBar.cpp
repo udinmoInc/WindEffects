@@ -120,7 +120,7 @@ void StatusBar::Construct() {
     m_OutputLogButton = MakeDockControl(WindIcons::GitPullRequestDraft16, "Source Control", "Source Control");
     m_BuildMenuButton = MakeDockControl(WindIcons::Fps16, "FPS", "Frame Rate");
     m_TraceButton = MakeDockControl(WindIcons::Database16, "Cache", "Cache Usage");
-    m_QualityMenuButton = MakeDockControl(WindIcons::Rhi16, "RHI", "Graphics API");
+    m_QualityMenuButton = MakeDockControl(WindIcons::Rhi16, "High-End", "Rendering Profile");
 
     m_Divider4 = MakeStatusDivider();
     m_Divider5 = MakeStatusDivider();
@@ -321,6 +321,14 @@ void StatusBar::SetOnQualityMenuClicked(std::function<void()> onClicked) {
     if (m_QualityMenuButton) {
         m_QualityMenuButton->SetOnClicked(std::move(onClicked));
     }
+}
+
+void StatusBar::SetQualityLabel(const std::string& label, const std::string& tooltip) {
+    if (!m_QualityMenuButton) {
+        return;
+    }
+    m_QualityMenuButton->SetLabel(label);
+    m_QualityMenuButton->SetTooltip(tooltip.empty() ? "Rendering Quality" : tooltip);
 }
 
 } // namespace we::editor::shell

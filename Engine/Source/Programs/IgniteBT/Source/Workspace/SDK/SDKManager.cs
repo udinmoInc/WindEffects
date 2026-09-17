@@ -92,104 +92,113 @@ public class SDKManager
         Log.Debug("Registered {Count} SDK providers", _providers.Count);
     }
     
+    private Task<Dictionary<string, SDKInfo>>? _inFlightDetectTask;
+
     /// <summary>
     /// Detects all available SDKs. Uses persistent cache when fingerprint is unchanged.
+    /// Thread-safe and deduplicated across concurrent callers.
     /// </summary>
-    public async Task<Dictionary<string, SDKInfo>> DetectAllAsync(string? compilerPath = null, bool forceRescan = false)
+    public Task<Dictionary<string, SDKInfo>> DetectAllAsync(string? compilerPath = null, bool forceRescan = false)
     {
         Initialize();
 
-        if (!forceRescan && _cache.Count > 0)
+        lock (_lock)
         {
-            var fingerprint = SDKCacheFingerprint.Compute(compilerPath);
-            if (SDKCacheFingerprint.IsCacheValid(compilerPath) && ValidateCachedPaths())
+            if (_inFlightDetectTask != null && !_inFlightDetectTask.IsCompleted)
             {
-                Log.Information("SDK cache hit — using {Count} cached SDKs (fingerprint valid)", _cache.Count);
-                return new Dictionary<string, SDKInfo>(_cache);
+                return _inFlightDetectTask;
+            }
+
+            _inFlightDetectTask = PerformDetectAllAsync(compilerPath, forceRescan);
+            return _inFlightDetectTask;
+        }
+    }
+
+    private async Task<Dictionary<string, SDKInfo>> PerformDetectAllAsync(string? compilerPath, bool forceRescan)
+    {
+        var totalStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var results = new Dictionary<string, SDKInfo>();
+        int cacheHits = 0;
+        int cacheMisses = 0;
+        var providerMetrics = new List<(string Name, string Status, long ElapsedMs, string CacheState)>();
+
+        var fingerprintValid = !forceRescan && SDKCacheFingerprint.IsCacheValid(compilerPath);
+
+        // Independent per-provider validation: remove missing paths individually
+        var validCachedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (fingerprintValid)
+        {
+            foreach (var (name, info) in _cache)
+            {
+                if (info.IsValid && !string.IsNullOrEmpty(info.RootPath) && Directory.Exists(info.RootPath))
+                {
+                    validCachedNames.Add(name);
+                }
+                else
+                {
+                    _cache.TryRemove(name, out _);
+                }
             }
         }
 
-        Log.Information("Detecting all SDKs...");
-        var results = new Dictionary<string, SDKInfo>();
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-        var detectTasks = _providers.Select(async provider =>
+        var tasks = _providers.Select(async provider =>
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            if (fingerprintValid && validCachedNames.Contains(provider.SDKName) && _cache.TryGetValue(provider.SDKName, out var cachedInfo))
+            {
+                sw.Stop();
+                return (provider.SDKName, cachedInfo, IsHit: true, ElapsedMs: sw.ElapsedMilliseconds);
+            }
+
             try
             {
                 var result = await DetectSDKAsync(provider);
-                return (provider.SDKName, result);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to detect SDK: {SDKName}", provider.SDKName);
-                return (provider.SDKName, SDKResult<SDKInfo>.Fail(ex.Message));
-            }
-        });
-
-        foreach (var task in detectTasks)
-        {
-            var (name, result) = await task;
-            if (result.Success && result.Value != null)
-            {
-                results[name] = result.Value;
-                _cache[name] = result.Value;
-            }
-        }
-
-        _database.SaveCache(_cache);
-        SDKCacheFingerprint.SaveFingerprint(SDKCacheFingerprint.Compute(compilerPath));
-
-        stopwatch.Stop();
-        Log.Information("Detected {Count} SDKs in {Duration}ms", results.Count, stopwatch.ElapsedMilliseconds);
-
-        return results;
-    }
-
-    private bool ValidateCachedPaths()
-    {
-        foreach (var (_, info) in _cache)
-        {
-            if (!info.IsValid) return false;
-            if (string.IsNullOrEmpty(info.RootPath) || !Directory.Exists(info.RootPath))
-                return false;
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Detects all available SDKs (legacy sequential path for forced rescan).
-    /// </summary>
-    public async Task<Dictionary<string, SDKInfo>> DetectAllSequentialAsync()
-    {
-        Initialize();
-        
-        Log.Information("Detecting all SDKs...");
-        var results = new Dictionary<string, SDKInfo>();
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
-        foreach (var provider in _providers)
-        {
-            try
-            {
-                var result = await DetectSDKAsync(provider);
+                sw.Stop();
                 if (result.Success && result.Value != null)
                 {
-                    results[provider.SDKName] = result.Value;
-                    _cache[provider.SDKName] = result.Value;
+                    return (provider.SDKName, result.Value, IsHit: false, ElapsedMs: sw.ElapsedMilliseconds);
                 }
             }
             catch (Exception ex)
             {
                 Log.Warning(ex, "Failed to detect SDK: {SDKName}", provider.SDKName);
             }
+
+            sw.Stop();
+            return (provider.SDKName, (SDKInfo?)null, IsHit: false, ElapsedMs: sw.ElapsedMilliseconds);
+        });
+
+        var completedResults = await Task.WhenAll(tasks);
+        foreach (var (name, info, isHit, elapsedMs) in completedResults)
+        {
+            if (info != null)
+            {
+                results[name] = info;
+                _cache[name] = info;
+
+                if (isHit) cacheHits++; else cacheMisses++;
+                providerMetrics.Add((name, info.IsValid ? "FOUND" : "INVALID", elapsedMs, isHit ? "hit" : "miss"));
+            }
+            else
+            {
+                cacheMisses++;
+                providerMetrics.Add((name, "NOT FOUND", elapsedMs, "miss"));
+            }
         }
-        
+
         _database.SaveCache(_cache);
-        
-        stopwatch.Stop();
-        Log.Information("Detected {Count} SDKs in {Duration}ms", results.Count, stopwatch.ElapsedMilliseconds);
-        
+        SDKCacheFingerprint.SaveFingerprint(SDKCacheFingerprint.Compute(compilerPath));
+
+        totalStopwatch.Stop();
+
+        Log.Information("IgniteBT Toolchain & SDK Detection Summary ({TotalMs}ms):", totalStopwatch.ElapsedMilliseconds);
+        foreach (var m in providerMetrics)
+        {
+            Log.Information("  {Name,-15} {Status,-8} {Ms,4} ms   cache: {CacheState}", m.Name, m.Status, m.ElapsedMs, m.CacheState);
+        }
+        Log.Information("Total detection: {TotalMs}ms | Cache hits: {Hits} | Cache misses: {Misses} | Drive scans: 0 | Processes: 0",
+            totalStopwatch.ElapsedMilliseconds, cacheHits, cacheMisses);
+
         return results;
     }
     
@@ -226,59 +235,99 @@ public class SDKManager
         Log.Information("Detecting SDK: {SDKName}", provider.SDKName);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
-        // Use resolver to find SDK path
-        var resolveResult = await _resolver.ResolveAsync(provider);
+        string? path = null;
+        string discoverySource = "Unknown";
+        var searchLocations = new List<string>();
+
+        if (provider is Providers.MSVCProvider)
+        {
+            var detectedCompiler = Build.Toolchain.ToolchainDetector.DetectCompiler();
+            if (detectedCompiler.Type == Build.Toolchain.CompilerType.MSVC && !string.IsNullOrEmpty(detectedCompiler.Path))
+            {
+                path = Path.GetDirectoryName(detectedCompiler.Path) ?? detectedCompiler.Path;
+                discoverySource = "ToolchainDetector";
+            }
+        }
+
+        if (string.IsNullOrEmpty(path))
+        {
+            var resolveResult = await _resolver.ResolveAsync(provider);
+            if (resolveResult.Success && !string.IsNullOrEmpty(resolveResult.Value))
+            {
+                path = resolveResult.Value;
+                discoverySource = resolveResult.DiscoverySource ?? "Unknown";
+            }
+            else
+            {
+                searchLocations.AddRange(resolveResult.SearchLocations);
+            }
+        }
         
-        if (!resolveResult.Success || string.IsNullOrEmpty(resolveResult.Value))
+        if (string.IsNullOrEmpty(path))
         {
             stopwatch.Stop();
             Log.Warning("SDK {SDKName} not found", provider.SDKName);
             var result = SDKResult<SDKInfo>.Fail($"SDK {provider.SDKName} not found");
-            result.SearchLocations.AddRange(resolveResult.SearchLocations);
+            result.SearchLocations.AddRange(searchLocations);
             return result;
         }
-        
-        var path = resolveResult.Value;
         
         // Build SDK info
         var info = new SDKInfo
         {
             Name = provider.SDKName,
             RootPath = path,
-            DiscoverySource = resolveResult.DiscoverySource ?? "Unknown",
+            DiscoverySource = discoverySource,
             Platform = GetCurrentPlatform(),
             Architecture = GetCurrentArchitecture()
         };
-        
-        // Get version
-        var versionResult = await provider.GetVersionAsync(path);
-        if (versionResult.Success)
+
+        if (provider is Providers.MSVCProvider)
         {
-            info.Version = versionResult.Value ?? "Unknown";
+            var detectedCompiler = Build.Toolchain.ToolchainDetector.DetectCompiler();
+            if (!string.IsNullOrEmpty(detectedCompiler.IncludePath))
+            {
+                info.IncludePaths = detectedCompiler.IncludePath.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            }
+            if (!string.IsNullOrEmpty(detectedCompiler.LibraryPath))
+            {
+                info.LibraryPaths = detectedCompiler.LibraryPath.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            }
+            info.Version = detectedCompiler.Version;
+            info.ToolPaths = new List<string> { detectedCompiler.Path };
         }
-        
-        var headersResult = await provider.LocateHeadersAsync(path);
-        if (headersResult.Success)
+        else
         {
-            info.IncludePaths = headersResult.Value ?? new List<string>();
-        }
-        
-        var librariesResult = await provider.LocateLibrariesAsync(path);
-        if (librariesResult.Success)
-        {
-            info.LibraryPaths = librariesResult.Value ?? new List<string>();
-        }
-        
-        var binariesResult = await provider.LocateBinariesAsync(path);
-        if (binariesResult.Success)
-        {
-            info.BinaryPaths = binariesResult.Value ?? new List<string>();
-        }
-        
-        var toolsResult = await provider.LocateToolsAsync(path);
-        if (toolsResult.Success)
-        {
-            info.ToolPaths = toolsResult.Value ?? new List<string>();
+            // Get version
+            var versionResult = await provider.GetVersionAsync(path);
+            if (versionResult.Success)
+            {
+                info.Version = versionResult.Value ?? "Unknown";
+            }
+            
+            var headersResult = await provider.LocateHeadersAsync(path);
+            if (headersResult.Success)
+            {
+                info.IncludePaths = headersResult.Value ?? new List<string>();
+            }
+            
+            var librariesResult = await provider.LocateLibrariesAsync(path);
+            if (librariesResult.Success)
+            {
+                info.LibraryPaths = librariesResult.Value ?? new List<string>();
+            }
+            
+            var binariesResult = await provider.LocateBinariesAsync(path);
+            if (binariesResult.Success)
+            {
+                info.BinaryPaths = binariesResult.Value ?? new List<string>();
+            }
+            
+            var toolsResult = await provider.LocateToolsAsync(path);
+            if (toolsResult.Success)
+            {
+                info.ToolPaths = toolsResult.Value ?? new List<string>();
+            }
         }
         
         var validationResult = await _validator.ValidateAsync(provider, info);

@@ -60,26 +60,12 @@ public class FileSystemScanner
                 {
                     Path.Combine(programFiles, "VulkanSDK"),
                     Path.Combine(programFilesX86, "VulkanSDK"),
+                    @"C:\VulkanSDK",
                     "/usr/local/share/vulkan",
                     "/usr/share/vulkan",
                     "/opt/vulkan",
                     "/usr/local/vulkan"
                 });
-                try
-                {
-                    foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
-                    {
-                        var root = drive.RootDirectory.FullName;
-                        var vulkanRoot = Path.Combine(root, "VulkanSDK");
-                        if (Directory.Exists(vulkanRoot))
-                        {
-                            paths.Add(vulkanRoot);
-                            foreach (var sub in Directory.GetDirectories(vulkanRoot))
-                                paths.Add(sub);
-                        }
-                    }
-                }
-                catch { }
                 break;
 
             case "directx":
@@ -88,18 +74,9 @@ public class FileSystemScanner
                 {
                     Path.Combine(programFilesX86, "Microsoft DirectX SDK (June 2010)"),
                     Path.Combine(programFilesX86, "Microsoft DirectX SDK"),
-                    Path.Combine(programFiles, "Microsoft DirectX SDK")
+                    Path.Combine(programFiles, "Microsoft DirectX SDK"),
+                    @"C:\DXSDK"
                 });
-                try
-                {
-                    foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
-                    {
-                        var root = drive.RootDirectory.FullName;
-                        var dx = Path.Combine(root, "DXSDK");
-                        if (Directory.Exists(dx)) paths.Add(dx);
-                    }
-                }
-                catch { }
                 break;
 
             case "openxr":

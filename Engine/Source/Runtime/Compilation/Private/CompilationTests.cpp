@@ -7,10 +7,10 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Compilation/CompilationTests.h"
-#include "Compilation/Compilation.h"
+#include "Compilation/ICompilationRuntime.h"
+#include "Compilation/CompilationDiagnostics.h"
 
 #include <filesystem>
-#include <sstream>
 
 namespace we::runtime::compilation {
 namespace {

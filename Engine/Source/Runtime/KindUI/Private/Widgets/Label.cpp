@@ -9,6 +9,7 @@
 #include "KindUI/UI/Label.h"
 #include "KindUI/Core/PaintContext.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theme/DesignToken.h"
 #include "KindUI/Theme/TypographySpec.h"
 #include "KindUI/Core/Style.h"
@@ -221,7 +222,7 @@ void Label::Paint(PaintContext& context) {
     for (const auto& line : m_WrappedLines) {
         context.DrawText(
             line,
-            Point{ m_Geometry.x, currentY + (lineHeight - m_Style.size) * 0.5f },
+            Point{ m_Geometry.x, LayoutMetrics::AlignTextTopAtCenterY(currentY + lineHeight * 0.5f, m_Style.size) },
             m_Style.color,
             m_Style.size,
             static_cast<we::runtime::text::layout::FontWeight>(

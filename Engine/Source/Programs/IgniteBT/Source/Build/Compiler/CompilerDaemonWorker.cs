@@ -97,7 +97,7 @@ public sealed class CompilerDaemonWorker : IDisposable
 
             var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
             var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync(cancellationToken));
 
             var stdout = await stdoutTask;
             var stderr = await stderrTask;

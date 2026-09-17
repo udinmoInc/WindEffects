@@ -45,10 +45,6 @@ public:
     void Arrange(const Rect& allottedRect) override;
     void Paint(PaintContext& context) override;
 
-    void OnMouseDown(const MouseEvent& event) override;
-    void OnMouseUp(const MouseEvent& event) override;
-    void OnMouseMove(const MouseEvent& event) override;
-
     std::shared_ptr<SearchBoxControl> GetSearchBox() const { return m_SearchBox; }
     std::shared_ptr<::we::runtime::kindui::Breadcrumb> GetBreadcrumb() const { return m_Breadcrumb; }
     std::shared_ptr<ToolbarIconButton> GetBackBtn() const { return m_BackBtn; }

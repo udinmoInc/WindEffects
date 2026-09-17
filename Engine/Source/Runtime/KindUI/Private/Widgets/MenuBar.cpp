@@ -104,9 +104,9 @@ void MenuBar::Paint(PaintContext& context) {
                 radius * 0.5f);
         }
 
-        const float centerY = std::floor(menu.geometry.y + menu.geometry.height * 0.5f);
+        const float centerY = menu.geometry.y + menu.geometry.height * 0.5f;
         float textX = menu.geometry.x + m_ItemPaddingH * uiScale;
-        float textY = std::floor(::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize));
+        float textY = ::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, textSize);
 
         Color textColor = isHighlighted
             ? ThemeColor(ColorToken::TextPrimary)

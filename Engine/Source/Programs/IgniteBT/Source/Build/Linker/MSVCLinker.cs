@@ -159,10 +159,12 @@ public class MSVCLinker : ILinker
                 return result;
             }
 
-            result.StandardOutput = await process.StandardOutput.ReadToEndAsync();
-            result.StandardError = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync());
 
+            result.StandardOutput = await stdoutTask;
+            result.StandardError = await stderrTask;
             result.ExitCode = process.ExitCode;
             result.Success = process.ExitCode == 0;
 
@@ -304,6 +306,9 @@ public class MSVCLinker : ILinker
             && targetType != LinkTargetType.StaticLibrary)
         {
             flags.Add("/incremental");
+            flags.Add("/OPT:NOREF");
+            flags.Add("/OPT:NOICF");
+            flags.Add("/FASTFAIL");
         }
         else
         {

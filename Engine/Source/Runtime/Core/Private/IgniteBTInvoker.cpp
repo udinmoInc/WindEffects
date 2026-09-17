@@ -13,11 +13,15 @@
 
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <vector>
 
 #if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <sys/wait.h>
@@ -62,14 +66,13 @@ bool TryReadInstallManifest(std::filesystem::path& outProjectRoot) {
         return false;
     }
 
-    std::ifstream input(manifestPath);
+    std::ifstream input(manifestPath, std::ios::binary);
     if (!input) {
         return false;
     }
 
-    std::stringstream buffer;
-    buffer << input.rdbuf();
-    const std::string projectRoot = JsonReadString(buffer.str(), "ProjectRoot");
+    std::string buffer((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    const std::string projectRoot = JsonReadString(buffer, "ProjectRoot");
     if (projectRoot.empty()) {
         return false;
     }

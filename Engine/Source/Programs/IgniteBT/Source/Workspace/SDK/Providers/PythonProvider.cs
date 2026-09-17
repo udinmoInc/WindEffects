@@ -52,16 +52,9 @@ public class PythonProvider : BaseSDKProvider
         "/usr/local/python3"
     };
     
-    protected override List<string> ExpectedTools => new()
-    {
-        "python.exe",
-        "python3.exe",
-        "python",
-        "python3",
-        "pip.exe",
-        "pip",
-        "pip3"
-    };
+    protected override List<string> ExpectedTools => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? new() { "python.exe" }
+        : new() { "python3", "python" };
     
     public override async Task<SDKResult<List<string>>> LocateHeadersAsync(string path)
     {
@@ -174,8 +167,17 @@ public class PythonProvider : BaseSDKProvider
         return await Task.FromResult(result);
     }
     
+    private static string? _cachedVersion;
+    private static readonly object _versionLock = new();
+
     public override async Task<SDKResult<string>> GetVersionAsync(string path)
     {
+        lock (_versionLock)
+        {
+            if (_cachedVersion != null)
+                return SDKResult<string>.Ok(_cachedVersion);
+        }
+
         try
         {
             var pythonExe = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
@@ -217,6 +219,7 @@ public class PythonProvider : BaseSDKProvider
                 var version = output.Replace("Python", "").Trim();
                 if (!string.IsNullOrEmpty(version))
                 {
+                    lock (_versionLock) { _cachedVersion = version; }
                     return SDKResult<string>.Ok(version);
                 }
             }

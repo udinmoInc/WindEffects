@@ -55,7 +55,7 @@ public static class WindowsResourceCompiler
         foreach (var rawLine in lines)
         {
             var line = rawLine.Trim();
-            if (line.Length == 0 || line.StartsWith("
+            if (line.Length == 0 || line.StartsWith("//", StringComparison.Ordinal)) continue;
 
             string? quoted = null;
             if (line.StartsWith("#include", StringComparison.Ordinal))

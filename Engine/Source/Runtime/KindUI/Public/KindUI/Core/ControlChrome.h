@@ -254,6 +254,13 @@ KINDUI_API void PaintCheckbox(
     bool checked,
     const InteractionState& state);
 
+/// Themed axis indicator bar (X=Red, Y=Green, Z=Blue) for vector/transform property input fields.
+KINDUI_API void PaintAxisIndicator(
+    PaintContext& context,
+    const Rect& fieldRect,
+    int axisIndex,
+    const InteractionState& state = {});
+
 /// In-panel workspace tab (Create / Sculpt / …). No strip background — inactive tabs are transparent.
 KINDUI_API void PaintPanelTab(
     PaintContext& context,

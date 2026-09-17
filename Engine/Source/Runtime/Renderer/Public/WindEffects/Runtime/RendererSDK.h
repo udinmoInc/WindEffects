@@ -10,6 +10,9 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportInterfaces.h"
+#include "Renderer/Scalability/ScalabilityManager.h"
+#include "Renderer/Scalability/ScalabilityDiagnostics.h"
+#include "Renderer/Scalability/ScalabilityTests.h"
 #include "Camera/CameraUniform.h"
 #include "Resource/DepthTarget.h"
 #include "Platform/Types.h"

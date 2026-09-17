@@ -22,6 +22,8 @@ public sealed class PchCache
     private readonly ConcurrentDictionary<string, PchCacheEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private int _dirty;
 
+    public string PchDirectory => _cacheDir;
+
     public PchCache(string cacheDirectory)
     {
         _cacheDir = Path.Combine(cacheDirectory, "PCH");

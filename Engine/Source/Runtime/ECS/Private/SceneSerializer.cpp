@@ -7,13 +7,13 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "ECS/Serialization/SceneSerializer.h"
+#include "ECS/Registry.h"
 #include "ECS/System.h"
 #include "ECS/Components/CoreComponents.h"
 
 #include "Core/Logger.h"
 
 #include <fstream>
-#include <sstream>
 #include <unordered_map>
 
 namespace we::runtime::ecs {

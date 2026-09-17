@@ -31,6 +31,10 @@ public:
     void OnMouseWheel(const MouseEvent& event) override;
     void OnHoverLost() override;
 
+    void CloseActiveSubmenu();
+    void OpenSubmenu(size_t index);
+    bool HasActiveSubmenu() const { return m_ActiveSubmenu != nullptr; }
+
 private:
     std::vector<std::shared_ptr<MenuItem>> m_Items;
     int m_HoveredItem = -1;
@@ -41,6 +45,9 @@ private:
     float m_ItemHeight = 0.0f;
     float m_PaddingY = 0.0f;
     float m_PaddingX = 0.0f;
+
+    std::shared_ptr<DropdownMenu> m_ActiveSubmenu;
+    int m_ActiveSubmenuIndex = -1;
 };
 
 } // namespace we::runtime::kindui

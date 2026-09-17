@@ -20,7 +20,11 @@ struct ContentItem {
     std::string name;
     std::string type;
     std::string path;
+    // 16px icon used in list / tree rows.
     we::runtime::kindui::WindIconRef icon = we::runtime::kindui::kWindIconNone;
+    // Large icon (≥512px preferred) used as the grid thumbnail fallback when
+    // no rasterised iconTexture is available yet.  Falls back to icon if unset.
+    we::runtime::kindui::WindIconRef thumbnailIcon = we::runtime::kindui::kWindIconNone;
     we::rhi::RHIDescriptorSetHandle iconTexture = we::rhi::RHIDescriptorSetHandle::Invalid;
     bool isFolder = false;
     bool isFavorite = false;

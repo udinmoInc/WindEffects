@@ -10,6 +10,7 @@
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Core/LayoutMetrics.h"
 #include "Profiling/UiColorDebug.h"
 #include "KindUI/Host/IconMetrics.h"
 #include "Rendering/TextUIService.h"
@@ -301,6 +302,24 @@ void PaintContext::DrawText(
     cmd.textBold = weight >= we::runtime::text::layout::FontWeight::SemiBold;
     cmd.textItalic = italic;
     m_Commands.push_back(cmd);
+}
+
+void PaintContext::DrawText(
+    std::string_view text,
+    const Rect& bounds,
+    const Color& color,
+    float fontSize,
+    bool bold,
+    bool italic) {
+    const float textY = LayoutMetrics::AlignTextTopY(bounds, fontSize);
+    DrawText(
+        text,
+        Point{ bounds.x, textY },
+        color,
+        fontSize,
+        bold ? we::runtime::text::layout::FontWeight::SemiBold
+             : we::runtime::text::layout::FontWeight::Regular,
+        italic);
 }
 
 void PaintContext::DrawWindIcon(WindIconRef icon, const Rect& rect) {

@@ -149,8 +149,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
         context.DrawRoundedRect(m_TooltipRect, ThemeColor(ColorToken::PopupBackground),
             ThemeMetric(MetricToken::CornerRadiusSmall));
         context.DrawText(m_TooltipText,
-            Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), m_TooltipRect.y + (m_TooltipRect.height -
-                textSize) * 0.5f },
+            Point{ m_TooltipRect.x + ActorsPanelLayout::ContentPadH(), ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(m_TooltipRect, textSize) },
             ThemeColor(ColorToken::TextSecondary), textSize);
     }
 
@@ -170,7 +169,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
                 : ThemeColor(ColorToken::TextSecondary);
             context.DrawText(m_FilterMenuItems[i].label,
                 Point{ m_FilterMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(),
-                    m_FilterMenuItems[i].geometry.y + (m_FilterMenuItems[i].geometry.height - textSize) * 0.5f },
+                    ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(m_FilterMenuItems[i].geometry, textSize) },
                 textColor, textSize);
         }
     }
@@ -179,7 +178,6 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
         we::runtime::kindui::ControlChrome::PaintPopupShadow(context, m_ContextMenuRect);
         context.DrawRoundedRect(m_ContextMenuRect, ThemeColor(ColorToken::PopupBackground),
             ThemeMetric(MetricToken::CornerRadiusSmall));
-        const float rowH = ActorsPanelLayout::ActorRowHeight();
         for (size_t i = 0; i < m_ContextMenuItems.size(); ++i) {
             if (static_cast<int>(i) == m_ContextMenuHovered) {
                 context.DrawRect(
@@ -189,7 +187,7 @@ void PlaceActorsPanel::Paint(we::runtime::kindui::PaintContext& context) {
             }
             context.DrawText(m_ContextMenuItems[i].label,
                 Point{ m_ContextMenuItems[i].geometry.x + ActorsPanelLayout::ContentPadH(),
-                    m_ContextMenuItems[i].geometry.y + (rowH - textSize) * 0.5f },
+                    ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(m_ContextMenuItems[i].geometry, textSize) },
                 ThemeColor(ColorToken::TextPrimary), textSize);
         }
     }

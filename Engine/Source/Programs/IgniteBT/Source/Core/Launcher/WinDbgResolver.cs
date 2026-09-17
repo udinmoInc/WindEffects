@@ -160,9 +160,7 @@ public static class WinDbgResolver
 
         // Standard Microsoft public symbol server cache setup
         var tempCache = Path.Combine(Path.GetTempPath(), "SymbolCache");
-        Directory.CreateDirectory(tempCache);
-        symbolPaths.Add($"srv*{tempCache}*https:
-
+        symbolPaths.Add($"srv*{tempCache}*https://msdl.microsoft.com/download/symbols");
         return string.Join(";", symbolPaths);
     }
 
@@ -335,10 +333,10 @@ public static class WinDbgResolver
         searchRoots.Add(Path.Combine(programFilesX86, "Microsoft Visual Studio"));
         searchRoots.Add(Path.Combine(programFiles, "Microsoft Visual Studio"));
 
-        // Drive roots (e.g. F:\vs)
-        foreach (var drive in Directory.GetLogicalDrives())
+        var vsDir = Environment.GetEnvironmentVariable("VSINSTALLDIR");
+        if (!string.IsNullOrEmpty(vsDir))
         {
-            var candidateVs = Path.Combine(drive, "vs", "VC", "Redist", "MSVC");
+            var candidateVs = Path.Combine(vsDir, "VC", "Redist", "MSVC");
             if (Directory.Exists(candidateVs) && !searchRoots.Contains(candidateVs))
             {
                 searchRoots.Add(candidateVs);

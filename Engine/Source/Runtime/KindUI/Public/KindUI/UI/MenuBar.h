@@ -28,6 +28,7 @@ struct MenuItem {
     std::function<void()> onClick;
     bool enabled = true;
     bool checked = false;
+    bool isCheckable = false;
     std::vector<std::shared_ptr<MenuItem>> submenu;
 };
 

@@ -7,7 +7,9 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "KindUI/Core/TextMetrics.h"
+#include "KindUI/Core/DPIContext.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <shared_mutex>
 
@@ -57,6 +59,7 @@ private:
 
 std::shared_mutex g_MeasureMutex;
 TextMetrics::MeasureFn g_MeasureProvider;
+TextMetrics::FontMetricsFn g_FontMetricsProvider;
 std::unordered_map<CacheKey, float, CacheKeyHash, std::equal_to<>> g_MeasureCache;
 constexpr size_t kMaxCacheEntries = 4096;
 
@@ -78,6 +81,11 @@ void TextMetrics::SetMeasureProvider(TextMetrics::MeasureFn provider) {
     g_MeasureProvider = std::move(provider);
     // Drop heuristic-cache entries when a real provider takes over (or is cleared).
     g_MeasureCache.clear();
+}
+
+void TextMetrics::SetFontMetricsProvider(TextMetrics::FontMetricsFn provider) {
+    std::unique_lock lock(g_MeasureMutex);
+    g_FontMetricsProvider = std::move(provider);
 }
 
 size_t TextMetrics::CacheEntryCount() {
@@ -102,12 +110,21 @@ void TextMetrics::ClearCache() {
 
 FontMetricsSpec TextMetrics::GetFontMetrics(float fontSize) {
     const float scale = (fontSize > 0.0f) ? fontSize : 13.0f;
+    const float dpiScale = (std::max)(1.0f, DPIContext::GetScale());
+    FontMetricsFn provider;
+    {
+        std::shared_lock lock(g_MeasureMutex);
+        provider = g_FontMetricsProvider;
+    }
+    if (provider) {
+        return provider(scale);
+    }
     FontMetricsSpec spec;
-    spec.ascender = scale * 0.82f;
-    spec.descender = scale * 0.22f;
-    spec.capHeight = scale * 0.70f;
-    spec.xHeight = scale * 0.50f;
-    spec.lineHeight = scale * (32.0f / 24.0f);
+    spec.ascender = scale * dpiScale * 0.96f;
+    spec.descender = scale * dpiScale * 0.24f;
+    spec.capHeight = scale * dpiScale * 0.72f;
+    spec.xHeight = scale * dpiScale * 0.50f;
+    spec.lineHeight = spec.ascender + spec.descender;
     return spec;
 }
 

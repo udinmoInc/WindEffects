@@ -111,113 +111,23 @@ public class MSVCCompiler : ICompiler
 
             Log.Information("Compiling {SourceFile} with MSVC", options.SourceFile);
             Log.Information("Full command: {Exe} {Args}", ExecutablePath, arguments);
-            Log.Debug("Working Directory: {WorkingDir}", options.WorkingDirectory);
-            Log.Debug("Source file exists: {Exists}", File.Exists(options.SourceFile));
 
-            ProcessStartInfo startInfo;
+            var cachedEnv = _environmentVariables
+                ?? VcEnvironmentCache.LoadOrCapture(_vcVarsAllPath);
 
-            // If we have vcvarsall.bat, run through cmd.exe with it to set up the environment
-            if (!string.IsNullOrEmpty(_vcVarsAllPath))
+            var startInfo = new ProcessStartInfo
             {
-                Log.Debug("vcvarsall.bat path: {VcVarsPath}", _vcVarsAllPath);
-                Log.Debug("vcvarsall.bat exists: {Exists}", File.Exists(_vcVarsAllPath));
-
-                var tempBatPath = Path.Combine(Path.GetTempPath(), $"ignitebt_compile_{Guid.NewGuid()}.bat");
-
-                var batchContent = $@"@echo off
-echo Running vcvarsall.bat...
-call ""{_vcVarsAllPath}"" x64
-echo Running compiler...
-""{ExecutablePath}"" {arguments}
-echo Compiler exit code: %ERRORLEVEL%
-exit /b %ERRORLEVEL%
-";
-                File.WriteAllText(tempBatPath, batchContent);
-
-                Log.Debug("Batch file created at: {BatPath}", tempBatPath);
-
-                startInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c \"{tempBatPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WorkingDirectory = options.WorkingDirectory
-                };
-
-                Log.Debug("Running compiler through batch file");
-
-                using var batchProcess = Process.Start(startInfo);
-                if (batchProcess == null)
-                {
-                    result.Success = false;
-                    result.ExitCode = -1;
-                    result.StandardError = "Failed to start compiler process";
-                    Log.Error("Failed to start compiler process");
-                    return result;
-                }
-
-                result.StandardOutput = await batchProcess.StandardOutput.ReadToEndAsync();
-                result.StandardError = await batchProcess.StandardError.ReadToEndAsync();
-                await batchProcess.WaitForExitAsync();
-
-                result.ExitCode = batchProcess.ExitCode;
-                result.Success = batchProcess.ExitCode == 0;
-
-                // Clean up temp file
-                try
-                {
-                    if (File.Exists(tempBatPath))
-                    {
-                        File.Delete(tempBatPath);
-                    }
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
-
-                stopwatch.Stop();
-                result.CompilationTimeMs = stopwatch.ElapsedMilliseconds;
-
-                Log.Information("Compiler process exited with code: {ExitCode}", batchProcess.ExitCode);
-
-                if (!string.IsNullOrEmpty(result.StandardOutput))
-                {
-                    Log.Information("Compiler stdout:\n{Output}", result.StandardOutput);
-                }
-                if (!string.IsNullOrEmpty(result.StandardError))
-                {
-                    Log.Error("Compiler stderr:\n{Error}", result.StandardError);
-                }
-
-                if (result.Success)
-                {
-                    Log.Information("Compiled {SourceFile} in {Time}ms", options.SourceFile, result.CompilationTimeMs);
-                }
-                else
-                {
-                    Log.Error("Compilation failed with exit code {ExitCode}", batchProcess.ExitCode);
-                }
-
-                result.Diagnostics = ParseDiagnostics(result.StandardError, options.SourceFile);
-                return result;
-            }
-            else
-            {
-                startInfo = new ProcessStartInfo
-                {
-                    FileName = ExecutablePath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WorkingDirectory = options.WorkingDirectory
-                };
-            }
+                FileName = ExecutablePath,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = string.IsNullOrEmpty(options.WorkingDirectory)
+                    ? Environment.CurrentDirectory
+                    : options.WorkingDirectory
+            };
+            VcEnvironmentCache.ApplyToProcessStartInfo(startInfo, cachedEnv);
 
             using var process = Process.Start(startInfo);
             if (process == null)
@@ -229,12 +139,12 @@ exit /b %ERRORLEVEL%
                 return result;
             }
 
-            Log.Debug("Compiler process started with ID: {ProcessId}", process.Id);
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync());
 
-            result.StandardOutput = await process.StandardOutput.ReadToEndAsync();
-            result.StandardError = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
+            result.StandardOutput = await stdoutTask;
+            result.StandardError = await stderrTask;
             result.ExitCode = process.ExitCode;
             result.Success = process.ExitCode == 0;
 
@@ -299,7 +209,9 @@ exit /b %ERRORLEVEL%
             "/utf-8",
             "/Zc:__cplusplus",
             "/Zc:preprocessor",
-            "/FS"  // Force file system locking for PDB files (required for parallel compilation)
+            "/DWIN32_LEAN_AND_MEAN",
+            "/DNOMINMAX",
+            "/FS"
         };
 
         flags.AddRange(GetWarningFlags());
@@ -313,7 +225,7 @@ exit /b %ERRORLEVEL%
         return configuration switch
         {
             BuildConfiguration.Debug => new List<string> { "/Od", "/RTC1" },
-            BuildConfiguration.Development => new List<string> { "/O2" },
+            BuildConfiguration.Development => new List<string> { "/O1", "/Ob1" },
             BuildConfiguration.Profile => new List<string> { "/O2", "/GT" },
             BuildConfiguration.Shipping => new List<string> { "/O2", "/Oi", "/Ot", "/GS-", "/GL" },
             _ => new List<string>()
@@ -349,10 +261,10 @@ exit /b %ERRORLEVEL%
         // Configuration-specific flags
         args.AddRange(GetDefaultFlags(options.Configuration));
 
-        // Debug info
+        // Debug info (/Z7 embeds debug symbols into object file, avoiding mspdbcore.dll PDB locking overhead)
         if (options.GenerateDebugInfo)
         {
-            args.Add("/Zi");
+            args.Add("/Z7");
             if (options.Configuration == BuildConfiguration.Debug)
             {
                 args.Add("/MD");
@@ -417,11 +329,17 @@ exit /b %ERRORLEVEL%
         // Precompiled header
         if (options.IsPrecompiledHeader)
         {
-            args.Add($"/Yc\"{options.PrecompiledHeader}\"");
+            var hName = Path.GetFileName(options.PrecompiledHeader);
+            args.Add($"/Yc\"{hName}\"");
+            var pchPath = options.OutputFile.EndsWith(".obj", StringComparison.OrdinalIgnoreCase)
+                ? options.OutputFile[..^4]
+                : options.OutputFile;
+            args.Add($"/Fp\"{pchPath}\"");
         }
         else if (!string.IsNullOrEmpty(options.PrecompiledHeader))
         {
-            args.Add($"/Yu\"{options.PrecompiledHeader}\"");
+            var hName = Path.GetFileName(options.PrecompiledHeader);
+            args.Add($"/Yu\"{hName}\"");
         }
 
         // Additional flags

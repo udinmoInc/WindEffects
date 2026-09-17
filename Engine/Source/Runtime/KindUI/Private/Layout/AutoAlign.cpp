@@ -33,9 +33,11 @@ float AutoAlign::ComputeHorizontalAlign(const Rect& container, float contentWidt
 }
 
 float AutoAlign::ComputeBaselineY(float centerY, float fontSizePx) {
-    // 0.61 * fontSizePx aligns the visual midline of font characters with centerY
-    // (accounting for font ascender = 0.96 * fontSizePx and cap-height = 0.70 * fontSizePx)
-    return centerY - fontSizePx * 0.61f;
+    const FontMetricsSpec spec = TextMetrics::GetFontMetrics(fontSizePx);
+    // Align visual midpoint of font character cap-height glyph bounds with centerY,
+    // plus optical subpixel lift for UI labels next to icons (prevents text from looking visually dropped):
+    const float opticalLift = (fontSizePx <= 14.0f) ? 0.75f : 0.50f;
+    return centerY - (spec.ascender - 0.5f * spec.capHeight) - opticalLift;
 }
 
 float AutoAlign::AlignTextTopAtCenterY(float centerY, float fontSizePx) {

@@ -19,6 +19,8 @@ using IgniteBT.Build.Orchestration;
 using IgniteBT.Build.Compiler;
 using IgniteBT.Core.Hashing;
 using IgniteBT.Core.Profiling;
+using IgniteBT.Build.Analysis;
+using IgniteBT.Core.Database;
 
 namespace IgniteBT.CLI;
 
@@ -181,6 +183,15 @@ public static class BuildCommand
 
             var cache = new BuildCache(layout.CacheDirectory);
 
+            var enableProfile = parsed.HasFlag("profile");
+            var enableDebug = parsed.HasFlag("debug");
+            var isDiagnosticMode = enableProfile || enableDebug;
+            var isHotBuild = parsed.HasFlag("hot");
+
+            IgniteBT.Diagnostics.Telemetry.IBuildTelemetry telemetry = isDiagnosticMode
+                ? new IgniteBT.Diagnostics.Telemetry.BuildProfilerTelemetry(profiler, verbose: true)
+                : new IgniteBT.Diagnostics.Telemetry.ConsoleBuildTelemetry();
+
             using var orchestrator = new BuildOrchestrator(new BuildContext
             {
                 EngineDir = engineDir,
@@ -197,7 +208,10 @@ public static class BuildCommand
                 UnitySize = unitySize,
                 UnityDisabledModules = unityDisabled,
                 TargetName = buildTarget,
-                Profiler = profiler
+                Profiler = profiler,
+                Telemetry = telemetry,
+                EnableProfile = enableProfile,
+                IsHotBuild = isHotBuild
             });
 
             var result = await orchestrator.ExecuteAsync();
@@ -208,32 +222,65 @@ public static class BuildCommand
 
             if (result.WasNoOp)
             {
-                Log.Information("No-op build - nothing changed ({Ms}ms)", profile.TotalBuildMs);
+                telemetry.OnBuildFinished(true, profile.TotalBuildMs, wasNoOp: true);
                 return 0;
             }
 
-            Log.Information("=== Build Profile ===");
-            Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}% | CPU util: {Cpu:F1}%",
-                profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent,
-                    profile.CpuUtilizationPercent);
-            Log.Information("Hash: {Hash}ms | Scan: {Scan}ms | Compiler wait: {Cw}ms | Link wait: {Lw}ms | Link cache: {LinkCache:F1}% | Scheduler idle: {Idle}ms",
-                profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs,
-                    profile.LinkCacheHitPercent, stats.SchedulerIdleMs);
-            if (profile.ShaderCacheHits > 0)
-                Log.Information("Shader cache hits: {Count}", profile.ShaderCacheHits);
-            if (stats.ModulesLinkSkipped > 0)
-                Log.Information("Links skipped (cache): {Count}", stats.ModulesLinkSkipped);
-            foreach (var scope in profile.Scopes.Take(10))
-                Log.Information("  {Name}: {Total}ms ({Count}x, avg {Avg:F1}ms)", scope.Name, scope.TotalMs,
-                    scope.Count, scope.AverageMs);
+            telemetry.OnBuildFinished(result.Success, profile.TotalBuildMs, wasNoOp: false);
 
-            Log.Information("=== Cache Stats ===");
-            Log.Information("Object cache hit rate: {Rate:P1} ({Hits}/{Total})",
-                stats.ObjectCacheHitRate, stats.ObjectCacheHits, stats.ObjectCacheHits + stats.ObjectCacheMisses);
-            Log.Information("Header cache hit rate: {Rate:P1}", stats.HeaderCacheHitRate);
-            Log.Information("Files compiled: {Compiled}, skipped: {Skipped}", stats.FilesCompiled, stats.FilesSkipped);
-            Log.Information("Object cache entries: {Count} ({Size:F1} MB)", cacheStats.EntryCount,
-                cacheStats.TotalSizeMB);
+            if (isDiagnosticMode)
+            {
+                Log.Information("=== Build Profile ===");
+                Log.Information("Total: {Ms}ms | Critical path: {CpName} ({CpMs}ms) | Cache hit: {CacheHit:F1}% | CPU util: {Cpu:F1}%",
+                    profile.TotalBuildMs, profile.CriticalPathName, profile.CriticalPathMs, profile.CacheHitPercent,
+                        profile.CpuUtilizationPercent);
+                Log.Information("Hash: {Hash}ms | Scan: {Scan}ms | Compiler wait: {Cw}ms | Link wait: {Lw}ms | Link cache: {LinkCache:F1}% | Scheduler idle: {Idle}ms",
+                    profile.HashTimeMs, profile.ScanTimeMs, profile.CompilerWaitMs, profile.LinkWaitMs,
+                        profile.LinkCacheHitPercent, stats.SchedulerIdleMs);
+                if (profile.ShaderCacheHits > 0)
+                    Log.Information("Shader cache hits: {Count}", profile.ShaderCacheHits);
+                if (stats.ModulesLinkSkipped > 0)
+                    Log.Information("Links skipped (cache): {Count}", stats.ModulesLinkSkipped);
+                foreach (var scope in profile.Scopes.Take(10))
+                    Log.Information("  {Name}: {Total}ms ({Count}x, avg {Avg:F1}ms)", scope.Name, scope.TotalMs,
+                        scope.Count, scope.AverageMs);
+
+                Log.Information("=== Cache Stats ===");
+                Log.Information("Object cache hit rate: {Rate:P1} ({Hits}/{Total})",
+                    stats.ObjectCacheHitRate, stats.ObjectCacheHits, stats.ObjectCacheHits + stats.ObjectCacheMisses);
+                Log.Information("Header cache hit rate: {Rate:P1}", stats.HeaderCacheHitRate);
+                Log.Information("Files compiled: {Compiled}, skipped: {Skipped}", stats.FilesCompiled, stats.FilesSkipped);
+                Log.Information("Object cache entries: {Count} ({Size:F1} MB)", cacheStats.EntryCount,
+                    cacheStats.TotalSizeMB);
+            }
+
+            if (enableProfile)
+            {
+                using var buildDb = new BuildDb(layout.DatabaseDirectory);
+                Console.WriteLine();
+                Console.WriteLine(BottleneckDetectionEngine.FormatReport(profile));
+
+                Console.WriteLine(TopBottleneckReportGenerator.FormatReport(buildDb));
+
+                var incReport = IncludeGraphAnalyzer.Analyze(buildDb);
+                Console.WriteLine();
+                Console.WriteLine(IncludeGraphAnalyzer.FormatReport(incReport));
+
+                var iwyuReport = IwyuAnalyzer.Analyze(buildDb);
+                Console.WriteLine();
+                Console.WriteLine(IwyuAnalyzer.FormatReport(iwyuReport));
+
+                var pchReport = PchEffectivenessAnalyzer.Analyze(buildDb);
+                Console.WriteLine();
+                Console.WriteLine(PchEffectivenessAnalyzer.FormatReport(pchReport));
+
+                var tplReport = TemplateComplexityAnalyzer.Analyze(buildDb);
+                Console.WriteLine();
+                Console.WriteLine(TemplateComplexityAnalyzer.FormatReport(tplReport));
+
+                Console.WriteLine();
+                Console.WriteLine(HeaderStabilityAnalyzer.FormatReport(buildDb));
+            }
 
             if (result.Success)
             {

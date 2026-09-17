@@ -294,13 +294,24 @@ public abstract class BaseSDKProvider : ISDKProvider
     }
     
     /// <summary>
-    /// Searches for a file recursively in a directory.
+    /// Searches for a file in top-level and common subdirectories without expensive recursive scans.
     /// </summary>
     protected bool FindFileInPath(string path, string fileName)
     {
         try
         {
-            var files = Directory.GetFiles(path, fileName, SearchOption.AllDirectories);
+            var direct = Path.Combine(path, fileName);
+            if (File.Exists(direct)) return true;
+
+            var commonSubs = new[] { "Include", "include", "Lib", "lib", "Bin", "bin", "x64", "x86", "arm64", "um", "ucrt" };
+            foreach (var sub in commonSubs)
+            {
+                var candidate = Path.Combine(path, sub, fileName);
+                if (File.Exists(candidate)) return true;
+            }
+
+            // TopDirectoryOnly check as cheap fallback
+            var files = Directory.GetFiles(path, fileName, SearchOption.TopDirectoryOnly);
             return files.Length > 0;
         }
         catch

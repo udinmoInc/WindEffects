@@ -122,6 +122,13 @@ public:
         float fontSize,
         we::runtime::text::layout::FontWeight weight,
         bool italic = false);
+    void DrawText(
+        std::string_view text,
+        const Rect& bounds,
+        const Color& color,
+        float fontSize = 14.0f,
+        bool bold = false,
+        bool italic = false);
     void DrawWindIcon(WindIconRef icon, const Rect& rect);
     /// Draw a WindIcon with an explicit mono tint (alpha coverage × tint RGB).
     void DrawWindIcon(WindIconRef icon, const Rect& rect, const Color& tint);

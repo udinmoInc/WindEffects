@@ -1,6 +1,7 @@
 // ==============================================================================
 // WindEffects — IgniteBT — CommandLineParser
 // Source file for the IgniteBT module.
+// Maintained and authored by Vijay Singh and John Anderson.
 //
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
@@ -309,6 +310,8 @@ public static class CommandSchemas
         .WithOption("unity-size", description: "Max files per unity blob")
         .WithOption("unity-disable", description: "Comma-separated modules to exclude from unity builds")
         .WithFlag("clean", 'C', description: "Clean before building")
+        .WithFlag("profile", description: "Enable detailed C++ compiler telemetry and profiling diagnostics")
+        .WithFlag("hot", description: "Hot development build mode - minimal post-build work for ultra-fast C++ iteration")
         .WithFlag("unity", description: "Enable unity builds");
 
     public static readonly CommandSchema Clean = new CommandSchema("clean")

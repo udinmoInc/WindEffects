@@ -138,19 +138,19 @@ void ExplorerFilterMenu::Paint(PaintContext& context) {
         const float checkX = item.geometry.x + menuPad;
         const float checkY = item.geometry.y + (rowH - checkSize) * 0.5f;
 
+        const bool isHovered = (static_cast<int>(i) == m_HoveredItem);
+        we::runtime::kindui::ControlChrome::InteractionState state{};
+        state.hoverAnim = isHovered ? 1.0f : 0.0f;
+
         if (item.isRadio) {
-            // Radio button style - check if this sort option is selected
             const size_t sortStartIndex = 10;
             if (i >= sortStartIndex) {
                 const bool isSelected = (m_FilterOptions.sortOrder == static_cast<int>(i - sortStartIndex));
-                if (isSelected) {
-                    IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
-                }
+                we::runtime::kindui::ControlChrome::PaintCheckbox(context, Rect{ checkX, checkY, checkSize, checkSize }, isSelected, state);
             }
         } else {
-            if (item.value && *item.value) {
-                IconPainter::Draw(context, WindIcons::Check16, Rect{ checkX, checkY, checkSize, checkSize });
-            }
+            const bool isChecked = item.value && *item.value;
+            we::runtime::kindui::ControlChrome::PaintCheckbox(context, Rect{ checkX, checkY, checkSize, checkSize }, isChecked, state);
         }
 
         const float fontSize =

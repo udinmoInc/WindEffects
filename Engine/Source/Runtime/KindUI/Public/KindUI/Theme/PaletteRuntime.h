@@ -117,10 +117,10 @@ struct GraphiteDarkMetrics {
     float FocusRingWidth = 1.0f;
     float PanelHeaderHeight = 28.0f;
     float PanelTabHeight = 28.0f;
-    float PanelToolbarHeight = 26.0f;
-    float ToolbarHeight = 26.0f;
-    float ViewportToolbarHeight = 26.0f;
-    float BreadcrumbBarHeight = 26.0f;
+    float PanelToolbarHeight = 28.0f;
+    float ToolbarHeight = 28.0f;
+    float ViewportToolbarHeight = 28.0f;
+    float BreadcrumbBarHeight = 28.0f;
     float HeaderControlHeight = 24.0f;
     float IconButtonSize = 24.0f;
     float ButtonHeight = 24.0f;

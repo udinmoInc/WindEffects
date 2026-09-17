@@ -473,6 +473,35 @@ EditorShellResult EditorShellBuilder::Build(
         context.GetCommandRegistry().Execute("build.compile", commandContext);
     });
 
+    if (deps.renderer) {
+        auto refreshQualityLabel = [statusBar, renderer = deps.renderer]() {
+            const auto& settings = renderer->GetResolvedRenderingSettings();
+            statusBar->SetQualityLabel(
+                settings.profileName,
+                "Rendering Profile — click to cycle (High-End / Balanced / Low)");
+        };
+        refreshQualityLabel();
+        statusBar->SetOnQualityMenuClicked([renderer = deps.renderer, refreshQualityLabel]() {
+            using we::runtime::renderer::RenderingProfileId;
+            const auto current = renderer->GetRenderingProfileId();
+            RenderingProfileId next = RenderingProfileId::HighEnd;
+            switch (current) {
+            case RenderingProfileId::HighEnd:
+                next = RenderingProfileId::Balanced;
+                break;
+            case RenderingProfileId::Balanced:
+                next = RenderingProfileId::Low;
+                break;
+            case RenderingProfileId::Low:
+            case RenderingProfileId::Custom:
+                next = RenderingProfileId::HighEnd;
+                break;
+            }
+            (void)renderer->SetRenderingProfile(next);
+            refreshQualityLabel();
+        });
+    }
+
     auto rootVBox = std::make_shared<Column>();
     rootVBox->Gap(0.0f);
     rootVBox->SetVerticalAlignment(VerticalAlignment::Fill);

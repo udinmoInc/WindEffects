@@ -29,6 +29,10 @@ public class Renderer : ModuleRules
         DefineIf(HasThirdParty("glm"), "WE_HAS_GLM=1");
         DefineIf(!HasThirdParty("glm"), "WE_HAS_GLM=0");
 
+        AddOptionalThirdParty("nlohmann_json");
+        DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");
+        DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");
+
         Definitions.Add("RENDERER_EXPORTS");
 
         PlatformSettings.Windows ??= new WindowsSettings();

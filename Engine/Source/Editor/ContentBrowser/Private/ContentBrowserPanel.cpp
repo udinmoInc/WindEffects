@@ -40,6 +40,7 @@ using ::we::editor::docking::DockZone;
 namespace {
 
 using ::we::editor::contentbrowser::AssetRecord;
+using ::we::editor::contentbrowser::IconForAssetType;
 using ::we::editor::contentbrowser::ContentAssetRegistry;
 using ::we::editor::contentbrowser::ContentBrowserService;
 using ::we::editor::contentbrowser::ContentFilter;
@@ -73,7 +74,7 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(
     const std::string& currentFolder)
 {
     auto node = std::make_shared<::we::editor::contentbrowser::TreeNode>();
-    node->id = folder->id;
+    node->id = folder->virtualPath;
     node->label = folder->name;
     const bool isCurrentFolderOrParent = (currentFolder == folder->virtualPath) ||
         (currentFolder.rfind(folder->virtualPath + "/", 0) == 0);
@@ -82,7 +83,9 @@ std::shared_ptr<::we::editor::contentbrowser::TreeNode> BuildFolderNode(
     node->icon = node->expanded ? WindIcons::FolderOpenMask16 : WindIcons::FolderMask16;
 
     for (const auto* child : ContentAssetRegistry::Get().GetChildren(folder->virtualPath)) {
-        if (child->isFolder) node->children.push_back(BuildFolderNode(child, expandedPaths, currentFolder));
+        if (child->isFolder) {
+            node->children.push_back(BuildFolderNode(child, expandedPaths, currentFolder));
+        }
     }
     return node;
 }
@@ -438,10 +441,11 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
             doNavigate("/Game", true);
             return;
         }
-        const auto* asset = ContentAssetRegistry::Get().FindById(id);
-        if (asset && asset->isFolder && asset->id.rfind("__", 0) != 0) {
+        const auto* asset = ContentAssetRegistry::Get().FindByVirtualPath(id);
+        if (!asset) asset = ContentAssetRegistry::Get().FindById(id);
+        if (asset && asset->isFolder) {
             doNavigate(asset->virtualPath, true);
-        } else if (!id.empty() && id.rfind("__", 0) != 0) {
+        } else if (id.rfind("/", 0) == 0) {
             doNavigate(id, true);
         }
     });
@@ -452,10 +456,11 @@ std::shared_ptr<::we::runtime::kindui::panels::Panel> CreateContentBrowserPanel(
             doNavigate("/Game", true);
             return;
         }
-        const auto* asset = ContentAssetRegistry::Get().FindById(id);
-        if (asset && asset->isFolder && asset->id.rfind("__", 0) != 0) {
+        const auto* asset = ContentAssetRegistry::Get().FindByVirtualPath(id);
+        if (!asset) asset = ContentAssetRegistry::Get().FindById(id);
+        if (asset && asset->isFolder) {
             doNavigate(asset->virtualPath, true);
-        } else if (!id.empty() && id.rfind("__", 0) != 0) {
+        } else if (id.rfind("/", 0) == 0) {
             doNavigate(id, true);
         }
     });

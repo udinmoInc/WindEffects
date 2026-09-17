@@ -13,6 +13,8 @@
 #include "KindUI/Theme/TypographySystem.h"
 #include "Core/Logger.h"
 #include "Core/Math/Types.h"
+#include "Renderer/Scalability/ScalabilityDiagnostics.h"
+#include "Renderer/Renderer.h"
 #include <iomanip>
 #include <sstream>
 
@@ -88,6 +90,12 @@ void GraphicsDebuggerPopup::BuildLines(std::vector<std::string>& outLines) const
     outLines.push_back("Triangles: " + std::to_string(triangleCount));
     outLines.push_back("Draw Calls: " + std::to_string(drawCallCount));
     outLines.push_back("Entities: " + std::to_string(m_Scene ? m_Scene->GetEntities().size() : 0));
+
+    if (m_Renderer) {
+        const auto snap = m_Renderer->CaptureScalabilityDiagnostics();
+        const auto qualityLines = ::we::runtime::renderer::FormatScalabilityDiagnostics(snap);
+        outLines.insert(outLines.end(), qualityLines.begin(), qualityLines.end());
+    }
 
     if (!m_Camera) {
         return;

@@ -31,10 +31,18 @@ public sealed class BuildDb : IDisposable
     public void SetCommandHash(string key, string hash) => _sqlite.SetCommandHash(key, hash);
     public void RecordCompileTime(string sourcePath, string moduleName, long compileTimeMs) =>
         _sqlite.RecordCompileTime(sourcePath, moduleName, compileTimeMs);
+    public void RecordTuCostMetrics(string sourcePath, string moduleName, long compileTimeMs, int headerCount, bool pchUsed, string? pchName) =>
+        _sqlite.RecordTuCostMetrics(sourcePath, moduleName, compileTimeMs, headerCount, pchUsed, pchName);
     public long GetAverageCompileTime(string sourcePath) => _sqlite.GetAverageCompileTime(sourcePath);
+    public TuCostStats GetTuCostStats(string sourcePath) => _sqlite.GetTuCostStats(sourcePath);
+    public List<TuCostRecord> GetTopSlowestTUs(int count = 20) => _sqlite.GetTopSlowestTUs(count);
     public void SetCompilerInfo(string type, string version, string path) =>
         _sqlite.SetCompilerInfo(type, version, path);
     public void IncrementCacheStat(string key, bool hit) => _sqlite.IncrementCacheStat(key, hit);
+    public List<string> GetTUsIncludingHeader(string headerPath) => _sqlite.GetTUsIncludingHeader(headerPath);
+    public List<string> GetTransitiveIncludeTUs(string headerPath) => _sqlite.GetTransitiveIncludeTUs(headerPath);
+    public void UpsertSourceSignature(SourceSignatureRecord record) => _sqlite.UpsertSourceSignature(record);
+    public bool TryGetSourceSignature(string filePath, out SourceSignatureRecord? record) => _sqlite.TryGetSourceSignature(filePath, out record);
     public DatabaseHealth GetHealth() => _sqlite.GetHealth();
     public void Save() { /* SQLite auto-persists via WAL */ }
 

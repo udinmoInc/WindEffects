@@ -84,9 +84,8 @@ void PlaceActorsActorCard::Paint(PaintContext& context,
 
     const float textWidth = context.GetTextWidth(label, labelFontSize);
     const float textX = cardBounds.x + std::max(2.0f, (cardBounds.width - textWidth) * 0.5f);
-    const float textY = previewBounds.y + previewBounds.height
-        + std::max(2.0f, (cardBounds.y + cardBounds.height - (previewBounds.y + previewBounds.height) - labelFontSize)
-            * 0.5f);
+    const Rect labelBox{ cardBounds.x, previewBounds.y + previewBounds.height, cardBounds.width, std::max(0.0f, cardBounds.y + cardBounds.height - (previewBounds.y + previewBounds.height)) };
+    const float textY = ::we::runtime::kindui::LayoutMetrics::AlignTextTopY(labelBox, labelFontSize);
     context.DrawText(label, Point{ textX, textY }, we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
         labelFontSize);
 

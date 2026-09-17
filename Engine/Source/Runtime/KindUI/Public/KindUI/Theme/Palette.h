@@ -28,16 +28,16 @@ struct GraphiteDark {
     static constexpr Color Foldout           = Hex("#202020"); // Category / foldout headers (distinct from Panel)
     static constexpr Color Category          = Hex("#202020"); // alias → Foldout — property categorizer bars
     static constexpr Color Input             = Hex("#0E0E0E"); // InputSurface
-    static constexpr Color InputOutline      = Hex("#1E1E1E"); // soft gray hairline, no glow
+    static constexpr Color InputOutline      = Hex("#262626"); // dark gray hairline, subtle edge feel
     static constexpr Color BorderSeparator   = Hex("#0F0F0F");
-    static constexpr Color BorderSubtle      = Hex("#1C1C1C");
-    static constexpr Color BorderDefault     = Hex("#1E1E1E");
-    static constexpr Color BorderLight       = Hex("#242424");
+    static constexpr Color BorderSubtle      = Hex("#222222");
+    static constexpr Color BorderDefault     = Hex("#262626");
+    static constexpr Color BorderLight       = Hex("#303030");
     static constexpr Color BorderFocus       = Hex("#0068D0");
     static constexpr Color BorderError       = Hex("#963B3B");
-    static constexpr Color AxisX            = Hex("#8A3F3F");
-    static constexpr Color AxisY            = Hex("#5D783F");
-    static constexpr Color AxisZ            = Hex("#315F8A");
+    static constexpr Color AxisX            = Hex("#E54B4B");
+    static constexpr Color AxisY            = Hex("#4CAF50");
+    static constexpr Color AxisZ            = Hex("#2196F3");
     static constexpr Color InputInsetInner   = Hex("#00000038");
     static constexpr Color InputInsetOuter   = Hex("#00000059");
     static constexpr Color Recessed          = Hex("#121212"); // legacy alias → InnerPanel
@@ -57,15 +57,10 @@ struct GraphiteDark {
     static constexpr Color ButtonPrimaryPress = Hex("#1D1D1D");
     static constexpr Color Secondary         = Hex("#141414"); // PanelInner alias
 
-    static constexpr Color Select            = Hex("#2F3844");
-
-    static constexpr Color SelectInactive    = Hex("#252B33");
-
-    // Parent selection — subtle dark blue-gray
-    static constexpr Color SelectParent      = Hex("#2C323A");
-
-    // Hovered selected item
-    static constexpr Color SelectHover       = Panel;
+    static constexpr Color Select            = Hex("#2C2C2C");
+    static constexpr Color SelectInactive    = Hex("#262626");
+    static constexpr Color SelectParent      = Hex("#222222");
+    static constexpr Color SelectHover       = Hex("#2E2E2E");
 
     // ── Text — only two general UI text colors (neutral) ─────────────────────
 

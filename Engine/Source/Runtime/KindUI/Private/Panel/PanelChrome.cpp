@@ -17,6 +17,7 @@
 #include "KindUI/Theme/SurfaceRole.h"
 #include "KindUI/Core/LayoutMetrics.h"
 #include "KindUI/Theme/ThemeAccess.h"
+#include "KindUI/Theme/TypographySystem.h"
 #include "KindUI/Core/ColorSpace.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -389,9 +390,9 @@ Color ResolveTabTextColor(bool isActive, float hoverAnim) {
     (void)hoverAnim;
     // Ordinary tab labels: Primary when active, Secondary when inactive.
     // Never AccentPrimary / LinkForeground / icon tints.
-    return we::runtime::kindui::ResolveTextColor(
-        isActive ? we::runtime::kindui::TextRole::Primary
-                 : we::runtime::kindui::TextRole::Secondary);
+    return we::runtime::kindui::ResolveColor(
+        isActive ? we::runtime::kindui::TypographySystem::GetColorToken(we::runtime::kindui::TypographyToken::Tab)
+                 : ColorToken::TextSecondary);
 }
 
 }
@@ -576,10 +577,11 @@ void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::str
 
 void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::string_view labelText, std::string_view typeText) {
     const float uiScale = UiScale();
-    const float headerTextSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * uiScale;
-    const float headerTextY = we::runtime::kindui::LayoutMetrics::AlignTextTopY(rect, headerTextSize);
+    const auto spec = TypographySystem::GetSpec(TypographyToken::TableHeader, uiScale);
+    const float headerTextSize = spec.sizePx;
+    const float headerTextY = TypographySystem::AlignTextTopY(rect, headerTextSize);
     const Color sepColor = we::runtime::kindui::ResolveColor(ColorToken::Separator);
-    const Color textColor = we::runtime::kindui::ResolveColor(ColorToken::TextSecondary);
+    const Color textColor = spec.color;
 
     const float borderW = (std::max)(1.0f, we::runtime::kindui::ResolveMetric(MetricToken::BorderWidth));
     const float topBorderY = std::floor(rect.y);
@@ -613,7 +615,7 @@ void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::str
         Point{ labelX, headerTextY },
         textColor,
         headerTextSize,
-        we::runtime::text::layout::FontWeight::Regular);
+        static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
 
     const float typeColWidth = std::floor(90.0f * uiScale);
     const float sep3X = std::floor(rect.x + rect.width - typeColWidth);
@@ -625,7 +627,7 @@ void PaintExplorerColumnHeader(PaintContext& context, const Rect& rect, std::str
         Point{ typeX, headerTextY },
         textColor,
         headerTextSize,
-        we::runtime::text::layout::FontWeight::Regular);
+        static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
 }
 
 void PaintElevatedHeaderRegion(PaintContext& context, const Rect& rect) {
@@ -680,9 +682,8 @@ float MeasureDockTabWidth(
 {
 
     const float scale = UiScale();
-    const float fontSize = modeTabs
-        ? we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale
-        : we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
+    const auto spec = TypographySystem::GetSpec(modeTabs ? TypographyToken::Caption : TypographyToken::Tab, scale);
+    const float fontSize = spec.sizePx;
     const float iconSize = TabIconSize();
     const float padLeft = modeTabs
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
@@ -704,7 +705,7 @@ float MeasureDockTabWidth(
     const float textWidth = context.GetTextWidth(
         tab.title,
         fontSize,
-        we::runtime::text::layout::FontWeight::Regular);
+        static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
     const float closeWidth = showClose ? closeGlyph + closeGap : 0.0f;
     float width = padLeft + leadingWidth + textWidth + closeWidth + padRight;
     if (!modeTabs) {
@@ -763,9 +764,8 @@ void PaintDockTab(
     bool flatCorners)
 {
     const float scale = UiScale();
-    const float fontSize = flatCorners
-        ? we::runtime::kindui::ResolveMetric(MetricToken::TextSizeCaption) * scale
-        : we::runtime::kindui::ResolveMetric(MetricToken::TextSizeTabs) * scale;
+    const auto spec = TypographySystem::GetSpec(flatCorners ? TypographyToken::Caption : TypographyToken::Tab, scale);
+    const float fontSize = spec.sizePx;
     const float iconSize = TabIconSize();
     const float padLeft = flatCorners
         ? we::runtime::kindui::ResolveMetric(MetricToken::Space2) * scale
@@ -828,13 +828,13 @@ void PaintDockTab(
         itemX += effectiveIconSize + iconGap;
     }
 
-    const float titleY = std::floor(::we::runtime::kindui::LayoutMetrics::AlignTextTopAtCenterY(centerY, fontSize));
+    const float titleY = TypographySystem::AlignTextTopAtCenterY(centerY, fontSize);
     context.DrawText(
         tab.title,
         Point{ itemX, titleY },
         ResolveTabTextColor(isActive, hoverAnim),
         fontSize,
-        we::runtime::text::layout::FontWeight::Regular);
+        static_cast<we::runtime::text::layout::FontWeight>(spec.weight));
 
     if (showClose && !layout.closeRect.IsEmpty()) {
         PaintHeaderIconButton(context, layout.closeRect, WindIcons::Xv212, closeHovered, false, true);
@@ -1075,7 +1075,7 @@ void PaintDockTabStrip(
             we::runtime::kindui::ControlChrome::PaintTooltipSurface(context, tooltipRect);
             context.DrawText(
                 tooltip,
-                Point{ tooltipRect.x + padH, tooltipRect.y + (tooltipRect.height - textSize) * 0.5f },
+                Point{ tooltipRect.x + padH, we::runtime::kindui::LayoutMetrics::AlignTextTopY(tooltipRect, textSize) },
                 we::runtime::kindui::ResolveColor(ColorToken::TextPrimary),
                 textSize,
                 we::runtime::text::layout::FontWeight::Regular,

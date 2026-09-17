@@ -174,8 +174,8 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     }
     if (!initialized) return;
     m_WatchTimer += deltaTime;
-    constexpr float kMinWatchInterval = 5.0f;
-    const float interval = (std::max)(m_WatchInterval, kMinWatchInterval);
+    constexpr float kMinWatchInterval = 0.5f;
+    const float interval = (std::min)(m_WatchInterval, kMinWatchInterval);
     if (m_WatchTimer < interval) return;
     m_WatchTimer = 0.0f;
 
@@ -185,17 +185,13 @@ void ContentAssetRegistry::Tick(float deltaTime) {
     static uint64_t lastScanSignature = 0;
     uint64_t signature = 0;
     std::error_code ec;
-    for (const auto& entry : fs::directory_iterator(contentRoot, ec)) {
+    for (const auto& entry : fs::recursive_directory_iterator(contentRoot, fs::directory_options::skip_permission_denied, ec)) {
+        if (ec) break;
+        const std::string name = entry.path().filename().string();
+        if (!name.empty() && name[0] == '.') continue;
         signature += static_cast<uint64_t>(entry.file_size(ec));
         auto ftime = fs::last_write_time(entry, ec);
         signature ^= static_cast<uint64_t>(ftime.time_since_epoch().count());
-        if (entry.is_directory(ec)) {
-            for (const auto& child : fs::directory_iterator(entry.path(), ec)) {
-                signature += static_cast<uint64_t>(child.file_size(ec));
-                auto ctime = fs::last_write_time(child, ec);
-                signature ^= static_cast<uint64_t>(ctime.time_since_epoch().count());
-            }
-        }
     }
 
     if (lastScanSignature == 0) {

@@ -29,8 +29,8 @@ namespace {
 
     class AxisInputWidget : public TextBox {
     public:
-        AxisInputWidget(Color accentColor, const std::string& initialVal, std::function<void(const std::string&)> onCommit)
-            : TextBox(initialVal, std::move(onCommit)), m_AccentColor(accentColor)
+        AxisInputWidget(int axisIndex, const std::string& initialVal, std::function<void(const std::string&)> onCommit)
+            : TextBox(initialVal, std::move(onCommit)), m_AxisIndex(axisIndex)
         {
             SetMinWidth(30.0f);
             SetFlexGrow(1.0f);
@@ -38,7 +38,7 @@ namespace {
         }
 
         Size Measure(const Size& availableSize) override {
-            const float h = ResolveMetric(MetricToken::SearchBoxHeight);
+            const float h = LayoutMetrics::PropertyControlHeight();
             m_DesiredSize = Size{ availableSize.width, h };
             return m_DesiredSize;
         }
@@ -47,20 +47,14 @@ namespace {
             if (!IsVisible()) return;
             TextBox::Paint(context);
 
-            const float scale = DPIContext::GetScale();
-            const float inset = 3.0f * scale;
-            const float accentW = 3.0f * scale;
-            const Rect accent{
-                m_Geometry.x + inset,
-                m_Geometry.y + inset,
-                accentW,
-                std::max(0.0f, m_Geometry.height - inset * 2.0f)
-            };
-            context.DrawRoundedRect(accent, m_AccentColor, 1.5f);
+            ControlChrome::InteractionState state;
+            state.hoverAnim = IsHovered() ? 1.0f : 0.0f;
+            state.focused = IsFocused();
+            ControlChrome::PaintAxisIndicator(context, m_Geometry, m_AxisIndex, state);
         }
 
     private:
-        Color m_AccentColor;
+        int m_AxisIndex = 0;
     };
 
 } // namespace
@@ -120,20 +114,15 @@ void AddFormVector3Field(
     struct VecState { float x; float y; float z; };
     auto state = std::make_shared<VecState>(VecState{ x, y, z });
 
-    // Inspector-style colored axis accents: Red for X, Green for Y, Blue for Z
-    const Color colorX{ 0.88f, 0.28f, 0.28f, 1.0f };
-    const Color colorY{ 0.28f, 0.78f, 0.28f, 1.0f };
-    const Color colorZ{ 0.28f, 0.48f, 0.88f, 1.0f };
-
-    auto fieldX = std::make_shared<AxisInputWidget>(colorX, FormFormatFloat(x), [state, onCommit](const std::string& v) {
+    auto fieldX = std::make_shared<AxisInputWidget>(0, FormFormatFloat(x), [state, onCommit](const std::string& v) {
         state->x = FormParseFloat(v, state->x);
         if (onCommit) onCommit(state->x, state->y, state->z);
     });
-    auto fieldY = std::make_shared<AxisInputWidget>(colorY, FormFormatFloat(y), [state, onCommit](const std::string& v) {
+    auto fieldY = std::make_shared<AxisInputWidget>(1, FormFormatFloat(y), [state, onCommit](const std::string& v) {
         state->y = FormParseFloat(v, state->y);
         if (onCommit) onCommit(state->x, state->y, state->z);
     });
-    auto fieldZ = std::make_shared<AxisInputWidget>(colorZ, FormFormatFloat(z), [state, onCommit](const std::string& v) {
+    auto fieldZ = std::make_shared<AxisInputWidget>(2, FormFormatFloat(z), [state, onCommit](const std::string& v) {
         state->z = FormParseFloat(v, state->z);
         if (onCommit) onCommit(state->x, state->y, state->z);
     });

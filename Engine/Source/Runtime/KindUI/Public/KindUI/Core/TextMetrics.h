@@ -33,8 +33,10 @@ struct FontMetricsSpec {
 /// Shared text measurement and truncation helpers. All widgets use these instead of ad-hoc heuristics.
 struct KINDUI_API TextMetrics {
     using MeasureFn = std::function<float(std::string_view text, float fontSize, bool bold)>;
+    using FontMetricsFn = std::function<FontMetricsSpec(float fontSize)>;
 
     static void SetMeasureProvider(MeasureFn provider);
+    static void SetFontMetricsProvider(FontMetricsFn provider);
     static void ClearCache();
     [[nodiscard]] static size_t CacheEntryCount();
     [[nodiscard]] static uint64_t EstimateCacheBytes();

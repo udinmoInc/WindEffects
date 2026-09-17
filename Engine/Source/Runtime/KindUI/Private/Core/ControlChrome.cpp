@@ -646,15 +646,19 @@ void PaintListRow(
     ColorToken underlayToken) {
     const ResolvedStyle base = Role(StyleRole::TableRow);
     const Color underlay = ColorSpace::OpaqueSurface(ResolveColor(underlayToken));
-    const Color bg = MixInteractiveSurface(
-        base.background,
-        state.hoverAnim,
-        state.pressAnim,
-        state.selected,
-        state.disabled,
-        underlay);
+
+    const Color hoverColor = ResolveColor(ColorToken::HoverBackground);
+    const Color targetBg = state.selected ? ResolveColor(ColorToken::SelectedBackground) : hoverColor;
+    Color bg = Color::Transparent();
+    if (state.selected) {
+        bg = targetBg;
+    } else if (state.hoverAnim > 0.001f) {
+        bg = Color::Pick(underlay, targetBg, std::clamp(state.hoverAnim, 0.0f, 1.0f));
+    }
+
+    const float radius = base.cornerRadius > 0.0f ? base.cornerRadius : 3.0f;
     if (bg.a > 0.001f) {
-        context.DrawRect(rect, bg, base.cornerRadius);
+        context.DrawRoundedRect(rect, bg, radius);
     }
 
     const ResolvedControlBorder border = ResolveControlBorder(
@@ -662,7 +666,7 @@ void PaintListRow(
         state.selected ? ControlBorderMode::Subtle : ControlBorderMode::None,
         base.border);
     if (border.color.a > 0.01f && border.width > 0.0f) {
-        context.DrawRoundedRectOutline(rect, border.color, border.width, base.cornerRadius);
+        context.DrawRoundedRectOutline(rect, border.color, border.width, radius);
     }
 }
 
@@ -692,7 +696,7 @@ void PaintCenteredLabel(
         text,
         Point{
             rect.x + (rect.width - textW) * 0.5f,
-            rect.y + (rect.height - fontSize) * 0.5f
+            LayoutMetrics::AlignTextTopY(rect, fontSize)
         },
         color,
         fontSize,
@@ -767,23 +771,63 @@ void PaintCheckbox(
     bool checked,
     const InteractionState& state) {
     const ResolvedStyle style = Role(StyleRole::Checkbox);
+    const float checkSize = (std::min)(box.width, box.height);
+    const float centerY = box.y + box.height * 0.5f;
+    const Rect drawBox{
+        box.x,
+        centerY - checkSize * 0.5f,
+        checkSize,
+        checkSize
+    };
+
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float radius = (style.cornerRadius > 0.0f) ? style.cornerRadius : (3.0f * scale);
+
     Color bg = MixInteractiveSurface(
         style.background,
         state.hoverAnim,
         0.0f,
         false,
         state.disabled);
+    context.DrawRoundedRect(drawBox, bg, radius);
+
+    const Color borderCol = (state.hoverAnim > 0.01f)
+        ? ResolveColor(ColorToken::BorderFocus)
+        : ResolveColor(ColorToken::InputOutline);
+    context.DrawRoundedRectOutline(drawBox, borderCol, 1.0f, radius);
+
     if (checked) {
-        bg = ResolveColor(ColorToken::AccentPrimary);
+        IconPainter::Draw(
+            context,
+            WindIcons::Check16,
+            drawBox,
+            ResolveColor(ColorToken::AccentPrimary));
     }
-    context.DrawRoundedRect(box, bg, style.cornerRadius);
-    if (checked) {
-        const float inset = std::max(2.0f, box.width * 0.22f);
-        context.DrawRoundedRect(
-            Rect{ box.x + inset, box.y + inset, box.width - inset * 2.0f, box.height - inset * 2.0f },
-            ResolveColor(ColorToken::TextPrimary),
-            std::max(1.0f, style.cornerRadius * 0.5f));
+}
+
+void PaintAxisIndicator(
+    PaintContext& context,
+    const Rect& fieldRect,
+    int axisIndex,
+    const InteractionState& state) {
+    (void)state;
+    const float scale = (std::max)(1.0f, DPIContext::GetScale());
+    const float inset = 2.0f * scale;
+    const float accentW = 2.0f * scale;
+    const Rect accent{
+        fieldRect.x + inset,
+        fieldRect.y + inset,
+        accentW,
+        (std::max)(0.0f, fieldRect.height - inset * 2.0f)
+    };
+    Color color;
+    switch (axisIndex) {
+        case 0: color = ResolveColor(ColorToken::AxisX); break;
+        case 1: color = ResolveColor(ColorToken::AxisY); break;
+        case 2: color = ResolveColor(ColorToken::AxisZ); break;
+        default: color = ResolveColor(ColorToken::TextSecondary); break;
     }
+    context.DrawRoundedRect(accent, color, 1.0f);
 }
 
 void PaintPanelTab(
@@ -817,7 +861,7 @@ void PaintPanelTab(
         label,
         Point{
             bounds.x + ResolveMetric(MetricToken::Space3),
-            bounds.y + (bounds.height - fontSize) * 0.5f
+            LayoutMetrics::AlignTextTopY(bounds, fontSize)
         },
         textColor,
         fontSize,
@@ -846,4 +890,5 @@ void PaintVerticalSeparator(
 
 }
 }
+// Toolchain optimization touch
 

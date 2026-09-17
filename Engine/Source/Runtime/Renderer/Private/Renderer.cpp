@@ -120,12 +120,18 @@ void Renderer::Init(we::platform::WindowId window) {
             "ViewportGridRenderer init failed; viewport grid disabled.");
     }
 
+    m_Scalability.Initialize();
+    m_Scalability.SetRHIBackend(m_RHIDevice->GetBackend());
+    m_Scalability.SetRHICapabilities(m_RHIDevice->GetCapabilities());
+    m_Scalability.PublishFrameSettings();
+
     m_Initialized = true;
     WE_LOG_INFO(we::LogCategory::Renderer.data(),
         std::string("Renderer initialized via RHI backend: ") +
         we::rhi::ToString(m_RHIDevice->GetBackend()) +
         " vsync=" + (deviceDesc.vsync ? "on" : "off") +
-        " framesInFlight=" + std::to_string(framesInFlight));
+        " framesInFlight=" + std::to_string(framesInFlight) +
+        " profile=" + m_Scalability.GetPublishedSettings().profileName);
 }
 
 void Renderer::Shutdown() {
@@ -133,6 +139,7 @@ void Renderer::Shutdown() {
         return;
     }
     DestroyViewportTargets();
+    m_Scalability.Shutdown();
     if (m_ViewportGrid) {
         m_ViewportGrid->Shutdown();
         m_ViewportGrid.reset();
@@ -156,6 +163,19 @@ void Renderer::Shutdown() {
 
 bool Renderer::IsGpuReady() const {
     return m_Initialized && m_RHIDevice && m_RHIDevice->IsValid();
+}
+
+ScalabilityUpdateFlags Renderer::SetRenderingProfile(RenderingProfileId id) {
+    const ScalabilityUpdateFlags flags = m_Scalability.SetProfile(id);
+    // Outside an active frame, publish immediately so UI/diagnostics stay coherent.
+    if (!m_FrameActive) {
+        m_Scalability.PublishFrameSettings();
+    }
+    if (HasFlag(flags, ScalabilityUpdateFlags::RestartRequired)) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "Scalability change requires restart for full effect (e.g. MSAA).");
+    }
+    return flags;
 }
 
 void Renderer::ResetPresentPathAudit() {
@@ -259,6 +279,8 @@ bool Renderer::BeginFrame() {
     WE_VALIDATE_RENDER(m_Initialized, "Renderer::BeginFrame", "Renderer not initialized.");
     WE_VALIDATE_RENDER(!m_FrameActive, "Renderer::BeginFrame", "Frame already active.");
 
+    m_Scalability.PublishFrameSettings();
+
     m_FrameCmd = m_RHIDevice->BeginFrame();
     if (!m_FrameCmd) {
         return false;
@@ -290,45 +312,13 @@ void Renderer::RenderScene() {
     const we::rhi::Extent2D swapExtent = swap ? swap->GetExtent() : we::rhi::Extent2D{1, 1};
     const we::rhi::RHITextureHandle swapImage = swap ? swap->GetCurrentImage() : we::rhi::RHITextureHandle::Invalid;
     const we::rhi::Extent2D viewportExtent{m_OwnedViewportWidth, m_OwnedViewportHeight};
+    const ResolvedRenderingSettings& settings = m_Scalability.GetPublishedSettings();
 
     m_RenderGraph->ClearPasses();
-    m_RenderGraph->SetScheduleMode(RGScheduleMode::AsyncPlanned);
-
-    // Placeholder targets for named stub systems (neverRealize — dump/deps only).
-    TransientTextureDesc stubTex{};
-    stubTex.extent = {std::max(1u, viewportExtent.width), std::max(1u, viewportExtent.height), 1};
-    stubTex.neverRealize = true;
-
-    stubTex.debugName = "RG.DepthPrepass";
-    stubTex.format = we::rhi::Format::D32_SFLOAT;
-    stubTex.usage = we::rhi::TextureUsage::DepthStencil;
-    const uint32_t depthId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.ShadowMap";
-    const uint32_t shadowId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.AtmosphereLUT";
-    stubTex.format = we::rhi::Format::R16G16B16A16_SFLOAT;
-    stubTex.usage = we::rhi::TextureUsage::Storage | we::rhi::TextureUsage::Sampled;
-    const uint32_t atmosphereId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.GBuffer";
-    stubTex.usage = we::rhi::TextureUsage::ColorAttachment | we::rhi::TextureUsage::Sampled;
-    const uint32_t gbufferId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.Clouds";
-    stubTex.usage = we::rhi::TextureUsage::Storage | we::rhi::TextureUsage::Sampled;
-    const uint32_t cloudsId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.Water";
-    stubTex.usage = we::rhi::TextureUsage::ColorAttachment | we::rhi::TextureUsage::Sampled;
-    const uint32_t waterId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.Decals";
-    const uint32_t decalsId = m_RenderGraph->CreateTexture(stubTex);
-
-    stubTex.debugName = "RG.Transparency";
-    const uint32_t transparencyId = m_RenderGraph->CreateTexture(stubTex);
+    m_RenderGraph->SetScheduleMode(
+        settings.capabilities.asyncComputeActive
+            ? RGScheduleMode::AsyncPlanned
+            : RGScheduleMode::SingleQueue);
 
     m_RenderGraph->AddPass(std::make_unique<EnvUploadPass>(
         m_ViewportSky.get(), &m_LastCamera, &m_LastEnvironment));
@@ -336,12 +326,6 @@ void Renderer::RenderScene() {
         swapImage,
         m_SwapchainClearColor,
         swapExtent));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "DepthPrepass", depthId, we::rhi::ResourceState::DepthWrite));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "ShadowPass", shadowId, we::rhi::ResourceState::DepthWrite));
-    m_RenderGraph->AddPass(std::make_unique<StubComputePass>(
-        "AtmospherePass", atmosphereId));
     m_RenderGraph->AddPass(std::make_unique<SkyPass>(
         m_ViewportSky.get(),
         m_ViewportColorTexture,
@@ -355,30 +339,20 @@ void Renderer::RenderScene() {
         m_ViewportDepthTexture,
         viewportExtent,
         &m_LastCamera));
-    m_RenderGraph->AddPass(std::make_unique<TerrainPass>(
-        m_TerrainDrawer,
-        m_ViewportColorTexture,
-        m_ViewportDepthTexture,
-        viewportExtent,
-        &m_LastCamera,
-        &m_LastEnvironment));
+    if (settings.terrain.enabled) {
+        m_RenderGraph->AddPass(std::make_unique<TerrainPass>(
+            m_TerrainDrawer,
+            m_ViewportColorTexture,
+            m_ViewportDepthTexture,
+            viewportExtent,
+            &m_LastCamera,
+            &m_LastEnvironment));
+    }
+    // Mesh extract path — no placeholder GBuffer/shadow resources until those systems exist.
     m_RenderGraph->AddPass(std::make_unique<PbrOpaquePass>(
-        gbufferId,
-        shadowId,
+        kInvalidGraphResourceId,
+        kInvalidGraphResourceId,
         m_ExtractedFrame));
-    m_RenderGraph->AddPass(std::make_unique<StubComputePass>(
-        "CloudsPass", cloudsId, atmosphereId));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "WaterPass", waterId, we::rhi::ResourceState::RenderTarget, depthId, we::rhi::ResourceState::DepthRead));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "DecalsPass", decalsId, we::rhi::ResourceState::RenderTarget, gbufferId,
-            we::rhi::ResourceState::ShaderResource));
-    m_RenderGraph->AddPass(std::make_unique<StubGraphicsPass>(
-        "TransparencyPass",
-        transparencyId,
-        we::rhi::ResourceState::RenderTarget,
-        depthId,
-        we::rhi::ResourceState::DepthRead));
     m_RenderGraph->AddPass(std::make_unique<TonemapPass>(m_ViewportColorTexture, swapImage));
     m_RenderGraph->AddPass(std::make_unique<UiOverlayPass>(swapImage, m_OverlayRecorder));
     m_RenderGraph->AddPass(std::make_unique<PresentPass>(swapImage));

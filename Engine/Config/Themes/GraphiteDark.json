@@ -128,7 +128,7 @@
     "Recessed": "#121212",
 
     "Input": "#101010",
-    "InputOutline": "#1E1E1E",
+    "InputOutline": "#262626",
     "InputInsetOuter": "#00000059",
     "InputInsetInner": "#00000038",
 
@@ -139,9 +139,9 @@
     "Hover2": "#282828",
 
     "BorderSeparator": "#0F0F0F",
-    "BorderSubtle": "#1C1C1C",
-    "BorderDefault": "#1E1E1E",
-    "BorderLight": "#242424",
+    "BorderSubtle": "#222222",
+    "BorderDefault": "#262626",
+    "BorderLight": "#303030",
     "BorderFocus": "#1674C9",
     "BorderError": "#963B3B",
 
@@ -160,21 +160,21 @@
 
     "Secondary": "#171717",
 
-    "Select": "#1674C9",
-    "SelectInactive": "#344755",
-    "SelectParent": "#29333C",
-    "SelectHover": "#252525",
+    "Select": "#2C2C2C",
+    "SelectInactive": "#262626",
+    "SelectParent": "#222222",
+    "SelectHover": "#2E2E2E",
 
-    "White": "#D2D2D2",
+    "White": "#B8B8B8",
     "White25": "#FFFFFF33",
 
-    "PrimaryText": "#C2C2C2",
+    "PrimaryText": "#A8A8A8",
     "SecondaryText": "#858585",
 
-    "Foreground": "#C2C2C2",
-    "ForegroundHover": "#D4D4D4",
+    "Foreground": "#A8A8A8",
+    "ForegroundHover": "#C4C4C4",
     "ForegroundInverted": "#0A0A0A",
-    "ForegroundHeader": "#C7C7C7",
+    "ForegroundHeader": "#B0B0B0",
     "Notifications": "#858585",
 
     "IconHoverTint": "#D8D8D8",
@@ -196,7 +196,7 @@
     "AccentBrown": "#704A35",
     "AccentBlack": "#111111",
     "AccentGray": "#3A3A3A",
-    "AccentWhite": "#D0D0D0",
+    "AccentWhite": "#B8B8B8",
     "AccentFolder": "#80633D",
 
     "TooltipBg": "#222222F5",

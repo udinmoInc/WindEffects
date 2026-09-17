@@ -274,6 +274,13 @@ BitmapRGBA ThumbnailRenderer::LoadImageFile(const std::string& path, uint32_t ta
 
     int w = 0, h = 0, channels = 0;
     stbi_uc* data = stbi_load(resolved.c_str(), &w, &h, &channels, 4);
+    if (!data) {
+        std::error_code ec;
+        const auto fsPath = std::filesystem::path(path);
+        if (std::filesystem::exists(fsPath, ec)) {
+            data = stbi_load(fsPath.string().c_str(), &w, &h, &channels, 4);
+        }
+    }
     if (!data) return RenderGenericIcon(AssetType::Texture);
 
     BitmapRGBA src;
@@ -421,29 +428,11 @@ BitmapRGBA ThumbnailRenderer::RenderScriptIcon(const AssetRecord&) {
     return bmp;
 }
 
-BitmapRGBA ThumbnailRenderer::RenderDocumentPreview(const AssetRecord& asset) {
-    const std::string ext = asset.extension;
-    std::string lower = ext;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-    if (lower == ".md" || lower == ".markdown" || lower == "md") {
-        const std::string mdPath = ResolveFirstExisting({
-            std::filesystem::path(we::core::layout::kIcons) / "WindIcons" / "thumbnail-md_512.png",
-            std::filesystem::path(we::core::layout::kIcons) / "thumbnail-md_512.png",
-            std::filesystem::path("Icons/WindIcons/thumbnail-md_512.png"),
-            std::filesystem::path("Assets/Icons/WindIcons/thumbnail-md_512.png"),
-            std::filesystem::path("Engine/Assets/Icons/WindIcons/thumbnail-md_512.png")
-        });
-        if (!mdPath.empty()) {
-            return LoadImageFile(mdPath, kThumbnailSize);
-        }
-    }
-
+BitmapRGBA ThumbnailRenderer::RenderDocumentPreview(const AssetRecord&) {
     auto bmp = CreateEmpty(kThumbnailSize);
-    FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 32, 34, 40, 255);
-    for (int i = 0; i < 6; ++i) {
-        FillRect(bmp, 24, 24 + i * 14, 80, 4, 180, 190, 205, 255);
+    FillRect(bmp, 0, 0, static_cast<int>(kThumbnailSize), static_cast<int>(kThumbnailSize), 30, 32, 38, 255);
+    for (int i = 0; i < 5; ++i) {
+        FillRect(bmp, 24, 28 + i * 16, 80, 6, 160, 175, 195, 255);
     }
     return bmp;
 }
@@ -498,6 +487,7 @@ BitmapRGBA ThumbnailRenderer::Render(const AssetRecord& asset) {
         case AssetType::Script:
             return RenderScriptIcon(asset);
         case AssetType::Document:
+        case AssetType::Markdown:
             return RenderDocumentPreview(asset);
         case AssetType::Video:
             return RenderGenericIcon(AssetType::Video);

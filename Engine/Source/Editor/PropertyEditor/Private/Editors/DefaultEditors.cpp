@@ -589,16 +589,8 @@ public:
 
                     // Axis indicator rail (X=Red, Y=Green, Z=Blue) is drawn INSIDE all Transform properties (Position, Rotation, Scale, Location)
                     if (isTransform) {
-                        const float inset = 2.0f * scale;
-                        const float accentW = 2.0f * scale;
-                        const Rect accent{
-                            field.x + inset,
-                            field.y + inset,
-                            accentW,
-                            std::max(0.0f, field.height - inset * 2.0f)
-                        };
-                        context.DrawRoundedRect(accent, AxisTint(index), 1.0f);
-                        valueX = accent.x + accent.width + 2.0f * scale;
+                        Chrome::PaintAxisIndicator(context, field, index, state);
+                        valueX = field.x + 6.0f * scale;
                     }
 
                     char value[32]{};
@@ -1095,8 +1087,7 @@ public:
 
                         const float fontSize = we::runtime::kindui::ResolveMetric(MetricToken::TextSizeProperty);
                         const float cancelW = context.GetTextWidth("Cancel", fontSize);
-                        const float cancelY = m_CancelButtonRect.y + (m_CancelButtonRect.height - fontSize) * 0.5f -
-                            1.0f;
+                        const float cancelY = LayoutMetrics::AlignTextTopY(m_CancelButtonRect, fontSize);
                         const float cancelX = m_CancelButtonRect.x + (m_CancelButtonRect.width - cancelW) * 0.5f;
                         context.DrawText("Cancel", Point{ cancelX, cancelY },
                             we::runtime::kindui::ResolveColor(ColorToken::TextPrimary), fontSize);
@@ -1111,7 +1102,7 @@ public:
                             okState);
 
                         const float okW = context.GetTextWidth("OK", fontSize, true);
-                        const float okY = m_OKButtonRect.y + (m_OKButtonRect.height - fontSize) * 0.5f - 1.0f;
+                        const float okY = LayoutMetrics::AlignTextTopY(m_OKButtonRect, fontSize);
                         const float okX = m_OKButtonRect.x + (m_OKButtonRect.width - okW) * 0.5f;
                         context.DrawText("OK", Point{ okX, okY },
                             we::runtime::kindui::ResolveColor(ColorToken::TextPrimary), fontSize, true);

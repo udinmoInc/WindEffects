@@ -15,6 +15,8 @@
 #include "Renderer/Export.h"
 #include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/Graph/ScenePasses.h"
+#include "Renderer/Scalability/ScalabilityManager.h"
+#include "Renderer/Scalability/ScalabilityDiagnostics.h"
 #include "Renderer/ViewportInterfaces.h"
 #include "Platform/Types.h"
 #include "RHI/IRHI.h"
@@ -97,6 +99,17 @@ public:
     [[nodiscard]] bool IsGpuReady() const;
     [[nodiscard]] bool HasGpuScene() const { return m_RHIDevice != nullptr && m_RHIDevice->IsValid(); }
 
+    [[nodiscard]] RenderingProfileId GetRenderingProfileId() const {
+        return m_Scalability.GetActiveProfileId();
+    }
+    [[nodiscard]] const ResolvedRenderingSettings& GetResolvedRenderingSettings() const {
+        return m_Scalability.GetPublishedSettings();
+    }
+    [[nodiscard]] ScalabilityDiagnosticsSnapshot CaptureScalabilityDiagnostics() const {
+        return m_Scalability.CaptureDiagnostics();
+    }
+    ScalabilityUpdateFlags SetRenderingProfile(RenderingProfileId id);
+
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
     uint32_t GetSwapchainWidth() const;
@@ -115,6 +128,7 @@ private:
     std::unique_ptr<RenderGraph> m_RenderGraph;
     std::unique_ptr<ViewportSkyRenderer> m_ViewportSky;
     std::unique_ptr<ViewportGridRenderer> m_ViewportGrid;
+    ScalabilityManager m_Scalability;
     we::rhi::IRHICommandList* m_FrameCmd = nullptr;
 
     we::platform::WindowId m_Window = we::platform::WindowId::Invalid;

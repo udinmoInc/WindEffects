@@ -343,6 +343,14 @@ ProjectOperationResult ProjectService::OpenProject(const std::filesystem::path& 
 
     WeProjectDescriptor descriptor = summary->descriptor;
     descriptor.lastOpenedUtc = we::projects::ProjectLifecycle::NowUtc();
+    // Keep the descriptor in sync with the engine that last opened the project.
+    // Without this the stored engineVersion/engineRoot diverge from the installed
+    // engine after updates, causing the launcher to show "Incompatible" or a
+    // version-mismatch warning every time after close.
+    if (m_Engines.HasEngine()) {
+        descriptor.engineVersion = m_Engines.Current().engineVersion;
+        descriptor.engineRoot    = PathUtils::ToUtf8(m_Engines.Current().engineRoot);
+    }
     (void)WriteDescriptor(weprojPath, descriptor);
 
     m_Settings.TouchRecent(PathUtils::ToUtf8(weprojPath));

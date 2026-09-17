@@ -196,6 +196,33 @@ bool TextUIService::Initialize(OverlayRenderer* renderer) {
                  : we::runtime::text::layout::FontWeight::Regular);
     });
 
+    TextMetrics::SetFontMetricsProvider([this](const float fontSize) -> FontMetricsSpec {
+        FontMetricsSpec spec;
+        const float scale = (fontSize > 0.0f) ? fontSize : 13.0f;
+        const float dpiScale = (std::max)(1.0f, DPIContext::GetScale());
+        if (m_TextEngine && m_RegularFont != we::runtime::text::kInvalidFontHandle) {
+            we::runtime::text::layout::TextStyle style;
+            style.sizePx = scale;
+            we::runtime::text::layout::LayoutConstraints constraints{};
+            constraints.dpiScale = dpiScale;
+            const auto* layout = m_TextEngine->GetOrCreateLayout("H", style, constraints, m_RegularFont);
+            if (layout && !layout->lines.empty() && !layout->glyphs.empty()) {
+                spec.ascender = layout->lines[0].baselineY;
+                spec.descender = (std::max)(0.0f, layout->lines[0].height - layout->lines[0].baselineY);
+                spec.capHeight = layout->glyphs[0].height;
+                spec.xHeight = scale * dpiScale * 0.50f;
+                spec.lineHeight = layout->lines[0].height;
+                return spec;
+            }
+        }
+        spec.ascender = scale * dpiScale * 0.96f;
+        spec.descender = scale * dpiScale * 0.24f;
+        spec.capHeight = scale * dpiScale * 0.72f;
+        spec.xHeight = scale * dpiScale * 0.50f;
+        spec.lineHeight = spec.ascender + spec.descender;
+        return spec;
+    });
+
     if (m_DebugEnabled) {
         DumpAtlasPagesToDisk();
         WE_LOG_WARN("TextUIService", "WE_TEXT_DEBUG enabled — atlas dumps + glyph bound overlays active");
@@ -261,6 +288,7 @@ void TextUIService::MaybeLogScaleDiagnostics(const we::runtime::text::layout::La
 
 void TextUIService::Shutdown() {
     TextMetrics::SetMeasureProvider({});
+    TextMetrics::SetFontMetricsProvider({});
     if (m_Renderer) {
         for (auto& [_, atlas] : m_FontAtlases) {
             if (atlas.descriptorSet != we::rhi::RHIDescriptorSetHandle::Invalid) {
@@ -750,6 +778,7 @@ bool TextUIService::GenerateTextGeometry(
     const float originX = SnapPx(cmd.rect.x);
     const float originY = SnapPx(cmd.rect.y);
     const uint64_t atlasGen = m_TextEngine->AtlasGeneration();
+
 
     m_LastDebugGlyphs.clear();
     if (m_DebugEnabled) {

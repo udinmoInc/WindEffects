@@ -1,4 +1,4 @@
-﻿// ==============================================================================
+// ==============================================================================
 // WindEffects — IgniteBT — DoctorCommand
 // Source file for the IgniteBT module.
 // Copyright (c) 2026 WindEffects. All rights reserved.
@@ -16,6 +16,8 @@ using IgniteBT.Core.Threading;
 using IgniteBT.Daemon;
 using IgniteBT.Workspace.SDK;
 using IgniteBT.Workspace.ThirdParty;
+using IgniteBT.Build.Analysis;
+using IgniteBT.Build.Dependencies;
 
 namespace IgniteBT.CLI;
 
@@ -91,6 +93,24 @@ public static class DoctorCommand
             pool.Start();
             var stats = pool.GetStats();
             Log.Information("Workers: {Count}, global queue: {Q}", stats.WorkerCount, stats.GlobalQueueSize);
+        }
+
+        Log.Information("--- Build Performance Diagnostics ---");
+        Log.Information("Object Cache format version: {Ver}", BuildCache.CacheFormatVersion);
+        Log.Information("Object Cache: {Count} entries ({Size:F1} MB)", cacheStats.EntryCount, cacheStats.TotalSizeMB);
+        Log.Information("CAS Store: {Count} entries ({Size:F1} MB)", casStats.EntryCount, casStats.TotalSizeBytes / (1024.0 * 1024.0));
+        Log.Information("Cache registry health: {Valid}/{Total} valid", cacheHealth.ValidEntries, cacheHealth.TotalEntries);
+
+        using (var db = new BuildDb(layout.DatabaseDirectory))
+        {
+            var inc = IncludeGraphAnalyzer.Analyze(db);
+            var iwyu = IwyuAnalyzer.Analyze(db);
+            var pch = PchEffectivenessAnalyzer.Analyze(db);
+            var tpl = TemplateComplexityAnalyzer.Analyze(db);
+            Log.Information("Include Graph: {Headers} headers tracked, {TUs} TUs analyzed", inc.TotalHeadersTracked, inc.TotalTUsTracked);
+            Log.Information("IWYU Diagnostics: {Files} files audited, {High} high-impact finding(s)", iwyu.TotalFilesAudited, iwyu.TotalHighImpactIssues);
+            Log.Information("PCH Audit: {HitRatio:F1}% average hit ratio, {Underpowered} underpowered module(s)", pch.AveragePchHitRatioPercent, pch.UnderpoweredModulesCount);
+            Log.Information("Template Complexity: {Analyzed} headers analyzed, {Hotspots} high-complexity hotspot(s)", tpl.TotalHeadersAnalyzed, tpl.HighComplexityHotspotsCount);
         }
 
         Log.Information("--- System ---");

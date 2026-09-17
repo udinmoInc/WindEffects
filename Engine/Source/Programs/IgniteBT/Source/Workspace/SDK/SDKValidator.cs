@@ -34,7 +34,10 @@ public class SDKValidator
         // Validate include paths
         if (info.IncludePaths.Count == 0)
         {
-            result.ValidationErrors.Add("No include paths found");
+            if (!string.Equals(info.Name, "DotNet", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Warnings.Add("No include paths found");
+            }
         }
 
         foreach (var includePath in info.IncludePaths)

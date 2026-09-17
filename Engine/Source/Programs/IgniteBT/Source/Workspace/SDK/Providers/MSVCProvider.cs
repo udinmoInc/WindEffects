@@ -8,6 +8,7 @@
 // ==============================================================================
 using Serilog;
 using System.Runtime.InteropServices;
+using IgniteBT.Build.Toolchain;
 
 namespace IgniteBT.Workspace.SDK.Providers;
 
@@ -37,6 +38,37 @@ public class MSVCProvider : BaseSDKProvider
         "link.exe",
         "lib.exe"
     };
+
+    public override async Task<SDKResult<SDKInfo>> DetectAsync()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return SDKResult<SDKInfo>.Fail("MSVC is only supported on Windows");
+        }
+
+        var detected = ToolchainDetector.DetectCompiler();
+        if (detected.Type != CompilerType.MSVC || string.IsNullOrEmpty(detected.Path) || !File.Exists(detected.Path))
+        {
+            return SDKResult<SDKInfo>.Fail("MSVC compiler not found");
+        }
+
+        var rootPath = Path.GetDirectoryName(detected.Path) ?? detected.Path;
+        var info = new SDKInfo
+        {
+            Name = SDKName,
+            RootPath = rootPath,
+            Version = detected.Version,
+            DiscoverySource = "ToolchainDetector",
+            Platform = TargetPlatform.Windows,
+            Architecture = TargetArchitecture.x64,
+            IncludePaths = detected.IncludePath.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            LibraryPaths = detected.LibraryPath.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            ToolPaths = new List<string> { detected.Path },
+            IsValid = true
+        };
+
+        return await Task.FromResult(SDKResult<SDKInfo>.Ok(info));
+    }
     
     public override async Task<SDKResult<List<string>>> LocateHeadersAsync(string path)
     {
