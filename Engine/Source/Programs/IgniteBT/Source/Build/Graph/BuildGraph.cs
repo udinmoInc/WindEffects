@@ -74,7 +74,7 @@ public class DependencyGraph
     /// </summary>
     public void BuildFromModules(List<DiscoveredModule> modules, FileHashCache? fileHashes = null, DirectoryCache? directoryCache = null)
     {
-        Log.Information("Building dependency graph from {Count} modules", modules.Count);
+        Log.Debug("Building dependency graph from {Count} modules", modules.Count);
         _nodes.Clear();
 
         foreach (var module in modules)
@@ -100,7 +100,7 @@ public class DependencyGraph
             }
         }
 
-        Log.Information("Built graph with {Count} nodes", _nodes.Count);
+        Log.Debug("Built graph with {Count} nodes", _nodes.Count);
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public class DependencyGraph
     /// </summary>
     public List<BuildNode> GetBuildOrder()
     {
-        Log.Information("Computing build order");
+        Log.Debug("Computing build order");
         
         // Reset visited flags
         foreach (var node in _nodes.Values)
@@ -158,7 +158,7 @@ public class DependencyGraph
         }
 
         // buildOrder now has dependencies first (no need to reverse)
-        Log.Information("Build order: {Order}", string.Join(" -> ", buildOrder.Select(n => n.Name)));
+        Log.Debug("Build order: {Order}", string.Join(" -> ", buildOrder.Select(n => n.Name)));
         return buildOrder;
     }
 
@@ -218,7 +218,7 @@ public class DependencyGraph
     /// </summary>
     public bool Validate()
     {
-        Log.Information("Validating build graph");
+        Log.Debug("Validating build graph");
 
         // Reset visited flags
         foreach (var node in _nodes.Values)
@@ -238,7 +238,7 @@ public class DependencyGraph
             }
         }
 
-        Log.Information("Build graph validation passed");
+        Log.Debug("Build graph validation passed");
         return true;
     }
 

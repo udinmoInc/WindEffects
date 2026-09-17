@@ -396,7 +396,7 @@ public sealed class BuildOrchestrator : IDisposable
                 _buildDb.IncrementCacheStat("object", false);
 
                 totalSw.Stop();
-                Log.Information("[BUILD] {FileName}\n  Cache lookup:     {Lookup:F1} ms\n  Dependency check: {Dep:F1} ms\n  Key generation:   {Key:F1} ms\n  Scheduler wait:   0.0 ms\n  MSVC compile:     {Compile:F1} ms\n  Object write:     {Write:F1} ms\n  Cache store:      {Store:F1} ms\n  Total:            {Total:F1} ms",
+                Log.Debug("[BUILD] {FileName}\n  Cache lookup:     {Lookup:F1} ms\n  Dependency check: {Dep:F1} ms\n  Key generation:   {Key:F1} ms\n  Scheduler wait:   0.0 ms\n  MSVC compile:     {Compile:F1} ms\n  Object write:     {Write:F1} ms\n  Cache store:      {Store:F1} ms\n  Total:            {Total:F1} ms",
                     Path.GetFileName(primarySource), cacheLookupMs, depCheckMs, keyGenMs, compileMs, objectWriteMs, cacheStoreMs, totalSw.Elapsed.TotalMilliseconds);
             }
         }
