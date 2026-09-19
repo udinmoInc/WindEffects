@@ -41,11 +41,6 @@ struct RENDERER_API SceneEnvironmentUniform {
     float atmosphereHeight = 60.0f;
     float multiScatterStrength = 1.0f;
     float eyeAltitude = 0.0f;
-    float cloudCoverage = 0.55f;
-    float cloudAltitude = 1250.0f;
-    float cloudExtinction = 0.35f;
-    float enableClouds = 1.0f;
-    we::math::Vec3 cloudColor{0.95f, 0.96f, 0.98f};
     float enableVolumetricFog = 0.0f;
     float exposureCompensation = 0.0f;
     float sunAngularRadius = 0.004675f;
@@ -57,49 +52,23 @@ struct RENDERER_API SceneEnvironmentUniform {
     float enableAutoExposure = 0.0f;
     int atmosphereDebugMode = 0;
     int pipelineBypassToneMapping = 0;
-    float cloudTemporalBlend = 0.0f;
-    int cloudHistoryValid = 0;
     float enableSunDisk = 1.0f;
     float pipelineFixedExposureMultiplier = 0.0f;
-
-    float cloudDensityMult = 1.0f;
-    float cloudThickness = 800.0f;
-    float cloudBottomAltitude = 900.0f;
-    float cloudTopAltitude = 1600.0f;
-    float cloudBoundsPad0 = 0.0f;
-    float cloudBoundsPad1 = 0.0f;
-    we::math::Vec3 cloudWindDir{1.0f, 0.0f, 0.25f};
-    float cloudWindSpeed = 18.0f;
-    float cloudNoiseScale = 1.0f;
-    float cloudDetailScale = 3.7f;
-    float cloudLightingIntensity = 1.0f;
-    float cloudSilverLining = 0.85f;
-    float cloudAmbient = 0.42f;
-    float cloudMultiScatter = 0.35f;
-    float cloudPhaseG = 0.6f;
-    float cloudPowder = 0.5f;
-    float cloudSeed = 17.3f;
-    float cloudAnimTime = 0.0f;
-    float cloudShadowStrength = 0.65f;
-    int cloudQualitySteps = 32;
-    float cloudShapeNoise = 0.8f;
-    float cloudErosionNoise = 0.28f;
 };
 
-constexpr std::size_t kSceneEnvironmentUniformSize = 328;
+constexpr std::size_t kSceneEnvironmentUniformSize = 196;
 static_assert(sizeof(SceneEnvironmentUniform) == kSceneEnvironmentUniformSize,
     "Environment UBO size drift — rebuild ALL Renderer/World translation units that include this header.");
-static_assert(offsetof(SceneEnvironmentUniform, enableClouds) == 156, "Environment UBO packing drift (enableClouds).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudDensityMult) == 232,
-    "Environment UBO packing drift (cloudDensityMult).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudWindDir) == 256,
-    "Environment UBO packing drift (cloudWindDir pad).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudQualitySteps) == 316,
-    "Environment UBO packing drift (cloudQualitySteps).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudShapeNoise) == 320,
-    "Environment UBO packing drift (cloudShapeNoise).");
-static_assert(offsetof(SceneEnvironmentUniform, cloudErosionNoise) == 324,
-    "Environment UBO packing drift (cloudErosionNoise).");
+static_assert(offsetof(SceneEnvironmentUniform, enableVolumetricFog) == 144,
+    "Environment UBO packing drift (enableVolumetricFog).");
+static_assert(offsetof(SceneEnvironmentUniform, exposureCompensation) == 148,
+    "Environment UBO packing drift (exposureCompensation).");
+static_assert(offsetof(SceneEnvironmentUniform, atmosphereDebugMode) == 180,
+    "Environment UBO packing drift (atmosphereDebugMode).");
+static_assert(offsetof(SceneEnvironmentUniform, enableSunDisk) == 188,
+    "Environment UBO packing drift (enableSunDisk).");
+static_assert(offsetof(SceneEnvironmentUniform, pipelineFixedExposureMultiplier) == 192,
+    "Environment UBO packing drift (pipelineFixedExposureMultiplier).");
 
 } // namespace we::runtime::renderer
 

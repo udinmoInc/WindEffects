@@ -36,6 +36,7 @@ enum class AssetKind : uint32_t {
     Script,
     Video,
     RawBinary,
+    Volume,
     Count
 };
 

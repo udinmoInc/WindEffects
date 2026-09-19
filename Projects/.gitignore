@@ -1,0 +1,15 @@
+# Ignore generated folders under any game project; keep sources & config tracked.
+Saved/
+Intermediate/
+Binaries/
+DerivedDataCache/
+ShaderCache/
+PipelineCache/
+AssetCache/
+ThumbnailCache/
+Logs/
+*.log
+*.user
+*.suo
+.vs/
+.idea/

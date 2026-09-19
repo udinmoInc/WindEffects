@@ -11,6 +11,8 @@
 #pragma warning(disable : 4251)
 
 #include "Camera/CameraUniform.h"
+#include "Lighting/CloudUniform.h"
+#include "Lighting/LightingSystem.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Export.h"
 #include "Renderer/Graph/RenderGraph.h"
@@ -36,6 +38,7 @@ constexpr uint32_t kMaxFramesInFlight = 2;
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;
+class ViewportCloudRenderer;
 
 class RENDERER_API Renderer : public ISceneViewportController {
 public:
@@ -110,6 +113,9 @@ public:
     }
     ScalabilityUpdateFlags SetRenderingProfile(RenderingProfileId id);
 
+    [[nodiscard]] LightingSystem* GetLightingSystem() { return m_Lighting.get(); }
+    [[nodiscard]] const LightingSystem* GetLightingSystem() const { return m_Lighting.get(); }
+
     uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
     uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
     uint32_t GetSwapchainWidth() const;
@@ -123,11 +129,16 @@ private:
     void DestroyViewportTargets();
     void ClearSwapchainChrome();
     void RenderViewportSky();
+    void EnsureCloudsReady();
 
     std::unique_ptr<we::rhi::IRHIDevice> m_RHIDevice;
     std::unique_ptr<RenderGraph> m_RenderGraph;
     std::unique_ptr<ViewportSkyRenderer> m_ViewportSky;
     std::unique_ptr<ViewportGridRenderer> m_ViewportGrid;
+    std::unique_ptr<ViewportCloudRenderer> m_ViewportClouds;
+    CloudUniform m_CloudUniform{};
+    bool m_CloudsInitAttempted = false;
+    std::unique_ptr<LightingSystem> m_Lighting;
     ScalabilityManager m_Scalability;
     we::rhi::IRHICommandList* m_FrameCmd = nullptr;
 

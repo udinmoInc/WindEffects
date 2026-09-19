@@ -577,25 +577,29 @@ void TreeView::OnMouseUp(const MouseEvent& event) {
     static uint64_t lastClickTime = 0;
 
     RenderItem* item = GetItemAtPosition(event.position);
-    if (!item) {
+    if (!item || !item->node) {
         return;
     }
+
+    // Copy before any expand/rebuild — ToggleExpand invalidates m_RenderList pointers.
+    const std::string clickedId = item->node->id;
+    const bool hasChildren = !item->node->children.empty();
 
     const auto& platform = we::platform::Platform::Get();
     const uint64_t now = platform.GetHighResolutionCounter();
     const uint64_t freq = platform.GetHighResolutionFrequency();
     const double elapsed = static_cast<double>(now - lastClickTime) / static_cast<double>(freq);
 
-    if (item->node->id == lastClickedId && elapsed < 0.3) {
-        if (!item->node->children.empty()) {
-            ToggleExpand(item->node->id);
+    if (clickedId == lastClickedId && elapsed < 0.3) {
+        if (hasChildren) {
+            ToggleExpand(clickedId);
         }
         if (m_OnItemDoubleClicked) {
-            m_OnItemDoubleClicked(item->node->id);
+            m_OnItemDoubleClicked(clickedId);
         }
     }
 
-    lastClickedId = item->node->id;
+    lastClickedId = clickedId;
     lastClickTime = now;
 }
 

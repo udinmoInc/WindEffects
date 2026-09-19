@@ -37,6 +37,10 @@ public class ContentBrowser : ModuleRules
         PrivateDependencies.Add("Renderer");
         PrivateDependencies.Add("Menus");
 
+        AddOptionalThirdParty("nlohmann_json");
+        DefineIf(HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=1");
+        DefineIf(!HasThirdParty("nlohmann_json"), "WE_HAS_NLOHMANN_JSON=0");
+
         Definitions.Add("CONTENTBROWSER_EXPORTS");
     }
 }

@@ -138,18 +138,6 @@ void ExtractRenderFrame(const World& world, ExtractedFrameData& out) {
             out.skyAtmospheres.push_back(item);
         });
 
-    const_cast<World&>(world).QueryAll<VolumetricCloudComponent>()
-        .Each([&](Entity e, VolumetricCloudComponent& clouds) {
-            ExtractedVolumetricCloud item{};
-            item.entityId = e.id;
-            item.enabled = clouds.enabled;
-            item.coverage = clouds.coverage;
-            item.density = clouds.density;
-            item.bottomAltitude = clouds.bottomAltitude;
-            item.topAltitude = clouds.topAltitude;
-            out.volumetricClouds.push_back(item);
-        });
-
     const_cast<World&>(world).QueryAll<TerrainComponent, TransformComponent>()
         .Each([&](Entity e, TerrainComponent& terrain, TransformComponent& t) {
             ExtractedTerrain item{};

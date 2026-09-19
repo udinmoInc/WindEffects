@@ -35,7 +35,6 @@ WindIconRef IconForEntity(const Entity& entity) {
         return WindIcons::Sun16;
     case EntityType::SkyAtmosphere:
         return WindIcons::Earth16;
-    case EntityType::VolumetricClouds:
     case EntityType::HeightFog:
         return WindIcons::Cloud16;
     case EntityType::Landscape:
@@ -67,7 +66,6 @@ EnvironmentActorKind ResolveActorKind(EnvironmentSystem& system, const Entity& e
     case EntityType::SkyLight: return EnvironmentActorKind::SkyLight;
     case EntityType::SkyAtmosphere: return EnvironmentActorKind::SkyAtmosphere;
     case EntityType::HeightFog: return EnvironmentActorKind::HeightFog;
-    case EntityType::VolumetricClouds: return EnvironmentActorKind::VolumetricClouds;
     default: return discovered;
     }
 }
@@ -111,11 +109,6 @@ void PopulateDetailsFromSceneEntity(IDetailsView& details, Entity* entity) {
         bindings.push_back({
             MakeTypeId("we::runtime::world::environment::EnvironmentHeightFog"),
             &system.GetHeightFog() });
-        break;
-    case EnvironmentActorKind::VolumetricClouds:
-        bindings.push_back({
-            MakeTypeId("we::runtime::world::environment::EnvironmentVolumetricClouds"),
-            &system.GetVolumetricClouds() });
         break;
     case EnvironmentActorKind::ExposureController:
         bindings.push_back({

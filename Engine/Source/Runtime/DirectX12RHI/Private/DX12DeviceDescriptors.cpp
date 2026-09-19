@@ -204,11 +204,24 @@ void DX12Device::UpdateDescriptorSets(std::span<const WriteDescriptorSet> writes
                                 tex->resource.Get(), nullptr, &uav, SrvCpu(slot));
                         } else {
                             D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
-                            srv.Format = view->format;
-                            srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-                            srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                            srv.Texture2D.MostDetailedMip = view->desc.baseMip;
-                            srv.Texture2D.MipLevels = view->desc.mipCount ? view->desc.mipCount : 1;
+                            // Depth resources cannot be sampled as D32 — remap to float SRV.
+                            const bool depthTex = IsDepthFormat(tex->desc.format);
+                            srv.Format = depthTex
+                                ? ToDepthSrvDxgiFormat(view->format)
+                                : view->format;
+                            const bool is3D = tex->desc.extent.depth > 1;
+                            if (is3D) {
+                                srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+                                srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                                srv.Texture3D.MostDetailedMip = view->desc.baseMip;
+                                srv.Texture3D.MipLevels = view->desc.mipCount ? view->desc.mipCount : 1;
+                                srv.Texture3D.ResourceMinLODClamp = 0.0f;
+                            } else {
+                                srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                                srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                                srv.Texture2D.MostDetailedMip = view->desc.baseMip;
+                                srv.Texture2D.MipLevels = view->desc.mipCount ? view->desc.mipCount : 1;
+                            }
                             m_Device->CreateShaderResourceView(
                                 tex->resource.Get(), &srv, SrvCpu(slot));
                         }

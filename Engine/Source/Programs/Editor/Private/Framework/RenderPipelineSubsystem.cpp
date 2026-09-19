@@ -15,9 +15,11 @@
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
 #include "Core/LoopExecutionTrace.h"
+#include "Core/Math/GlmInterop.h"
 #include "Debug/FoundationRenderDebug.h"
 #include "EditorCamera.h"
 #include "Environment/EnvironmentLighting.h"
+#include "Environment/EnvironmentManager.h"
 #include "Environment/EnvironmentSystem.h"
 #include <KindUI/EditorUI.h>
 #include "KindUI/Diagnostics/UiColorCompositionDiagnostic.h"
@@ -26,10 +28,12 @@
 #include "KindUI/Host/OverlayRenderer.h"
 #include "Platform/PlatformSDK.h"
 #include "Renderer/Renderer.h"
+
 #include "Scene/Scene.h"
 #include "Widgets/ViewportWidget.h"
 #include "WindEffects/Editor/UI/Core/EditorPerfStats.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <string>
 #include <thread>
@@ -130,6 +134,13 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
     cameraUBO.view = camera->GetViewMatrix();
     cameraUBO.proj = camera->GetProjectionMatrix();
     cameraUBO.position = camera->GetPosition();
+    {
+        // Populate invViewProj here so every consumer (sky/clouds) sees a valid inverse
+        // even if a code path copies the UBO before Renderer::UploadCameraUniform.
+        const glm::mat4 viewProj =
+            we::math::AsGlm(cameraUBO.proj) * we::math::AsGlm(cameraUBO.view);
+        cameraUBO.invViewProj = we::math::FromGlm(glm::inverse(viewProj));
+    }
     {
         static int s_SkyDebugMode = []() {
             if (const char* v = std::getenv("WE_SKY_DEBUG")) {
@@ -307,27 +318,32 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
         we::runtime::core::LoopExecutionTrace::Event(
             "RenderPipeline.SkipGpu", "windowMinimized=1 (message pump continues; no BeginFrame)");
         m_BeginFrameFailStreak = 0;
-    } else if (renderer && [&]() {
+    } else if (renderer) {
+        const bool beginOk = [&]() {
             we::runtime::core::LoopExecutionTrace::Enter("RenderPipeline.BeginFrame");
             const bool ok = renderer->BeginFrame();
             we::runtime::core::LoopExecutionTrace::Exit(
                 "RenderPipeline.BeginFrame", ok ? "ok" : "FAILED — likely vkWaitForFences timeout");
             return ok;
-        }()) {
+        }();
+        if (beginOk) {
         m_BeganFrame = true;
         m_BeginFrameFailStreak = 0;
         ++m_PresentedInWindow;
         renderer->UploadCameraUniform(cameraUBO);
         {
             auto& env = we::runtime::world::environment::EnvironmentSystem::Get();
+            // Atmosphere worldOrigin must be a FIXED scene origin — never the camera.
+            const we::math::Vec3 worldOrigin =
+                we::runtime::world::environment::EnvironmentManager{}.GetWorldOrigin(
+                    camera->GetPosition());
             const auto envUBO = we::runtime::world::environment::BuildSceneEnvironmentUniform(
                 env.GetSun(),
                 env.GetSkyLight(),
                 env.GetSkyAtmosphere(),
                 env.GetHeightFog(),
-                env.GetVolumetricClouds(),
                 env.GetExposureController(),
-                camera->GetPosition());
+                worldOrigin);
             renderer->UploadEnvironmentUniform(envUBO);
         }
 
@@ -401,9 +417,13 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
             we::runtime::kindui::UiColorPipelineDiagnostic::IsEnabled()
             && !we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
         const bool compositionColorTest = we::runtime::kindui::UiColorCompositionDiagnostic::IsEnabled();
+        // WE_CONTINUOUS_RENDER must keep running the full scene (clouds/sky) even when
+        // the camera hash is unchanged — otherwise the viewport freezes on the first
+        // paint-only frame and cloud world-space checks look broken.
         const bool paintOnlyFrame =
             pipelineColorTest
-            || (!layoutOrResizeThisFrame
+            || (!continuousEnv
+                && !layoutOrResizeThisFrame
                 && m_Host.HostHasRenderedScene()
                 && cameraHash == m_Host.HostLastSceneCameraHash());
         if (paintOnlyFrame) {
@@ -446,17 +466,18 @@ void RenderPipelineSubsystem::Tick(float /*deltaTime*/) {
         } else {
             m_Components.PostPresent(m_Host, true);
         }
+        } else {
+            ++m_BeginFrameFailStreak;
+            if (m_BeginFrameFailStreak == 1 || (m_BeginFrameFailStreak % 60) == 0) {
+                WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                    "[Render] BeginFrame failed (streak=" + std::to_string(m_BeginFrameFailStreak)
+                    + ") — frame skipped, retrying next tick.");
+            }
+            we::runtime::kindui::UIRepaintGate::RequestPaint();
+            m_Components.PostPresent(m_Host, false);
+        }
     } else if (!renderer) {
         HE_ERROR("[Render] Renderer is null in render pipeline.");
-        m_Components.PostPresent(m_Host, false);
-    } else {
-        ++m_BeginFrameFailStreak;
-        if (m_BeginFrameFailStreak == 1 || (m_BeginFrameFailStreak % 60) == 0) {
-            WE_LOG_WARN(we::LogCategory::Renderer.data(),
-                "[Render] BeginFrame failed (streak=" + std::to_string(m_BeginFrameFailStreak)
-                + ") — frame skipped, retrying next tick.");
-        }
-        we::runtime::kindui::UIRepaintGate::RequestPaint();
         m_Components.PostPresent(m_Host, false);
     }
 

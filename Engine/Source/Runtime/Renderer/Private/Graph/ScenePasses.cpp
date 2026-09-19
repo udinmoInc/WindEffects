@@ -9,6 +9,8 @@
 #include "Renderer/Graph/ScenePasses.h"
 #include "Graph/ViewportSkyRenderer.h"
 #include "Graph/ViewportGridRenderer.h"
+#include "Graph/ViewportCloudRenderer.h"
+#include "Lighting/LightingSystem.h"
 #include "ECS/RenderExtract.h"
 
 namespace we::runtime::renderer {
@@ -149,6 +151,58 @@ void GridPass::Execute(const GraphPassContext& ctx) {
     }
 }
 
+CloudPass::CloudPass(
+    ViewportCloudRenderer* clouds,
+    we::rhi::RHITextureHandle color,
+    we::rhi::RHITextureHandle depth,
+    we::rhi::Extent2D extent,
+    const CameraUniform* camera,
+    const SceneEnvironmentUniform* environment,
+    const CloudUniform* cloudParams)
+    : RenderPass("CloudPass", we::rhi::QueueType::Graphics, GraphPassFlags::SideEffects)
+    , m_Clouds(clouds)
+    , m_Color(color)
+    , m_Depth(depth)
+    , m_Extent(extent)
+    , m_Camera(camera)
+    , m_Environment(environment)
+    , m_CloudParams(cloudParams)
+{
+}
+
+void CloudPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
+    textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget,
+        GraphResourceAccess::ReadWrite});
+    if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
+        textures.push_back({kInvalidGraphResourceId, m_Depth, we::rhi::ResourceState::ShaderResource,
+            GraphResourceAccess::Read});
+    }
+}
+
+void CloudPass::Execute(const GraphPassContext& ctx) {
+    if (!ctx.commandList || !m_Camera || !m_Environment || !m_CloudParams || !m_Clouds) {
+        return;
+    }
+    if (!m_Clouds->IsReady()
+        || m_Color == we::rhi::RHITextureHandle::Invalid
+        || m_Depth == we::rhi::RHITextureHandle::Invalid) {
+        return;
+    }
+    // Match TerrainPass: Grid leaves color in ShaderResource; force RT before blend.
+    ctx.commandList->TransitionTexture(
+        m_Color,
+        we::rhi::ResourceState::ShaderResource,
+        we::rhi::ResourceState::RenderTarget);
+    m_Clouds->Draw(
+        *ctx.commandList,
+        m_Color,
+        m_Depth,
+        m_Extent,
+        *m_Camera,
+        *m_Environment,
+        *m_CloudParams);
+}
+
 TerrainPass::TerrainPass(
     TerrainDrawFn drawer,
     we::rhi::RHITextureHandle color,
@@ -278,11 +332,13 @@ void StubGraphicsPass::Execute(const GraphPassContext&) {}
 PbrOpaquePass::PbrOpaquePass(
     uint32_t writeTextureId,
     uint32_t shadowTextureId,
-    const we::runtime::ecs::ExtractedFrameData* extract)
+    const we::runtime::ecs::ExtractedFrameData* extract,
+    const LightingSystem* lighting)
     : RenderPass("PbrOpaquePass", we::rhi::QueueType::Graphics, GraphPassFlags::KeepAlive)
     , m_WriteId(writeTextureId)
     , m_ShadowId(shadowTextureId)
     , m_Extract(extract)
+    , m_Lighting(lighting)
 {
 }
 
@@ -305,9 +361,13 @@ void PbrOpaquePass::Setup(std::vector<GraphTextureRef>& textures, std::vector<Gr
 
 void PbrOpaquePass::Execute(const GraphPassContext&) {
     // Mesh GPU submission lands here once mesh pipelines exist.
-    // Today we bind the extract packet so the graph path is wired end-to-end.
+    // Today we bind the extract packet + lighting counts so the graph path is wired.
     m_LastMeshCount = m_Extract ? m_Extract->meshes.size() : 0;
+    m_LastDirectionalCount = m_Lighting ? m_Lighting->DirectionalLightCount() : 0;
+    m_LastPointCount = m_Lighting ? m_Lighting->PointLightCount() : 0;
     (void)m_LastMeshCount;
+    (void)m_LastDirectionalCount;
+    (void)m_LastPointCount;
 }
 
 StubComputePass::StubComputePass(std::string name, uint32_t writeTextureId, uint32_t readTextureId)

@@ -121,12 +121,15 @@ RHIResult<RHITextureHandle> VulkanDevice::CreateTexture(const TextureDesc& desc)
     VulkanTexture tex{};
     tex.desc = desc;
 
+    // True volume when depth > 1. Keep the depth==1 path byte-identical to 2D.
+    const bool is3D = desc.extent.depth > 1;
+
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.imageType = is3D ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
     imageInfo.extent = {desc.extent.width, desc.extent.height, desc.extent.depth ? desc.extent.depth : 1};
     imageInfo.mipLevels = desc.mipLevels ? desc.mipLevels : 1;
-    imageInfo.arrayLayers = desc.arrayLayers ? desc.arrayLayers : 1;
+    imageInfo.arrayLayers = is3D ? 1u : (desc.arrayLayers ? desc.arrayLayers : 1u);
     imageInfo.format = ToVkFormat(desc.format);
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -157,7 +160,7 @@ RHIResult<RHITextureHandle> VulkanDevice::CreateTexture(const TextureDesc& desc)
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = tex.image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.viewType = is3D ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = imageInfo.format;
     viewInfo.subresourceRange.aspectMask = IsDepthFormat(desc.format)
         ? VK_IMAGE_ASPECT_DEPTH_BIT
@@ -198,15 +201,24 @@ RHIResult<RHITextureViewHandle> VulkanDevice::CreateTextureView(const TextureVie
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = tex->image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = desc.format == Format::Unknown ? ToVkFormat(tex->desc.format) : ToVkFormat(desc.format);
+    const bool is3D = tex->desc.extent.depth > 1;
+    viewInfo.viewType = is3D ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
+
+    // Cloud path requests R32_SFLOAT SRVs of D32 depth (DX12 typeless). Vulkan forbids
+    // that without MUTABLE_FORMAT — keep the depth format + DEPTH aspect instead.
+    Format viewFormat = desc.format == Format::Unknown ? tex->desc.format : desc.format;
+    if (IsDepthFormat(tex->desc.format)
+        && (viewFormat == Format::R32_SFLOAT || !IsDepthFormat(viewFormat))) {
+        viewFormat = tex->desc.format;
+    }
+    viewInfo.format = ToVkFormat(viewFormat);
     viewInfo.subresourceRange.aspectMask = IsDepthFormat(tex->desc.format)
         ? VK_IMAGE_ASPECT_DEPTH_BIT
         : VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = desc.baseMip;
     viewInfo.subresourceRange.levelCount = desc.mipCount;
-    viewInfo.subresourceRange.baseArrayLayer = desc.baseLayer;
-    viewInfo.subresourceRange.layerCount = desc.layerCount;
+    viewInfo.subresourceRange.baseArrayLayer = is3D ? 0u : desc.baseLayer;
+    viewInfo.subresourceRange.layerCount = is3D ? 1u : desc.layerCount;
     if (vkCreateImageView(m_Device, &viewInfo, nullptr, &view.view) != VK_SUCCESS) {
         return RHIError::Make(RHIErrorCode::BackendFailure, "Failed to create texture view.", "CreateTextureView");
     }

@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 
 #include "Core/Math/GlmInterop.h"
 namespace we::runtime::world::environment {
@@ -91,12 +90,12 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const EnvironmentSkyLight& skyLight,
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
-    const EnvironmentVolumetricClouds& clouds,
     const EnvironmentExposureController& exposure,
-    const we::math::Vec3& worldOrigin) {
+    const we::math::Vec3& worldOriginHint) {
 
     EnvironmentManager manager;
     const float sunDerivedEV = manager.ComputeExposureEV(sun);
+    const we::math::Vec3 worldOrigin = manager.GetWorldOrigin(worldOriginHint);
 
     // Artist intensity (~10 daytime) maps to display-referred outdoor irradiance.
     constexpr float kSunArtistToIrradiance = 0.12f;
@@ -124,16 +123,6 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.atmosphereHeight = 60.0f;
     uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
     uniform.eyeAltitude = atmosphere.EyeAltitude;
-
-    EnvironmentVolumetricClouds cloudState = clouds;
-    cloudState.SyncAltitudeFromBounds();
-
-    const bool cloudsActive = cloudState.Enabled && cloudState.EntityId != 0;
-    uniform.cloudCoverage = cloudState.Coverage;
-    uniform.cloudAltitude = cloudState.Altitude;
-    uniform.cloudExtinction = cloudState.Extinction;
-    uniform.enableClouds = cloudsActive ? 1.0f : 0.0f;
-    uniform.cloudColor = cloudState.CloudColor * cloudState.CloudColorTint;
     uniform.enableVolumetricFog = fog.VolumetricFog ? 1.0f : 0.0f;
     uniform.exposureCompensation = exposure.ExposureCompensation;
     uniform.sunAngularRadius = 0.004675f;
@@ -143,45 +132,9 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.bloomIntensity = 0.15f;
     uniform.bloomThreshold = 4.0f;
     uniform.enableAutoExposure = exposure.AutoExposure ? 1.0f : 0.0f;
-    // WE_CLOUD_DEBUG overrides AtmosphereDebugMode for cloud isolation:
-    // 10 white, 11 bounds, 12 altitude, 13 weather, 14 shape, 15 density,
-    // 16 steps, 19 rayOrigin, 20 rayDir, 21 emptySkip, 22 occupancy,
-    // 23 history, 24 temporalBlend, 25 upsampleColor, 26 alpha, 27 composite.
-    int cloudDebugMode = atmosphere.AtmosphereDebugMode;
-    if (const char* cloudDbg = std::getenv("WE_CLOUD_DEBUG")) {
-        cloudDebugMode = std::atoi(cloudDbg);
-    }
-    uniform.atmosphereDebugMode = cloudDebugMode;
-    uniform.cloudTemporalBlend = 0.88f;
-    uniform.cloudHistoryValid = 0;
+    uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
     uniform.enableSunDisk = 1.0f;
     uniform.pipelineFixedExposureMultiplier = 0.0f;
-
-    uniform.cloudDensityMult = cloudState.Density * cloudState.DensityMultiplier;
-    uniform.cloudThickness = cloudState.CloudThickness;
-    uniform.cloudBottomAltitude = cloudState.BottomAltitude;
-    uniform.cloudTopAltitude = cloudState.TopAltitude;
-    uniform.cloudWindDir = glm::length(we::math::ToGlm(cloudState.WindDirection)) > 1e-4f
-        ? we::math::FromGlm(glm::normalize(we::math::ToGlm(cloudState.WindDirection)))
-        : we::math::Vec3(1.0f, 0.0f, 0.0f);
-    uniform.cloudWindSpeed = cloudState.WindSpeed;
-    uniform.cloudNoiseScale = cloudState.NoiseScale;
-    uniform.cloudDetailScale = cloudState.DetailNoiseScale;
-    uniform.cloudLightingIntensity = cloudState.LightingIntensity;
-    uniform.cloudSilverLining = cloudState.SilverLiningIntensity;
-    uniform.cloudAmbient = cloudState.AmbientContribution;
-    uniform.cloudMultiScatter = cloudState.MultiScatteringStrength;
-    uniform.cloudPhaseG = cloudState.PhaseG;
-    uniform.cloudPowder = cloudState.PowderEffect;
-    uniform.cloudSeed = cloudState.Seed;
-    uniform.cloudAnimTime = cloudState.AnimationTime;
-    uniform.cloudShadowStrength = cloudState.ShadowStrength;
-    uniform.cloudQualitySteps = EnvironmentVolumetricClouds::RaymarchStepsForQuality(cloudState.Quality);
-    uniform.cloudShapeNoise = cloudState.ShapeNoise;
-    uniform.cloudErosionNoise = cloudState.ErosionNoise;
-    (void)cloudState.WeatherMapInfluence;
-    (void)cloudState.ShadowDistance;
-    (void)cloudState.ShadowResolution;
 
     return uniform;
 }

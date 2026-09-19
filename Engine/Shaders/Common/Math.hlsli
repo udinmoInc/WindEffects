@@ -77,15 +77,34 @@ float3 WE_UnprojectPoint(float x, float y, float z, float4x4 view, float4x4 proj
     return p.xyz / p.w;
 }
 
-// Column-vector conventions to match GLM / SPIR-V layouts used by the engine.
-// uv must be in [0, 1] (normalize fullscreen-triangle UV by 0.5 when needed).
-// cameraWorldPos must match the position used to build the view matrix.
+// Fullscreen UV → clip/NDC for Vulkan (Y+ down in NDC / framebuffer).
+// Must match ProceduralSky: unproject float4(clip.xy, 1, 1) with the same InvVP.
+// Pair with VS: o.uv = float2(pos.x * 0.5 + 0.5, pos.y * 0.5 + 0.5) where
+//   pos = uvRaw * float2(2, -2) + float2(-1, 1).
+// FB top  → uv.y=0 → ndc.y=-1 → world-up rays (verified: yFanOk).
+// FB bottom → uv.y=1 → ndc.y=+1 → world-down rays.
+// Do NOT use (1 - 2*uv.y): that inverts the vertical ray fan vs InvVP.
+float2 WE_UvToNdc(float2 uv)
+{
+    return float2(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0);
+}
+
+// World-space view ray. Uses the far plane (depth 1.0 for perspectiveRH_ZO) so the
+// direction fans correctly across the FOV. cameraWorldPos must match the view matrix eye.
 float3 WE_UnprojectDirection(float2 uv, float4x4 view, float4x4 proj, float3 cameraWorldPos)
 {
-    const float2 ndc = uv * 2.0 - 1.0;
-    // Reverse-Z (perspectiveRH_ZO with far/near swapped): far plane at depth 0.
-    const float3 farPoint = WE_UnprojectPoint(ndc.x, ndc.y, 0.0, view, proj);
+    const float2 ndc = WE_UvToNdc(uv);
+    const float3 farPoint = WE_UnprojectPoint(ndc.x, ndc.y, 1.0, view, proj);
     return normalize(farPoint - cameraWorldPos);
+}
+
+// Same ray via CPU-side inverse(viewProj). Prefer when shader inverse of a large-far
+// projection is unreliable. Must stay in sync with ProceduralSky / EditorGrid NDC.
+float3 WE_UnprojectDirectionInv(float2 uv, float4x4 invViewProj, float3 cameraWorldPos)
+{
+    const float2 clipXY = WE_UvToNdc(uv);
+    float4 world = mul(invViewProj, float4(clipXY, 1.0, 1.0));
+    return normalize(world.xyz / max(world.w, 1e-6) - cameraWorldPos);
 }
 
 #endif // WE_MATH_HLSLI

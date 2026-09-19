@@ -54,12 +54,14 @@ public:
     void RegisterIconPath(std::string_view name, std::string_view resolvedPath);
     void RegisterIconAtlasRoot(std::string_view resolvedPath);
     void RegisterIconMetaPath(std::string_view resolvedPath);
+    void RegisterVolumePath(std::string_view name, std::string_view resolvedPath);
 
     [[nodiscard]] std::string GetFontPath(std::string_view name) const;
     [[nodiscard]] std::string GetShaderPath(std::string_view name) const;
     [[nodiscard]] std::string GetIconPath(std::string_view name) const;
     [[nodiscard]] std::string GetIconAtlasRoot() const;
     [[nodiscard]] std::string GetIconMetaPath() const;
+    [[nodiscard]] std::string GetVolumePath(std::string_view name) const;
 
     bool LoadDefaultEditorAssets();
 
@@ -81,6 +83,7 @@ private:
     std::unordered_map<std::string, std::string> m_FontPaths;
     std::unordered_map<std::string, std::string> m_ShaderPaths;
     std::unordered_map<std::string, std::string> m_IconPaths;
+    std::unordered_map<std::string, std::string> m_VolumePaths;
     std::string m_IconAtlasRoot;
     std::string m_IconMetaPath;
     std::vector<AssetLoadResult> m_LastLoadResults;

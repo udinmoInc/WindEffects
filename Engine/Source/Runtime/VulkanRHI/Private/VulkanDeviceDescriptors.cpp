@@ -163,20 +163,32 @@ void VulkanDevice::UpdateDescriptorSets(std::span<const WriteDescriptorSet> writ
         if (w.bufferInfos) {
             p.isBuffer = true;
             p.infoOffset = bufferInfos.size();
+            bool skip = false;
             for (uint32_t i = 0; i < w.count; ++i) {
                 const auto& bi = w.bufferInfos[i];
                 auto* buf = FindBuffer(bi.buffer);
+                if (!buf || !buf->buffer) {
+                    WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                        "UpdateDescriptorSets: null buffer for binding "
+                            + std::to_string(w.binding) + " — skipping write");
+                    skip = true;
+                    break;
+                }
                 VkDescriptorBufferInfo info{};
-                info.buffer = buf ? buf->buffer : VK_NULL_HANDLE;
+                info.buffer = buf->buffer;
                 info.offset = bi.offset;
                 info.range = bi.range == ~0ull
-                    ? (buf && buf->desc.size > bi.offset ? buf->desc.size - bi.offset : VK_WHOLE_SIZE)
+                    ? (buf->desc.size > bi.offset ? buf->desc.size - bi.offset : VK_WHOLE_SIZE)
                     : bi.range;
                 bufferInfos.push_back(info);
+            }
+            if (skip) {
+                continue;
             }
         } else if (w.imageInfos) {
             p.isBuffer = false;
             p.infoOffset = imageInfos.size();
+            bool skip = false;
             for (uint32_t i = 0; i < w.count; ++i) {
                 const auto& ii = w.imageInfos[i];
                 auto* view = FindTextureView(ii.view);
@@ -185,7 +197,29 @@ void VulkanDevice::UpdateDescriptorSets(std::span<const WriteDescriptorSet> writ
                 info.sampler = sampler ? sampler->sampler : VK_NULL_HANDLE;
                 info.imageView = view ? view->view : VK_NULL_HANDLE;
                 info.imageLayout = ToVkImageLayout(ii.imageLayout);
+
+                // NVIDIA crashes inside vkUpdateDescriptorSets on null imageView/sampler
+                // for sampled/combined/sampler descriptor types — skip bad writes.
+                const bool needsView = w.type == DescriptorType::SampledImage
+                    || w.type == DescriptorType::CombinedImageSampler
+                    || w.type == DescriptorType::StorageImage;
+                const bool needsSampler = w.type == DescriptorType::Sampler
+                    || w.type == DescriptorType::CombinedImageSampler;
+                if ((needsView && info.imageView == VK_NULL_HANDLE)
+                    || (needsSampler && info.sampler == VK_NULL_HANDLE)) {
+                    WE_LOG_ERROR(we::LogCategory::Vulkan.data(),
+                        std::string("UpdateDescriptorSets: null ")
+                            + (needsView && info.imageView == VK_NULL_HANDLE ? "imageView" : "sampler")
+                            + " for binding " + std::to_string(w.binding)
+                            + " type=" + std::to_string(static_cast<int>(w.type))
+                            + " — skipping write");
+                    skip = true;
+                    break;
+                }
                 imageInfos.push_back(info);
+            }
+            if (skip) {
+                continue;
             }
         } else {
             continue;

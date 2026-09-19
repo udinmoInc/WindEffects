@@ -111,7 +111,6 @@ void EnvironmentSettingsLoader::SaveSettings(const EnvironmentSettings& settings
     output << "CreateSkyLight=" << (settings.createSkyLight ? "true" : "false") << "\n";
     output << "CreateSkyAtmosphere=" << (settings.createSkyAtmosphere ? "true" : "false") << "\n";
     output << "CreateHeightFog=" << (settings.createHeightFog ? "true" : "false") << "\n";
-    output << "CreateVolumetricClouds=" << (settings.createVolumetricClouds ? "true" : "false") << "\n";
     output << "EnableVolumetricFog=" << (settings.enableVolumetricFog ? "true" : "false") << "\n";
     output << "SunIntensity=" << settings.sunIntensity << "\n";
     output << "SunTemperature=" << settings.sunTemperature << "\n";
@@ -121,8 +120,6 @@ void EnvironmentSettingsLoader::SaveSettings(const EnvironmentSettings& settings
     output << "SkyLightRealTimeCapture=" << (settings.skyLightRealTimeCapture ? "true" : "false") << "\n";
     output << "FogDensity=" << settings.fogDensity << "\n";
     output << "FogHeightFalloff=" << settings.fogHeightFalloff << "\n";
-    output << "CloudCoverage=" << settings.cloudCoverage << "\n";
-    output << "CloudAltitude=" << settings.cloudAltitude << "\n";
 }
 
 std::filesystem::path EnvironmentSettingsLoader::GetConfigPath() const {
@@ -178,7 +175,6 @@ void EnvironmentSettingsLoader::EnsureLoaded() {
     m_Settings.createSkyAtmosphere = ParseBool(get("CreateSkyAtmosphere"), m_Settings.createSkyAtmosphere);
     m_Settings.createHeightFog = ParseBool(get("CreateFog"), ParseBool(get("CreateHeightFog"),
         m_Settings.createHeightFog));
-    m_Settings.createVolumetricClouds = ParseBool(get("CreateVolumetricClouds"), m_Settings.createVolumetricClouds);
     m_Settings.enableVolumetricFog = ParseBool(get("EnableVolumetricFog"), m_Settings.enableVolumetricFog);
     m_Settings.sunIntensity = std::max(0.0f, ParseFloat(get("SunIntensity"), m_Settings.sunIntensity));
     m_Settings.sunTemperature = std::max(1000, ParseInt(get("SunTemperature"), m_Settings.sunTemperature));
@@ -190,8 +186,6 @@ void EnvironmentSettingsLoader::EnsureLoaded() {
         m_Settings.skyLightRealTimeCapture));
     m_Settings.fogDensity = std::max(0.0f, ParseFloat(get("FogDensity"), m_Settings.fogDensity));
     m_Settings.fogHeightFalloff = std::max(0.0f, ParseFloat(get("FogHeightFalloff"), m_Settings.fogHeightFalloff));
-    m_Settings.cloudCoverage = std::clamp(ParseFloat(get("CloudCoverage"), m_Settings.cloudCoverage), 0.0f, 1.0f);
-    m_Settings.cloudAltitude = std::max(50.0f, ParseFloat(get("CloudAltitude"), m_Settings.cloudAltitude));
 
     m_Loaded = true;
 }

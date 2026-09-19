@@ -15,195 +15,394 @@
 #include "Core/Paths.h"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
-
-#if WE_HAS_NLOHMANN_JSON
-#include <nlohmann/json.h>
-#endif
 
 namespace we::runtime::renderer {
 namespace {
 
-QualityLevel QualityFromInt(int value) {
-    value = std::clamp(value, 0, 5);
-    return static_cast<QualityLevel>(value);
+using IniSectionMap = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
+
+std::string Trim(std::string value) {
+    auto notSpace = [](unsigned char ch) { return !std::isspace(ch); };
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), notSpace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notSpace).base(), value.end());
+    return value;
 }
 
-#if WE_HAS_NLOHMANN_JSON
-void ReadQualityObject(
-    const nlohmann::json& root,
-    const char* key,
-    bool& enabled,
-    QualityLevel& quality) {
-    if (!root.contains(key) || !root[key].is_object()) {
-        return;
+std::string ToLower(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    return value;
+}
+
+bool ParseBool(const std::string& value, bool fallback) {
+    const std::string lower = ToLower(Trim(value));
+    if (lower == "1" || lower == "true" || lower == "yes" || lower == "on") {
+        return true;
     }
-    const auto& obj = root[key];
-    if (obj.contains("Enabled")) {
-        enabled = obj["Enabled"].get<bool>();
+    if (lower == "0" || lower == "false" || lower == "no" || lower == "off") {
+        return false;
     }
-    if (obj.contains("Quality")) {
-        quality = QualityFromInt(obj["Quality"].get<int>());
-        if (!enabled) {
-            quality = QualityLevel::Disabled;
+    WE_LOG_WARN(we::LogCategory::Renderer.data(),
+        std::string("Scalability INI: invalid bool '") + value + "' — using default");
+    return fallback;
+}
+
+float ParseFloat(const std::string& value, float fallback) {
+    try {
+        return std::stof(Trim(value));
+    } catch (...) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            std::string("Scalability INI: invalid float '") + value + "' — using default");
+        return fallback;
+    }
+}
+
+uint32_t ParseUInt(const std::string& value, uint32_t fallback) {
+    try {
+        const long long parsed = std::stoll(Trim(value));
+        if (parsed < 0) {
+            WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                std::string("Scalability INI: negative uint '") + value + "' — using default");
+            return fallback;
+        }
+        return static_cast<uint32_t>(parsed);
+    } catch (...) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            std::string("Scalability INI: invalid uint '") + value + "' — using default");
+        return fallback;
+    }
+}
+
+QualityLevel ParseQuality(const std::string& value, QualityLevel fallback) {
+    const std::string lower = ToLower(Trim(value));
+    if (lower == "disabled" || lower == "off" || lower == "0") {
+        return QualityLevel::Disabled;
+    }
+    if (lower == "low" || lower == "1") {
+        return QualityLevel::Low;
+    }
+    if (lower == "medium" || lower == "med" || lower == "2") {
+        return QualityLevel::Medium;
+    }
+    if (lower == "high" || lower == "3") {
+        return QualityLevel::High;
+    }
+    if (lower == "ultra" || lower == "veryhigh" || lower == "4") {
+        return QualityLevel::Ultra;
+    }
+    if (lower == "epic" || lower == "5") {
+        return QualityLevel::Epic;
+    }
+    WE_LOG_WARN(we::LogCategory::Renderer.data(),
+        std::string("Scalability INI: invalid Quality '") + value + "' — using default");
+    return fallback;
+}
+
+FeatureRequirement ParseRequirement(const std::string& value, FeatureRequirement fallback) {
+    const std::string lower = ToLower(Trim(value));
+    if (lower == "off" || lower == "0") {
+        return FeatureRequirement::Off;
+    }
+    if (lower == "optional" || lower == "1") {
+        return FeatureRequirement::Optional;
+    }
+    if (lower == "preferred" || lower == "2") {
+        return FeatureRequirement::Preferred;
+    }
+    if (lower == "required" || lower == "3") {
+        return FeatureRequirement::Required;
+    }
+    WE_LOG_WARN(we::LogCategory::Renderer.data(),
+        std::string("Scalability INI: invalid FeatureRequirement '") + value + "' — using default");
+    return fallback;
+}
+
+IniSectionMap LoadIniSections(const std::filesystem::path& path) {
+    IniSectionMap sections;
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return sections;
+    }
+
+    std::string currentSection;
+    std::string line;
+    while (std::getline(file, line)) {
+        line = Trim(line);
+        if (line.empty() || line[0] == '#' || line[0] == ';') {
+            continue;
+        }
+        if (line.front() == '[' && line.back() == ']') {
+            currentSection = Trim(line.substr(1, line.size() - 2));
+            continue;
+        }
+        if (currentSection.empty()) {
+            continue;
+        }
+        const auto separator = line.find('=');
+        if (separator == std::string::npos) {
+            continue;
+        }
+        const std::string key = Trim(line.substr(0, separator));
+        const std::string value = Trim(line.substr(separator + 1));
+        if (!key.empty()) {
+            sections[currentSection][key] = value;
         }
     }
+    return sections;
 }
 
-bool LoadProfileJson(const std::filesystem::path& path, RenderingProfileDesc& desc) {
-    std::ifstream input(path);
-    if (!input) {
-        return false;
-    }
-    nlohmann::json root;
-    try {
-        input >> root;
-    } catch (const std::exception& ex) {
-        WE_LOG_WARN(we::LogCategory::Renderer.data(),
-            std::string("Scalability profile parse failed: ") + path.string() + " — " + ex.what());
-        return false;
-    }
+const std::unordered_map<std::string, std::string>* FindSection(
+    const IniSectionMap& sections,
+    const char* name) {
+    const auto it = sections.find(name);
+    return it != sections.end() ? &it->second : nullptr;
+}
 
-    if (root.contains("Name") && root["Name"].is_string()) {
-        desc.name = root["Name"].get<std::string>();
-        desc.settings.profileName = desc.name;
+std::string SectionGet(
+    const std::unordered_map<std::string, std::string>* section,
+    const char* key) {
+    if (!section) {
+        return {};
+    }
+    const auto it = section->find(key);
+    return it != section->end() ? it->second : std::string{};
+}
+
+void ApplyEnabledQuality(
+    const std::unordered_map<std::string, std::string>* section,
+    bool& enabled,
+    QualityLevel& quality) {
+    if (!section) {
+        return;
+    }
+    if (const auto enabledValue = SectionGet(section, "Enabled"); !enabledValue.empty()) {
+        enabled = ParseBool(enabledValue, enabled);
+    }
+    if (const auto qualityValue = SectionGet(section, "Quality"); !qualityValue.empty()) {
+        quality = ParseQuality(qualityValue, quality);
+    }
+    if (!enabled) {
+        quality = QualityLevel::Disabled;
+    }
+}
+
+bool LoadProfileIni(const std::filesystem::path& path, RenderingProfileDesc& desc) {
+    const IniSectionMap sections = LoadIniSections(path);
+    if (sections.empty()) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            std::string("Scalability profile empty or unreadable: ") + path.string());
+        return false;
     }
 
     auto& s = desc.settings;
-    if (root.contains("Resolution") && root["Resolution"].is_object()) {
-        const auto& r = root["Resolution"];
-        s.resolution.screenPercentage = r.value("ScreenPercentage", s.resolution.screenPercentage);
-        s.resolution.maxShadowMapResolution = r.value("MaxShadowMapResolution", s.resolution.maxShadowMapResolution);
-        s.resolution.msaaSamples = r.value("MSAASamples", s.resolution.msaaSamples);
-        s.resolution.dynamicResolution = r.value("DynamicResolution", s.resolution.dynamicResolution);
-    }
 
-    ReadQualityObject(root, "Shadows", s.shadows.enabled, s.shadows.quality);
-    if (root.contains("Shadows") && root["Shadows"].is_object()) {
-        const auto& sh = root["Shadows"];
-        s.shadows.cascadeCount = sh.value("CascadeCount", s.shadows.cascadeCount);
-        s.shadows.resolutionScale = sh.value("ResolutionScale", s.shadows.resolutionScale);
-        s.shadows.softShadows = sh.value("SoftShadows", s.shadows.softShadows);
-        s.shadows.contactShadows = sh.value("ContactShadows", s.shadows.contactShadows);
-    }
-
-    ReadQualityObject(root, "Lighting", s.lighting.enabled, s.lighting.quality);
-    if (root.contains("Lighting") && root["Lighting"].is_object()) {
-        s.lighting.maxLocalLights = root["Lighting"].value("MaxLocalLights", s.lighting.maxLocalLights);
-    }
-
-    if (root.contains("Geometry") && root["Geometry"].is_object()) {
-        const auto& g = root["Geometry"];
-        s.geometry.quality = QualityFromInt(g.value("Quality", static_cast<int>(s.geometry.quality)));
-        s.geometry.lodBias = g.value("LodBias", s.geometry.lodBias);
-        s.geometry.meshShaders = g.value("MeshShaders", s.geometry.meshShaders);
-        if (g.contains("MeshShaderRequirement")) {
-            const int req = g["MeshShaderRequirement"].get<int>();
-            s.geometry.meshShaderRequirement = static_cast<FeatureRequirement>(std::clamp(req, 0, 3));
+    if (const auto* profile = FindSection(sections, "Profile")) {
+        if (const auto name = SectionGet(profile, "Name"); !name.empty()) {
+            desc.name = name;
+            s.profileName = name;
         }
     }
 
-    if (root.contains("Textures") && root["Textures"].is_object()) {
-        const auto& t = root["Textures"];
-        s.textures.quality = QualityFromInt(t.value("Quality", static_cast<int>(s.textures.quality)));
-        s.textures.anisotropy = t.value("Anisotropy", s.textures.anisotropy);
-        s.textures.streamingPoolMb = t.value("StreamingPoolMb", s.textures.streamingPoolMb);
+    if (const auto* resolution = FindSection(sections, "Resolution")) {
+        if (const auto v = SectionGet(resolution, "ScreenPercentage"); !v.empty()) {
+            s.resolution.screenPercentage = ParseFloat(v, s.resolution.screenPercentage);
+        }
+        if (const auto v = SectionGet(resolution, "MaxShadowMapResolution"); !v.empty()) {
+            s.resolution.maxShadowMapResolution = ParseUInt(v, s.resolution.maxShadowMapResolution);
+        }
+        if (const auto v = SectionGet(resolution, "MSAASamples"); !v.empty()) {
+            s.resolution.msaaSamples = ParseUInt(v, s.resolution.msaaSamples);
+        }
+        if (const auto v = SectionGet(resolution, "DynamicResolution"); !v.empty()) {
+            s.resolution.dynamicResolution = ParseBool(v, s.resolution.dynamicResolution);
+        }
     }
 
-    ReadQualityObject(root, "Reflections", s.reflections.enabled, s.reflections.quality);
-    if (root.contains("Reflections") && root["Reflections"].is_object()) {
-        const auto& r = root["Reflections"];
-        s.reflections.screenSpace = r.value("ScreenSpace", s.reflections.screenSpace);
-        s.reflections.rayTraced = r.value("RayTraced", s.reflections.rayTraced);
+    if (const auto* geometry = FindSection(sections, "Geometry")) {
+        if (const auto v = SectionGet(geometry, "Quality"); !v.empty()) {
+            s.geometry.quality = ParseQuality(v, s.geometry.quality);
+        }
+        if (const auto v = SectionGet(geometry, "LodBias"); !v.empty()) {
+            s.geometry.lodBias = ParseFloat(v, s.geometry.lodBias);
+        }
+        if (const auto v = SectionGet(geometry, "MeshShaders"); !v.empty()) {
+            s.geometry.meshShaders = ParseBool(v, s.geometry.meshShaders);
+        }
+        if (const auto v = SectionGet(geometry, "MeshShaderRequirement"); !v.empty()) {
+            s.geometry.meshShaderRequirement = ParseRequirement(v, s.geometry.meshShaderRequirement);
+        }
     }
 
-    ReadQualityObject(root, "GI", s.globalIllumination.enabled, s.globalIllumination.quality);
-    if (root.contains("GI") && root["GI"].is_object()) {
-        s.globalIllumination.rayTraced = root["GI"].value("RayTraced", s.globalIllumination.rayTraced);
+    if (const auto* textures = FindSection(sections, "Textures")) {
+        if (const auto v = SectionGet(textures, "Quality"); !v.empty()) {
+            s.textures.quality = ParseQuality(v, s.textures.quality);
+        }
+        if (const auto v = SectionGet(textures, "Anisotropy"); !v.empty()) {
+            s.textures.anisotropy = ParseFloat(v, s.textures.anisotropy);
+        }
+        if (const auto v = SectionGet(textures, "StreamingPoolMb"); !v.empty()) {
+            s.textures.streamingPoolMb = ParseUInt(v, s.textures.streamingPoolMb);
+        }
     }
 
-    ReadQualityObject(root, "Terrain", s.terrain.enabled, s.terrain.quality);
-    if (root.contains("Terrain") && root["Terrain"].is_object()) {
-        const auto& t = root["Terrain"];
-        s.terrain.lodBias = t.value("LodBias", s.terrain.lodBias);
-        s.terrain.clipmapLevels = t.value("ClipmapLevels", s.terrain.clipmapLevels);
+    if (const auto* lighting = FindSection(sections, "Lighting")) {
+        ApplyEnabledQuality(lighting, s.lighting.enabled, s.lighting.quality);
+        if (const auto v = SectionGet(lighting, "MaxLocalLights"); !v.empty()) {
+            s.lighting.maxLocalLights = ParseUInt(v, s.lighting.maxLocalLights);
+        }
     }
 
-    ReadQualityObject(root, "Foliage", s.foliage.enabled, s.foliage.quality);
-    if (root.contains("Foliage") && root["Foliage"].is_object()) {
-        const auto& f = root["Foliage"];
-        s.foliage.densityScale = f.value("DensityScale", s.foliage.densityScale);
-        s.foliage.lodBias = f.value("LodBias", s.foliage.lodBias);
+    if (const auto* shadows = FindSection(sections, "Shadows")) {
+        ApplyEnabledQuality(shadows, s.shadows.enabled, s.shadows.quality);
+        if (const auto v = SectionGet(shadows, "CascadeCount"); !v.empty()) {
+            s.shadows.cascadeCount = ParseUInt(v, s.shadows.cascadeCount);
+        }
+        if (const auto v = SectionGet(shadows, "ResolutionScale"); !v.empty()) {
+            s.shadows.resolutionScale = ParseFloat(v, s.shadows.resolutionScale);
+        }
+        if (const auto v = SectionGet(shadows, "SoftShadows"); !v.empty()) {
+            s.shadows.softShadows = ParseBool(v, s.shadows.softShadows);
+        }
+        if (const auto v = SectionGet(shadows, "ContactShadows"); !v.empty()) {
+            s.shadows.contactShadows = ParseBool(v, s.shadows.contactShadows);
+        }
     }
 
-    ReadQualityObject(root, "Atmosphere", s.atmosphere.enabled, s.atmosphere.quality);
-    ReadQualityObject(root, "Volumetrics", s.volumetrics.enabled, s.volumetrics.quality);
-    if (root.contains("Volumetrics") && root["Volumetrics"].is_object()) {
-        const auto& v = root["Volumetrics"];
-        s.volumetrics.resolutionScale = v.value("ResolutionScale", s.volumetrics.resolutionScale);
-        s.volumetrics.maxSteps = v.value("MaxSteps", s.volumetrics.maxSteps);
+    if (const auto* reflections = FindSection(sections, "Reflections")) {
+        ApplyEnabledQuality(reflections, s.reflections.enabled, s.reflections.quality);
+        if (const auto v = SectionGet(reflections, "ScreenSpace"); !v.empty()) {
+            s.reflections.screenSpace = ParseBool(v, s.reflections.screenSpace);
+        }
+        if (const auto v = SectionGet(reflections, "RayTraced"); !v.empty()) {
+            s.reflections.rayTraced = ParseBool(v, s.reflections.rayTraced);
+        }
+        if (const auto v = SectionGet(reflections, "RayTracingRequirement"); !v.empty()) {
+            s.reflections.rayTracingRequirement = ParseRequirement(v, s.reflections.rayTracingRequirement);
+        }
     }
 
-    ReadQualityObject(root, "Clouds", s.clouds.enabled, s.clouds.quality);
-    if (root.contains("Clouds") && root["Clouds"].is_object()) {
-        const auto& c = root["Clouds"];
-        s.clouds.maxSteps = c.value("MaxSteps", s.clouds.maxSteps);
-        s.clouds.resolutionScale = c.value("ResolutionScale", s.clouds.resolutionScale);
-        s.clouds.temporalReprojection = c.value("TemporalReprojection", s.clouds.temporalReprojection);
+    // Accept either [GI] or [GlobalIllumination]
+    const auto* gi = FindSection(sections, "GI");
+    if (!gi) {
+        gi = FindSection(sections, "GlobalIllumination");
+    }
+    if (gi) {
+        ApplyEnabledQuality(gi, s.globalIllumination.enabled, s.globalIllumination.quality);
+        if (const auto v = SectionGet(gi, "RayTraced"); !v.empty()) {
+            s.globalIllumination.rayTraced = ParseBool(v, s.globalIllumination.rayTraced);
+        }
+        if (const auto v = SectionGet(gi, "RayTracingRequirement"); !v.empty()) {
+            s.globalIllumination.rayTracingRequirement =
+                ParseRequirement(v, s.globalIllumination.rayTracingRequirement);
+        }
     }
 
-    ReadQualityObject(root, "Water", s.water.enabled, s.water.quality);
-    if (root.contains("Water") && root["Water"].is_object()) {
-        const auto& w = root["Water"];
-        s.water.reflections = w.value("Reflections", s.water.reflections);
-        s.water.caustics = w.value("Caustics", s.water.caustics);
+    if (const auto* terrain = FindSection(sections, "Terrain")) {
+        ApplyEnabledQuality(terrain, s.terrain.enabled, s.terrain.quality);
+        if (const auto v = SectionGet(terrain, "LodBias"); !v.empty()) {
+            s.terrain.lodBias = ParseFloat(v, s.terrain.lodBias);
+        }
+        if (const auto v = SectionGet(terrain, "ClipmapLevels"); !v.empty()) {
+            s.terrain.clipmapLevels = ParseUInt(v, s.terrain.clipmapLevels);
+        }
     }
 
-    ReadQualityObject(root, "Particles", s.particles.enabled, s.particles.quality);
-    if (root.contains("Particles") && root["Particles"].is_object()) {
-        s.particles.budgetScale = root["Particles"].value("BudgetScale", s.particles.budgetScale);
+    if (const auto* foliage = FindSection(sections, "Foliage")) {
+        ApplyEnabledQuality(foliage, s.foliage.enabled, s.foliage.quality);
+        if (const auto v = SectionGet(foliage, "DensityScale"); !v.empty()) {
+            s.foliage.densityScale = ParseFloat(v, s.foliage.densityScale);
+        }
+        if (const auto v = SectionGet(foliage, "LodBias"); !v.empty()) {
+            s.foliage.lodBias = ParseFloat(v, s.foliage.lodBias);
+        }
     }
 
-    ReadQualityObject(root, "PostProcess", s.postProcess.enabled, s.postProcess.quality);
-    if (root.contains("PostProcess") && root["PostProcess"].is_object()) {
-        const auto& p = root["PostProcess"];
-        s.postProcess.bloom = p.value("Bloom", s.postProcess.bloom);
-        s.postProcess.motionBlur = p.value("MotionBlur", s.postProcess.motionBlur);
-        s.postProcess.ambientOcclusion = p.value("AmbientOcclusion", s.postProcess.ambientOcclusion);
-        s.postProcess.temporalAA = p.value("TemporalAA", s.postProcess.temporalAA);
+    if (const auto* atmosphere = FindSection(sections, "Atmosphere")) {
+        ApplyEnabledQuality(atmosphere, s.atmosphere.enabled, s.atmosphere.quality);
     }
 
-    if (root.contains("LOD") && root["LOD"].is_object()) {
-        const auto& l = root["LOD"];
-        s.lod.globalBias = l.value("GlobalBias", s.lod.globalBias);
-        s.lod.cullDistanceScale = l.value("CullDistanceScale", s.lod.cullDistanceScale);
+    if (const auto* volumetrics = FindSection(sections, "Volumetrics")) {
+        ApplyEnabledQuality(volumetrics, s.volumetrics.enabled, s.volumetrics.quality);
+        if (const auto v = SectionGet(volumetrics, "ResolutionScale"); !v.empty()) {
+            s.volumetrics.resolutionScale = ParseFloat(v, s.volumetrics.resolutionScale);
+        }
+        if (const auto v = SectionGet(volumetrics, "MaxSteps"); !v.empty()) {
+            s.volumetrics.maxSteps = ParseUInt(v, s.volumetrics.maxSteps);
+        }
     }
 
-    if (root.contains("Streaming") && root["Streaming"].is_object()) {
-        const auto& st = root["Streaming"];
-        s.streaming.texturePoolMb = st.value("TexturePoolMb", s.streaming.texturePoolMb);
-        s.streaming.meshPoolMb = st.value("MeshPoolMb", s.streaming.meshPoolMb);
-        s.streaming.ioBudgetScale = st.value("IoBudgetScale", s.streaming.ioBudgetScale);
+    if (const auto* water = FindSection(sections, "Water")) {
+        ApplyEnabledQuality(water, s.water.enabled, s.water.quality);
+        if (const auto v = SectionGet(water, "Reflections"); !v.empty()) {
+            s.water.reflections = ParseBool(v, s.water.reflections);
+        }
+        if (const auto v = SectionGet(water, "Caustics"); !v.empty()) {
+            s.water.caustics = ParseBool(v, s.water.caustics);
+        }
+    }
+
+    if (const auto* particles = FindSection(sections, "Particles")) {
+        ApplyEnabledQuality(particles, s.particles.enabled, s.particles.quality);
+        if (const auto v = SectionGet(particles, "BudgetScale"); !v.empty()) {
+            s.particles.budgetScale = ParseFloat(v, s.particles.budgetScale);
+        }
+    }
+
+    if (const auto* post = FindSection(sections, "PostProcess")) {
+        ApplyEnabledQuality(post, s.postProcess.enabled, s.postProcess.quality);
+        if (const auto v = SectionGet(post, "Bloom"); !v.empty()) {
+            s.postProcess.bloom = ParseBool(v, s.postProcess.bloom);
+        }
+        if (const auto v = SectionGet(post, "MotionBlur"); !v.empty()) {
+            s.postProcess.motionBlur = ParseBool(v, s.postProcess.motionBlur);
+        }
+        if (const auto v = SectionGet(post, "AmbientOcclusion"); !v.empty()) {
+            s.postProcess.ambientOcclusion = ParseBool(v, s.postProcess.ambientOcclusion);
+        }
+        if (const auto v = SectionGet(post, "TemporalAA"); !v.empty()) {
+            s.postProcess.temporalAA = ParseBool(v, s.postProcess.temporalAA);
+        }
+    }
+
+    if (const auto* lod = FindSection(sections, "LOD")) {
+        if (const auto v = SectionGet(lod, "GlobalBias"); !v.empty()) {
+            s.lod.globalBias = ParseFloat(v, s.lod.globalBias);
+        }
+        if (const auto v = SectionGet(lod, "CullDistanceScale"); !v.empty()) {
+            s.lod.cullDistanceScale = ParseFloat(v, s.lod.cullDistanceScale);
+        }
+    }
+
+    if (const auto* streaming = FindSection(sections, "Streaming")) {
+        if (const auto v = SectionGet(streaming, "TexturePoolMb"); !v.empty()) {
+            s.streaming.texturePoolMb = ParseUInt(v, s.streaming.texturePoolMb);
+        }
+        if (const auto v = SectionGet(streaming, "MeshPoolMb"); !v.empty()) {
+            s.streaming.meshPoolMb = ParseUInt(v, s.streaming.meshPoolMb);
+        }
+        if (const auto v = SectionGet(streaming, "IoBudgetScale"); !v.empty()) {
+            s.streaming.ioBudgetScale = ParseFloat(v, s.streaming.ioBudgetScale);
+        }
     }
 
     return true;
 }
-#endif
 
 std::filesystem::path ResolveProfileDirectory() {
     auto& paths = we::core::PathService::Get();
     std::vector<std::filesystem::path> candidates = {
         paths.EngineConfigRoot() / "Runtime" / "Scalability" / "Profiles",
         paths.ConfigRoot() / "Runtime" / "Scalability" / "Profiles",
-        paths.EngineConfigRoot() / "Runtime" / "Scalability",
-        paths.ConfigRoot() / "Runtime" / "Scalability",
     };
     if (const auto repo = we::core::PathService::FindRepositoryRoot(paths.ExecutableDirectory())) {
         candidates.push_back(*repo / "Engine" / "Config" / "Runtime" / "Scalability" / "Profiles");
-        candidates.push_back(*repo / "Engine" / "Config" / "Runtime" / "Scalability");
     }
     if (const auto found = we::core::PathService::FindExisting(candidates)) {
         return *found;
@@ -234,7 +433,6 @@ RenderingProfileDesc ScalabilityManager::MakeBuiltinProfile(RenderingProfileId i
         desc.settings.foliage = {true, QualityLevel::Ultra, 1.0f, 0.0f};
         desc.settings.atmosphere = {true, QualityLevel::High};
         desc.settings.volumetrics = {true, QualityLevel::High, 0.75f, 64};
-        desc.settings.clouds = {true, QualityLevel::High, 64, 1.0f, true};
         desc.settings.water = {true, QualityLevel::High, true, true};
         desc.settings.particles = {true, QualityLevel::High, 1.0f};
         desc.settings.postProcess = {true, QualityLevel::High, true, true, true, true};
@@ -257,7 +455,6 @@ RenderingProfileDesc ScalabilityManager::MakeBuiltinProfile(RenderingProfileId i
         desc.settings.foliage = {true, QualityLevel::Medium, 0.65f, 0.5f};
         desc.settings.atmosphere = {true, QualityLevel::Medium};
         desc.settings.volumetrics = {true, QualityLevel::Low, 0.35f, 16};
-        desc.settings.clouds = {true, QualityLevel::Low, 16, 0.5f, true};
         desc.settings.water = {true, QualityLevel::Medium, true, false};
         desc.settings.particles = {true, QualityLevel::Medium, 0.6f};
         desc.settings.postProcess = {true, QualityLevel::Medium, true, false, true, true};
@@ -280,7 +477,6 @@ RenderingProfileDesc ScalabilityManager::MakeBuiltinProfile(RenderingProfileId i
         desc.settings.foliage = {true, QualityLevel::Low, 0.35f, 1.0f};
         desc.settings.atmosphere = {true, QualityLevel::Low};
         desc.settings.volumetrics = {false, QualityLevel::Disabled, 0.0f, 0};
-        desc.settings.clouds = {false, QualityLevel::Disabled, 0, 0.25f, false};
         desc.settings.water = {true, QualityLevel::Low, false, false};
         desc.settings.particles = {true, QualityLevel::Low, 0.35f};
         desc.settings.postProcess = {true, QualityLevel::Low, false, false, false, false};
@@ -320,11 +516,6 @@ ScalabilityUpdateFlags ScalabilityManager::DiffSettings(
             || previous.shadows.resolutionScale != next.shadows.resolutionScale,
         ScalabilityUpdateFlags::RecreateResources | ScalabilityUpdateFlags::RebuildRenderGraph
             | ScalabilityUpdateFlags::RecreatePipelines);
-
-    mark(previous.clouds.enabled != next.clouds.enabled
-            || previous.clouds.maxSteps != next.clouds.maxSteps
-            || previous.clouds.resolutionScale != next.clouds.resolutionScale,
-        ScalabilityUpdateFlags::RecreateResources | ScalabilityUpdateFlags::RebuildRenderGraph);
 
     mark(previous.volumetrics.enabled != next.volumetrics.enabled,
         ScalabilityUpdateFlags::RebuildRenderGraph | ScalabilityUpdateFlags::RecreateResources);
@@ -369,7 +560,6 @@ void ScalabilityManager::Shutdown() {
         return;
     }
     m_Profiles.clear();
-    m_HasCloudOverride = false;
     m_PendingDirty = false;
     m_Initialized = false;
 }
@@ -385,7 +575,6 @@ bool ScalabilityManager::ReloadProfiles() {
         m_Profiles[id] = MakeBuiltinProfile(id);
     }
 
-#if WE_HAS_NLOHMANN_JSON
     const auto dir = ResolveProfileDirectory();
     if (dir.empty()) {
         WE_LOG_INFO(we::LogCategory::Renderer.data(),
@@ -393,24 +582,20 @@ bool ScalabilityManager::ReloadProfiles() {
         return true;
     }
 
-    // Authoritative path: JSON overlays builtins. Only HighEnd is expected on disk
+    // Authoritative path: INI overlays builtins. Only HighEnd is expected on disk
     // during the AAA-first phase; Balanced/Low stay as dormant builtins.
     for (const auto id : ids) {
-        const auto path = dir / (std::string(ProfileFileStem(id)) + ".json");
+        const auto path = dir / (std::string(ProfileFileStem(id)) + ".ini");
         if (!std::filesystem::exists(path)) {
             continue;
         }
         RenderingProfileDesc desc = MakeBuiltinProfile(id);
-        if (LoadProfileJson(path, desc)) {
+        if (LoadProfileIni(path, desc)) {
             m_Profiles[id] = std::move(desc);
             WE_LOG_INFO(we::LogCategory::Renderer.data(),
                 std::string("Scalability loaded profile: ") + path.string());
         }
     }
-#else
-    WE_LOG_WARN(we::LogCategory::Renderer.data(),
-        "Scalability: nlohmann_json unavailable — built-in presets only");
-#endif
     return true;
 }
 
@@ -426,12 +611,6 @@ void ScalabilityManager::SetRHIBackend(we::rhi::RHIBackend backend) {
 }
 
 void ScalabilityManager::QueueResolved(ResolvedRenderingSettings resolved) {
-    if (m_HasCloudOverride) {
-        resolved.clouds = m_CloudOverride;
-        if (!resolved.clouds.enabled) {
-            resolved.clouds.quality = QualityLevel::Disabled;
-        }
-    }
     m_Pending = std::move(resolved);
     m_PendingDirty = true;
 }
@@ -446,16 +625,12 @@ void ScalabilityManager::ResolveActiveProfile() {
 }
 
 ScalabilityUpdateFlags ScalabilityManager::SetProfile(RenderingProfileId id) {
-    if (id == RenderingProfileId::Custom && !m_HasCloudOverride) {
-        // Custom without overrides behaves as High-End until override API is used.
+    if (id == RenderingProfileId::Custom) {
         id = RenderingProfileId::HighEnd;
     }
 
     const ResolvedRenderingSettings previous = m_Pending;
     m_ActiveProfileId = id;
-    if (id != RenderingProfileId::Custom) {
-        m_HasCloudOverride = false;
-    }
     ResolveActiveProfile();
     const ScalabilityUpdateFlags flags = DiffSettings(previous, m_Pending);
 
@@ -465,18 +640,6 @@ ScalabilityUpdateFlags ScalabilityManager::SetProfile(RenderingProfileId id) {
         WE_LOG_INFO(we::LogCategory::Renderer.data(), std::string("  fallback: ") + note);
     }
     return flags;
-}
-
-ScalabilityUpdateFlags ScalabilityManager::SetCloudQualityOverride(
-    const CloudQualitySettings& clouds) {
-    const ResolvedRenderingSettings previous = m_Pending;
-    m_HasCloudOverride = true;
-    m_CloudOverride = clouds;
-    m_ActiveProfileId = RenderingProfileId::Custom;
-    ResolveActiveProfile();
-    m_Pending.profileId = RenderingProfileId::Custom;
-    m_Pending.profileName = "Custom";
-    return DiffSettings(previous, m_Pending);
 }
 
 void ScalabilityManager::PublishFrameSettings() {

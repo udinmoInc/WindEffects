@@ -12,6 +12,7 @@
 #pragma warning(disable : 4251)
 
 #include "Camera/CameraUniform.h"
+#include "Lighting/CloudUniform.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Graph/RenderGraph.h"
 
@@ -23,6 +24,8 @@ namespace we::runtime::renderer {
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;
+class ViewportCloudRenderer;
+class LightingSystem;
 
 // --- Running / migrated ----------------------------------------------------
 
@@ -122,6 +125,29 @@ private:
     const SceneEnvironmentUniform* m_Environment = nullptr;
 };
 
+class RENDERER_API CloudPass final : public RenderPass {
+public:
+    CloudPass(
+        ViewportCloudRenderer* clouds,
+        we::rhi::RHITextureHandle color,
+        we::rhi::RHITextureHandle depth,
+        we::rhi::Extent2D extent,
+        const CameraUniform* camera,
+        const SceneEnvironmentUniform* environment,
+        const CloudUniform* cloudParams);
+    void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
+    void Execute(const GraphPassContext& ctx) override;
+
+private:
+    ViewportCloudRenderer* m_Clouds = nullptr;
+    we::rhi::RHITextureHandle m_Color = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::RHITextureHandle m_Depth = we::rhi::RHITextureHandle::Invalid;
+    we::rhi::Extent2D m_Extent{};
+    const CameraUniform* m_Camera = nullptr;
+    const SceneEnvironmentUniform* m_Environment = nullptr;
+    const CloudUniform* m_CloudParams = nullptr;
+};
+
 class RENDERER_API TonemapPass final : public RenderPass {
 public:
     TonemapPass(we::rhi::RHITextureHandle hdrColor, we::rhi::RHITextureHandle swapchainImage);
@@ -182,16 +208,22 @@ public:
     PbrOpaquePass(
         uint32_t writeTextureId,
         uint32_t shadowTextureId,
-        const we::runtime::ecs::ExtractedFrameData* extract);
+        const we::runtime::ecs::ExtractedFrameData* extract,
+        const LightingSystem* lighting = nullptr);
     void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
     void Execute(const GraphPassContext& ctx) override;
     [[nodiscard]] std::size_t LastMeshCount() const { return m_LastMeshCount; }
+    [[nodiscard]] uint32_t LastDirectionalCount() const { return m_LastDirectionalCount; }
+    [[nodiscard]] uint32_t LastPointCount() const { return m_LastPointCount; }
 
 private:
     uint32_t m_WriteId = kInvalidGraphResourceId;
     uint32_t m_ShadowId = kInvalidGraphResourceId;
     const we::runtime::ecs::ExtractedFrameData* m_Extract = nullptr;
+    const LightingSystem* m_Lighting = nullptr;
     std::size_t m_LastMeshCount = 0;
+    uint32_t m_LastDirectionalCount = 0;
+    uint32_t m_LastPointCount = 0;
 };
 
 class RENDERER_API StubComputePass final : public RenderPass {

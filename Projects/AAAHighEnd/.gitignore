@@ -1,0 +1,35 @@
+# ==========================
+# WindEffects project — local generated / IDE noise
+# ==========================
+Saved/
+Intermediate/
+Binaries/
+DerivedDataCache/
+ShaderCache/
+PipelineCache/
+AssetCache/
+ThumbnailCache/
+Logs/
+*.log
+
+# Build / compiler leftovers
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.ipch
+*.pch
+*.user
+*.suo
+
+# OS / editor
+.vs/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+*~
+*.swp
+*.tmp
+*.bak

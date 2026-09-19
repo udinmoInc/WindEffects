@@ -46,7 +46,7 @@ public:
     void Initialize();
     void Shutdown();
 
-    /// Load Engine/Config/Runtime/Scalability/Profiles/*.json when present.
+    /// Load Engine/Config/Runtime/Scalability/Profiles/*.ini when present.
     bool ReloadProfiles();
 
     void SetRHICapabilities(const we::rhi::RHICapabilities& caps);
@@ -54,9 +54,6 @@ public:
 
     /// Queues a new resolved configuration. Published at PublishFrameSettings().
     [[nodiscard]] ScalabilityUpdateFlags SetProfile(RenderingProfileId id);
-
-    /// Optional per-feature overrides on top of the active profile (Custom path).
-    [[nodiscard]] ScalabilityUpdateFlags SetCloudQualityOverride(const CloudQualitySettings& clouds);
 
     [[nodiscard]] RenderingProfileId GetActiveProfileId() const { return m_ActiveProfileId; }
 
@@ -93,8 +90,6 @@ private:
     ResolvedRenderingSettings m_Pending{};
     ResolvedRenderingSettings m_Published{};
     bool m_PendingDirty = false;
-    bool m_HasCloudOverride = false;
-    CloudQualitySettings m_CloudOverride{};
     std::unordered_map<RenderingProfileId, RenderingProfileDesc> m_Profiles;
 };
 

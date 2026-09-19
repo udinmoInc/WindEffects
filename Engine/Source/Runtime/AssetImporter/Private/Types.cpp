@@ -43,6 +43,7 @@ std::string_view AssetKindToString(AssetKind kind) {
     case AssetKind::Script: return "Script";
     case AssetKind::Video: return "Video";
     case AssetKind::RawBinary: return "RawBinary";
+    case AssetKind::Volume: return "Volume";
     default: return "Unknown";
     }
 }
@@ -66,6 +67,7 @@ AssetKind AssetKindFromString(std::string_view name) {
     if (lower == "script") return AssetKind::Script;
     if (lower == "video") return AssetKind::Video;
     if (lower == "rawbinary" || lower == "raw" || lower == "binary") return AssetKind::RawBinary;
+    if (lower == "volume" || lower == "vdb" || lower == "volumetric") return AssetKind::Volume;
     return AssetKind::Unknown;
 }
 
@@ -82,6 +84,7 @@ std::string_view AssetKindNativeExtension(AssetKind kind) {
     case AssetKind::Material:
     case AssetKind::MaterialInstance: return ".wemat";
     case AssetKind::Scene: return ".wescene";
+    case AssetKind::Volume: return ".wevol";
     default: return ".weasset";
     }
 }
@@ -112,6 +115,7 @@ AssetKind AssetKindFromSourceExtension(std::string_view extension) {
     if (ext == ".lua" || ext == ".cs" || ext == ".py" || ext == ".js" || ext == ".ts") return AssetKind::Script;
     if (ext == ".mp4" || ext == ".avi" || ext == ".mov" || ext == ".webm") return AssetKind::Video;
     if (ext == ".atlas") return AssetKind::IconAtlas;
+    if (ext == ".vdb" || ext == ".nvdb" || ext == ".wevol") return AssetKind::Volume;
     return AssetKind::Unknown;
 }
 

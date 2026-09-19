@@ -43,6 +43,34 @@ inline [[nodiscard]] bool IsDepthFormat(Format format) noexcept {
         || format == Format::D32_SFLOAT_S8_UINT;
 }
 
+/// Depth+Sampled textures must be typeless so both DSV and SRV can be created.
+inline [[nodiscard]] DXGI_FORMAT ToTypelessDxgiFormat(Format format) noexcept {
+    switch (format) {
+    case Format::D32_SFLOAT: return DXGI_FORMAT_R32_TYPELESS;
+    case Format::D24_UNORM_S8_UINT: return DXGI_FORMAT_R24G8_TYPELESS;
+    case Format::D32_SFLOAT_S8_UINT: return DXGI_FORMAT_R32G8X24_TYPELESS;
+    default: return ToDxgiFormat(format);
+    }
+}
+
+/// SRV format for sampling a depth (or typeless depth) resource.
+inline [[nodiscard]] DXGI_FORMAT ToDepthSrvDxgiFormat(DXGI_FORMAT format) noexcept {
+    switch (format) {
+    case DXGI_FORMAT_D32_FLOAT:
+    case DXGI_FORMAT_R32_TYPELESS:
+    case DXGI_FORMAT_R32_FLOAT:
+        return DXGI_FORMAT_R32_FLOAT;
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+    case DXGI_FORMAT_R24G8_TYPELESS:
+        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+    case DXGI_FORMAT_R32G8X24_TYPELESS:
+        return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+    default:
+        return format;
+    }
+}
+
 inline [[nodiscard]] D3D12_RESOURCE_STATES ToD3DState(ResourceState state) noexcept {
     switch (state) {
     case ResourceState::Undefined: return D3D12_RESOURCE_STATE_COMMON;

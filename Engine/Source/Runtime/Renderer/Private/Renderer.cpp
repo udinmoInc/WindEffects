@@ -9,8 +9,10 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Graph/RenderGraph.h"
 #include "Renderer/Graph/ScenePasses.h"
+#include "Lighting/LightingSystem.h"
 #include "Graph/ViewportSkyRenderer.h"
 #include "Graph/ViewportGridRenderer.h"
+#include "Graph/ViewportCloudRenderer.h"
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
@@ -107,6 +109,8 @@ void Renderer::Init(we::platform::WindowId window) {
     WE_VALIDATE_INIT(deviceResult.Ok() && deviceResult.value, "Renderer",
         deviceResult.Ok() ? "RHI CreateDevice returned null." : deviceResult.error.message.c_str());
     m_RHIDevice = std::move(deviceResult.value);
+    WE_LOG_INFO(we::LogCategory::Renderer.data(), "RHI device created.");
+
     m_RenderGraph = std::make_unique<RenderGraph>();
     m_RenderGraph->Init(m_RHIDevice.get());
     m_ViewportSky = std::make_unique<ViewportSkyRenderer>();
@@ -119,11 +123,26 @@ void Renderer::Init(we::platform::WindowId window) {
         WE_LOG_WARN(we::LogCategory::Renderer.data(),
             "ViewportGridRenderer init failed; viewport grid disabled.");
     }
+    // Defer ViewportCloudRenderer::Init — 3D DDS upload during device bring-up
+    // has crashed Vulkan drivers. Lazy-init on first CloudPass instead.
+    m_ViewportClouds = std::make_unique<ViewportCloudRenderer>();
+    m_CloudsInitAttempted = false;
+
+    m_Lighting = std::make_unique<LightingSystem>();
+    if (!m_Lighting->Initialize(LightingCreateInfo{m_RHIDevice.get()})) {
+        WE_LOG_WARN(we::LogCategory::Renderer.data(),
+            "LightingSystem init failed; lighting buffers unavailable.");
+    }
 
     m_Scalability.Initialize();
     m_Scalability.SetRHIBackend(m_RHIDevice->GetBackend());
     m_Scalability.SetRHICapabilities(m_RHIDevice->GetCapabilities());
     m_Scalability.PublishFrameSettings();
+
+    {
+        const auto& published = m_Scalability.GetPublishedSettings();
+        m_Lighting->Configure(published.lighting, published.shadows);
+    }
 
     m_Initialized = true;
     WE_LOG_INFO(we::LogCategory::Renderer.data(),
@@ -140,9 +159,17 @@ void Renderer::Shutdown() {
     }
     DestroyViewportTargets();
     m_Scalability.Shutdown();
+    if (m_Lighting) {
+        m_Lighting->Shutdown();
+        m_Lighting.reset();
+    }
     if (m_ViewportGrid) {
         m_ViewportGrid->Shutdown();
         m_ViewportGrid.reset();
+    }
+    if (m_ViewportClouds) {
+        m_ViewportClouds->Shutdown();
+        m_ViewportClouds.reset();
     }
     if (m_ViewportSky) {
         m_ViewportSky->Shutdown();
@@ -199,6 +226,10 @@ void Renderer::DestroyViewportTargets() {
     if (!m_RHIDevice) {
         return;
     }
+    // Drop cloud depth SRV before destroying the depth texture (UAF / null-descriptor AV).
+    if (m_ViewportClouds) {
+        m_ViewportClouds->InvalidateDepthBinding();
+    }
     if (m_ViewportColorView != we::rhi::RHITextureViewHandle::Invalid) {
         (void)m_RHIDevice->DestroyTextureView(m_ViewportColorView);
         m_ViewportColorView = we::rhi::RHITextureViewHandle::Invalid;
@@ -248,7 +279,7 @@ void Renderer::EnsureViewportTargets() {
     we::rhi::TextureDesc depthDesc{};
     depthDesc.extent = {width, height, 1};
     depthDesc.format = we::rhi::Format::D32_SFLOAT;
-    depthDesc.usage = we::rhi::TextureUsage::DepthStencil;
+    depthDesc.usage = we::rhi::TextureUsage::DepthStencil | we::rhi::TextureUsage::Sampled;
     depthDesc.debugName = "ViewportDepth";
     auto depth = m_RHIDevice->CreateTexture(depthDesc);
     if (depth) {
@@ -301,6 +332,26 @@ void Renderer::ClearSwapchainChrome() {}
 
 void Renderer::RenderViewportSky() {}
 
+namespace {
+// Set false to hard-skip CloudPass / ViewportCloudRenderer init.
+constexpr bool kEnableVolumetricClouds = true;
+} // namespace
+
+void Renderer::EnsureCloudsReady() {
+    if constexpr (kEnableVolumetricClouds) {
+        if (m_CloudsInitAttempted || !m_ViewportClouds || !m_RHIDevice) {
+            return;
+        }
+        m_CloudsInitAttempted = true;
+        WE_LOG_INFO(we::LogCategory::Renderer.data(),
+            "ViewportCloudRenderer: deferred init starting...");
+        if (!m_ViewportClouds->Init(m_RHIDevice.get())) {
+            WE_LOG_WARN(we::LogCategory::Renderer.data(),
+                "ViewportCloudRenderer init failed; volumetric clouds disabled.");
+        }
+    }
+}
+
 void Renderer::RenderScene() {
     WE_VALIDATE_RENDER(m_Initialized && m_FrameActive, "Renderer::RenderScene", "No active frame.");
     EnsureViewportTargets();
@@ -319,6 +370,18 @@ void Renderer::RenderScene() {
         settings.capabilities.asyncComputeActive
             ? RGScheduleMode::AsyncPlanned
             : RGScheduleMode::SingleQueue);
+
+    if (m_Lighting) {
+        m_Lighting->Configure(settings.lighting, settings.shadows);
+        LightingFrameContext lightingCtx{};
+        lightingCtx.extract = m_ExtractedFrame;
+        lightingCtx.camera = &m_LastCamera;
+        lightingCtx.environment = &m_LastEnvironment;
+        lightingCtx.viewportWidth = m_OwnedViewportWidth;
+        lightingCtx.viewportHeight = m_OwnedViewportHeight;
+        m_Lighting->BeginFrame(lightingCtx);
+        m_Lighting->BuildRenderGraph(*m_RenderGraph);
+    }
 
     m_RenderGraph->AddPass(std::make_unique<EnvUploadPass>(
         m_ViewportSky.get(), &m_LastCamera, &m_LastEnvironment));
@@ -352,12 +415,38 @@ void Renderer::RenderScene() {
     m_RenderGraph->AddPass(std::make_unique<PbrOpaquePass>(
         kInvalidGraphResourceId,
         kInvalidGraphResourceId,
-        m_ExtractedFrame));
+        m_ExtractedFrame,
+        m_Lighting.get()));
+
+    if constexpr (kEnableVolumetricClouds) {
+        if (settings.volumetrics.enabled) {
+            EnsureCloudsReady();
+        }
+        if (settings.volumetrics.enabled && m_ViewportClouds && m_ViewportClouds->IsReady()) {
+            m_CloudUniform.enabled = 1.0f;
+            m_CloudUniform.maxSteps = settings.volumetrics.maxSteps > 0
+                ? settings.volumetrics.maxSteps
+                : 64u;
+            m_CloudUniform.timeSeconds = static_cast<float>(m_CurrentFrame) * (1.0f / 60.0f);
+            m_RenderGraph->AddPass(std::make_unique<CloudPass>(
+                m_ViewportClouds.get(),
+                m_ViewportColorTexture,
+                m_ViewportDepthTexture,
+                viewportExtent,
+                &m_LastCamera,
+                &m_LastEnvironment,
+                &m_CloudUniform));
+        }
+    }
+
     m_RenderGraph->AddPass(std::make_unique<TonemapPass>(m_ViewportColorTexture, swapImage));
     m_RenderGraph->AddPass(std::make_unique<UiOverlayPass>(swapImage, m_OverlayRecorder));
     m_RenderGraph->AddPass(std::make_unique<PresentPass>(swapImage));
 
     m_RenderGraph->Execute(*m_FrameCmd, m_CurrentFrame);
+    if (m_Lighting) {
+        m_Lighting->EndFrame();
+    }
     m_SceneImageIndex = m_CurrentImageIndex;
 }
 
@@ -543,4 +632,3 @@ void Renderer::RecreateSwapchain(uint32_t width, uint32_t height) {
 }
 
 } // namespace we::runtime::renderer
-

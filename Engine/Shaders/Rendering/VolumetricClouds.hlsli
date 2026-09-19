@@ -1,346 +1,430 @@
 #ifndef WE_VOLUMETRIC_CLOUDS_HLSLI
 #define WE_VOLUMETRIC_CLOUDS_HLSLI
 
-#include "../Common/Noise.hlsli"
-#include "../Common/Color.hlsli"
-#include "../Common/EnvironmentBuffer.hlsli"
-#include "../Common/CloudFrameBuffer.hlsli"
+// Horizon Zero Dawn / Nubis volumetric cloud helpers (Schneider, SIGGRAPH 2015 / GPU Pro 7).
+#include "../Common/Math.hlsli"
 
-float WE_CloudRemap(float value, float low, float high)
+static const float WE_CLOUD_PLANET_RADIUS_M = 6371000.0;
+static const float WE_CLOUD_INNER_OFFSET_M  = 1500.0;
+static const float WE_CLOUD_OUTER_OFFSET_M  = 4000.0;
+
+// Horizon path / aerial perspective (meters).
+static const float WE_CLOUD_MAX_MARCH_M           = 35000.0;
+static const float WE_CLOUD_HORIZON_MAX_MARCH_M   = 22000.0;
+static const float WE_CLOUD_HORIZON_FADE_START_M  = 12000.0;
+static const float WE_CLOUD_HORIZON_FADE_END_M    = 35000.0;
+static const float WE_CLOUD_ATMO_EXTINCTION       = 0.000028;
+
+float Remap(float value, float originalMin, float originalMax, float newMin, float newMax)
 {
-    return saturate((value - low) / max(high - low, 1e-4));
+    return newMin + ((value - originalMin) / max(originalMax - originalMin, 1e-5)) * (newMax - newMin);
 }
 
-// Finite horizontal domain radius (meters) around worldOrigin.xz.
-float WE_CloudDomainRadius()
+float RemapClamped(float value, float originalMin, float originalMax, float newMin, float newMax)
 {
-    // Prefer frame UBO; fall back so volume never becomes infinite.
-    return max(cloudDomainRadius, 1000.0);
+    return saturate(Remap(value, originalMin, originalMax, newMin, newMax));
 }
 
-// Soft radial mask: 1 in the interior, 0 at/ beyond the cylinder wall.
-float WE_CloudRadialMask(float3 worldPos, float3 worldOrigin)
-{
-    const float2 d = worldPos.xz - worldOrigin.xz;
-    const float r = length(d);
-    const float radius = WE_CloudDomainRadius();
-    const float edge = max(radius * 0.18, 200.0);
-    return 1.0 - smoothstep(radius - edge, radius, r);
-}
-
-float WE_CloudWeatherCoverage(float3 worldPos)
-{
-    const float3 wind = normalize(cloudWindDir + float3(1e-4, 0.0, 0.0)) * (cloudWindSpeed * cloudAnimTime * 0.12);
-    const float2 uv = (worldPos.xz + wind.xz) * (0.00085 * max(cloudNoiseScale, 0.05));
-    const float large = WE_FBM3D(float3(uv.x, cloudSeed * 0.07, uv.y), 4);
-    const float medium = WE_FBM3D(float3(uv.x, cloudSeed * 0.07, uv.y) * 2.4 + 11.0, 3);
-    // Bias toward clearer sky — coverage is applied in density remap, not here.
-    return saturate(large * 0.55 + medium * 0.35);
-}
-
-float WE_CloudShapeNoiseSample(float3 worldPos)
-{
-    const float3 wind = normalize(cloudWindDir + float3(1e-4, 0.0, 0.0)) * (cloudWindSpeed * cloudAnimTime);
-    const float3 noisePos = (worldPos + wind) * (0.0032 * max(cloudNoiseScale, 0.05))
-        + float3(cloudSeed, cloudAltitude * 0.001, cloudSeed * 0.37);
-    return WE_FBM3D(noisePos, 5);
-}
-
-float WE_CloudDetailNoiseSample(float3 worldPos)
-{
-    const float3 wind = normalize(cloudWindDir + float3(1e-4, 0.0, 0.0)) * (cloudWindSpeed * cloudAnimTime * 1.35);
-    const float3 noisePos = (worldPos + wind) * (0.0032 * max(cloudNoiseScale, 0.05) * max(cloudDetailScale, 1.0))
-        + float3(cloudSeed + 19.7, 4.2, cloudSeed * 0.21);
-    return WE_FBM3D(noisePos, 3);
-}
-
-float WE_CloudHeightProfile(float heightM)
-{
-    const float bottom = cloudBottomAltitude;
-    const float top = max(cloudTopAltitude, bottom + 50.0);
-    // Strictly zero outside the altitude slab.
-    if (heightM < bottom || heightM > top)
-        return 0.0;
-    const float h = saturate((heightM - bottom) / max(top - bottom, 1.0));
-    return saturate(1.0 - abs(h * 2.0 - 1.05) * 1.05)
-        * smoothstep(0.0, 0.14, h)
-        * smoothstep(1.0, 0.68, h);
-}
-
-float WE_CloudDensityAt(float3 worldPos, float3 worldOrigin)
-{
-    const float radial = WE_CloudRadialMask(worldPos, worldOrigin);
-    if (radial <= 1e-4)
-        return 0.0;
-
-    const float heightProfile = WE_CloudHeightProfile(worldPos.y - worldOrigin.y);
-    if (heightProfile <= 1e-4)
-        return 0.0;
-
-    const float weather = WE_CloudWeatherCoverage(worldPos);
-    if (weather < cloudEmptySkipThreshold * 0.5)
-        return 0.0;
-
-    // Scattered cumulus: remapped coverage leaves clear blue-sky gaps.
-    const float coverage = saturate(cloudCoverage);
-    const float localCoverage = saturate(coverage * (0.25 + 0.75 * weather));
-    if (localCoverage <= 0.08)
-        return 0.0;
-
-    const float shape = WE_CloudShapeNoiseSample(worldPos);
-    const float detail = WE_CloudDetailNoiseSample(worldPos);
-
-    // Harder coverage gate so density is only inside cumulus blobs, not a sky-wide haze.
-    float dens = WE_CloudRemap(shape, 1.0 - localCoverage * 0.85, 1.0);
-    dens = pow(dens, 1.35);
-    dens *= saturate(cloudShapeNoise);
-    dens = saturate(dens - detail * saturate(cloudErosionNoise) * (1.0 - dens * 0.35) * 0.7);
-    return dens * heightProfile * radial * max(cloudDensityMult, 0.0);
-}
-
-float WE_CloudOccupancyHint(float3 worldPos, float3 worldOrigin)
-{
-    const float radial = WE_CloudRadialMask(worldPos, worldOrigin);
-    if (radial <= 1e-4)
-        return 0.0;
-    const float heightProfile = WE_CloudHeightProfile(worldPos.y - worldOrigin.y);
-    if (heightProfile <= 1e-4)
-        return 0.0;
-    const float weather = WE_CloudWeatherCoverage(worldPos);
-    return weather * heightProfile * radial * saturate(cloudCoverage);
-}
-
-float WE_HenyeyGreenstein(float cosTheta, float g)
-{
-    const float g2 = g * g;
-    const float denom = pow(max(1.0 + g2 - 2.0 * g * cosTheta, 1e-4), 1.5);
-    return (1.0 - g2) / (4.0 * 3.14159265 * denom);
-}
-
-// Intersect ray with a finite cloud volume: Y slab ∩ vertical cylinder.
-// Marching is strictly limited to [tEnter, tExit] — never camera→far-plane.
-bool WE_IntersectCloudVolume(
+bool RaySphereIntersect(
     float3 rayOrigin,
     float3 rayDir,
-    float3 worldOrigin,
-    out float tEnter,
-    out float tExit)
-{
-    tEnter = 0.0;
-    tExit = -1.0;
-    rayDir = normalize(rayDir);
-
-    const float bottom = worldOrigin.y + cloudBottomAltitude;
-    const float top = worldOrigin.y + max(cloudTopAltitude, cloudBottomAltitude + 50.0);
-
-    // --- Y-slab intersection ---
-    float tY0;
-    float tY1;
-    if (abs(rayDir.y) < 1e-6)
-    {
-        // Parallel to planes: only valid if already inside the slab.
-        if (rayOrigin.y < bottom || rayOrigin.y > top)
-            return false;
-        tY0 = 0.0;
-        tY1 = cloudMaxMarchDistance;
-    }
-    else
-    {
-        tY0 = (bottom - rayOrigin.y) / rayDir.y;
-        tY1 = (top - rayOrigin.y) / rayDir.y;
-        if (tY0 > tY1) { float tmp = tY0; tY0 = tY1; tY1 = tmp; }
-    }
-
-    // --- Cylinder (XZ) intersection around worldOrigin ---
-    const float radius = WE_CloudDomainRadius();
-    const float2 ro = rayOrigin.xz - worldOrigin.xz;
-    const float2 rd = rayDir.xz;
-    const float a = dot(rd, rd);
-    float tC0 = 0.0;
-    float tC1 = cloudMaxMarchDistance;
-    if (a > 1e-8)
-    {
-        const float b = 2.0 * dot(ro, rd);
-        const float c = dot(ro, ro) - radius * radius;
-        const float disc = b * b - 4.0 * a * c;
-        if (disc < 0.0)
-            return false;
-        const float s = sqrt(disc);
-        tC0 = (-b - s) / (2.0 * a);
-        tC1 = (-b + s) / (2.0 * a);
-        if (tC0 > tC1) { float tmp = tC0; tC0 = tC1; tC1 = tmp; }
-    }
-    else
-    {
-        // Vertical ray in XZ: must already be inside cylinder.
-        if (dot(ro, ro) > radius * radius)
-            return false;
-    }
-
-    // Boolean intersection of slab and cylinder intervals.
-    tEnter = max(max(tY0, tC0), 0.0);
-    tExit = min(min(tY1, tC1), tEnter + max(cloudMaxMarchDistance, 1000.0));
-    return tExit > tEnter + 1e-2;
-}
-
-// Backward-compatible alias used by temporal/debug code.
-bool WE_IntersectCloudSlab(
-    float3 rayOrigin,
-    float3 rayDir,
-    float3 worldOrigin,
+    float sphereRadius,
     out float t0,
     out float t1)
 {
-    return WE_IntersectCloudVolume(rayOrigin, rayDir, worldOrigin, t0, t1);
-}
-
-float WE_CloudLightMarch(float3 pos, float3 sunDir, float3 worldOrigin)
-{
-    float shadow = 1.0;
-    const float top = worldOrigin.y + max(cloudTopAltitude, cloudBottomAltitude + 50.0);
-    const float distToTop = max(top - pos.y, 10.0);
-    const float stepLen = distToTop / 5.0;
-    [unroll]
-    for (int i = 0; i < 5; ++i)
-    {
-        const float3 samplePos = pos + sunDir * (float(i) + 0.5) * stepLen;
-        const float d = WE_CloudDensityAt(samplePos, worldOrigin);
-        shadow *= exp(-d * max(cloudExtinction, 0.05) * stepLen * 0.04 * max(cloudShadowStrength, 0.0));
-    }
-    return shadow;
-}
-
-float3 WE_RaymarchClouds(
-    float3 rayOrigin,
-    float3 rayDir,
-    float3 worldOrigin,
-    float3 sunDir,
-    float3 sunColor,
-    float sunIntensity,
-    float2 screenUV,
-    float sceneHitT, // world-space distance to opaque geometry (huge if sky)
-    out float opacity,
-    out float avgDensity,
-    out float stepsTaken,
-    out float emptySkips,
-    out float tEnterOut,
-    out float tExitOut)
-{
-    opacity = 0.0;
-    avgDensity = 0.0;
-    stepsTaken = 0.0;
-    emptySkips = 0.0;
-    tEnterOut = 0.0;
-    tExitOut = 0.0;
+    t0 = 0.0;
+    t1 = 0.0;
     rayDir = normalize(rayDir);
-    sunDir = normalize(sunDir);
+    const float b = dot(rayOrigin, rayDir);
+    const float c = dot(rayOrigin, rayOrigin) - sphereRadius * sphereRadius;
+    const float discriminant = b * b - c;
+    if (discriminant < 0.0)
+        return false;
+    const float s = sqrt(max(discriminant, 0.0));
+    t0 = -b - s;
+    t1 = -b + s;
+    return t1 > 0.0;
+}
 
+// First positive hit distance, or a huge value if none.
+float RaySphereHitPositive(float3 rayOrigin, float3 rayDir, float sphereRadius)
+{
     float t0, t1;
-    if (!WE_IntersectCloudVolume(rayOrigin, rayDir, worldOrigin, t0, t1))
-        return float3(0.0, 0.0, 0.0);
+    if (!RaySphereIntersect(rayOrigin, rayDir, sphereRadius, t0, t1))
+        return 1e9;
+    if (t0 > 1e-3)
+        return t0;
+    if (t1 > 1e-3)
+        return t1;
+    return 1e9;
+}
 
-    // Opaque scene in front of the cloud volume → fully occluded.
-    if (sceneHitT <= t0)
-        return float3(0.0, 0.0, 0.0);
+float3 WorldToPlanetSpace(float3 worldPos, float3 worldOrigin, float planetRadiusMeters)
+{
+    // Planet center at worldOrigin - (0,R,0); planet-space = offset + (0,R,0).
+    return (worldPos - worldOrigin) + float3(0.0, planetRadiusMeters, 0.0);
+}
 
-    // Truncate march at scene depth so clouds never draw through nearby geometry.
-    t1 = min(t1, sceneHitT);
-    if (t1 <= t0)
-        return float3(0.0, 0.0, 0.0);
+float CloudHeightFraction(float3 planetPos, float innerRadius, float outerRadius)
+{
+    // World-Y band (matches surface slab + flat landscape). Radial length()
+    // tilted the deck when the camera was offset in XZ.
+    return saturate((planetPos.y - innerRadius) / max(outerRadius - innerRadius, 1.0));
+}
 
-    tEnterOut = t0;
-    tExitOut = t1;
+float3 ApproximateSkyRadiance(float3 rayDir, float3 toSun, float3 sunCol, float3 ambientCol)
+{
+    const float height = saturate(rayDir.y * 0.5 + 0.5);
+    const float3 horizon = float3(0.55, 0.62, 0.72);
+    const float3 zenith  = float3(0.12, 0.28, 0.58);
+    const float3 nadir   = float3(0.22, 0.24, 0.26);
+    float3 sky = lerp(horizon, zenith, pow(height, 1.25));
+    sky = lerp(nadir, sky, saturate(rayDir.y * 0.85 + 0.85));
+    sky += sunCol * pow(saturate(dot(rayDir, toSun)), 8.0) * 0.35;
+    sky += ambientCol * 0.12;
+    return sky;
+}
 
-    // Only rays that meaningfully look through the layer contribute (kills ground/horizon haze).
-    const float elev = rayDir.y;
-    // Below horizon looking down: allow only if currently inside the volume (t0\approx0).
-    if (elev < -0.02 && t0 > 1.0)
-        return float3(0.0, 0.0, 0.0);
+// ---------------------------------------------------------------------------
+// Cloud shell interval — surface cameras use a WORLD-Y altitude slab so the
+// cloud deck stays parallel to the flat landscape (not camera / planet-radial).
+// ---------------------------------------------------------------------------
+bool CloudShellIntersect(
+    float3 planetCam,
+    float3 rayDir,
+    float planetRadius,
+    float innerRadius,
+    float outerRadius,
+    out float tStart,
+    out float tEnd)
+{
+    tStart = 0.0;
+    tEnd = 0.0;
+    rayDir = normalize(rayDir);
 
-    const int maxSteps = clamp(cloudQualitySteps, 12, 64);
-    const float marchLen = max(t1 - t0, 1.0);
+    const float rCam = length(planetCam);
+    // World up is +Y (engine / landscape). Do NOT use normalize(planetCam) here —
+    // that tilts the slab when the camera is offset from origin and makes the
+    // cloud deck appear to bank with the view relative to the ground plane.
+    const float3 worldUp = float3(0.0, 1.0, 0.0);
+    const float camHeight = planetCam.y - planetRadius; // meters AGL (Y-up)
+    const float cloudBottom = innerRadius - planetRadius;
+    const float cloudTop = outerRadius - planetRadius;
+    const float elev = rayDir.y; // == dot(rayDir, worldUp)
 
-    const float viewFactor = saturate(abs(elev) * 4.0);
-    const float distFactor = saturate(2500.0 / max(t0, 1.0));
-    const int adaptiveSteps = clamp(
-        (int)round(float(maxSteps) * lerp(0.55, 1.0, viewFactor) * lerp(0.7, 1.1, distFactor)),
-        10,
-        maxSteps);
-
-    float stepSize = min(marchLen / float(adaptiveSteps), max(cloudThickness, 80.0) / 14.0);
-
-    const float jitter = WE_BlueNoise(
-        screenUV * 97.0 + float2(cloudSeed, float(cloudFrameCounter) * 0.17)
-        + cloudTemporalJitter * 40.0) * stepSize;
-
-    float3 accum = float3(0.0, 0.0, 0.0);
-    float transmittance = 1.0;
-    float densitySum = 0.0;
-    int densityHits = 0;
-    float t = t0 + jitter;
-
-    const float3 sunLight = sunColor * sunIntensity * max(cloudLightingIntensity, 0.0);
-    const float3 ambient = sunLight * max(cloudAmbient, 0.0) + float3(0.04, 0.06, 0.12);
-    const float3 albedo = WE_sRGBToLinear(saturate(cloudColor));
-    const float opticalScale = 0.032;
-
-    int coarseStreak = 0;
-
-    [loop]
-    for (int i = 0; i < 64; ++i)
+    // ---- Surface / below cloud bottom ----
+    if (rCam < innerRadius || camHeight < cloudBottom)
     {
-        if (i >= adaptiveSteps || t > t1 || transmittance < 0.02)
-            break;
+        // Looking down / into the ground — no cloud march.
+        if (elev < 0.02)
+            return false;
 
-        stepsTaken += 1.0;
-        const float3 pos = rayOrigin + rayDir * t;
-
-        const float occupancy = WE_CloudOccupancyHint(pos, worldOrigin);
-        if (occupancy < cloudEmptySkipThreshold)
+        tStart = (cloudBottom - camHeight) / elev;
+        tEnd = (cloudTop - camHeight) / elev;
+        if (tEnd < tStart)
         {
-            emptySkips += 1.0;
-            coarseStreak += 1;
-            t += stepSize * lerp(1.5, 3.0, saturate(float(coarseStreak) * 0.25));
-            continue;
-        }
-        coarseStreak = 0;
-
-        const float density = WE_CloudDensityAt(pos, worldOrigin);
-        if (density <= 0.001)
-        {
-            t += stepSize;
-            continue;
+            float tmp = tStart;
+            tStart = tEnd;
+            tEnd = tmp;
         }
 
-        densitySum += density;
-        densityHits += 1;
+        if (camHeight > cloudBottom && camHeight < cloudTop)
+            tStart = 0.0;
 
-        const float cosTheta = dot(-rayDir, sunDir);
-        const float phase = lerp(0.22, WE_HenyeyGreenstein(cosTheta, cloudPhaseG), 0.85)
-            * (1.0 + max(cloudSilverLining, 0.0) * pow(saturate(cosTheta), 10.0));
+        tStart = max(tStart, 0.0);
+        if (tEnd <= tStart + 1.0)
+            return false;
 
-        const float lightTrans = WE_CloudLightMarch(pos, sunDir, worldOrigin);
-        const float powder = 1.0 - exp(-density * 2.2) * saturate(cloudPowder);
-        const float multi = 1.0 + cloudMultiScatter * density * (0.5 + 0.5 * lightTrans);
-
-        const float3 scatter =
-            albedo * (ambient * (0.65 + 0.35 * lightTrans) + sunLight * phase * powder * multi * lightTrans) * density;
-        const float absorb = exp(-density * max(cloudExtinction, 0.05) * stepSize * opticalScale);
-        accum += transmittance * scatter * (1.0 - absorb);
-        transmittance *= absorb;
-
-        t += stepSize * lerp(0.55, 1.0, saturate(1.0 - density));
+        const float horizon = saturate(1.0 - elev * 5.0);
+        const float maxPath = lerp(WE_CLOUD_MAX_MARCH_M, WE_CLOUD_HORIZON_MAX_MARCH_M, horizon);
+        tEnd = min(tEnd, tStart + maxPath);
+        return tEnd > tStart + 1.0;
     }
 
-    avgDensity = densityHits > 0 ? (densitySum / float(densityHits)) : 0.0;
-    const float rawOpacity = saturate(1.0 - transmittance);
-    // Distance fade: far hits within the domain stay softer so they read as a layer, not a veil.
-    const float distFade = 1.0 - saturate((t0 - 500.0) / max(WE_CloudDomainRadius(), 1.0));
-    opacity = rawOpacity * lerp(0.55, 1.0, saturate(elev * 3.0 + 0.15)) * lerp(0.75, 1.0, distFade);
-    if (rawOpacity <= 1e-4)
-        return float3(0.0, 0.0, 0.0);
+    // ---- Inside / above shell: planetary spheres ----
+    float tOuter0 = 0.0;
+    float tOuter1 = 0.0;
+    if (!RaySphereIntersect(planetCam, rayDir, outerRadius, tOuter0, tOuter1))
+        return false;
 
-    return (accum / max(rawOpacity, 1e-3)) * 1.1;
+    float tInner0 = 0.0;
+    float tInner1 = 0.0;
+    const bool hitInner = RaySphereIntersect(planetCam, rayDir, innerRadius, tInner0, tInner1);
+    const float tGround = RaySphereHitPositive(planetCam, rayDir, planetRadius);
+
+    if (rCam < outerRadius)
+    {
+        tStart = 0.0;
+        tEnd = tOuter1;
+        if (hitInner && tInner0 > 0.0)
+            tEnd = min(tEnd, tInner0);
+        tEnd = min(tEnd, tGround);
+    }
+    else
+    {
+        tStart = max(tOuter0, 0.0);
+        tEnd = tOuter1;
+        if (hitInner && tInner0 > tStart)
+            tEnd = tInner0;
+        tEnd = min(tEnd, tGround);
+    }
+
+    if (tEnd <= tStart + 1.0)
+        return false;
+
+    const float horizon = saturate(1.0 - max(elev, 0.0) * 5.0);
+    const float maxPath = lerp(WE_CLOUD_MAX_MARCH_M, WE_CLOUD_HORIZON_MAX_MARCH_M, horizon);
+    tEnd = min(tEnd, tStart + maxPath);
+    return tEnd > tStart + 1.0;
+}
+
+// Height fraction from world-Y altitude (matches the surface slab).
+float CloudHeightFractionY(float3 planetPos, float planetRadius, float innerRadius, float outerRadius)
+{
+    const float altitude = planetPos.y - planetRadius;
+    const float bottom = innerRadius - planetRadius;
+    const float top = outerRadius - planetRadius;
+    return saturate((altitude - bottom) / max(top - bottom, 1.0));
+}
+
+// ---------------------------------------------------------------------------
+float StratusGradient(float h)
+{
+    return saturate(Remap(h, 0.0, 0.1, 0.0, 1.0)) * saturate(Remap(h, 0.2, 0.3, 1.0, 0.0));
+}
+
+float CumulusGradient(float h)
+{
+    // Flat base, strong mid puff, soft top — used on *local* height (per-pack).
+    return saturate(Remap(h, 0.0, 0.18, 0.0, 1.0)) * saturate(Remap(h, 0.55, 1.0, 1.0, 0.0));
+}
+
+float CumulonimbusGradient(float h)
+{
+    return saturate(Remap(h, 0.0, 0.10, 0.0, 1.0)) * saturate(Remap(h, 0.80, 1.0, 1.0, 0.0));
+}
+
+float CloudTypeHeightSignal(float heightFraction, float cloudType)
+{
+    const float stratus = StratusGradient(heightFraction);
+    const float cumulus = CumulusGradient(heightFraction);
+    const float cumulonimbus = CumulonimbusGradient(heightFraction);
+    const float t0 = saturate(cloudType * 2.0);
+    const float t1 = saturate(cloudType * 2.0 - 1.0);
+    return lerp(lerp(stratus, cumulus, t0), cumulonimbus, t1);
+}
+
+// Break axis-aligned tile lines that read as a horizon grid.
+float2 CloudShearXZ(float2 xz)
+{
+    return float2(
+        xz.x * 0.965 + xz.y * 0.255,
+        xz.x * -0.215 + xz.y * 1.035);
+}
+
+float HenyeyGreenstein(float cosTheta, float g)
+{
+    const float g2 = g * g;
+    const float denom = pow(max(1.0 + g2 - 2.0 * g * cosTheta, 1e-4), 1.5);
+    return (1.0 - g2) / max(4.0 * WE_PI * denom, 1e-4);
+}
+
+float DualLobeHG(float cosTheta, float gForward, float gBack, float blend)
+{
+    return lerp(HenyeyGreenstein(cosTheta, gBack), HenyeyGreenstein(cosTheta, gForward), blend);
+}
+
+float BeerLaw(float densityAlongLight, float absorption)
+{
+    return exp(-densityAlongLight * absorption);
+}
+
+// Schneider / Nubis powder: 1 - exp(-od * 2). Keep most of the classic term.
+float PowderEffect(float densityAlongLight, float cosTheta, float powderStrength)
+{
+    const float powder = 1.0 - exp(-densityAlongLight * 2.0);
+    const float viewDependent = saturate((-cosTheta) * 0.5 + 0.5);
+    const float apply = saturate(powderStrength) * lerp(0.35, 0.85, viewDependent);
+    return lerp(1.0, powder, apply);
+}
+
+float SilverLining(float cosTheta, float intensity, float spread)
+{
+    const float lobe = pow(saturate(cosTheta), max(spread, 1.0));
+    return 1.0 + saturate(intensity) * lobe * 0.55;
+}
+
+// Andrew Schneider (HZD / GPU Pro 7):
+//   beer   = exp(-od * sigma)           sigma ~ 0.05..0.1
+//   powder = 1 - exp(-od * 2)
+//   direct = 2 * beer * powder
+// Multi-scatter fills thick cores. Beer floor keeps sunlit faces from going ambient-blue.
+float BeerPowderMultiScatter(float optical, float absorption, float cosTheta, float powderStrength)
+{
+    const float sigma = clamp(absorption, 0.045, 0.12);
+    const float beer = BeerLaw(optical, sigma);
+    const float powder = PowderEffect(optical, cosTheta, powderStrength);
+    // Classic term — but at OD~0 powder→0 would kill all direct (blue ambient blobs).
+    const float beerPowder = 2.0 * beer * powder;
+    const float sunlitFloor = beer * 0.45;
+    const float direct = max(beerPowder, sunlitFloor);
+
+    const float ms1 = BeerLaw(optical, sigma * 0.50);
+    const float ms2 = BeerLaw(optical, sigma * 0.25);
+    const float ms3 = BeerLaw(optical, sigma * 0.125);
+    const float multiScatter = beer * 0.50 + ms1 * 0.28 + ms2 * 0.15 + ms3 * 0.07;
+
+    return direct * 0.75 + multiScatter * (1.0 - beer) * 0.70;
+}
+
+float HeightAmbientFactor(float heightFraction)
+{
+    // Brighter cauliflower tops — sky-like, not mud (single definition).
+    return lerp(0.55, 1.35, saturate(heightFraction));
+}
+
+// ---------------------------------------------------------------------------
+struct CloudDensityResult
+{
+    float density;
+    float heightFraction;
+};
+
+CloudDensityResult SampleCloudDensity(
+    float3 planetPos,
+    float innerRadius,
+    float outerRadius,
+    float coverage,
+    float cloudType,
+    float precipitation,
+    float3 windOffset,
+    float baseScale,
+    float detailScale,
+    float curlStrength,
+    bool expensive,
+    Texture3D<float4> baseShape,
+    Texture3D<float4> detailShape,
+    Texture2D<float4> curlNoise,
+    SamplerState samp)
+{
+    CloudDensityResult result;
+    result.density = 0.0;
+    result.heightFraction = CloudHeightFraction(planetPos, innerRadius, outerRadius);
+
+    if (result.heightFraction <= 0.0 || result.heightFraction >= 1.0)
+        return result;
+
+    // World meters: XZ from planet frame, Y = altitude above cloud bottom.
+    const float3 worldPos = float3(
+        planetPos.x,
+        planetPos.y - innerRadius,
+        planetPos.z);
+
+    const float bScale = max(baseScale, 0.00012);
+    const float dScale = max(detailScale, 0.0012);
+
+    // --- Anti-grid weather: shear + domain warp + irrational octaves ---
+    // Axis-aligned frac(XZ * scale) tiles read as horizon rows/columns.
+    float2 xz = worldPos.xz + windOffset.xz * 0.4;
+    xz = CloudShearXZ(xz);
+
+    // Large-scale curl warp so packs drift off the lattice.
+    {
+        const float2 warpUV = frac(xz * 0.00007 + float2(0.13, 0.41));
+        const float2 warp = (curlNoise.SampleLevel(samp, warpUV, 0.0).rg * 2.0 - 1.0);
+        xz += warp * (2200.0 * max(curlStrength, 0.25));
+    }
+
+    const float weatherScale = bScale * 0.42;
+    // Irrational frequency ratios break repeating cell lines.
+    const float3 wA = float3(xz * weatherScale, 0.17);
+    const float3 wB = float3(xz * (weatherScale * 1.618) + float2(17.3, 9.1), 0.41);
+    const float3 wC = float3(CloudShearXZ(xz.yx) * (weatherScale * 0.618) + float2(3.7, 22.5), 0.63);
+
+    const float4 s0 = baseShape.SampleLevel(samp, frac(wA), 0.0);
+    const float4 s1 = baseShape.SampleLevel(samp, frac(wB), 0.0);
+    const float4 s2 = baseShape.SampleLevel(samp, frac(wC), 0.0);
+
+    // Blend Worley islands with a little Perlin so clusters clump organically.
+    float weather = saturate(
+        s0.g * 0.40 + s0.b * 0.20 +
+        s1.g * 0.22 +
+        s2.r * 0.18);
+    weather = RemapClamped(weather, 0.28, 0.90, 0.0, 1.0);
+    weather = pow(weather, 1.18);
+
+    const float coveragePrime = saturate(coverage);
+    float weatherCloud = RemapClamped(weather, 1.0 - coveragePrime, 1.0, 0.0, 1.0);
+    weatherCloud = pow(saturate(weatherCloud * max(weather, 0.35)), 1.05);
+    if (weatherCloud < 0.02)
+        return result;
+
+    // --- Per-pack elevation: each weather cell gets its own altitude band ---
+    // (Fixes the flat “all clouds on one shelf” look.)
+    const float3 altPos = float3(xz * (weatherScale * 0.31) + float2(5.2, 11.8), 0.07);
+    const float altNoise = baseShape.SampleLevel(samp, frac(altPos), 0.0).r;
+    const float packHeight = saturate(s1.a * 0.55 + altNoise * 0.45);
+    // Local slab window inside the global cloud layer.
+    const float localBottom = lerp(0.02, 0.38, packHeight);
+    const float localThickness = lerp(0.40, 0.72, saturate(weather * 0.6 + packHeight * 0.4));
+    const float localTop = min(localBottom + localThickness, 0.98);
+    const float localH = RemapClamped(result.heightFraction, localBottom, localTop, 0.0, 1.0);
+    if (localH <= 0.0 || localH >= 1.0)
+        return result;
+
+    const float heightSignal = CloudTypeHeightSignal(localH, cloudType);
+    if (heightSignal <= 1e-4)
+        return result;
+
+    // --- Base shape (mild Y stretch for billows, still permissive) ---
+    float3 basePos = float3(xz, worldPos.y) * bScale;
+    basePos.y *= lerp(1.05, 1.35, packHeight);
+
+    if (curlStrength > 1e-4)
+    {
+        const float2 curlUV = frac(xz * 0.00028 + windOffset.xz * 0.1);
+        const float2 curl = (curlNoise.SampleLevel(samp, curlUV, 0.0).rg * 2.0 - 1.0) * curlStrength;
+        basePos.xz += curl * 0.40;
+        basePos.y += (curl.x * 0.08 + curl.y * 0.06);
+    }
+
+    const float4 lowFreq = baseShape.SampleLevel(samp, frac(basePos), 0.0);
+    const float lowFreqFBM = lowFreq.g * 0.625 + lowFreq.b * 0.25 + lowFreq.a * 0.125;
+    float baseCloud = saturate(Remap(lowFreq.r, lowFreqFBM - 1.0, 1.0, 0.0, 1.0));
+
+    baseCloud *= heightSignal;
+    baseCloud = RemapClamped(baseCloud, 1.0 - weatherCloud, 1.0, 0.0, 1.0);
+    baseCloud *= weatherCloud;
+    // Soft local underside (use localH, not global slab floor).
+    baseCloud *= RemapClamped(localH, 0.0, 0.18, 0.0, 1.0);
+
+    if (baseCloud < 0.015)
+        return result;
+
+    // --- Detail erosion ---
+    {
+        float3 detailPos = float3(xz, worldPos.y) * dScale + windOffset * 0.5 * dScale;
+        if (expensive && curlStrength > 1e-4)
+        {
+            const float2 curlUV = frac(detailPos.xz * 0.5);
+            const float2 curl = (curlNoise.SampleLevel(samp, curlUV, 0.0).rg * 2.0 - 1.0) * curlStrength;
+            detailPos.xz += curl * 0.45;
+        }
+
+        const float4 highFreq = detailShape.SampleLevel(samp, frac(detailPos), 0.0);
+        float highFreqFBM = highFreq.r * 0.625 + highFreq.g * 0.25 + highFreq.b * 0.125;
+        highFreqFBM = lerp(1.0 - highFreqFBM, highFreqFBM, saturate(localH * 5.0));
+
+        const float erodeStr = expensive ? 0.48 : 0.32;
+        baseCloud = RemapClamped(baseCloud, highFreqFBM * erodeStr, 1.0, 0.0, 1.0);
+    }
+
+    if (baseCloud < 0.015)
+        return result;
+
+    const float rainDarken = lerp(1.0, 0.65, saturate(precipitation));
+    result.density = max(baseCloud * rainDarken, 0.0);
+    return result;
 }
 
 #endif // WE_VOLUMETRIC_CLOUDS_HLSLI

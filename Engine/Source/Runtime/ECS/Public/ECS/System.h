@@ -138,12 +138,6 @@ public:
     void Update(Registry& registry, float deltaSeconds) override;
 };
 
-class ECS_API VolumetricCloudSystem : public ISystem {
-public:
-    const char* Name() const override { return "VolumetricCloudSystem"; }
-    void Update(Registry& registry, float deltaSeconds) override;
-};
-
 class ECS_API TerrainEcsSystem : public ISystem {
 public:
     const char* Name() const override { return "TerrainSystem"; }

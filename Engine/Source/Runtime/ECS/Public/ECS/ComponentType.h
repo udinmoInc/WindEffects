@@ -39,7 +39,6 @@ enum class CoreComponentId : ComponentTypeId {
     StaticMesh,
     Material,
     SkyAtmosphere,
-    VolumetricCloud,
     Terrain,
     Water,
     Collider,

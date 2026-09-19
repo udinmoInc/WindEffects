@@ -30,7 +30,6 @@ bool IsEnvironmentEntityType(EntityType type) {
     case EntityType::SkyLight:
     case EntityType::SkyAtmosphere:
     case EntityType::HeightFog:
-    case EntityType::VolumetricClouds:
         return true;
     default:
         return false;
@@ -74,7 +73,6 @@ bool EnvironmentSystem::HasEnvironmentActors() const {
         || m_SkyLight.EntityId != 0
         || m_SkyAtmosphere.EntityId != 0
         || m_HeightFog.EntityId != 0
-        || m_VolumetricClouds.EntityId != 0
         || m_ExposureController.EntityId != 0;
 }
 
@@ -110,16 +108,6 @@ void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& set
     m_HeightFog.StartDistance = settings.fogStartDistance;
     m_HeightFog.VolumetricFog = settings.enableVolumetricFog;
 
-    m_VolumetricClouds.ApplyDefaults();
-    m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
-    m_VolumetricClouds.Coverage = settings.cloudCoverage;
-    m_VolumetricClouds.Altitude = settings.cloudAltitude;
-    m_VolumetricClouds.CloudHeight = settings.cloudAltitude;
-    const float halfThickness = std::max(50.0f, m_VolumetricClouds.CloudThickness * 0.5f);
-    m_VolumetricClouds.BottomAltitude = settings.cloudAltitude - halfThickness;
-    m_VolumetricClouds.TopAltitude = settings.cloudAltitude + halfThickness;
-    m_VolumetricClouds.SyncAltitudeFromBounds();
-
     m_ExposureController.ApplyDefaults();
 }
 
@@ -140,10 +128,6 @@ void EnvironmentSystem::ApplyComponentsToActors() {
     }
     if (Entity* fog = scene->FindEntityById(m_HeightFog.EntityId)) {
         m_HeightFog.ApplyToEntity(fog->Color, fog->Scale);
-    }
-    if (Entity* clouds = scene->FindEntityById(m_VolumetricClouds.EntityId)) {
-        clouds->Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
-        clouds->Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
     }
 }
 
@@ -243,7 +227,6 @@ void EnvironmentSystem::DiscoverExistingActors() {
     m_SkyLight.EntityId = 0;
     m_SkyAtmosphere.EntityId = 0;
     m_HeightFog.EntityId = 0;
-    m_VolumetricClouds.EntityId = 0;
     m_ExposureController.EntityId = 0;
 
     for (const Entity& entity : scene->GetEntities()) {
@@ -278,15 +261,6 @@ void EnvironmentSystem::DiscoverExistingActors() {
             "Exponential Height Fog") {
             m_HeightFog.EntityId = entity.Id;
             m_HeightFog.SyncFromEntity(entity.Color, entity.Scale);
-            continue;
-        }
-        if (entity.Type == EntityType::VolumetricClouds || entity.Name == kVolumetricCloudsActorName) {
-            if (m_VolumetricClouds.EntityId != 0 && m_VolumetricClouds.EntityId != entity.Id) {
-                continue;
-            }
-            m_VolumetricClouds.EntityId = entity.Id;
-            m_VolumetricClouds.Enabled = true;
-            m_VolumetricClouds.SyncAltitudeFromBounds();
             continue;
         }
         if (IsExposureControllerEntity(entity)) {
@@ -328,7 +302,6 @@ void EnvironmentSystem::ReparentEnvironmentActors() {
     reparent(m_SkyLight.EntityId);
     reparent(m_SkyAtmosphere.EntityId);
     reparent(m_HeightFog.EntityId);
-    reparent(m_VolumetricClouds.EntityId);
     reparent(m_ExposureController.EntityId);
 }
 
@@ -409,18 +382,6 @@ void EnvironmentSystem::CreateEnvironment() {
         });
     }
 
-    if ((settings.createVolumetricClouds || m_VolumetricClouds.Enabled) && m_VolumetricClouds.EntityId == 0) {
-        m_VolumetricClouds.Enabled = settings.createVolumetricClouds;
-        if (m_VolumetricClouds.Enabled) {
-            m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds,
-                folderId, [&](Entity& entity) {
-                entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
-                entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
-                entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
-            });
-        }
-    }
-
     if (m_ExposureController.EntityId == 0) {
         m_ExposureController.EntityId = SpawnActor(kExposureControllerActorName, EntityType::EmptyActor, folderId,
             [&](Entity& entity) {
@@ -458,7 +419,6 @@ void EnvironmentSystem::RemoveEnvironment() {
         DestroyActor(m_SkyLight.EntityId);
         DestroyActor(m_SkyAtmosphere.EntityId);
         DestroyActor(m_HeightFog.EntityId);
-        DestroyActor(m_VolumetricClouds.EntityId);
         DestroyActor(m_ExposureController.EntityId);
     }
 
@@ -468,7 +428,6 @@ void EnvironmentSystem::RemoveEnvironment() {
     m_SkyLight.EntityId = 0;
     m_SkyAtmosphere.EntityId = 0;
     m_HeightFog.EntityId = 0;
-    m_VolumetricClouds.EntityId = 0;
     m_ExposureController.EntityId = 0;
 
     UpdateRendering();
@@ -490,34 +449,8 @@ void EnvironmentSystem::SetVolumetricFogEnabled(bool enabled) {
     NotifyChanged();
 }
 
-void EnvironmentSystem::SetVolumetricCloudsEnabled(bool enabled) {
-    m_VolumetricClouds.Enabled = enabled;
-    if (enabled && m_VolumetricClouds.EntityId == 0) {
-        const std::uint64_t folderId = EnsureFolder();
-        m_VolumetricClouds.EntityId = SpawnActor(kVolumetricCloudsActorName, EntityType::VolumetricClouds, folderId,
-            [&](Entity& entity) {
-            entity.Position = we::math::Vec3(0.0f, m_VolumetricClouds.Altitude * 0.001f, 0.0f);
-            entity.Color = we::math::Vec4(m_VolumetricClouds.CloudColor, 1.0f);
-            entity.Scale = we::math::Vec3(0.5f + m_VolumetricClouds.Coverage);
-        });
-    } else if (!enabled && m_VolumetricClouds.EntityId != 0) {
-        DestroyActor(m_VolumetricClouds.EntityId);
-        m_VolumetricClouds.EntityId = 0;
-    }
-
-    EnvironmentSettings settings = EnvironmentSettingsLoader::Get().GetSettings();
-    settings.createVolumetricClouds = enabled;
-    EnvironmentSettingsLoader::Get().SaveSettings(settings);
-    UpdateRendering();
-    NotifyChanged();
-}
-
 bool EnvironmentSystem::IsVolumetricFogEnabled() const {
     return m_HeightFog.VolumetricFog;
-}
-
-bool EnvironmentSystem::IsVolumetricCloudsEnabled() const {
-    return m_VolumetricClouds.Enabled && m_VolumetricClouds.EntityId != 0;
 }
 
 void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
@@ -529,7 +462,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 1.0f;
         m_HeightFog.Density = 0.01f;
         m_HeightFog.VolumetricFog = true;
-        ApplyCloudPreset(CloudPreset::ScatteredClouds);
         break;
     case EnvironmentPreset::Sunset:
         m_Sun.Intensity = 6.0f;
@@ -537,7 +469,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_Sun.Rotation = we::math::Vec3(-8.0f, 280.0f, 0.0f);
         m_SkyLight.Intensity = 0.7f;
         m_HeightFog.Density = 0.015f;
-        ApplyCloudPreset(CloudPreset::SunsetClouds);
         break;
     case EnvironmentPreset::Night:
         m_Sun.Intensity = 0.15f;
@@ -546,7 +477,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.2f;
         m_HeightFog.Density = 0.005f;
         m_HeightFog.VolumetricFog = false;
-        ApplyCloudPreset(CloudPreset::FewClouds);
         break;
     case EnvironmentPreset::Overcast:
         m_Sun.Intensity = 3.0f;
@@ -554,7 +484,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_Sun.Rotation = we::math::Vec3(-55.0f, 60.0f, 0.0f);
         m_SkyLight.Intensity = 1.4f;
         m_HeightFog.Density = 0.02f;
-        ApplyCloudPreset(CloudPreset::Overcast);
         break;
     case EnvironmentPreset::Foggy:
         m_Sun.Intensity = 4.0f;
@@ -563,7 +492,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.9f;
         m_HeightFog.Density = 0.06f;
         m_HeightFog.VolumetricFog = true;
-        ApplyCloudPreset(CloudPreset::BrokenClouds);
         break;
     case EnvironmentPreset::Studio:
         m_Sun.Intensity = 8.0f;
@@ -572,7 +500,6 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
         m_SkyLight.Intensity = 0.6f;
         m_HeightFog.Density = 0.0f;
         m_HeightFog.VolumetricFog = false;
-        ApplyCloudPreset(CloudPreset::ClearSky);
         break;
     }
 
@@ -581,24 +508,7 @@ void EnvironmentSystem::ApplyPreset(EnvironmentPreset preset) {
     NotifyChanged();
 }
 
-void EnvironmentSystem::ApplyCloudPreset(CloudPreset preset) {
-    m_VolumetricClouds.ApplyPreset(preset);
-    if (preset == CloudPreset::ClearSky) {
-        // Keep actor present but disable rendering.
-        m_VolumetricClouds.Enabled = false;
-    } else if (m_VolumetricClouds.EntityId == 0) {
-        SetVolumetricCloudsEnabled(true);
-        m_VolumetricClouds.ApplyPreset(preset);
-    } else {
-        m_VolumetricClouds.Enabled = true;
-    }
-    SyncToScene();
-    UpdateRendering();
-    NotifyChanged();
-}
-
-void EnvironmentSystem::Tick(float deltaTime) {
-    m_VolumetricClouds.Tick(deltaTime);
+void EnvironmentSystem::Tick(float /*deltaTime*/) {
 }
 
 void EnvironmentSystem::SyncFromScene(const we::math::Vec3& cameraPosition) {
@@ -660,7 +570,6 @@ EnvironmentActorKind EnvironmentSystem::GetActorKind(std::uint64_t entityId) con
     if (entityId == m_SkyLight.EntityId) return EnvironmentActorKind::SkyLight;
     if (entityId == m_SkyAtmosphere.EntityId) return EnvironmentActorKind::SkyAtmosphere;
     if (entityId == m_HeightFog.EntityId) return EnvironmentActorKind::HeightFog;
-    if (entityId == m_VolumetricClouds.EntityId) return EnvironmentActorKind::VolumetricClouds;
     if (entityId == m_ExposureController.EntityId) return EnvironmentActorKind::ExposureController;
     return EnvironmentActorKind::Folder;
 }

@@ -34,7 +34,6 @@ using we::runtime::ecs::PointLightComponent;
 using we::runtime::ecs::SpotLightComponent;
 using we::runtime::ecs::CameraComponent;
 using we::runtime::ecs::SkyAtmosphereComponent;
-using we::runtime::ecs::VolumetricCloudComponent;
 using we::runtime::ecs::TerrainComponent;
 using we::runtime::ecs::AudioSourceComponent;
 using we::runtime::ecs::VisibilityComponent;
@@ -66,7 +65,6 @@ void ApplyDefaultEntityProperties(Entity& entity, EntityType type) {
     case EntityType::SkyLight:
     case EntityType::SkyAtmosphere:
     case EntityType::HeightFog:
-    case EntityType::VolumetricClouds:
         entity.EditorOnly = true;
         entity.Mode = 1;
         break;
@@ -220,9 +218,6 @@ void Scene::AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId)
     case EntityType::SkyAtmosphere:
         m_Registry->Replace(ecsEntity, SkyAtmosphereComponent{});
         break;
-    case EntityType::VolumetricClouds:
-        m_Registry->Replace(ecsEntity, VolumetricCloudComponent{});
-        break;
     case EntityType::Landscape:
         m_Registry->Replace(ecsEntity, TerrainComponent{});
         break;
@@ -240,11 +235,6 @@ void Scene::AttachEcsComponents(const Entity& entity, std::uint64_t ecsEntityId)
 }
 
 void Scene::CreateEntity(const std::string& name, EntityType type) {
-    if (type == EntityType::VolumetricClouds && HasEntityOfType(EntityType::VolumetricClouds)) {
-        HE_ERROR("Only one Cloud actor is allowed per level; ignored duplicate spawn.");
-        return;
-    }
-
     // ECS is the source of truth — create there first.
     const we::runtime::ecs::Entity ecsEntity = m_Registry->Create(name);
 

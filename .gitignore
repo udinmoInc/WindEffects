@@ -96,6 +96,10 @@ PipelineCache/
 AssetCache/
 ThumbnailCache/
 
+# Offline cloud VDB → density conversion outputs (sources remain tracked)
+# Ignore leftover cooked cloud densites if any path remains
+# (legacy Effects/Cloud VDB pipeline removed — Weather noise only)
+
 # ==========================
 # Shader Artifacts
 # ==========================
@@ -164,3 +168,18 @@ Desktop.ini
 # Local Configuration
 # ==========================
 /IgniteBT.SDKs.json
+# ==========================
+# Game projects (/Projects)
+# ==========================
+# Track project sources & config; ignore per-project generated output.
+/Projects/**/Saved/
+/Projects/**/Intermediate/
+/Projects/**/Binaries/
+/Projects/**/DerivedDataCache/
+/Projects/**/ShaderCache/
+/Projects/**/PipelineCache/
+/Projects/**/AssetCache/
+/Projects/**/ThumbnailCache/
+/Projects/**/Logs/
+/Projects/**/*.user
+/Projects/**/.vs/

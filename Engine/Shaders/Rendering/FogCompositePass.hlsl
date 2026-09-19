@@ -22,13 +22,13 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     float2 pos = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
     VSOutput o;
     o.position = float4(pos, 0.999, 1.0);
-    o.uv = uv * 0.5;
+    o.uv = float2(pos.x * 0.5 + 0.5, pos.y * 0.5 + 0.5);
     return o;
 }
 
 float3 WE_ReconstructWorldPos(float2 uv, float depth, float4x4 viewMat, float4x4 projMat, float3 camPos)
 {
-    float2 ndc = uv * 2.0 - 1.0;
+    float2 ndc = WE_UvToNdc(uv);
     float4 clip = float4(ndc, depth, 1.0);
     float4x4 invView = WE_Inverse4x4(viewMat);
     float4x4 invProj = WE_Inverse4x4(projMat);

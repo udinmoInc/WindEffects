@@ -18,7 +18,6 @@ constexpr const char* kSunActorName = "Sun";
 constexpr const char* kSkyLightActorName = "SkyLight";
 constexpr const char* kSkyAtmosphereActorName = "SkyAtmosphere";
 constexpr const char* kHeightFogActorName = "ExponentialHeightFog";
-constexpr const char* kVolumetricCloudsActorName = "VolumetricClouds";
 constexpr const char* kExposureControllerActorName = "Exposure Controller";
 
 enum class EnvironmentPreset {
@@ -37,7 +36,6 @@ enum class EnvironmentActorKind {
     SkyLight,
     SkyAtmosphere,
     HeightFog,
-    VolumetricClouds,
     ExposureController
 };
 

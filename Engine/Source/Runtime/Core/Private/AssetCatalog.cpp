@@ -30,9 +30,6 @@ AssetCatalog BuiltInDefaults() {
     catalog.shaders = {
         {"UI", "UI_VS.spv", true},
         {"AtmospherePass", "AtmospherePass_VS.spv", false},
-        {"VolumetricCloudsPass", "VolumetricCloudsPass_VS.spv", false},
-        {"CloudTemporalResolve", "CloudTemporalResolve_VS.spv", false},
-        {"CloudCompositePass", "CloudCompositePass_VS.spv", false},
         {"FogCompositePass", "FogCompositePass_VS.spv", false},
         {"EditorGrid", "EditorGrid_VS.spv", false},
         {"SceneObject", "SceneObject_VS.spv", false},

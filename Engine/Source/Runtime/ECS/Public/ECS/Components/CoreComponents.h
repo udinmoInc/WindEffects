@@ -116,14 +116,6 @@ struct SkyAtmosphereComponent {
     float rayleighScale = 1.0f;
 };
 
-struct VolumetricCloudComponent {
-    bool enabled = true;
-    float coverage = 0.55f;
-    float density = 1.15f;
-    float bottomAltitude = 900.0f;
-    float topAltitude = 1600.0f;
-};
-
 struct TerrainComponent {
     bool enabled = true;
     std::uint64_t landscapeId = 0;
@@ -193,7 +185,6 @@ WE_ECS_DECLARE_COMPONENT(SpotLightComponent, SpotLight);
 WE_ECS_DECLARE_COMPONENT(StaticMeshComponent, StaticMesh);
 WE_ECS_DECLARE_COMPONENT(MaterialComponent, Material);
 WE_ECS_DECLARE_COMPONENT(SkyAtmosphereComponent, SkyAtmosphere);
-WE_ECS_DECLARE_COMPONENT(VolumetricCloudComponent, VolumetricCloud);
 WE_ECS_DECLARE_COMPONENT(TerrainComponent, Terrain);
 WE_ECS_DECLARE_COMPONENT(WaterComponent, Water);
 WE_ECS_DECLARE_COMPONENT(ColliderComponent, Collider);

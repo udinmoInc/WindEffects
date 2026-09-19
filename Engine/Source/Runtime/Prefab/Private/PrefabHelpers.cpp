@@ -39,7 +39,6 @@ std::string EntityTypeToName(scene::EntityType type) {
     case T::SkyLight: return "SkyLight";
     case T::SkyAtmosphere: return "SkyAtmosphere";
     case T::HeightFog: return "HeightFog";
-    case T::VolumetricClouds: return "VolumetricClouds";
     case T::Landscape: return "Landscape";
     case T::GroundPlane: return "GroundPlane";
     case T::CameraIcon: return "CameraIcon";
@@ -63,7 +62,6 @@ scene::EntityType EntityTypeFromName(std::string_view name) {
     if (name == "SkyLight") return T::SkyLight;
     if (name == "SkyAtmosphere") return T::SkyAtmosphere;
     if (name == "HeightFog") return T::HeightFog;
-    if (name == "VolumetricClouds") return T::VolumetricClouds;
     if (name == "Landscape") return T::Landscape;
     if (name == "GroundPlane") return T::GroundPlane;
     if (name == "CameraIcon") return T::CameraIcon;

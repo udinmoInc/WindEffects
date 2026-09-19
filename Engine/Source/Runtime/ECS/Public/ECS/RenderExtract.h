@@ -78,15 +78,6 @@ struct ExtractedSkyAtmosphere {
     float rayleighScale = 1.0f;
 };
 
-struct ExtractedVolumetricCloud {
-    std::uint64_t entityId = 0;
-    bool enabled = true;
-    float coverage = 0.55f;
-    float density = 1.15f;
-    float bottomAltitude = 900.0f;
-    float topAltitude = 1600.0f;
-};
-
 struct ExtractedTerrain {
     std::uint64_t entityId = 0;
     bool enabled = true;
@@ -112,7 +103,6 @@ struct ExtractedFrameData {
     std::vector<ExtractedSpotLight> spotLights;
     std::vector<ExtractedCamera> cameras;
     std::vector<ExtractedSkyAtmosphere> skyAtmospheres;
-    std::vector<ExtractedVolumetricCloud> volumetricClouds;
     std::vector<ExtractedTerrain> terrains;
     std::vector<ExtractedWater> waters;
 
@@ -123,7 +113,6 @@ struct ExtractedFrameData {
         spotLights.clear();
         cameras.clear();
         skyAtmospheres.clear();
-        volumetricClouds.clear();
         terrains.clear();
         waters.clear();
     }

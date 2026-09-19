@@ -639,10 +639,16 @@ void VulkanCommandList::ResourceBarrier(std::span<const ResourceBarrierDesc> bar
             barrier.subresourceRange.levelCount = b.texture.mipCount == ~0u
                 ? (tex->desc.mipLevels ? tex->desc.mipLevels : 1u)
                 : b.texture.mipCount;
-            barrier.subresourceRange.baseArrayLayer = b.texture.baseLayer;
-            barrier.subresourceRange.layerCount = b.texture.layerCount == ~0u
-                ? (tex->desc.arrayLayers ? tex->desc.arrayLayers : 1u)
-                : b.texture.layerCount;
+            // 3D volumes use arrayLayers==1; never expand layerCount from depth.
+            const bool is3D = tex->desc.extent.depth > 1;
+            barrier.subresourceRange.baseArrayLayer = is3D ? 0u : b.texture.baseLayer;
+            if (is3D) {
+                barrier.subresourceRange.layerCount = 1u;
+            } else {
+                barrier.subresourceRange.layerCount = b.texture.layerCount == ~0u
+                    ? (tex->desc.arrayLayers ? tex->desc.arrayLayers : 1u)
+                    : b.texture.layerCount;
+            }
             barrier.srcAccessMask = AccessForState(before);
             barrier.dstAccessMask = AccessForState(after);
             if (barrier.srcAccessMask == 0) {

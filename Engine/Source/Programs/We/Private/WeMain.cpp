@@ -1,5 +1,5 @@
-﻿// ==============================================================================
-// WindEffects — We — WeMain
+// ==============================================================================
+// WindEffects � We � WeMain
 // Internal implementation for the We module.
 // Copyright (c) 2026 WindEffects. All rights reserved.
 // This file is part of WindEffects Engine and is governed by the
@@ -21,7 +21,9 @@
 #include <vector>
 
 #if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #endif
 

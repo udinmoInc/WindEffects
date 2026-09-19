@@ -31,11 +31,6 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, WE_ENVIRONM
     float  atmosphereHeight;
     float  multiScatterStrength;
     float  eyeAltitude;
-    float  cloudCoverage;
-    float  cloudAltitude;
-    float  cloudExtinction;
-    float  enableClouds;
-    float3 cloudColor;
     float  enableVolumetricFog;
     float  exposureCompensation;
     float  sunAngularRadius;
@@ -47,32 +42,8 @@ cbuffer EnvironmentBuffer : register(WE_ENVIRONMENT_BUFFER_REGISTER, WE_ENVIRONM
     float  enableAutoExposure;
     int    atmosphereDebugMode;
     int    pipelineBypassToneMapping;
-    float  cloudTemporalBlend;
-    int    cloudHistoryValid;
     float  enableSunDisk;
     float  pipelineFixedExposureMultiplier;
-
-    float  cloudDensityMult;
-    float  cloudThickness;
-    float  cloudBottomAltitude;
-    float  cloudTopAltitude;
-    // Implicit 8-byte pad before float3 (must match SceneEnvironmentUniform cloudBoundsPad*).
-    float3 cloudWindDir;
-    float  cloudWindSpeed;
-    float  cloudNoiseScale;
-    float  cloudDetailScale;
-    float  cloudLightingIntensity;
-    float  cloudSilverLining;
-    float  cloudAmbient;
-    float  cloudMultiScatter;
-    float  cloudPhaseG;
-    float  cloudPowder;
-    float  cloudSeed;
-    float  cloudAnimTime;
-    float  cloudShadowStrength;
-    int    cloudQualitySteps;
-    float  cloudShapeNoise;
-    float  cloudErosionNoise;
 };
 
 #endif // WE_ENVIRONMENT_BUFFER_HLSLI

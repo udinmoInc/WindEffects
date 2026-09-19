@@ -42,7 +42,6 @@ std::vector<std::string> FormatScalabilityDiagnostics(
     lines.emplace_back("Resolved Quality:");
     lines.push_back("  " + FeatureLine("Shadows", snap.settings.shadows.enabled, snap.settings.shadows.quality));
     lines.push_back("  " + FeatureLine("Geometry", true, snap.settings.geometry.quality));
-    lines.push_back("  " + FeatureLine("Clouds", snap.settings.clouds.enabled, snap.settings.clouds.quality));
     lines.push_back("  " + FeatureLine("Volumetrics", snap.settings.volumetrics.enabled, snap.settings.volumetrics.quality));
     lines.push_back("  " + FeatureLine("GI", snap.settings.globalIllumination.enabled, snap.settings.globalIllumination.quality));
     lines.push_back("  " + FeatureLine("Water", snap.settings.water.enabled, snap.settings.water.quality));

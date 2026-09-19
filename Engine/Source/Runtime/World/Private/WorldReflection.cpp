@@ -13,7 +13,6 @@
 #include "Environment/EnvironmentHeightFog.h"
 #include "Environment/EnvironmentSkyAtmosphere.h"
 #include "Environment/EnvironmentSkyLight.h"
-#include "Environment/EnvironmentVolumetricClouds.h"
 #include "Reflection/AttributeInfo.h"
 #include "Reflection/BuiltinTypes.h"
 #include "Reflection/Registration.h"
@@ -48,14 +47,11 @@ using reflection::TypeId;
 using scene::Entity;
 using scene::EntityType;
 
-using environment::CloudPreset;
-using environment::CloudQualityPreset;
 using environment::EnvironmentDirectionalLight;
 using environment::EnvironmentExposureController;
 using environment::EnvironmentHeightFog;
 using environment::EnvironmentSkyAtmosphere;
 using environment::EnvironmentSkyLight;
-using environment::EnvironmentVolumetricClouds;
 
 PropertyInfo WithCategory(PropertyInfo property, std::string_view category) {
     property.attributes.Add(AttributeInfo::MakeString("Category", category));
@@ -81,7 +77,6 @@ TypeId RegisterEntityType(reflection::ITypeRegistry& registry) {
         .EnumValue("SkyLight", static_cast<std::int64_t>(EntityType::SkyLight))
         .EnumValue("SkyAtmosphere", static_cast<std::int64_t>(EntityType::SkyAtmosphere))
         .EnumValue("HeightFog", static_cast<std::int64_t>(EntityType::HeightFog))
-        .EnumValue("VolumetricClouds", static_cast<std::int64_t>(EntityType::VolumetricClouds))
         .EnumValue("Landscape", static_cast<std::int64_t>(EntityType::Landscape))
         .EnumValue("GroundPlane", static_cast<std::int64_t>(EntityType::GroundPlane))
         .EnumValue("CameraIcon", static_cast<std::int64_t>(EntityType::CameraIcon))
@@ -89,38 +84,6 @@ TypeId RegisterEntityType(reflection::ITypeRegistry& registry) {
         .EnumValue("Volume", static_cast<std::int64_t>(EntityType::Volume))
         .Register(registry, RegisterMode::Replace);
     return entityTypeId;
-}
-
-void RegisterCloudQualityPreset(reflection::ITypeRegistry& registry) {
-    TypeBuilder("we::runtime::world::environment::CloudQualityPreset")
-        .Kind(TypeKind::Enum)
-        .Size(static_cast<std::uint32_t>(sizeof(CloudQualityPreset)))
-        .Alignment(static_cast<std::uint32_t>(alignof(CloudQualityPreset)))
-        .EnumValue("Low", static_cast<std::int64_t>(CloudQualityPreset::Low))
-        .EnumValue("Medium", static_cast<std::int64_t>(CloudQualityPreset::Medium))
-        .EnumValue("High", static_cast<std::int64_t>(CloudQualityPreset::High))
-        .EnumValue("Epic", static_cast<std::int64_t>(CloudQualityPreset::Epic))
-        .Register(registry, RegisterMode::Replace);
-}
-
-void RegisterCloudPreset(reflection::ITypeRegistry& registry) {
-    TypeBuilder("we::runtime::world::environment::CloudPreset")
-        .Kind(TypeKind::Enum)
-        .Size(static_cast<std::uint32_t>(sizeof(CloudPreset)))
-        .Alignment(static_cast<std::uint32_t>(alignof(CloudPreset)))
-        .EnumValue("ClearSky", static_cast<std::int64_t>(CloudPreset::ClearSky))
-        .EnumValue("FewClouds", static_cast<std::int64_t>(CloudPreset::FewClouds))
-        .EnumValue("ScatteredClouds", static_cast<std::int64_t>(CloudPreset::ScatteredClouds))
-        .EnumValue("BrokenClouds", static_cast<std::int64_t>(CloudPreset::BrokenClouds))
-        .EnumValue("Overcast", static_cast<std::int64_t>(CloudPreset::Overcast))
-        .EnumValue("Storm", static_cast<std::int64_t>(CloudPreset::Storm))
-        .EnumValue("HeavyStorm", static_cast<std::int64_t>(CloudPreset::HeavyStorm))
-        .EnumValue("SunsetClouds", static_cast<std::int64_t>(CloudPreset::SunsetClouds))
-        .EnumValue("SunriseClouds", static_cast<std::int64_t>(CloudPreset::SunriseClouds))
-        .EnumValue("HighCirrus", static_cast<std::int64_t>(CloudPreset::HighCirrus))
-        .EnumValue("Cumulus", static_cast<std::int64_t>(CloudPreset::Cumulus))
-        .EnumValue("Stratocumulus", static_cast<std::int64_t>(CloudPreset::Stratocumulus))
-        .Register(registry, RegisterMode::Replace);
 }
 
 void RegisterEntity(reflection::ITypeRegistry& registry) {
@@ -534,286 +497,6 @@ void RegisterEnvironmentExposureController(reflection::ITypeRegistry& registry) 
     builder.Register(registry, RegisterMode::Replace);
 }
 
-void RegisterEnvironmentVolumetricClouds(reflection::ITypeRegistry& registry) {
-    TypeBuilder builder("we::runtime::world::environment::EnvironmentVolumetricClouds");
-    builder.Kind(TypeKind::Struct)
-        .Size(static_cast<std::uint32_t>(sizeof(EnvironmentVolumetricClouds)))
-        .Alignment(static_cast<std::uint32_t>(alignof(EnvironmentVolumetricClouds)))
-        .Ops(MakeTypeOpsFor<EnvironmentVolumetricClouds>())
-        .SchemaVersion(1)
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "Enabled",
-                BuiltinTypeId::Bool(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, Enabled)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().Enabled))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().Enabled))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Bool),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "Coverage",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, Coverage)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().Coverage))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().Coverage))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "Density",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, Density)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().Density))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().Density))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "DensityMultiplier",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, DensityMultiplier)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().DensityMultiplier))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().DensityMultiplier))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "CloudHeight",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, CloudHeight)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudHeight))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudHeight))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "CloudThickness",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, CloudThickness)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudThickness))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudThickness))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "BottomAltitude",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, BottomAltitude)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().BottomAltitude))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().BottomAltitude))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "TopAltitude",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, TopAltitude)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().TopAltitude))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().TopAltitude))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "WindDirection",
-                BuiltinTypeId::Vec3(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, WindDirection)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().WindDirection))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().WindDirection))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Vec3),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "WindSpeed",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, WindSpeed)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().WindSpeed))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().WindSpeed))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "AnimationSpeed",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, AnimationSpeed)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().AnimationSpeed))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().AnimationSpeed))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "NoiseScale",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, NoiseScale)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().NoiseScale))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().NoiseScale))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "DetailNoiseScale",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, DetailNoiseScale)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().DetailNoiseScale))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().DetailNoiseScale))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "ShapeNoise",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, ShapeNoise)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().ShapeNoise))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().ShapeNoise))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "ErosionNoise",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, ErosionNoise)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().ErosionNoise))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().ErosionNoise))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "Seed",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, Seed)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().Seed))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().Seed))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Clouds"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "LightingIntensity",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, LightingIntensity)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().LightingIntensity))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().LightingIntensity))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "SilverLiningIntensity",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, SilverLiningIntensity)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().SilverLiningIntensity))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().SilverLiningIntensity))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "AmbientContribution",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, AmbientContribution)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().AmbientContribution))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().AmbientContribution))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "MultiScatteringStrength",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, MultiScatteringStrength)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().MultiScatteringStrength))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().MultiScatteringStrength))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "PhaseG",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, PhaseG)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().PhaseG))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().PhaseG))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "PowderEffect",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, PowderEffect)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().PowderEffect))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().PowderEffect))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Lighting"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "WeatherMapInfluence",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, WeatherMapInfluence)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().WeatherMapInfluence))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().WeatherMapInfluence))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Weather"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "ShadowStrength",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, ShadowStrength)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().ShadowStrength))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().ShadowStrength))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Shadows"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "ShadowDistance",
-                BuiltinTypeId::Float(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, ShadowDistance)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().ShadowDistance))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().ShadowDistance))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Float),
-            "Shadows"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "CloudColor",
-                BuiltinTypeId::Vec3(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, CloudColor)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudColor))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudColor))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Vec3),
-            "Appearance"))
-        .Property(WithCategory(
-            MakeOffsetProperty(
-                "CloudColorTint",
-                BuiltinTypeId::Vec3(),
-                static_cast<std::uint32_t>(offsetof(EnvironmentVolumetricClouds, CloudColorTint)),
-                static_cast<std::uint32_t>(sizeof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudColorTint))),
-                static_cast<std::uint16_t>(alignof(decltype(std::declval<EnvironmentVolumetricClouds>().CloudColorTint))),
-                PropertyFlags::Serialize | PropertyFlags::Editable,
-                PrimitiveKind::Vec3),
-            "Appearance"));
-    builder.Register(registry, RegisterMode::Replace);
-}
-
 void RegisterWorldGuid(reflection::ITypeRegistry& registry) {
     TypeBuilder("we::runtime::world::WorldGuid")
         .Kind(TypeKind::Struct)
@@ -896,14 +579,11 @@ void WorldTypeRegistrar::RegisterTypes(reflection::ITypeRegistry& registry) {
     RegisterLevelDescriptor(registry);
     RegisterActorSpawnParams(registry);
     RegisterEntity(registry);
-    RegisterCloudQualityPreset(registry);
-    RegisterCloudPreset(registry);
     RegisterEnvironmentDirectionalLight(registry);
     RegisterEnvironmentSkyLight(registry);
     RegisterEnvironmentSkyAtmosphere(registry);
     RegisterEnvironmentHeightFog(registry);
     RegisterEnvironmentExposureController(registry);
-    RegisterEnvironmentVolumetricClouds(registry);
     if (wasSealed) {
         registry.Seal();
     }

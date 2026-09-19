@@ -98,14 +98,6 @@ struct VolumetricQualitySettings {
     uint32_t maxSteps = 32;
 };
 
-struct CloudQualitySettings {
-    bool enabled = true;
-    QualityLevel quality = QualityLevel::Medium;
-    uint32_t maxSteps = 32;
-    float resolutionScale = 1.0f;
-    bool temporalReprojection = true;
-};
-
 struct WaterQualitySettings {
     bool enabled = true;
     QualityLevel quality = QualityLevel::Medium;
@@ -170,7 +162,6 @@ struct ResolvedRenderingSettings {
 
     AtmosphereQualitySettings atmosphere;
     VolumetricQualitySettings volumetrics;
-    CloudQualitySettings clouds;
     WaterQualitySettings water;
 
     ParticleQualitySettings particles;

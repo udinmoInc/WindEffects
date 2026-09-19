@@ -314,6 +314,7 @@ void VulkanDevice::FillCapabilities() {
     m_Caps.maxTextureDimension2D = props.limits.maxImageDimension2D;
     m_Caps.minUniformBufferOffsetAlignment = props.limits.minUniformBufferOffsetAlignment;
     m_Caps.minStorageBufferOffsetAlignment = props.limits.minStorageBufferOffsetAlignment;
+    m_Caps.timestampPeriodNs = props.limits.timestampPeriod;
 
     for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
         const auto flags = memProps.memoryTypes[i].propertyFlags;

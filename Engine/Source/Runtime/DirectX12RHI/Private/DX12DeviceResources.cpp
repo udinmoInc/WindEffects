@@ -142,13 +142,22 @@ RHIResult<RHITextureHandle> DX12Device::CreateTexture(const TextureDesc& desc) {
         return RHIError::Make(RHIErrorCode::InvalidArgument, "Invalid texture extent.", "CreateTexture");
     }
 
+    const bool depthUsage = HasFlag(desc.usage, TextureUsage::DepthStencil) || IsDepthFormat(desc.format);
+    const bool depthSampled = depthUsage && HasFlag(desc.usage, TextureUsage::Sampled);
+    const bool is3D = desc.extent.depth > 1;
+
     D3D12_RESOURCE_DESC resDesc{};
-    resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resDesc.Dimension = is3D ? D3D12_RESOURCE_DIMENSION_TEXTURE3D : D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     resDesc.Width = desc.extent.width;
     resDesc.Height = desc.extent.height;
-    resDesc.DepthOrArraySize = static_cast<UINT16>(desc.arrayLayers ? desc.arrayLayers : 1);
+    if (is3D) {
+        resDesc.DepthOrArraySize = static_cast<UINT16>(desc.extent.depth ? desc.extent.depth : 1);
+    } else {
+        resDesc.DepthOrArraySize = static_cast<UINT16>(desc.arrayLayers ? desc.arrayLayers : 1);
+    }
     resDesc.MipLevels = static_cast<UINT16>(desc.mipLevels ? desc.mipLevels : 1);
-    resDesc.Format = ToDxgiFormat(desc.format);
+    // Typeless resource when depth must also be sampled (cloud occlusion, soft particles, etc.).
+    resDesc.Format = depthSampled ? ToTypelessDxgiFormat(desc.format) : ToDxgiFormat(desc.format);
     resDesc.SampleDesc.Count = desc.sampleCount ? desc.sampleCount : 1;
     resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
@@ -167,10 +176,11 @@ RHIResult<RHITextureHandle> DX12Device::CreateTexture(const TextureDesc& desc) {
         clearValue.Color[3] = 1.0f;
         pClear = &clearValue;
     }
-    if (HasFlag(desc.usage, TextureUsage::DepthStencil) || IsDepthFormat(desc.format)) {
+    if (depthUsage) {
         resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
         initial = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        clearValue.Format = resDesc.Format;
+        // Clear value must use the typed depth format, not typeless.
+        clearValue.Format = ToDxgiFormat(desc.format);
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
         pClear = &clearValue;
@@ -268,7 +278,7 @@ RHIResult<void> DX12Device::UpdateTexture(RHITextureHandle handle, const Texture
     const uint32_t depth = update.extent.depth ? update.extent.depth : 1u;
     const uint32_t srcRowBytes = update.rowPitch
         ? update.rowPitch
-        : width * 4u; // R8G8B8A8 (and similar 4-byte formats) used by current callers
+        : (tex->desc.format == Format::R8_UNORM ? width : width * 4u);
     const uint32_t alignedRowPitch = (srcRowBytes + 255u) & ~255u;
     const uint64_t stagingSize = static_cast<uint64_t>(alignedRowPitch) * height * depth;
 

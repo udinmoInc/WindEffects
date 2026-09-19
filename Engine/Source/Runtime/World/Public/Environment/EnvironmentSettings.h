@@ -21,7 +21,6 @@ struct EnvironmentSettings {
     bool createSkyLight = true;
     bool createSkyAtmosphere = true;
     bool createHeightFog = true;
-    bool createVolumetricClouds = true;
     bool enableVolumetricFog = true;
 
     float sunIntensity = 10.0f;
@@ -39,9 +38,6 @@ struct EnvironmentSettings {
     float fogDensity = 0.02f;
     float fogHeightFalloff = 0.2f;
     float fogStartDistance = 0.0f;
-
-    float cloudCoverage = 0.55f;
-    float cloudAltitude = 1250.0f;
 };
 
 class WORLD_API EnvironmentSettingsLoader {

@@ -214,6 +214,16 @@ RHIResult<void> DX12Device::CreateDeviceAndQueue() {
     m_ComputeQueue.Set(m_CommandQueue.Get());
     m_TransferQueue.Set(m_CommandQueue.Get());
 
+    // DX12 timestamps are queue ticks — convert to ns/tick for CloudBench.
+    {
+        UINT64 freq = 0;
+        if (SUCCEEDED(m_CommandQueue->GetTimestampFrequency(&freq)) && freq > 0) {
+            m_Caps.timestampPeriodNs = 1.0e9f / static_cast<float>(freq);
+        } else {
+            m_Caps.timestampPeriodNs = 1.0f;
+        }
+    }
+
     for (uint32_t i = 0; i < m_FramesInFlight; ++i) {
         if (FAILED(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_Allocators[i])))) {
             return RHIError::Make(RHIErrorCode::BackendFailure, "CreateCommandAllocator failed.",

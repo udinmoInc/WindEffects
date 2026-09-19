@@ -60,6 +60,8 @@ struct RHI_API RHICapabilities {
     uint64_t minUniformBufferOffsetAlignment = 256;
     uint64_t minStorageBufferOffsetAlignment = 16;
     float maxSamplerAnisotropy = 16.0f;
+    /// Nanoseconds per GPU timestamp tick (Vulkan timestampPeriod). 0 = unknown.
+    float timestampPeriodNs = 0.0f;
 
     [[nodiscard]] bool SupportsMeshShaders() const noexcept { return meshShaders; }
     [[nodiscard]] bool SupportsRayTracing() const noexcept { return rayTracing; }

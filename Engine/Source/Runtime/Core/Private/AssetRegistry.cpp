@@ -72,6 +72,11 @@ void AssetRegistry::RegisterIconMetaPath(std::string_view resolvedPath) {
     m_IconMetaPath = std::string(resolvedPath);
 }
 
+void AssetRegistry::RegisterVolumePath(std::string_view name, std::string_view resolvedPath) {
+    std::unique_lock lock(m_Mutex);
+    m_VolumePaths[std::string(name)] = std::string(resolvedPath);
+}
+
 std::string AssetRegistry::GetFontPath(std::string_view name) const {
     std::shared_lock lock(m_Mutex);
     auto it = m_FontPaths.find(std::string(name));
@@ -98,6 +103,12 @@ std::string AssetRegistry::GetIconAtlasRoot() const {
 std::string AssetRegistry::GetIconMetaPath() const {
     std::shared_lock lock(m_Mutex);
     return m_IconMetaPath;
+}
+
+std::string AssetRegistry::GetVolumePath(std::string_view name) const {
+    std::shared_lock lock(m_Mutex);
+    auto it = m_VolumePaths.find(std::string(name));
+    return it != m_VolumePaths.end() ? it->second : std::string{};
 }
 
 std::vector<AssetLoadResult> AssetRegistry::GetLastLoadResults() const {
@@ -210,6 +221,7 @@ void AssetRegistry::Clear() {
     m_FontPaths.clear();
     m_ShaderPaths.clear();
     m_IconPaths.clear();
+    m_VolumePaths.clear();
     m_IconAtlasRoot.clear();
     m_IconMetaPath.clear();
     m_LastLoadResults.clear();

@@ -115,11 +115,6 @@ ResolvedRenderingSettings CapabilityResolver::Resolve(
         out.shadows.quality = QualityLevel::Disabled;
         out.shadows.cascadeCount = 0;
     }
-    if (!out.clouds.enabled) {
-        out.clouds.quality = QualityLevel::Disabled;
-        out.clouds.maxSteps = 0;
-        out.clouds.temporalReprojection = false;
-    }
     if (!out.volumetrics.enabled) {
         out.volumetrics.quality = QualityLevel::Disabled;
         out.volumetrics.maxSteps = 0;

@@ -18,7 +18,6 @@
 #include "Environment/EnvironmentSkyAtmosphere.h"
 #include "Environment/EnvironmentSkyLight.h"
 #include "Environment/EnvironmentTypes.h"
-#include "Environment/EnvironmentVolumetricClouds.h"
 #include "Scene/Scene.h"
 #include <functional>
 #include <memory>
@@ -42,12 +41,9 @@ public:
     void RebuildEnvironment();
 
     void SetVolumetricFogEnabled(bool enabled);
-    void SetVolumetricCloudsEnabled(bool enabled);
     bool IsVolumetricFogEnabled() const;
-    bool IsVolumetricCloudsEnabled() const;
 
     void ApplyPreset(EnvironmentPreset preset);
-    void ApplyCloudPreset(CloudPreset preset);
 
     void Tick(float deltaTime);
     void SyncFromScene(const we::math::Vec3& cameraPosition = we::math::Vec3(0.0f));
@@ -58,14 +54,12 @@ public:
     EnvironmentSkyLight& GetSkyLight() { return m_SkyLight; }
     EnvironmentSkyAtmosphere& GetSkyAtmosphere() { return m_SkyAtmosphere; }
     EnvironmentHeightFog& GetHeightFog() { return m_HeightFog; }
-    EnvironmentVolumetricClouds& GetVolumetricClouds() { return m_VolumetricClouds; }
     EnvironmentExposureController& GetExposureController() { return m_ExposureController; }
 
     const EnvironmentDirectionalLight& GetSun() const { return m_Sun; }
     const EnvironmentSkyLight& GetSkyLight() const { return m_SkyLight; }
     const EnvironmentSkyAtmosphere& GetSkyAtmosphere() const { return m_SkyAtmosphere; }
     const EnvironmentHeightFog& GetHeightFog() const { return m_HeightFog; }
-    const EnvironmentVolumetricClouds& GetVolumetricClouds() const { return m_VolumetricClouds; }
     const EnvironmentExposureController& GetExposureController() const { return m_ExposureController; }
 
     std::uint64_t GetFolderEntityId() const { return m_FolderEntityId; }
@@ -103,7 +97,6 @@ private:
     EnvironmentSkyLight m_SkyLight{};
     EnvironmentSkyAtmosphere m_SkyAtmosphere{};
     EnvironmentHeightFog m_HeightFog{};
-    EnvironmentVolumetricClouds m_VolumetricClouds{};
     EnvironmentExposureController m_ExposureController{};
 
     std::vector<ChangeListener> m_ChangeListeners;

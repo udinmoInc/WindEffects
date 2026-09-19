@@ -1,0 +1,12 @@
+{
+  "projectName": "AAAHighEnd",
+  "displayName": "AAA High-End",
+  "startupMap": "Content/Maps/Startup.scene",
+  "defaultGameMode": "",
+  "targetPlatform": "Windows",
+  "qualityMode": "AAA",
+  "renderingProfile": "HighEnd",
+  "scalabilityProfile": "HighEnd",
+  "allowedRenderingProfiles": ["HighEnd"],
+  "lockRenderingProfile": true
+}

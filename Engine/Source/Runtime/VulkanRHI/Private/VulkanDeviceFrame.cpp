@@ -186,7 +186,10 @@ RHIResult<void> VulkanDevice::UpdateTexture(RHITextureHandle handle, const Textu
     region.imageOffsetX = update.offsetX;
     region.imageOffsetY = update.offsetY;
     region.imageOffsetZ = update.offsetZ;
-    region.imageExtent = update.extent;
+    region.imageExtent = {
+        update.extent.width ? update.extent.width : 1u,
+        update.extent.height ? update.extent.height : 1u,
+        update.extent.depth ? update.extent.depth : 1u};
 
     auto result = SubmitOneTime([&](VkCommandBuffer cmd) {
         VulkanCommandList list(this);
@@ -195,11 +198,14 @@ RHIResult<void> VulkanDevice::UpdateTexture(RHITextureHandle handle, const Textu
         const ResourceState old = tex->state;
         list.TransitionTexture(handle, old, ResourceState::CopyDst);
         list.CopyBufferToTexture(*staging, handle, region);
-        list.TransitionTexture(handle, ResourceState::CopyDst, old ==
-            ResourceState::Undefined ? ResourceState::ShaderResource : old);
+        list.TransitionTexture(
+            handle,
+            ResourceState::CopyDst,
+            old == ResourceState::Undefined ? ResourceState::ShaderResource : old);
         list.End();
     });
 
+    // Staging is GPU-idle after SubmitOneTime's queue wait; destroy immediately.
     DestroyBuffer(*staging);
     return result;
 }

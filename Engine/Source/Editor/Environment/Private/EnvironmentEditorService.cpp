@@ -66,7 +66,6 @@ std::string EntityTypeLabel(EntityType type) {
     case EntityType::SkyLight: return "Sky Light";
     case EntityType::SkyAtmosphere: return "Sky Atmosphere";
     case EntityType::HeightFog: return "Exponential Height Fog";
-    case EntityType::VolumetricClouds: return "Cloud";
     case EntityType::EmptyActor: return "Folder";
     default: return "Actor";
     }
@@ -79,7 +78,6 @@ we::runtime::kindui::WindIconRef IconForEntity(const Entity& entity) {
         return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyAtmosphere:
         return we::runtime::kindui::WindIcons::Earth16;
-    case EntityType::VolumetricClouds:
     case EntityType::HeightFog:
         return we::runtime::kindui::WindIcons::Cloud16;
     case EntityType::Landscape:
@@ -96,7 +94,6 @@ int EnvironmentActorSortKey(const Entity& entity) {
     using we::runtime::world::environment::kSkyAtmosphereActorName;
     using we::runtime::world::environment::kSkyLightActorName;
     using we::runtime::world::environment::kSunActorName;
-    using we::runtime::world::environment::kVolumetricCloudsActorName;
     using we::runtime::world::environment::kExposureControllerActorName;
 
     if (entity.Name == kSunActorName || entity.Name == "Sun Light" || entity.Type == EntityType::DirectionalLight) {
@@ -113,11 +110,8 @@ int EnvironmentActorSortKey(const Entity& entity) {
         EntityType::HeightFog) {
         return 3;
     }
-    if (entity.Name == kVolumetricCloudsActorName || entity.Type == EntityType::VolumetricClouds) {
-        return 4;
-    }
     if (entity.Name == kExposureControllerActorName) {
-        return 5;
+        return 4;
     }
     return 100;
 }

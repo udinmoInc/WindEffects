@@ -439,7 +439,7 @@ private:
 
     void OrderCategoryRoots() {
         static constexpr std::string_view kPreferredOrder[] = {
-            "Actor", "Transform", "Light", "Atmosphere", "Fog", "Clouds", "Rendering"
+            "Actor", "Transform", "Light", "Atmosphere", "Fog", "Rendering"
         };
         const auto rank = [](std::string_view category) {
             for (std::size_t i = 0; i < std::size(kPreferredOrder); ++i) {

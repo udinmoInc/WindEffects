@@ -14,7 +14,6 @@
 #include "Environment/EnvironmentHeightFog.h"
 #include "Environment/EnvironmentSkyAtmosphere.h"
 #include "Environment/EnvironmentSkyLight.h"
-#include "Environment/EnvironmentVolumetricClouds.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Core/Math/Types.h"
 
@@ -29,8 +28,7 @@ WORLD_API we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUn
     const EnvironmentSkyLight& skyLight,
     const EnvironmentSkyAtmosphere& atmosphere,
     const EnvironmentHeightFog& fog,
-    const EnvironmentVolumetricClouds& clouds,
     const EnvironmentExposureController& exposure,
-    const we::math::Vec3& worldOrigin);
+    const we::math::Vec3& worldOriginHint);
 
 } // namespace we::runtime::world::environment

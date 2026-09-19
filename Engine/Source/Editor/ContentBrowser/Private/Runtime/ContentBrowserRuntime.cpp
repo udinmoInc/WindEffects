@@ -1222,7 +1222,8 @@ private:
 } // namespace detail
 
 std::unique_ptr<IContentBrowserRuntime> CreateContentBrowserRuntime(const ContentBrowserDependencies& deps) {
-    return std::make_unique<detail::ContentBrowserRuntimeImpl>(deps);
+    auto runtime = std::make_unique<detail::ContentBrowserRuntimeImpl>(deps);
+    return runtime;
 }
 
 } // namespace we::editor::contentbrowser

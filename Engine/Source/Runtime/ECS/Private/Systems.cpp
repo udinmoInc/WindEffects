@@ -377,7 +377,6 @@ const std::vector<ComponentAccess>& RenderExtractionSystem::Access() const {
         { ComponentTypeRegistry::Get().Id<SpotLightComponent>(), AccessMode::Read },
         { ComponentTypeRegistry::Get().Id<CameraComponent>(), AccessMode::Read },
         { ComponentTypeRegistry::Get().Id<SkyAtmosphereComponent>(), AccessMode::Read },
-        { ComponentTypeRegistry::Get().Id<VolumetricCloudComponent>(), AccessMode::Read },
         { ComponentTypeRegistry::Get().Id<TerrainComponent>(), AccessMode::Read },
         { ComponentTypeRegistry::Get().Id<WaterComponent>(), AccessMode::Read },
     };
@@ -392,10 +391,6 @@ void RenderExtractionSystem::Update(Registry& registry, float /*deltaSeconds*/) 
 
 void SkyAtmosphereSystem::Update(Registry& registry, float /*deltaSeconds*/) {
     (void)registry.ViewAll<SkyAtmosphereComponent, TransformComponent>().Count();
-}
-
-void VolumetricCloudSystem::Update(Registry& registry, float /*deltaSeconds*/) {
-    (void)registry.ViewAll<VolumetricCloudComponent, TransformComponent>().Count();
 }
 
 void TerrainEcsSystem::Update(Registry& registry, float /*deltaSeconds*/) {
@@ -426,7 +421,6 @@ void RegisterDefaultSystems(SystemScheduler& scheduler) {
     scheduler.Add(std::make_unique<CameraSystem>());
     scheduler.Add(std::make_unique<LightingSystem>());
     scheduler.Add(std::make_unique<SkyAtmosphereSystem>());
-    scheduler.Add(std::make_unique<VolumetricCloudSystem>());
     scheduler.Add(std::make_unique<TerrainEcsSystem>());
     scheduler.Add(std::make_unique<PhysicsSystem>());
     scheduler.Add(std::make_unique<AnimationSystem>());

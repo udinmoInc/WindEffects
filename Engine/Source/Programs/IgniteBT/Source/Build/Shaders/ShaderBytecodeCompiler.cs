@@ -18,6 +18,7 @@ public static class ShaderBytecodeCompiler
         ("Editor/EditorGrid.hlsl", "EditorGrid"),
         ("Foundation/ProceduralSky.hlsl", "ProceduralSky"),
         ("Rendering/AtmospherePass.hlsl", "AtmospherePass"),
+        ("Rendering/VolumetricClouds.hlsl", "VolumetricClouds"),
         ("Rendering/SceneObject.hlsl", "SceneObject"),
         ("Rendering/Terrain.hlsl", "Terrain"),
         ("Rendering/TextMSDF.hlsl", "TextMSDF"),

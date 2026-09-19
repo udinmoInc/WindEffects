@@ -23,7 +23,6 @@ we::runtime::kindui::WindIconRef IconForEntityType(scene::EntityType type) {
     case EntityType::SpotLight:
     case EntityType::SkyLight: return we::runtime::kindui::WindIcons::Sun16;
     case EntityType::SkyAtmosphere: return we::runtime::kindui::WindIcons::Earth16;
-    case EntityType::VolumetricClouds:
     case EntityType::HeightFog: return we::runtime::kindui::WindIcons::Cloud16;
     case EntityType::Landscape:
     case EntityType::GroundPlane: return we::runtime::kindui::WindIcons::Grid16;
@@ -51,7 +50,6 @@ std::string TypeNameFor(scene::EntityType type) {
     case EntityType::SkyLight: return "Sky Light";
     case EntityType::SkyAtmosphere: return "Sky Atmosphere";
     case EntityType::HeightFog: return "Height Fog";
-    case EntityType::VolumetricClouds: return "Volumetric Clouds";
     case EntityType::Landscape: return "Landscape";
     case EntityType::GroundPlane: return "Ground Plane";
     case EntityType::CameraIcon: return "Camera";

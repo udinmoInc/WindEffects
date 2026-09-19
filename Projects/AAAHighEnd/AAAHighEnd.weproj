@@ -1,0 +1,31 @@
+{
+  "contentDirectory": "Content",
+  "createdUtc": "2026-09-17T11:30:00Z",
+  "defaultGameMode": "",
+  "displayName": "AAA High-End",
+  "engineRoot": "..",
+  "engineVersion": "1.0.0",
+  "lastOpenedUtc": "2026-09-19T16:45:06Z",
+  "modules": [
+    "AAAHighEnd"
+  ],
+  "plugins": [],
+  "projectName": "AAAHighEnd",
+  "schemaVersion": 1,
+  "settings": {
+    "allowedRenderingProfiles": [
+      "HighEnd"
+    ],
+    "defaultGameMode": "",
+    "lockRenderingProfile": true,
+    "qualityMode": "AAA",
+    "renderingProfile": "HighEnd",
+    "scalabilityProfile": "HighEnd",
+    "startupMap": "Content/Maps/Startup.scene"
+  },
+  "startupMap": "Content/Maps/Startup.scene",
+  "targetPlatforms": [
+    "Windows"
+  ],
+  "templateId": "Blank"
+}

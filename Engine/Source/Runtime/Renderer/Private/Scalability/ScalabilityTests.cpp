@@ -63,9 +63,6 @@ ScalabilityTestReport RunScalabilityRuntimeTests() {
             high.settings.shadows.quality == QualityLevel::Ultra
                 && high.settings.shadows.enabled,
             "HighEnd shadows should be enabled Ultra");
-        AddCase(report, "HighEnd clouds High",
-            high.settings.clouds.enabled && high.settings.clouds.quality == QualityLevel::High,
-            "HighEnd clouds should be High");
         AddCase(report, "HighEnd mesh shaders preferred",
             high.settings.geometry.meshShaderRequirement == FeatureRequirement::Preferred,
             "HighEnd should prefer mesh shaders");
@@ -86,10 +83,6 @@ ScalabilityTestReport RunScalabilityRuntimeTests() {
 
     {
         const auto low = ScalabilityManager::MakeBuiltinProfile(RenderingProfileId::Low);
-        AddCase(report, "Low clouds disabled",
-            !low.settings.clouds.enabled
-                && low.settings.clouds.quality == QualityLevel::Disabled,
-            "Low clouds should be disabled");
         AddCase(report, "Low GI disabled",
             !low.settings.globalIllumination.enabled,
             "Low GI should be disabled");
@@ -136,36 +129,24 @@ ScalabilityTestReport RunScalabilityRuntimeTests() {
             flags != ScalabilityUpdateFlags::None,
             "Switching profiles must report update impact");
         AddCase(report, "Pending updates before publish",
-            manager.GetPendingSettings().clouds.enabled == false
+            manager.GetPendingSettings().shadows.quality == QualityLevel::Low
                 && manager.HasPendingPublish(),
             "Pending settings must reflect Low before publish");
         AddCase(report, "Published immutable until PublishFrameSettings",
-            manager.GetPublishedSettings().clouds.enabled == true,
+            manager.GetPublishedSettings().shadows.quality == QualityLevel::Ultra,
             "Published settings must stay HighEnd until frame publish");
 
         manager.PublishFrameSettings();
         AddCase(report, "Publish applies pending",
-            manager.GetPublishedSettings().clouds.enabled == false
+            manager.GetPublishedSettings().shadows.quality == QualityLevel::Low
                 && !manager.HasPendingPublish(),
             "PublishFrameSettings must copy pending to published");
 
         (void)manager.SetProfile(RenderingProfileId::HighEnd);
         manager.PublishFrameSettings();
-        AddCase(report, "Switch back restores HighEnd clouds",
-            manager.GetPublishedSettings().clouds.enabled
-                && manager.GetPublishedSettings().clouds.quality == QualityLevel::High,
-            "HighEnd clouds after switch");
-
-        CloudQualitySettings overrideClouds{};
-        overrideClouds.enabled = true;
-        overrideClouds.quality = QualityLevel::Medium;
-        overrideClouds.maxSteps = 24;
-        (void)manager.SetCloudQualityOverride(overrideClouds);
-        manager.PublishFrameSettings();
-        AddCase(report, "Feature override isolates clouds",
-            manager.GetPublishedSettings().clouds.maxSteps == 24
-                && manager.GetPublishedSettings().shadows.quality == QualityLevel::Ultra,
-            "Cloud override must not wipe unrelated HighEnd slices");
+        AddCase(report, "Switch back restores HighEnd shadows",
+            manager.GetPublishedSettings().shadows.quality == QualityLevel::Ultra,
+            "HighEnd shadows after switch");
 
         manager.Shutdown();
     }
@@ -193,15 +174,24 @@ ScalabilityTestReport RunScalabilityRuntimeTests() {
         const bool reloaded = manager.ReloadProfiles();
         AddCase(report, "ReloadProfiles succeeds",
             reloaded && manager.GetActiveProfileId() == RenderingProfileId::HighEnd,
-            "Missing JSON must fall back to builtins");
+            "INI missing or present — builtins remain valid fallback");
         manager.Shutdown();
     }
 
     {
-        // Architectural: settings POD must not embed renderer/RHI object pointers.
+        // Round-trip: named quality strings used by HighEnd.ini schema.
+        AddCase(report, "INI quality name Ultra maps correctly",
+            ToString(QualityLevel::Ultra) == std::string("Ultra"),
+            "Ultra display name for INI Quality=Ultra");
+        AddCase(report, "Profile file stem is HighEnd",
+            ProfileFileStem(RenderingProfileId::HighEnd) == "HighEnd",
+            "HighEnd.ini stem");
+    }
+
+    {
         AddCase(report, "Resolved settings are configuration-only",
             sizeof(ResolvedRenderingSettings) > 0
-                && sizeof(CloudQualitySettings) < 64,
+                && sizeof(VolumetricQualitySettings) < 64,
             "Feature settings remain small configuration PODs");
     }
 

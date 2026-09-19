@@ -40,7 +40,6 @@ void ComponentTypeRegistry::EnsureCoreTypesRegistered() {
     Register<StaticMeshComponent>("StaticMesh");
     Register<MaterialComponent>("Material");
     Register<SkyAtmosphereComponent>("SkyAtmosphere");
-    Register<VolumetricCloudComponent>("VolumetricCloud");
     Register<TerrainComponent>("Terrain");
     Register<WaterComponent>("Water");
     Register<ColliderComponent>("Collider");
@@ -67,7 +66,6 @@ void ComponentTypeRegistry::EnsureCoreTypesRegistered() {
     RegisterComponentOps(Id<PointLightComponent>(), MakeOpsFor<PointLightComponent>());
     RegisterComponentOps(Id<SpotLightComponent>(), MakeOpsFor<SpotLightComponent>());
     RegisterComponentOps(Id<SkyAtmosphereComponent>(), MakeOpsFor<SkyAtmosphereComponent>());
-    RegisterComponentOps(Id<VolumetricCloudComponent>(), MakeOpsFor<VolumetricCloudComponent>());
     RegisterComponentOps(Id<TerrainComponent>(), MakeOpsFor<TerrainComponent>());
     RegisterComponentOps(Id<WaterComponent>(), MakeOpsFor<WaterComponent>());
     RegisterComponentOps(Id<ColliderComponent>(), MakeOpsFor<ColliderComponent>());
