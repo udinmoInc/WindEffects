@@ -15,6 +15,7 @@
 #include "Lighting/CloudUniform.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Renderer/Graph/RenderGraph.h"
+#include "Renderer/Scalability/RenderingSettings.h"
 
 namespace we::runtime::ecs { struct ExtractedFrameData; }
 
@@ -24,7 +25,7 @@ namespace we::runtime::renderer {
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;
-class ViewportCloudRenderer;
+class VolumetricRenderer;
 class LightingSystem;
 
 // --- Running / migrated ----------------------------------------------------
@@ -125,27 +126,33 @@ private:
     const SceneEnvironmentUniform* m_Environment = nullptr;
 };
 
-class RENDERER_API CloudPass final : public RenderPass {
+class RENDERER_API VolumetricPass final : public RenderPass {
 public:
-    CloudPass(
-        ViewportCloudRenderer* clouds,
+    VolumetricPass(
+        VolumetricRenderer* volumetrics,
         we::rhi::RHITextureHandle color,
         we::rhi::RHITextureHandle depth,
         we::rhi::Extent2D extent,
         const CameraUniform* camera,
         const SceneEnvironmentUniform* environment,
-        const CloudUniform* cloudParams);
+        const CloudUniform* cloudParams,
+        const VolumetricQualitySettings* quality,
+        uint32_t frameIndex,
+        float resolutionScale = 1.0f);
     void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
     void Execute(const GraphPassContext& ctx) override;
 
 private:
-    ViewportCloudRenderer* m_Clouds = nullptr;
+    VolumetricRenderer* m_Volumetrics = nullptr;
     we::rhi::RHITextureHandle m_Color = we::rhi::RHITextureHandle::Invalid;
     we::rhi::RHITextureHandle m_Depth = we::rhi::RHITextureHandle::Invalid;
     we::rhi::Extent2D m_Extent{};
     const CameraUniform* m_Camera = nullptr;
     const SceneEnvironmentUniform* m_Environment = nullptr;
     const CloudUniform* m_CloudParams = nullptr;
+    const VolumetricQualitySettings* m_Quality = nullptr;
+    uint32_t m_FrameIndex = 0;
+    float m_ResolutionScale = 1.0f;
 };
 
 class RENDERER_API TonemapPass final : public RenderPass {

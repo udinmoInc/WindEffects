@@ -22,7 +22,9 @@ public:
     float Density = 0.02f;
     float HeightFalloff = 0.2f;
     float StartDistance = 0.0f;
-    bool VolumetricFog = true;
+    // Off by default — volumetric fog must not obscure procedural sky baseline.
+    // Enable explicitly when validating aerial perspective.
+    bool VolumetricFog = false;
     we::math::Vec3 FogColor{ 0.72f, 0.78f, 0.85f };
 
     void ApplyDefaults();

@@ -55,6 +55,20 @@ struct ShadowQualitySettings {
     float resolutionScale = 1.0f;
     bool softShadows = true;
     bool contactShadows = false;
+    /// Max view-space distance for cascades (meters).
+    float shadowDistance = 2000.0f;
+    float shadowNear = 0.1f;
+    /// Practical split blend: 0 = uniform, 1 = logarithmic.
+    float cascadeSplitLambda = 0.85f;
+    /// Blend width as a fraction of each cascade range (seam hiding).
+    float cascadeBlend = 0.12f;
+    float depthBias = 0.0015f;
+    /// Receiver normal offset in meters.
+    float normalBias = 0.03f;
+    /// PCF kernel radius in shadow-map texels.
+    float filterRadius = 1.25f;
+    /// Optional short-range contact shadow ray length (meters).
+    float contactShadowLength = 0.35f;
 };
 
 struct ReflectionQualitySettings {
@@ -95,8 +109,16 @@ struct VolumetricQualitySettings {
     bool enabled = true;
     QualityLevel quality = QualityLevel::Medium;
     float resolutionScale = 0.5f;
-    uint32_t maxSteps = 32;
+    uint32_t maxSteps = 128;
+    uint32_t lightSteps = 6;
+    uint32_t shadowSteps = 4;
+    uint32_t temporalQuality = 1; // 0 off, 1 basic
+    float temporalBlend = 0.85f;
 };
+
+// Guard against stale TUs after field growth (ODR/layout mismatch → AV in Resolve).
+static_assert(sizeof(VolumetricQualitySettings) == 28,
+    "VolumetricQualitySettings size drift — rebuild ALL Renderer objs that include RenderingSettings.h");
 
 struct WaterQualitySettings {
     bool enabled = true;

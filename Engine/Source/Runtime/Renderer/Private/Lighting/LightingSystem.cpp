@@ -8,6 +8,7 @@
 // ==============================================================================
 #include "Lighting/LightingSystem.h"
 #include "Lighting/LightingPasses.h"
+#include "Lighting/EnvironmentLightingEvaluator.h"
 #include "ECS/RenderExtract.h"
 #include "RHI/Desc.h"
 
@@ -43,6 +44,10 @@ LightingSystem::~LightingSystem() {
 bool LightingSystem::Initialize(const LightingCreateInfo& info) {
     Shutdown();
     m_Device = info.device;
+    m_Indirect = &m_NullIndirect;
+    if (m_Device) {
+        (void)m_Shadows.Initialize(m_Device);
+    }
     m_Initialized = true;
     return true;
 }
@@ -50,8 +55,15 @@ bool LightingSystem::Initialize(const LightingCreateInfo& info) {
 void LightingSystem::Configure(
     const LightingQualitySettings& lighting,
     const ShadowQualitySettings& shadows) {
+    Configure(lighting, shadows, 2048);
+}
+
+void LightingSystem::Configure(
+    const LightingQualitySettings& lighting,
+    const ShadowQualitySettings& shadows,
+    uint32_t maxShadowMapResolution) {
     m_LightingSettings = lighting;
-    m_Shadows.Configure(shadows);
+    m_Shadows.Configure(shadows, maxShadowMapResolution);
 }
 
 void LightingSystem::BeginFrame(const LightingFrameContext& context) {
@@ -63,6 +75,13 @@ void LightingSystem::BeginFrame(const LightingFrameContext& context) {
 
     if (context.environment) {
         SyncEnvironmentFromPrimary(*context.environment);
+        // Refresh sky irradiance from the shared Sun+Atmosphere model after sun sync.
+        const auto envCtx =
+            EnvironmentLightingEvaluator::FromEnvironmentUniform(*context.environment);
+        EnvironmentLightingEvaluator::ApplyToEnvironmentUniform(*context.environment, envCtx);
+        m_Scene.environment.ambientUpper = context.environment->skyAmbientColor;
+        m_Scene.environment.ambientLower = context.environment->skyLightLowerColor;
+        m_Scene.environment.skyLightIntensity = context.environment->skyLightIntensity;
     }
 
     CameraUniform camera{};
@@ -386,6 +405,7 @@ void LightingSystem::UploadGpuData() {
             m_GpuSpots.size() * sizeof(GPUSpotLight));
     }
     upload(m_ConstantsBuffer, &m_GpuConstants, sizeof(m_GpuConstants));
+    m_Shadows.UploadGpuData();
 }
 
 } // namespace we::runtime::renderer

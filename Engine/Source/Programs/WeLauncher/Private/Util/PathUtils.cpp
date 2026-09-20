@@ -152,6 +152,33 @@ std::string PathUtils::SanitizeProjectName(const std::string& name) {
     return we::projects::ProjectLifecycle::SanitizeProjectName(name);
 }
 
+std::string PathUtils::NextAvailableProjectName(
+    const std::filesystem::path& parentDirectory,
+    const std::string& preferredName) {
+    std::string candidate = SanitizeProjectName(preferredName.empty() ? "MyProject" : preferredName);
+    if (candidate.empty()) {
+        candidate = "MyProject";
+    }
+    std::error_code ec;
+    if (parentDirectory.empty() || !std::filesystem::exists(parentDirectory / candidate, ec)) {
+        return candidate;
+    }
+    std::string stem = candidate;
+    while (!stem.empty() && std::isdigit(static_cast<unsigned char>(stem.back()))) {
+        stem.pop_back();
+    }
+    if (stem.empty()) {
+        stem = "MyProject";
+    }
+    for (int i = 2; i < 10000; ++i) {
+        const std::string next = stem + std::to_string(i);
+        if (!std::filesystem::exists(parentDirectory / next, ec)) {
+            return next;
+        }
+    }
+    return stem + "_New";
+}
+
 bool PathUtils::IsPathInsideEngineInstall(const std::filesystem::path& path, const std::filesystem::path& engineRoot) {
     std::error_code ec;
     const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);

@@ -668,8 +668,26 @@ Result<ProcessLaunchResult> WindowsPlatform::LaunchProcess(const ProcessLaunchDe
         &pi);
 
     if (!ok) {
-        return MakeError(PlatformErrorCode::OsFailure, "CreateProcessW failed.", "LaunchProcess",
-            static_cast<int32_t>(::GetLastError()));
+        const DWORD err = ::GetLastError();
+        wchar_t* msgBuf = nullptr;
+        const DWORD msgLen = ::FormatMessageW(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            err,
+            0,
+            reinterpret_cast<LPWSTR>(&msgBuf),
+            0,
+            nullptr);
+        std::string detail = "CreateProcessW failed (Win32 " + std::to_string(err) + ")";
+        if (msgLen > 0 && msgBuf) {
+            detail += ": ";
+            detail += win32::WideToUtf8(msgBuf);
+            while (!detail.empty() && (detail.back() == '\r' || detail.back() == '\n' || detail.back() == ' ')) {
+                detail.pop_back();
+            }
+            ::LocalFree(msgBuf);
+        }
+        return MakeError(PlatformErrorCode::OsFailure, detail, "LaunchProcess", static_cast<int32_t>(err));
     }
 
     ProcessLaunchResult result{};

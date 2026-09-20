@@ -191,6 +191,16 @@ Editor::Editor(we::platform::WindowId window, const we::projects::EditorCommandL
 
 void Editor::InitializeEngine() {
     HE_INFO("[Startup] Stage 1/6: Renderer...");
+    {
+        const std::size_t localBytes = sizeof(we::runtime::renderer::Renderer);
+        const std::size_t dllBytes = we::runtime::renderer::Renderer::ObjectBytes();
+        if (localBytes != dllBytes) {
+            throw std::runtime_error(
+                "Renderer ABI mismatch: Editor sizeof=" + std::to_string(localBytes)
+                + " WERenderer sizeof=" + std::to_string(dllBytes)
+                + " — rebuild Editor against current Renderer headers.");
+        }
+    }
     m_Renderer = std::make_unique<Renderer>();
     m_Renderer->Init(m_Window);
 

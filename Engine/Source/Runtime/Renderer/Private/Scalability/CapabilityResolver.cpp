@@ -9,10 +9,14 @@
 #include "Renderer/Scalability/CapabilityResolver.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 
 namespace we::runtime::renderer {
 namespace {
+// Keep this TU's compile identity tied to VolumetricQualitySettings layout.
+constexpr std::size_t kResolvedVolumetricQualityBytes = sizeof(VolumetricQualitySettings);
+static_assert(kResolvedVolumetricQualityBytes == 28, "CapabilityResolver VolumetricQualitySettings size mismatch");
 
 bool ResolveFeatureGate(
     FeatureRequirement requirement,

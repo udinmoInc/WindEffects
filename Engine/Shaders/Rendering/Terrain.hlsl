@@ -73,18 +73,18 @@ float4 PSMain(VSOutput input) : SV_Target
     float3 skyLower = lightingValid ? max(skyLowerPad.rgb, 0.0) : float3(0.15, 0.16, 0.18);
 
     const float3 L = normalize(-sunTravel);
-    const float ndotl = saturate(dot(normal, L));
+    const float ndotl = saturate(dot(normal, L) * 0.85 + 0.15);
     const float hemi = saturate(normal.y * 0.5 + 0.5);
-    const float3 ambient = albedo * lerp(skyLower, skyUpper, hemi) * skyIntensity;
-    const float3 diffuse = albedo * sunColor * sunIntensity * ndotl * (1.0 - metallic);
+    const float3 ambient = albedo * lerp(skyLower * 0.45, skyUpper, hemi) * max(skyIntensity, 0.35);
+    const float3 diffuse = albedo * sunColor * max(sunIntensity, 0.2) * ndotl * (1.0 - metallic);
 
     const float3 viewDir = normalize(cameraPos - input.worldPos);
     const float3 halfV = normalize(L + viewDir);
     const float specPower = lerp(8.0, 128.0, 1.0 - roughness);
     const float spec = pow(saturate(dot(normal, halfV)), specPower) * specularScale * (1.0 - metallic);
-    const float3 specular = sunColor * sunIntensity * spec;
+    const float3 specular = sunColor * max(sunIntensity, 0.2) * spec * 1.1;
 
     float3 lit = ambient + diffuse + specular;
-    lit = lit / (1.0 + lit * 0.35);
+    lit = lit / (1.0 + lit * 0.22);
     return float4(WE_LinearToSRGB(lit), albedoColor.a);
 }

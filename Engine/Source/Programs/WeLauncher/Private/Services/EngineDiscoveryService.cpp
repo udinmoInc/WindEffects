@@ -11,6 +11,7 @@
 #include "Util/JsonFile.h"
 #include "Util/PathUtils.h"
 
+#include <algorithm>
 #include <fstream>
 #include <unordered_map>
 
@@ -133,28 +134,51 @@ std::filesystem::path EngineDiscoveryService::ResolveEditorExecutable(const std:
     const char* platformFolder = "Linux";
 #endif
 
-    const auto outputRoot = m_Current.buildRoot / "Output" / platformFolder / buildConfig;
-    const std::vector<std::string> candidates = {
-        "WindeffectsEditor.exe",
+    const auto isLaunchable = [](const std::filesystem::path& path) -> bool {
+        std::error_code ec;
+        if (!std::filesystem::is_regular_file(path, ec) || ec) {
+            return false;
+        }
+        // Reject zero-length / unreadable / corrupt images before CreateProcessW.
+        const auto size = std::filesystem::file_size(path, ec);
+        if (ec || size < 1024) {
+            return false;
+        }
+        std::ifstream probe(path, std::ios::binary);
+        if (!probe) {
+            return false;
+        }
+        char magic[2]{};
+        probe.read(magic, 2);
+        return probe.good() && magic[0] == 'M' && magic[1] == 'Z';
     };
 
-    for (const auto& name : candidates) {
-        const auto path = outputRoot / name;
-        if (std::filesystem::exists(path)) {
+    std::vector<std::string> configs;
+    if (!buildConfig.empty()) {
+        configs.push_back(buildConfig);
+    }
+    // Prefer Shipping for launcher-from-Shipping workflows; Development is often stale.
+    for (const char* fallback : {"Shipping", "Development"}) {
+        if (std::find(configs.begin(), configs.end(), fallback) == configs.end()) {
+            configs.emplace_back(fallback);
+        }
+    }
+
+    constexpr const char* kEditorName = "WindeffectsEditor.exe";
+    for (const auto& config : configs) {
+        const auto path = m_Current.buildRoot / "Output" / platformFolder / config / kEditorName;
+        if (isLaunchable(path)) {
             return path;
         }
     }
 
-    // Fallback: launcher may sit next to editor in config root.
-    const auto configRoot = PathUtils::GetExecutableDirectory();
-    for (const auto& name : candidates) {
-        const auto path = configRoot / name;
-        if (std::filesystem::exists(path)) {
-            return path;
-        }
+    // Fallback: same folder as WeLauncher (typical Shipping package layout).
+    const auto besideLauncher = PathUtils::GetExecutableDirectory() / kEditorName;
+    if (isLaunchable(besideLauncher)) {
+        return besideLauncher;
     }
 
-    return outputRoot / "WindeffectsEditor.exe";
+    return {};
 }
 
 } // namespace we::programs::welauncher

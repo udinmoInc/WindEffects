@@ -7,13 +7,13 @@
 // WindEffects Engine EULA (see Legal/EULA.md at the repository root).
 // ==============================================================================
 #include "Environment/EnvironmentLighting.h"
-
 #include "Environment/EnvironmentManager.h"
+#include "Core/Math/GlmInterop.h"
+#include "Lighting/DaylightConfig.h"
+#include "Lighting/EnvironmentLightingEvaluator.h"
 
 #include <algorithm>
 #include <cmath>
-
-#include "Core/Math/GlmInterop.h"
 namespace we::runtime::world::environment {
 
 namespace {
@@ -97,8 +97,8 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     const float sunDerivedEV = manager.ComputeExposureEV(sun);
     const we::math::Vec3 worldOrigin = manager.GetWorldOrigin(worldOriginHint);
 
-    // Artist intensity (~10 daytime) maps to display-referred outdoor irradiance.
-    constexpr float kSunArtistToIrradiance = 0.12f;
+    // DaylightConfig.h — single CPU sun scale (keep in sync with DaylightConfig.hlsli).
+    constexpr float kSunArtistToIrradiance = we::runtime::renderer::kDaylightSunArtistToIrradiance;
 
     we::runtime::renderer::SceneEnvironmentUniform uniform{};
     uniform.sunDirection = sun.GetLightDirection();
@@ -116,9 +116,15 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.ozoneAbsorption = atmosphere.GetOzoneAbsorption();
     uniform.mieAnisotropy = atmosphere.MieAnisotropy;
     uniform.worldOrigin = worldOrigin;
-    uniform.exposureEV = exposure.AutoExposure
-        ? std::clamp(exposure.ExposureEV, exposure.MinEV, exposure.MaxEV)
-        : exposure.GetEffectiveExposureEV(sunDerivedEV);
+    // Auto-exposure must use the sun-derived EV — ExposureEV stays 0 as a manual override.
+    // Using ExposureEV while AutoExposure=true left EV at 0 and blew the sky white.
+    uniform.exposureEV = exposure.GetEffectiveExposureEV(sunDerivedEV);
+    if (exposure.AutoExposure) {
+        uniform.exposureEV = std::clamp(
+            sunDerivedEV + exposure.ExposureCompensation,
+            exposure.MinEV,
+            exposure.MaxEV);
+    }
     uniform.planetRadius = 6360.0f;
     uniform.atmosphereHeight = 60.0f;
     uniform.multiScatterStrength = atmosphere.MultiScatterStrength;
@@ -135,6 +141,19 @@ we::runtime::renderer::SceneEnvironmentUniform BuildSceneEnvironmentUniform(
     uniform.atmosphereDebugMode = atmosphere.AtmosphereDebugMode;
     uniform.enableSunDisk = 1.0f;
     uniform.pipelineFixedExposureMultiplier = 0.0f;
+
+    // Derive sky ambient / irradiance from the same Sun+Atmosphere model used by
+    // ProceduralSky and the volumetric kernel (not an unrelated painted ambient).
+    {
+        using we::runtime::renderer::EnvironmentLightingEvaluator;
+        const auto envCtx = EnvironmentLightingEvaluator::FromEnvironmentUniform(uniform);
+        EnvironmentLightingEvaluator::ApplyToEnvironmentUniform(uniform, envCtx);
+        // Preserve artist lower-hemisphere tint as a soft ground bounce mix.
+        uniform.skyLightLowerColor = {
+            uniform.skyLightLowerColor.x * 0.35f + skyLight.LowerHemisphereColor.x * 0.65f,
+            uniform.skyLightLowerColor.y * 0.35f + skyLight.LowerHemisphereColor.y * 0.65f,
+            uniform.skyLightLowerColor.z * 0.35f + skyLight.LowerHemisphereColor.z * 0.65f};
+    }
 
     return uniform;
 }

@@ -21,6 +21,9 @@
 #include "Util/LauncherMaintenance.h"
 #include "Util/PathUtils.h"
 
+#include "Core/DiagnosticMacros.h"
+#include "Core/LogCategory.h"
+
 #include "KindUI/Core/EventSystem.h"
 #include "KindUI/Core/WindIcon.h"
 #include "KindUI/Core/Icon.h"
@@ -39,7 +42,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
-#include <filesystem>
 #include <functional>
 #include <string_view>
 
@@ -57,10 +59,20 @@ void LauncherShell::CommitCreateProject() {
         m_WizardTemplateId,
         PathUtils::FromUtf8(m_WizardLocation));
     SetStatus(result.message);
-    if (result.success) {
-        CloseModal();
-        RefreshProjectList();
+    if (!result.success) {
+        HE_WARN(std::string("[WeLauncher] CreateProject failed: ") + result.message
+            + " name=" + m_WizardName + " location=" + m_WizardLocation
+            + " template=" + m_WizardTemplateId);
+        // Keep the wizard open and offer the next free name when the folder collides.
+        if (result.message.find("already exists") != std::string::npos) {
+            m_WizardName = PathUtils::NextAvailableProjectName(
+                PathUtils::FromUtf8(m_WizardLocation), m_WizardName);
+            RebuildCreateWizard();
+        }
+        return;
     }
+    CloseModal();
+    RefreshProjectList();
 }
 
 void LauncherShell::SelectWizardTemplateByDelta(int delta) {

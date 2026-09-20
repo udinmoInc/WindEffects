@@ -49,7 +49,6 @@ float4 PSMain(VSOutput input) : SV_Target
     }
 
     float3 normal = normalize(input.worldNormal);
-    float3 lightDir = normalize(sunDirection);
     const float3 relPos = input.worldPos - worldOrigin;
     const float3 relCam = cameraPos - worldOrigin;
     float3 viewDir = normalize(relCam - relPos);
@@ -58,16 +57,23 @@ float4 PSMain(VSOutput input) : SV_Target
     const float3 skyUpper = max(skyAmbientColor, float3(0.0, 0.0, 0.0));
     const float3 skyLower = max(skyLightLowerColor, float3(0.0, 0.0, 0.0));
     const float upN = saturate(normal.y * 0.5 + 0.5);
-    const float3 ambient = lerp(skyLower * 0.05, skyUpper * 0.15, upN) * skyLightIntensity;
+    // Hemispheric ambient — stronger upper sky fill for outdoor realism.
+    const float3 ambient = lerp(skyLower * 0.35, skyUpper * 0.85, upN) * max(skyLightIntensity, 0.35);
 
-    float diff = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = diff * sunLinear * sunIntensity * 0.85;
+    // Sun travel is light direction; illuminate with -travel (toward surface).
+    const float3 L = normalize(-sunDirection);
+    float ndotl = saturate(dot(normal, L));
+    // Soft wrap so landscape isn't harsh half-Lambert clay.
+    ndotl = saturate(ndotl * 0.85 + 0.15);
+    float3 diffuse = ndotl * sunLinear * max(sunIntensity, 0.2) * 1.15;
 
-    float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64.0);
-    float3 specular = 0.045 * spec * sunLinear * skyLightIntensity;
+    float3 reflectDir = reflect(-L, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 48.0);
+    float3 specular = 0.06 * spec * sunLinear * max(sunIntensity, 0.2);
 
     float3 litLinear = albedo * (ambient + diffuse) + specular;
+    // Mild filmic compress so sunlit surfaces stay rich, not blown.
+    litLinear = litLinear / (1.0 + litLinear * 0.22);
 
     // Aerial perspective toward procedurally matched horizon inscattering.
     const float dist = length(relCam - relPos);

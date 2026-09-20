@@ -34,6 +34,10 @@ public:
     static bool ClearDirectoryContents(const std::filesystem::path& root);
     static std::string GetUtcNowIso8601();
     static std::string SanitizeProjectName(const std::string& name);
+    /// Returns a folder name under parent that does not already exist (MyProject, MyProject2, …).
+    static std::string NextAvailableProjectName(
+        const std::filesystem::path& parentDirectory,
+        const std::string& preferredName);
     static bool IsPathInsideEngineInstall(const std::filesystem::path& path, const std::filesystem::path& engineRoot);
     static std::string ReplaceTokens(std::string text, const std::string& projectName);
 };

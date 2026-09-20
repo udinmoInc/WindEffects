@@ -26,4 +26,17 @@ private:
     LightingSystem* m_Lighting = nullptr;
 };
 
+class ShadowSystem;
+
+/// Clears the sun CSM atlas and reserves the depth pass for shadow casters.
+class RENDERER_API ShadowMapPass final : public RenderPass {
+public:
+    explicit ShadowMapPass(ShadowSystem* shadows);
+    void Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>& buffers) override;
+    void Execute(const GraphPassContext& ctx) override;
+
+private:
+    ShadowSystem* m_Shadows = nullptr;
+};
+
 } // namespace we::runtime::renderer

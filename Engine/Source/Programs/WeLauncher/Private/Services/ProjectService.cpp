@@ -233,7 +233,8 @@ ProjectOperationResult ProjectService::CreateProject(
     const std::string projectName = we::projects::ProjectLifecycle::SanitizeProjectName(displayName);
     const auto projectRoot = parentDirectory / projectName;
     if (std::filesystem::exists(projectRoot)) {
-        result.message = "Project directory already exists.";
+        result.message = "Project directory already exists: " + PathUtils::ToUtf8(projectRoot)
+            + " — choose a different name.";
         return result;
     }
     if (PathUtils::IsPathInsideEngineInstall(projectRoot, m_Engines.Current().engineRoot)) {

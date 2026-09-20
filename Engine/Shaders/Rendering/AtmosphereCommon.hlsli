@@ -3,14 +3,16 @@
 
 #include "../Common/Math.hlsli"
 
-static const float WE_RAYLEIGH_SCALE_KM      = 8.0;
-static const float WE_MIE_SCALE_KM           = 1.2;
+static const float WE_RAYLEIGH_SCALE_KM      = 8.0;   // ~8000 m
+static const float WE_MIE_SCALE_KM           = 1.2;   // ~1200 m
 static const float WE_OZONE_PEAK_ALT_KM      = 25.0;
 static const float WE_OZONE_WIDTH_KM         = 8.0;
 static const float WE_SUN_ANGULAR_RADIUS     = 0.004675;
 static const int   WE_ATMOSPHERE_STEPS       = 32;
 static const int   WE_SUN_TRANSMITTANCE_STEPS = 16;
 static const float WE_SKY_RADIANCE_SCALE     = 6.0;
+// Earth Mie absorption (1/km) ≡ 4.440e-6 m^-1 — folded into extinction with mieCoeff.
+static const float WE_MIE_ABSORPTION_KM      = 0.004440;
 
 static const int WE_TRANSMITTANCE_LUT_WIDTH  = 256;
 static const int WE_TRANSMITTANCE_LUT_HEIGHT = 64;
@@ -155,10 +157,14 @@ float3 WE_ViewDirFromSkyViewUV(float2 uv, float3 sunDir)
 
 float WE_ComputeSunDiskMask(float3 viewDir, float3 sunDir, float angularRadius)
 {
+    // Equal-angle cone about sunDir → circular disk on the celestial sphere.
+    // Screen appearance stays round when viewDir is reconstructed per pixel
+    // (not when directions are linearly interpolated across a fullscreen triangle).
     const float cosAngle = dot(normalize(viewDir), normalize(sunDir));
-    const float cosRadius = cos(max(angularRadius, WE_SUN_ANGULAR_RADIUS));
-    // edge0 < edge1 required; cosAngle rises toward 1 at the sun center.
-    const float feather = 0.00015;
+    const float radius = max(angularRadius, WE_SUN_ANGULAR_RADIUS);
+    const float cosRadius = cos(radius);
+    // Feather ~1.5 arcminutes in cosine space near the limb.
+    const float feather = max(1.0 - cos(radius + 0.00045), 1e-6);
     return smoothstep(cosRadius - feather, cosRadius, cosAngle);
 }
 

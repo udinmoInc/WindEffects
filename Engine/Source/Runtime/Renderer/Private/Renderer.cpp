@@ -12,7 +12,8 @@
 #include "Lighting/LightingSystem.h"
 #include "Graph/ViewportSkyRenderer.h"
 #include "Graph/ViewportGridRenderer.h"
-#include "Graph/ViewportCloudRenderer.h"
+#include "Volumetrics/VolumetricRenderer.h"
+#include "Lighting/DaylightConfig.h"
 
 #include "Core/LogCategory.h"
 #include "Core/Logger.h"
@@ -25,11 +26,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <string>
 #include "Core/Math/GlmInterop.h"
 #include <glm/gtc/matrix_inverse.hpp>
 
 namespace we::runtime::renderer {
 namespace {
+// CloudDeckAltitudeBump: 5.5/8.5 km thin high deck
 
 Renderer* s_Instance = nullptr;
 
@@ -75,6 +78,10 @@ Renderer& Renderer::Get() {
     return *s_Instance;
 }
 
+std::size_t Renderer::ObjectBytes() noexcept {
+    return sizeof(Renderer);
+}
+
 Renderer::Renderer() {
     WE_VALIDATE_INIT(s_Instance == nullptr, "Renderer", "Renderer instance already exists.");
     s_Instance = this;
@@ -98,14 +105,20 @@ void Renderer::Init(we::platform::WindowId window) {
     rhiInit.appName = "WindEffects";
     const uint32_t framesInFlight = FramesInFlightFromEnvironment();
     rhiInit.framesInFlight = framesInFlight;
+    WE_LOG_INFO(we::LogCategory::Renderer.data(), "Renderer: RHI::Initialize...");
     (void)we::rhi::RHI::Initialize(rhiInit);
+    WE_LOG_INFO(we::LogCategory::Renderer.data(),
+        std::string("Renderer: RHI backend ready: ") + we::rhi::RHI::Get().GetBackendName());
 
     we::rhi::DeviceDesc deviceDesc{};
     deviceDesc.windowId = window;
     deviceDesc.window = nativeWindow;
     deviceDesc.framesInFlight = framesInFlight;
     deviceDesc.vsync = VsyncFromEnvironment();
+    WE_LOG_INFO(we::LogCategory::Renderer.data(), "Renderer: CreateDevice...");
     auto deviceResult = we::rhi::RHI::Get().CreateDevice(deviceDesc);
+    WE_LOG_INFO(we::LogCategory::Renderer.data(),
+        deviceResult.Ok() ? "Renderer: CreateDevice returned Ok." : "Renderer: CreateDevice failed.");
     WE_VALIDATE_INIT(deviceResult.Ok() && deviceResult.value, "Renderer",
         deviceResult.Ok() ? "RHI CreateDevice returned null." : deviceResult.error.message.c_str());
     m_RHIDevice = std::move(deviceResult.value);
@@ -123,10 +136,10 @@ void Renderer::Init(we::platform::WindowId window) {
         WE_LOG_WARN(we::LogCategory::Renderer.data(),
             "ViewportGridRenderer init failed; viewport grid disabled.");
     }
-    // Defer ViewportCloudRenderer::Init — 3D DDS upload during device bring-up
-    // has crashed Vulkan drivers. Lazy-init on first CloudPass instead.
-    m_ViewportClouds = std::make_unique<ViewportCloudRenderer>();
-    m_CloudsInitAttempted = false;
+    // Defer VolumetricRenderer::Init — 3D DDS upload during device bring-up
+    // has crashed Vulkan drivers. Lazy-init on first VolumetricPass instead.
+    m_Volumetrics = std::make_unique<VolumetricRenderer>();
+    m_VolumetricsInitAttempted = false;
 
     m_Lighting = std::make_unique<LightingSystem>();
     if (!m_Lighting->Initialize(LightingCreateInfo{m_RHIDevice.get()})) {
@@ -141,7 +154,10 @@ void Renderer::Init(we::platform::WindowId window) {
 
     {
         const auto& published = m_Scalability.GetPublishedSettings();
-        m_Lighting->Configure(published.lighting, published.shadows);
+        m_Lighting->Configure(
+            published.lighting,
+            published.shadows,
+            published.resolution.maxShadowMapResolution);
     }
 
     m_Initialized = true;
@@ -167,9 +183,9 @@ void Renderer::Shutdown() {
         m_ViewportGrid->Shutdown();
         m_ViewportGrid.reset();
     }
-    if (m_ViewportClouds) {
-        m_ViewportClouds->Shutdown();
-        m_ViewportClouds.reset();
+    if (m_Volumetrics) {
+        m_Volumetrics->Shutdown();
+        m_Volumetrics.reset();
     }
     if (m_ViewportSky) {
         m_ViewportSky->Shutdown();
@@ -227,8 +243,8 @@ void Renderer::DestroyViewportTargets() {
         return;
     }
     // Drop cloud depth SRV before destroying the depth texture (UAF / null-descriptor AV).
-    if (m_ViewportClouds) {
-        m_ViewportClouds->InvalidateDepthBinding();
+    if (m_Volumetrics) {
+        m_Volumetrics->InvalidateDepthBinding();
     }
     if (m_ViewportColorView != we::rhi::RHITextureViewHandle::Invalid) {
         (void)m_RHIDevice->DestroyTextureView(m_ViewportColorView);
@@ -333,23 +349,41 @@ void Renderer::ClearSwapchainChrome() {}
 void Renderer::RenderViewportSky() {}
 
 namespace {
-// Set false to hard-skip CloudPass / ViewportCloudRenderer init.
-constexpr bool kEnableVolumetricClouds = true;
+// Baseline isolation: sky/atmosphere must work with volumetrics completely off.
+// Re-enable after procedural sky + sun disk + environment lighting are validated.
+constexpr bool kEnableVolumetrics = false;
 } // namespace
 
-void Renderer::EnsureCloudsReady() {
-    if constexpr (kEnableVolumetricClouds) {
-        if (m_CloudsInitAttempted || !m_ViewportClouds || !m_RHIDevice) {
+void Renderer::EnsureVolumetricsReady() {
+    if constexpr (kEnableVolumetrics) {
+        if (m_VolumetricsInitAttempted || !m_Volumetrics || !m_RHIDevice) {
             return;
         }
-        m_CloudsInitAttempted = true;
+        m_VolumetricsInitAttempted = true;
         WE_LOG_INFO(we::LogCategory::Renderer.data(),
-            "ViewportCloudRenderer: deferred init starting...");
-        if (!m_ViewportClouds->Init(m_RHIDevice.get())) {
+            "VolumetricRenderer: deferred init starting...");
+        if (!m_Volumetrics->Init(m_RHIDevice.get())) {
             WE_LOG_WARN(we::LogCategory::Renderer.data(),
-                "ViewportCloudRenderer init failed; volumetric clouds disabled.");
+                "VolumetricRenderer init failed; volumetric effects disabled.");
+            return;
+        }
+        if (m_Lighting) {
+            m_Volumetrics->SetLightingSystem(m_Lighting.get());
         }
     }
+}
+
+void Renderer::SetLocalFogUniform(const LocalFogUniform& fog) {
+    if (m_Volumetrics) {
+        m_Volumetrics->SetLocalFog(fog);
+    }
+}
+
+LocalFogUniform Renderer::GetLocalFogUniform() const {
+    if (m_Volumetrics) {
+        return m_Volumetrics->GetLocalFog();
+    }
+    return LocalFogUniform{};
 }
 
 void Renderer::RenderScene() {
@@ -372,7 +406,10 @@ void Renderer::RenderScene() {
             : RGScheduleMode::SingleQueue);
 
     if (m_Lighting) {
-        m_Lighting->Configure(settings.lighting, settings.shadows);
+        m_Lighting->Configure(
+            settings.lighting,
+            settings.shadows,
+            settings.resolution.maxShadowMapResolution);
         LightingFrameContext lightingCtx{};
         lightingCtx.extract = m_ExtractedFrame;
         lightingCtx.camera = &m_LastCamera;
@@ -396,12 +433,14 @@ void Renderer::RenderScene() {
         viewportExtent,
         &m_LastCamera,
         &m_LastEnvironment));
-    m_RenderGraph->AddPass(std::make_unique<GridPass>(
-        m_ViewportGrid.get(),
-        m_ViewportColorTexture,
-        m_ViewportDepthTexture,
-        viewportExtent,
-        &m_LastCamera));
+    if (m_GridVisible) {
+        m_RenderGraph->AddPass(std::make_unique<GridPass>(
+            m_ViewportGrid.get(),
+            m_ViewportColorTexture,
+            m_ViewportDepthTexture,
+            viewportExtent,
+            &m_LastCamera));
+    }
     if (settings.terrain.enabled) {
         m_RenderGraph->AddPass(std::make_unique<TerrainPass>(
             m_TerrainDrawer,
@@ -418,24 +457,32 @@ void Renderer::RenderScene() {
         m_ExtractedFrame,
         m_Lighting.get()));
 
-    if constexpr (kEnableVolumetricClouds) {
+    if constexpr (kEnableVolumetrics) {
         if (settings.volumetrics.enabled) {
-            EnsureCloudsReady();
+            EnsureVolumetricsReady();
         }
-        if (settings.volumetrics.enabled && m_ViewportClouds && m_ViewportClouds->IsReady()) {
-            m_CloudUniform.enabled = 1.0f;
-            m_CloudUniform.maxSteps = settings.volumetrics.maxSteps > 0
-                ? settings.volumetrics.maxSteps
-                : 64u;
+        if (settings.volumetrics.enabled && m_Volumetrics && m_Volumetrics->IsReady()) {
+            if (!m_OverrideCloudDefaults) {
+                ApplyDaylightCloudDefaults(m_CloudUniform);
+            }
+            // Scalability may raise steps; never lower artist daylight defaults (stair risk).
+            if (settings.volumetrics.maxSteps > m_CloudUniform.maxSteps) {
+                m_CloudUniform.maxSteps = (std::min)(settings.volumetrics.maxSteps, 256u);
+            }
             m_CloudUniform.timeSeconds = static_cast<float>(m_CurrentFrame) * (1.0f / 60.0f);
-            m_RenderGraph->AddPass(std::make_unique<CloudPass>(
-                m_ViewportClouds.get(),
+            m_RenderGraph->AddPass(std::make_unique<VolumetricPass>(
+                m_Volumetrics.get(),
                 m_ViewportColorTexture,
                 m_ViewportDepthTexture,
                 viewportExtent,
                 &m_LastCamera,
                 &m_LastEnvironment,
-                &m_CloudUniform));
+                &m_CloudUniform,
+                &settings.volumetrics,
+                m_CurrentFrame,
+                settings.volumetrics.resolutionScale > 0.0f
+                    ? settings.volumetrics.resolutionScale
+                    : 1.0f));
         }
     }
 
@@ -552,6 +599,34 @@ void Renderer::UploadCameraUniform(const CameraUniform& uniform) {
 
 void Renderer::UploadEnvironmentUniform(const SceneEnvironmentUniform& uniform) {
     m_LastEnvironment = uniform;
+    static bool s_Logged = false;
+    if (!s_Logged) {
+        s_Logged = true;
+        WE_LOG_INFO(
+            we::LogCategory::Renderer.data(),
+            std::string("[EnvUBO] sunDir=(") +
+            std::to_string(uniform.sunDirection.x) + "," +
+            std::to_string(uniform.sunDirection.y) + "," +
+            std::to_string(uniform.sunDirection.z) +
+            ") sunI=" + std::to_string(uniform.sunIntensity) +
+            " rayleigh=(" +
+            std::to_string(uniform.atmosphereRayleigh.x) + "," +
+            std::to_string(uniform.atmosphereRayleigh.y) + "," +
+            std::to_string(uniform.atmosphereRayleigh.z) +
+            ") mie=" + std::to_string(uniform.mieScattering) +
+            " ozone=(" +
+            std::to_string(uniform.ozoneAbsorption.x) + "," +
+            std::to_string(uniform.ozoneAbsorption.y) + "," +
+            std::to_string(uniform.ozoneAbsorption.z) +
+            ") exposureEV=" + std::to_string(uniform.exposureEV) +
+            " skyAmbient=(" +
+            std::to_string(uniform.skyAmbientColor.x) + "," +
+            std::to_string(uniform.skyAmbientColor.y) + "," +
+            std::to_string(uniform.skyAmbientColor.z) +
+            ") skyLightI=" + std::to_string(uniform.skyLightIntensity) +
+            " enableSunDisk=" + std::to_string(uniform.enableSunDisk) +
+            " volFog=" + std::to_string(uniform.enableVolumetricFog));
+    }
 }
 
 void Renderer::InsertOverlayPassBarrier() {

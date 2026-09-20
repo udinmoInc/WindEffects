@@ -40,6 +40,11 @@ public static class TargetResolver
         {
             RootModules = ["CrashReporter"],
             IncludeDependents = false
+        },
+        ["TestViewport"] = new TargetSpec
+        {
+            RootModules = ["TestViewport"],
+            IncludeDependents = false
         }
     };
 

@@ -234,9 +234,13 @@ void EditorCamera::Update(float dt) {
 
     UpdateOrbitPositionFromAngles();
 
-    // Snap when nearly settled so camera hashes stabilize and paint-only frames can kick in.
+    // Snap eps must grow with camera distance — float ULP at tens of km is >> 1e-3,
+    // otherwise orbit lerp never settles and the view wobbles every frame.
+    const float camRange = (std::max)(
+        glm::length(we::math::ToGlm(m_Position)),
+        glm::length(we::math::ToGlm(m_TargetPosition)));
     constexpr float kSnapEps = 1.0e-4f;
-    constexpr float kSnapPosEps = 1.0e-3f;
+    const float snapPosEps = (std::max)(1.0e-3f, camRange * 1.0e-6f);
     const bool anglesSettled =
         std::abs(m_Pitch - m_TargetPitch) < kSnapEps
         && std::abs(m_Yaw - m_TargetYaw) < kSnapEps
@@ -244,8 +248,8 @@ void EditorCamera::Update(float dt) {
     const glm::vec3 posDelta = we::math::ToGlm(m_Position) - we::math::ToGlm(m_TargetPosition);
     const glm::vec3 lookDelta = we::math::ToGlm(m_LookAt) - we::math::ToGlm(m_TargetLookAt);
     const bool poseSettled =
-        glm::dot(posDelta, posDelta) < (kSnapPosEps * kSnapPosEps)
-        && glm::dot(lookDelta, lookDelta) < (kSnapPosEps * kSnapPosEps);
+        glm::dot(posDelta, posDelta) < (snapPosEps * snapPosEps)
+        && glm::dot(lookDelta, lookDelta) < (snapPosEps * snapPosEps);
 
     if (anglesSettled && poseSettled) {
         m_Pitch = m_TargetPitch;
@@ -399,7 +403,35 @@ we::math::Mat4 EditorCamera::GetViewMatrix() const {
         up *= 1.0f / std::sqrt(uLenSq);
     }
 
-    return we::math::FromGlm(glm::lookAt(we::math::ToGlm(m_Position), we::math::ToGlm(m_Position) + forward, up));
+    // Explicit RH view matrix with double-precision translation. lookAt(eye, eye+dir)
+    // loses basis precision at large |eye|; double dots keep far cameras stable.
+    const double ex = static_cast<double>(m_Position.x);
+    const double ey = static_cast<double>(m_Position.y);
+    const double ez = static_cast<double>(m_Position.z);
+    const double tx = -(static_cast<double>(right.x) * ex
+        + static_cast<double>(right.y) * ey
+        + static_cast<double>(right.z) * ez);
+    const double ty = -(static_cast<double>(up.x) * ex
+        + static_cast<double>(up.y) * ey
+        + static_cast<double>(up.z) * ez);
+    const double tz = static_cast<double>(forward.x) * ex
+        + static_cast<double>(forward.y) * ey
+        + static_cast<double>(forward.z) * ez;
+
+    glm::mat4 view(1.0f);
+    view[0][0] = right.x;
+    view[1][0] = right.y;
+    view[2][0] = right.z;
+    view[3][0] = static_cast<float>(tx);
+    view[0][1] = up.x;
+    view[1][1] = up.y;
+    view[2][1] = up.z;
+    view[3][1] = static_cast<float>(ty);
+    view[0][2] = -forward.x;
+    view[1][2] = -forward.y;
+    view[2][2] = -forward.z;
+    view[3][2] = static_cast<float>(tz);
+    return we::math::FromGlm(view);
 }
 
 we::math::Mat4 EditorCamera::GetProjectionMatrix() const {

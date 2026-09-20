@@ -111,7 +111,7 @@ void LauncherSettingsStore::Load() {
         LoadString(root, "engineInstallDirectory", m_Settings.engineInstallDirectory);
         LoadString(root, "lastBuildConfig", m_Settings.lastBuildConfig);
         if (m_Settings.lastBuildConfig.empty()) {
-            m_Settings.lastBuildConfig = "Development";
+            m_Settings.lastBuildConfig = "Shipping";
         }
         LoadString(root, "defaultTemplateId", m_Settings.defaultTemplateId);
         if (m_Settings.defaultTemplateId.empty()) {

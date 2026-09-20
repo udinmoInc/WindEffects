@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -24,6 +25,8 @@
 
 namespace we::runtime::renderer {
 namespace {
+constexpr std::size_t kResolvedVolumetricQualityBytes = sizeof(VolumetricQualitySettings);
+static_assert(kResolvedVolumetricQualityBytes == 28, "ScalabilityManager VolumetricQualitySettings size mismatch");
 
 using IniSectionMap = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
 
@@ -273,6 +276,30 @@ bool LoadProfileIni(const std::filesystem::path& path, RenderingProfileDesc& des
         if (const auto v = SectionGet(shadows, "ContactShadows"); !v.empty()) {
             s.shadows.contactShadows = ParseBool(v, s.shadows.contactShadows);
         }
+        if (const auto v = SectionGet(shadows, "ShadowDistance"); !v.empty()) {
+            s.shadows.shadowDistance = ParseFloat(v, s.shadows.shadowDistance);
+        }
+        if (const auto v = SectionGet(shadows, "ShadowNear"); !v.empty()) {
+            s.shadows.shadowNear = ParseFloat(v, s.shadows.shadowNear);
+        }
+        if (const auto v = SectionGet(shadows, "CascadeSplitLambda"); !v.empty()) {
+            s.shadows.cascadeSplitLambda = ParseFloat(v, s.shadows.cascadeSplitLambda);
+        }
+        if (const auto v = SectionGet(shadows, "CascadeBlend"); !v.empty()) {
+            s.shadows.cascadeBlend = ParseFloat(v, s.shadows.cascadeBlend);
+        }
+        if (const auto v = SectionGet(shadows, "DepthBias"); !v.empty()) {
+            s.shadows.depthBias = ParseFloat(v, s.shadows.depthBias);
+        }
+        if (const auto v = SectionGet(shadows, "NormalBias"); !v.empty()) {
+            s.shadows.normalBias = ParseFloat(v, s.shadows.normalBias);
+        }
+        if (const auto v = SectionGet(shadows, "FilterRadius"); !v.empty()) {
+            s.shadows.filterRadius = ParseFloat(v, s.shadows.filterRadius);
+        }
+        if (const auto v = SectionGet(shadows, "ContactShadowLength"); !v.empty()) {
+            s.shadows.contactShadowLength = ParseFloat(v, s.shadows.contactShadowLength);
+        }
     }
 
     if (const auto* reflections = FindSection(sections, "Reflections")) {
@@ -335,6 +362,18 @@ bool LoadProfileIni(const std::filesystem::path& path, RenderingProfileDesc& des
         }
         if (const auto v = SectionGet(volumetrics, "MaxSteps"); !v.empty()) {
             s.volumetrics.maxSteps = ParseUInt(v, s.volumetrics.maxSteps);
+        }
+        if (const auto v = SectionGet(volumetrics, "LightSteps"); !v.empty()) {
+            s.volumetrics.lightSteps = ParseUInt(v, s.volumetrics.lightSteps);
+        }
+        if (const auto v = SectionGet(volumetrics, "ShadowSteps"); !v.empty()) {
+            s.volumetrics.shadowSteps = ParseUInt(v, s.volumetrics.shadowSteps);
+        }
+        if (const auto v = SectionGet(volumetrics, "TemporalQuality"); !v.empty()) {
+            s.volumetrics.temporalQuality = ParseUInt(v, s.volumetrics.temporalQuality);
+        }
+        if (const auto v = SectionGet(volumetrics, "TemporalBlend"); !v.empty()) {
+            s.volumetrics.temporalBlend = ParseFloat(v, s.volumetrics.temporalBlend);
         }
     }
 
@@ -432,7 +471,7 @@ RenderingProfileDesc ScalabilityManager::MakeBuiltinProfile(RenderingProfileId i
         desc.settings.terrain = {true, QualityLevel::Ultra, 0.75f, 10};
         desc.settings.foliage = {true, QualityLevel::Ultra, 1.0f, 0.0f};
         desc.settings.atmosphere = {true, QualityLevel::High};
-        desc.settings.volumetrics = {true, QualityLevel::High, 0.75f, 64};
+        desc.settings.volumetrics = {true, QualityLevel::High, 0.75f, 192};
         desc.settings.water = {true, QualityLevel::High, true, true};
         desc.settings.particles = {true, QualityLevel::High, 1.0f};
         desc.settings.postProcess = {true, QualityLevel::High, true, true, true, true};

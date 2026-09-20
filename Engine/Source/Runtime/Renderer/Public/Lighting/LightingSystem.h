@@ -14,6 +14,7 @@
 #include "Camera/CameraUniform.h"
 #include "Lighting/LightingScene.h"
 #include "Lighting/LightingTypes.h"
+#include "Lighting/IIndirectLightingProvider.h"
 #include "Lighting/SceneEnvironmentUniform.h"
 #include "Lighting/ShadowSystem.h"
 #include "Renderer/Export.h"
@@ -57,6 +58,10 @@ public:
 
     bool Initialize(const LightingCreateInfo& info);
     void Configure(const LightingQualitySettings& lighting, const ShadowQualitySettings& shadows);
+    void Configure(
+        const LightingQualitySettings& lighting,
+        const ShadowQualitySettings& shadows,
+        uint32_t maxShadowMapResolution);
 
     void BeginFrame(const LightingFrameContext& context);
     void BuildRenderGraph(RenderGraph& graph);
@@ -86,6 +91,13 @@ public:
         return static_cast<uint32_t>(m_GpuPoints.size());
     }
 
+    void SetIndirectLightingProvider(IIndirectLightingProvider* provider) {
+        m_Indirect = provider;
+    }
+    [[nodiscard]] IIndirectLightingProvider* GetIndirectLightingProvider() const {
+        return m_Indirect;
+    }
+
 private:
     void BuildScene(const LightingFrameContext& context);
     void SyncEnvironmentFromPrimary(SceneEnvironmentUniform& environment) const;
@@ -97,6 +109,8 @@ private:
     LightingQualitySettings m_LightingSettings{};
     LightingScene m_Scene{};
     ShadowSystem m_Shadows{};
+    IIndirectLightingProvider* m_Indirect = nullptr;
+    NullIndirectLightingProvider m_NullIndirect{};
 
     std::vector<GPUDirectionalLight> m_GpuDirectional;
     std::vector<GPUPointLight> m_GpuPoints;

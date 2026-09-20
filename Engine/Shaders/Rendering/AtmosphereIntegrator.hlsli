@@ -29,7 +29,7 @@ float3 WE_IntegrateOpticalDepth(
         const float od = WE_OzoneDensity(heightKm);
 
         rayleighDepth += params.rayleighCoeff * rd * stepSize;
-        mieDepth += params.mieCoeff * md * stepSize;
+        mieDepth += (params.mieCoeff + WE_MIE_ABSORPTION_KM) * md * stepSize;
         ozoneDepth += params.ozoneCoeff * od * stepSize;
         marchPos += dir * stepSize;
     }
@@ -121,7 +121,7 @@ WE_InscatteringResult WE_IntegrateInscatteringDetailed(
         const float od = WE_OzoneDensity(heightKm);
 
         opticalRayleigh += params.rayleighCoeff * rd * stepSize;
-        opticalMie += params.mieCoeff * md * stepSize;
+        opticalMie += (params.mieCoeff + WE_MIE_ABSORPTION_KM) * md * stepSize;
         opticalOzone += params.ozoneCoeff * od * stepSize;
 
         const float3 sunT = WE_IntegrateSunTransmittance(samplePos, sunDir, params);

@@ -9,7 +9,7 @@
 #include "Renderer/Graph/ScenePasses.h"
 #include "Graph/ViewportSkyRenderer.h"
 #include "Graph/ViewportGridRenderer.h"
-#include "Graph/ViewportCloudRenderer.h"
+#include "Volumetrics/VolumetricRenderer.h"
 #include "Lighting/LightingSystem.h"
 #include "ECS/RenderExtract.h"
 
@@ -151,26 +151,32 @@ void GridPass::Execute(const GraphPassContext& ctx) {
     }
 }
 
-CloudPass::CloudPass(
-    ViewportCloudRenderer* clouds,
+VolumetricPass::VolumetricPass(
+    VolumetricRenderer* volumetrics,
     we::rhi::RHITextureHandle color,
     we::rhi::RHITextureHandle depth,
     we::rhi::Extent2D extent,
     const CameraUniform* camera,
     const SceneEnvironmentUniform* environment,
-    const CloudUniform* cloudParams)
-    : RenderPass("CloudPass", we::rhi::QueueType::Graphics, GraphPassFlags::SideEffects)
-    , m_Clouds(clouds)
+    const CloudUniform* cloudParams,
+    const VolumetricQualitySettings* quality,
+    uint32_t frameIndex,
+    float resolutionScale)
+    : RenderPass("VolumetricPass", we::rhi::QueueType::Graphics, GraphPassFlags::SideEffects)
+    , m_Volumetrics(volumetrics)
     , m_Color(color)
     , m_Depth(depth)
     , m_Extent(extent)
     , m_Camera(camera)
     , m_Environment(environment)
     , m_CloudParams(cloudParams)
+    , m_Quality(quality)
+    , m_FrameIndex(frameIndex)
+    , m_ResolutionScale(resolutionScale)
 {
 }
 
-void CloudPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
+void VolumetricPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphBufferRef>&) {
     textures.push_back({kInvalidGraphResourceId, m_Color, we::rhi::ResourceState::RenderTarget,
         GraphResourceAccess::ReadWrite});
     if (m_Depth != we::rhi::RHITextureHandle::Invalid) {
@@ -179,28 +185,39 @@ void CloudPass::Setup(std::vector<GraphTextureRef>& textures, std::vector<GraphB
     }
 }
 
-void CloudPass::Execute(const GraphPassContext& ctx) {
-    if (!ctx.commandList || !m_Camera || !m_Environment || !m_CloudParams || !m_Clouds) {
+void VolumetricPass::Execute(const GraphPassContext& ctx) {
+    if (!ctx.commandList || !m_Camera || !m_Environment || !m_CloudParams || !m_Volumetrics
+        || !m_Quality) {
         return;
     }
-    if (!m_Clouds->IsReady()
+    if (!m_Volumetrics->IsReady()
         || m_Color == we::rhi::RHITextureHandle::Invalid
         || m_Depth == we::rhi::RHITextureHandle::Invalid) {
         return;
     }
-    // Match TerrainPass: Grid leaves color in ShaderResource; force RT before blend.
     ctx.commandList->TransitionTexture(
         m_Color,
         we::rhi::ResourceState::ShaderResource,
         we::rhi::ResourceState::RenderTarget);
-    m_Clouds->Draw(
+    ctx.commandList->TransitionTexture(
+        m_Depth,
+        we::rhi::ResourceState::DepthWrite,
+        we::rhi::ResourceState::ShaderResource);
+    m_Volumetrics->Draw(
         *ctx.commandList,
         m_Color,
         m_Depth,
         m_Extent,
         *m_Camera,
         *m_Environment,
-        *m_CloudParams);
+        *m_CloudParams,
+        *m_Quality,
+        m_FrameIndex,
+        m_ResolutionScale);
+    ctx.commandList->TransitionTexture(
+        m_Color,
+        we::rhi::ResourceState::RenderTarget,
+        we::rhi::ResourceState::ShaderResource);
 }
 
 TerrainPass::TerrainPass(

@@ -396,15 +396,27 @@ void WeLauncherApp::MainLoop() {
                 m_Presenter->GetSwapchainWidth(),
                 m_Presenter->GetSwapchainHeight());
 
+            we::rhi::RHITextureHandle swapImage = we::rhi::RHITextureHandle::Invalid;
+            if (auto* device = m_Presenter->GetRHIDevice()) {
+                if (auto* swap = device->GetSwapchain()) {
+                    swapImage = swap->GetCurrentImage();
+                }
+            }
+
             we::runtime::uigfx::OverlayRenderContext context;
             context.cmd = m_Presenter->GetFrameCommandList();
+            context.colorTarget = swapImage;
             context.targetView = we::rhi::RHITextureViewHandle::Invalid;
             context.targetFormat = m_Presenter->GetSwapchainFormat();
             context.targetExtent = { m_Presenter->GetSwapchainWidth(), m_Presenter->GetSwapchainHeight() };
+            context.imageIndex = m_Presenter->GetCurrentImageIndex();
 
+            m_Presenter->RecordUiPresentPath(context.imageIndex);
+            m_Presenter->InsertOverlayPassBarrier();
             m_UIRenderer->BeginOverlayPass(context);
             m_UIRenderer->RenderUI(m_UI, m_Presenter->GetCurrentFrameIndex());
             m_UIRenderer->EndOverlayPass(context);
+            m_Presenter->MarkOverlayPassEnded();
 
             m_Presenter->SubmitAndPresent();
         } else {

@@ -4,41 +4,59 @@
 // ==============================================================================
 #include "Renderer/Scalability/ScalabilityTests.h"
 #include "Lighting/LightingTests.h"
+#include "Renderer/Volumetrics/VolumetricTests.h"
 
+#include <cstdio>
 #include <cstdlib>
-#include <iostream>
 
 int main(int /*argc*/, char** /*argv*/) {
+    std::printf("ScalabilityHardening starting...\n");
+    std::fflush(stdout);
+
     using we::runtime::renderer::RunScalabilityRuntimeTests;
     using we::runtime::renderer::RunLightingRuntimeTests;
+    using we::runtime::renderer::RunVolumetricFoundationTests;
 
     bool ok = true;
 
-    std::cout << "Running Scalability runtime tests...\n";
+    std::printf("Running Scalability runtime tests...\n");
+    std::fflush(stdout);
     const auto scalability = RunScalabilityRuntimeTests();
     for (const auto& testCase : scalability.cases) {
-        std::cout << (testCase.passed ? "[PASS] " : "[FAIL] ")
-            << testCase.name;
+        std::printf("%s %s", testCase.passed ? "[PASS]" : "[FAIL]", testCase.name.c_str());
         if (!testCase.message.empty()) {
-            std::cout << " — " << testCase.message;
+            std::printf(" — %s", testCase.message.c_str());
         }
-        std::cout << '\n';
+        std::printf("\n");
     }
-    std::cout << scalability.summary << '\n';
+    std::printf("%s\n", scalability.summary.c_str());
     ok = ok && scalability.success;
 
-    std::cout << "\nRunning Lighting runtime tests...\n";
+    std::printf("\nRunning Lighting runtime tests...\n");
+    std::fflush(stdout);
     const auto lighting = RunLightingRuntimeTests();
     for (const auto& testCase : lighting.cases) {
-        std::cout << (testCase.passed ? "[PASS] " : "[FAIL] ")
-            << testCase.name;
+        std::printf("%s %s", testCase.passed ? "[PASS]" : "[FAIL]", testCase.name.c_str());
         if (!testCase.message.empty()) {
-            std::cout << " — " << testCase.message;
+            std::printf(" — %s", testCase.message.c_str());
         }
-        std::cout << '\n';
+        std::printf("\n");
     }
-    std::cout << lighting.summary << '\n';
+    std::printf("%s\n", lighting.summary.c_str());
     ok = ok && lighting.success;
+
+    std::printf("\nRunning Volumetric foundation tests...\n");
+    std::fflush(stdout);
+    const auto volumetrics = RunVolumetricFoundationTests();
+    for (const auto& testCase : volumetrics.cases) {
+        std::printf("%s %s", testCase.passed ? "[PASS]" : "[FAIL]", testCase.name.c_str());
+        if (!testCase.message.empty()) {
+            std::printf(" — %s", testCase.message.c_str());
+        }
+        std::printf("\n");
+    }
+    std::printf("%s\n", volumetrics.summary.c_str());
+    ok = ok && volumetrics.success;
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -10,6 +10,7 @@
 
 #include "Environment/EnvironmentLighting.h"
 #include "Core/Math/GlmInterop.h"
+#include "Lighting/DaylightConfig.h"
 
 #include <algorithm>
 #include <cmath>
@@ -33,13 +34,20 @@ we::math::Vec3 EnvironmentManager::ComputeSkyLightUpper(
     const EnvironmentSkyAtmosphere& atmosphere) const {
     const glm::vec3 sunDir = we::math::ToGlm(SunDirectionToSky(sun.GetLightDirection()));
     const float elevation = Clamp01(sunDir.y);
-    const glm::vec3 rayleigh = we::math::ToGlm(atmosphere.GetRayleighColor());
     const glm::vec3 sunColor = we::math::ToGlm(sun.GetColorFromTemperature());
+    (void)atmosphere;
 
-    const glm::vec3 scattered = rayleigh * (8.0f + elevation * 40.0f);
-    const glm::vec3 sunBounce = sunColor * sun.Intensity * 0.02f * (1.0f - elevation);
-    const float night = Clamp01(0.2f - elevation);
-    return we::math::FromGlm(scattered + sunBounce + rayleigh * night * 0.5f);
+    // DaylightConfig — sky ambient fill for meshes/clouds.
+    const glm::vec3 skyBlue = glm::vec3(0.22f, 0.48f, 0.88f);
+    const float elevW = 0.45f + elevation * 0.55f;
+    const float sunI = std::min(sun.Intensity, 10.0f);
+    const glm::vec3 scattered = skyBlue * elevW * sunI
+        * we::runtime::renderer::kDaylightSkyLightUpperScale;
+    const glm::vec3 sunBounce = sunColor * sunI * elevation
+        * we::runtime::renderer::kDaylightSkyLightSunBounce;
+    const float night = Clamp01(0.15f - elevation);
+    const glm::vec3 nightGlow = glm::vec3(0.03f, 0.05f, 0.10f) * night;
+    return we::math::FromGlm(scattered + sunBounce + nightGlow);
 }
 
 we::math::Vec3 EnvironmentManager::ComputeSkyLightLower(
@@ -49,9 +57,12 @@ we::math::Vec3 EnvironmentManager::ComputeSkyLightLower(
     const glm::vec3 sunDir = we::math::ToGlm(SunDirectionToSky(sun.GetLightDirection()));
     const float elevation = Clamp01(sunDir.y);
     const float night = Clamp01(1.0f - elevation * 2.5f);
-    const glm::vec3 groundScatter = we::math::ToGlm(atmosphere.GetRayleighColor()) * 0.8f;
-    const glm::vec3 fogTint = we::math::ToGlm(fog.FogColor) * 0.4f + groundScatter;
-    return we::math::FromGlm(glm::mix(fogTint, groundScatter * 0.15f, night));
+    const glm::vec3 sunColor = we::math::ToGlm(sun.GetColorFromTemperature());
+    const glm::vec3 ground = we::math::ToGlm(atmosphere.GroundAlbedo);
+    const glm::vec3 horizon = glm::vec3(0.28f, 0.42f, 0.60f) * (0.30f + elevation * 0.30f);
+    const glm::vec3 fogTint = we::math::ToGlm(fog.FogColor) * 0.12f;
+    const glm::vec3 dayLower = horizon + ground * 0.20f + sunColor * 0.025f * elevation + fogTint;
+    return we::math::FromGlm(glm::mix(dayLower * 0.12f, dayLower, 1.0f - night * 0.85f));
 }
 
 we::math::Vec3 EnvironmentManager::ComputeFogColor(
@@ -61,10 +72,11 @@ we::math::Vec3 EnvironmentManager::ComputeFogColor(
     const float elevation = Clamp01(sunDir.y);
     const glm::vec3 sunColor = we::math::ToGlm(sun.GetColorFromTemperature());
     const glm::vec3 rayleigh = we::math::ToGlm(atmosphere.GetRayleighColor());
+    const glm::vec3 skyNorm = glm::normalize(rayleigh + glm::vec3(1e-5f));
 
-    const glm::vec3 dayFog = rayleigh * 6.0f + sunColor * 0.08f;
-    const glm::vec3 sunsetFog = sunColor * 0.35f + rayleigh * 3.0f;
-    const glm::vec3 nightFog = rayleigh * 0.4f;
+    const glm::vec3 dayFog = skyNorm * glm::vec3(0.55f, 0.68f, 0.88f) + sunColor * 0.12f;
+    const glm::vec3 sunsetFog = sunColor * 0.55f + skyNorm * glm::vec3(0.45f, 0.40f, 0.55f);
+    const glm::vec3 nightFog = glm::vec3(0.08f, 0.10f, 0.16f);
 
     glm::vec3 fogColor = glm::mix(sunsetFog, dayFog, elevation);
     fogColor = glm::mix(nightFog, fogColor, Clamp01(elevation * 2.0f + 0.1f));

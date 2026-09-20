@@ -372,6 +372,10 @@ void LauncherShell::ShowCreateWizard() {
     if (m_WizardTemplateId.empty() || !m_Context->Templates().Find(m_WizardTemplateId)) {
         m_WizardTemplateId = "Blank";
     }
+    // Default name MyProject is almost always taken — pick the next free folder.
+    m_WizardName = PathUtils::NextAvailableProjectName(
+        PathUtils::FromUtf8(m_WizardLocation),
+        m_WizardName.empty() ? "MyProject" : m_WizardName);
     RebuildCreateWizard();
 }
 

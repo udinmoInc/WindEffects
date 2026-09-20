@@ -101,6 +101,7 @@ void EnvironmentSystem::ApplySettingsToComponents(const EnvironmentSettings& set
     m_SkyAtmosphere.ApplyDefaults();
     m_SkyAtmosphere.RayleighScattering = settings.atmosphereRayleighScattering;
     m_SkyAtmosphere.MieScattering = settings.atmosphereMieScattering;
+    m_SkyAtmosphere.MieAnisotropy = 0.80f;
 
     m_HeightFog.ApplyDefaults();
     m_HeightFog.Density = settings.fogDensity;

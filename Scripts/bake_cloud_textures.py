@@ -339,39 +339,64 @@ def worley_fbm3d(
 
 
 # ===========================================================================
-# 5. Perlin–Worley composition (Schneider)
+# 5. Perlin–Worley (HZD / Schneider SIGGRAPH 2015 — Remap construction)
 # ===========================================================================
+
+def worley_fbm_from_layers(
+    w_lo: np.ndarray,
+    w_mid: np.ndarray,
+    w_hi: np.ndarray,
+) -> np.ndarray:
+    """Inverted-Worley FBM weights matching runtime StageWorleyFbm (0.625/0.25/0.125)."""
+    return np.clip(w_lo * 0.625 + w_mid * 0.250 + w_hi * 0.125, 0.0, 1.0)
+
+
+# Back-compat alias for older audit scripts.
+worley_billow_fbm_from_layers = worley_fbm_from_layers
+
+
+def perlin_worley_remap(
+    perlin: np.ndarray,
+    worley_fbm: np.ndarray,
+) -> np.ndarray:
+    """HZD Texture1.R = Remap(perlin, 1 - worleyFBM, 1, 0, 1).
+
+    This is the documented Schneider Perlin-Worley combination — NOT additive
+    dilation, NOT a custom morphology generator, NOT world-specific formation.
+    """
+    p = np.clip(perlin, 0.0, 1.0)
+    w = np.clip(worley_fbm, 0.0, 1.0)
+    floor = np.clip(1.0 - w, 0.0, 1.0)
+    return np.clip(remap(p, floor, 1.0, 0.0, 1.0), 0.0, 1.0)
+
 
 def perlin_worley(
     coords: np.ndarray,
-    perlin_base_freq: int = 4,
+    perlin_base_freq: int = 2,
     perlin_octaves: int = 4,
-    worley_base_freq: int = 4,
+    worley_base_freq: int = 8,
     worley_octaves: int = 3,
     seed: int = 1337,
+    **_ignored,
 ) -> np.ndarray:
-    """Perlin-Worley as used in Nubis / HZD.
-
-    PerlinWorley = Remap(perlinFBM, 0.0, 1.0, 1.0 - worleyFBM, 1.0)
-
-    where worleyFBM is the non-inverted (distance) Worley FBM so that
-    (1 - worleyFBM) is the inverted billowy field used as the Remap floor.
-    """
+    """Bake-only helper: classic HZD Remap(perlinFBM, 1 - worleyFBM, 1)."""
     p = perlin_fbm3d(
         coords,
         base_frequency=perlin_base_freq,
         octaves=perlin_octaves,
         seed=seed,
     )
-    w = worley_fbm3d(
-        coords,
-        base_frequency=worley_base_freq,
-        octaves=worley_octaves,
-        invert=False,
-        seed=seed + 500,
-    )
-    pw = remap(p, 0.0, 1.0, 1.0 - w, 1.0)
-    return np.clip(pw, 0.0, 1.0)
+    f0 = max(1, int(worley_base_freq))
+    w_lo = worley3d_periodic(coords, cell_frequency=f0, invert=True, seed=seed + 500)
+    w_mid = worley3d_periodic(coords, cell_frequency=f0 * 2, invert=True, seed=seed + 513)
+    w_hi = worley3d_periodic(coords, cell_frequency=f0 * 4, invert=True, seed=seed + 526)
+    if worley_octaves <= 1:
+        w_fbm = w_lo
+    elif worley_octaves == 2:
+        w_fbm = np.clip(w_lo * 0.75 + w_mid * 0.25, 0.0, 1.0)
+    else:
+        w_fbm = worley_fbm_from_layers(w_lo, w_mid, w_hi)
+    return perlin_worley_remap(p, w_fbm)
 
 
 # ===========================================================================
@@ -584,34 +609,100 @@ def _make_volume_coords(size: int) -> np.ndarray:
 
 
 def bake_cloud_base_shape(outdir: Path, size: int = 128) -> BakeResult:
-    """CloudBaseShape128 — R=Perlin-Worley, G/B/A=Worley @ 4/8/16."""
+    """CloudBaseShape128 — HZD Texture1 packing (reusable, not world-specific).
+
+      R     = Perlin-Worley = Remap(perlinFBM, 1 - worleyFBM, 1)
+      G/B/A = inverted Worley @ increasing frequency (8 / 16 / 32)
+
+    Frequency hierarchy keeps Perlin as coarse mass and Worley as finer cells.
+    Appearance changes at runtime via weather/type/height — not by rebaking.
+    """
     t0 = time.perf_counter()
     out_path = outdir / "CloudBaseShape128.dds"
-    LOG.info("Baking %s (%d^3) ...", out_path.name, size)
+    LOG.info("Baking %s (%d^3) — HZD Perlin-Worley Remap ...", out_path.name, size)
 
     coords = _make_volume_coords(size)
-    LOG.info("  computing Perlin-Worley (R) ...")
-    r = perlin_worley(
-        coords,
-        perlin_base_freq=4,
-        perlin_octaves=4,
-        worley_base_freq=4,
-        worley_octaves=3,
+
+    perlin_base_freq = 2
+    worley_g_freq = 8
+
+    LOG.info("  Perlin FBM (base_freq=%d) ...", perlin_base_freq)
+    perlin = perlin_fbm3d(
+        coords, base_frequency=perlin_base_freq, octaves=4, seed=1337
     )
 
-    # Store inverted (billowy) Worley for shader erosion / FBM packing
-    LOG.info("  computing Worley G (cell freq=4) ...")
-    g = worley3d_periodic(coords, cell_frequency=4, invert=True, seed=9100)
-    LOG.info("  computing Worley B (cell freq=8) ...")
-    b = worley3d_periodic(coords, cell_frequency=8, invert=True, seed=9200)
-    LOG.info("  computing Worley A (cell freq=16) ...")
-    a = worley3d_periodic(coords, cell_frequency=16, invert=True, seed=9300)
+    LOG.info("  Worley G (cell freq=%d) ...", worley_g_freq)
+    g = worley3d_periodic(
+        coords, cell_frequency=worley_g_freq, invert=True, seed=9100
+    )
+    LOG.info("  Worley B (cell freq=%d) ...", worley_g_freq * 2)
+    b = worley3d_periodic(
+        coords, cell_frequency=worley_g_freq * 2, invert=True, seed=9200
+    )
+    LOG.info("  Worley A (cell freq=%d) ...", worley_g_freq * 4)
+    a = worley3d_periodic(
+        coords, cell_frequency=worley_g_freq * 4, invert=True, seed=9300
+    )
+
+    w_fbm = worley_fbm_from_layers(g, b, a)
+    LOG.info("  R = Remap(perlin, 1 - worleyFBM, 1) ...")
+    r = perlin_worley_remap(perlin, w_fbm)
 
     rgba = np.stack(
         [float_to_u8(r), float_to_u8(g), float_to_u8(b), float_to_u8(a)],
         axis=-1,
     )
     nbytes = write_dds_rgba8(out_path, rgba, width=size, height=size, depth=size)
+
+    # HZD Texture1 bake-stage debug (not custom morphology)
+    dbg = Path("Build/Audit/StageAudit/HZD_Texture1_Bake")
+    try:
+        from PIL import Image
+
+        dbg.mkdir(parents=True, exist_ok=True)
+        period_m = 3200.0
+        extent_m = 9600.0
+        res = 256
+        xs = np.linspace(0.0, extent_m, res, endpoint=False)
+        zs = np.linspace(0.0, extent_m, res, endpoint=False)
+        xx, zz = np.meshgrid(xs, zs, indexing="xy")
+        yy = np.full_like(xx, 0.5 * period_m)
+        D, H, W = r.shape
+        ui = ((xx / period_m) * W).astype(np.int64) % W
+        vi = ((yy / period_m) * H).astype(np.int64) % H
+        wi = ((zz / period_m) * D).astype(np.int64) % D
+
+        def _world(vol: np.ndarray) -> np.ndarray:
+            return vol[wi, vi, ui]
+
+        world_stages = {
+            "01_raw_Perlin": _world(perlin),
+            "02_Worley_FBM": _world(w_fbm),
+            "03_Remap_floor_1_minus_Worley": _world(np.clip(1.0 - w_fbm, 0.0, 1.0)),
+            "04_Texture1_R_PerlinWorley": _world(r),
+        }
+        for name, sl in world_stages.items():
+            u8 = np.clip(np.rint(sl * 255.0), 0, 255).astype(np.uint8)
+            Image.fromarray(u8, mode="L").save(dbg / f"{name}_world9600m.png")
+
+        mid = size // 2
+        for name, vol in (
+            ("01_raw_Perlin", perlin),
+            ("02_Worley_FBM", w_fbm),
+            ("03_Remap_floor_1_minus_Worley", np.clip(1.0 - w_fbm, 0.0, 1.0)),
+            ("04_Texture1_R_PerlinWorley", r),
+        ):
+            for plane, sl in (
+                ("XY", vol[mid]),
+                ("XZ", vol[:, mid, :]),
+                ("YZ", vol[:, :, mid]),
+            ):
+                u8 = np.clip(np.rint(sl * 255.0), 0, 255).astype(np.uint8)
+                Image.fromarray(u8, mode="L").save(dbg / f"{name}_{plane}.png")
+        LOG.info("  wrote HZD Texture1 bake debug -> %s", dbg)
+    except Exception as exc:  # noqa: BLE001 — debug export must not fail the bake
+        LOG.warning("  Texture1 bake debug export skipped: %s", exc)
+
     elapsed = time.perf_counter() - t0
     LOG.info(
         "  wrote %s  (%d x %d x %d, %.2f MiB, %.1fs)",

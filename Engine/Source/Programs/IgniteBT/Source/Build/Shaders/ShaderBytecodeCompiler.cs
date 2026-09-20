@@ -19,6 +19,7 @@ public static class ShaderBytecodeCompiler
         ("Foundation/ProceduralSky.hlsl", "ProceduralSky"),
         ("Rendering/AtmospherePass.hlsl", "AtmospherePass"),
         ("Rendering/VolumetricClouds.hlsl", "VolumetricClouds"),
+        ("Rendering/CloudUpsample.hlsl", "CloudUpsample"),
         ("Rendering/SceneObject.hlsl", "SceneObject"),
         ("Rendering/Terrain.hlsl", "Terrain"),
         ("Rendering/TextMSDF.hlsl", "TextMSDF"),
@@ -121,6 +122,12 @@ public static class ShaderBytecodeCompiler
         stats.Skipped = skipped;
 
         cache.Save();
+
+        // Runtime loads Engine/Shaders/Bytecodes FIRST (PathService). IgniteBT
+        // compiles into Build/Output/.../Bytecodes — mirror so editor picks up
+        // fresh DXIL instead of a stale Engine tree copy.
+        SyncBytecodesToEngineTree(outputDir, Path.Combine(engineRoot, "Shaders", "Bytecodes"));
+
         sw.Stop();
         stats.ElapsedMs = sw.ElapsedMilliseconds;
 
@@ -131,6 +138,37 @@ public static class ShaderBytecodeCompiler
             Log.Debug("All {Count} shader bytecode files up to date ({Ms}ms)", stats.Skipped, stats.ElapsedMs);
 
         return stats;
+    }
+
+    private static void SyncBytecodesToEngineTree(string stagedDir, string engineBytecodesDir)
+    {
+        if (!Directory.Exists(stagedDir))
+            return;
+
+        Directory.CreateDirectory(engineBytecodesDir);
+        foreach (var file in Directory.EnumerateFiles(stagedDir))
+        {
+            var name = Path.GetFileName(file);
+            if (string.IsNullOrEmpty(name))
+                continue;
+            var dest = Path.Combine(engineBytecodesDir, name);
+            try
+            {
+                var srcInfo = new FileInfo(file);
+                var dstInfo = new FileInfo(dest);
+                if (dstInfo.Exists
+                    && dstInfo.Length == srcInfo.Length
+                    && dstInfo.LastWriteTimeUtc >= srcInfo.LastWriteTimeUtc)
+                    continue;
+                File.Copy(file, dest, overwrite: true);
+            }
+            catch (IOException ex)
+            {
+                Log.Warning(ex,
+                    "Could not sync shader bytecode to Engine tree: {File} (editor may have the file locked — restart and rebuild)",
+                    name);
+            }
+        }
     }
 
     private static string ComputeIncludeTreeHash(string shaderRoot)

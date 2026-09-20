@@ -19,6 +19,7 @@
 #include "Renderer/Graph/ScenePasses.h"
 #include "Renderer/Scalability/ScalabilityManager.h"
 #include "Renderer/Scalability/ScalabilityDiagnostics.h"
+#include "Renderer/Volumetrics/LocalFogUniform.h"
 #include "Renderer/ViewportInterfaces.h"
 #include "Platform/Types.h"
 #include "RHI/IRHI.h"
@@ -38,11 +39,13 @@ constexpr uint32_t kMaxFramesInFlight = 2;
 
 class ViewportSkyRenderer;
 class ViewportGridRenderer;
-class ViewportCloudRenderer;
+class VolumetricRenderer;
 
 class RENDERER_API Renderer : public ISceneViewportController {
 public:
     static Renderer& Get();
+    /// Cross-DLL layout guard: consumers must match this size when allocating Renderer.
+    [[nodiscard]] static std::size_t ObjectBytes() noexcept;
 
     Renderer();
     ~Renderer();
@@ -81,6 +84,18 @@ public:
 
     void RecordUiPresentPath(uint32_t imageIndex);
     void MarkOverlayPassEnded();
+
+    void SetGridVisible(bool visible) { m_GridVisible = visible; }
+    [[nodiscard]] bool IsGridVisible() const { return m_GridVisible; }
+
+    void SetCloudUniform(const CloudUniform& uniform) { m_CloudUniform = uniform; }
+    [[nodiscard]] CloudUniform& GetCloudUniform() { return m_CloudUniform; }
+    [[nodiscard]] const CloudUniform& GetCloudUniform() const { return m_CloudUniform; }
+    void SetCloudUniformOverride(bool overrideDefaults) { m_OverrideCloudDefaults = overrideDefaults; }
+    [[nodiscard]] bool IsCloudUniformOverride() const { return m_OverrideCloudDefaults; }
+
+    void SetLocalFogUniform(const LocalFogUniform& fog);
+    [[nodiscard]] LocalFogUniform GetLocalFogUniform() const;
 
     [[nodiscard]] std::string DumpRenderGraph() const;
 
@@ -129,15 +144,15 @@ private:
     void DestroyViewportTargets();
     void ClearSwapchainChrome();
     void RenderViewportSky();
-    void EnsureCloudsReady();
+    void EnsureVolumetricsReady();
 
     std::unique_ptr<we::rhi::IRHIDevice> m_RHIDevice;
     std::unique_ptr<RenderGraph> m_RenderGraph;
     std::unique_ptr<ViewportSkyRenderer> m_ViewportSky;
     std::unique_ptr<ViewportGridRenderer> m_ViewportGrid;
-    std::unique_ptr<ViewportCloudRenderer> m_ViewportClouds;
+    std::unique_ptr<VolumetricRenderer> m_Volumetrics;
     CloudUniform m_CloudUniform{};
-    bool m_CloudsInitAttempted = false;
+    bool m_VolumetricsInitAttempted = false;
     std::unique_ptr<LightingSystem> m_Lighting;
     ScalabilityManager m_Scalability;
     we::rhi::IRHICommandList* m_FrameCmd = nullptr;
@@ -174,6 +189,8 @@ private:
     uint32_t m_UiImageIndex = UINT32_MAX;
     bool m_OverlayPassRan = false;
     bool m_OverlayPassEnded = false;
+    bool m_GridVisible = true;
+    bool m_OverrideCloudDefaults = false;
     // Linear RGB clear for GraphiteDark #151515 on sRGB swapchains (set precisely in Editor startup).
     we::rhi::Color4f m_SwapchainClearColor{0.007499f, 0.007499f, 0.007499f, 1.0f};
 };

@@ -32,8 +32,15 @@ EditorLaunchResult EditorLaunchService::Launch(const std::filesystem::path& wepr
 
     const auto editorExe = m_Engines.ResolveEditorExecutable(m_Settings.Settings().lastBuildConfig);
     if (editorExe.empty() || !std::filesystem::exists(editorExe)) {
-        result.message = "Editor executable not found. Build the Editor target first.";
+        result.message = "Editor executable not found. Build the Editor target (Shipping) first.";
         return result;
+    }
+
+    // Remember which config we actually resolved so the next launch prefers a good binary.
+    const auto configName = editorExe.parent_path().filename().string();
+    if (!configName.empty() && configName != m_Settings.Settings().lastBuildConfig) {
+        m_Settings.Settings().lastBuildConfig = configName;
+        m_Settings.Save();
     }
 
     auto& platform = we::platform::Platform::Get();
@@ -51,7 +58,9 @@ EditorLaunchResult EditorLaunchService::Launch(const std::filesystem::path& wepr
     });
 
     if (!launchResult.Ok()) {
-        result.message = launchResult.error.message.empty() ? "Failed to launch editor." : launchResult.error.message;
+        result.message = launchResult.error.message.empty()
+            ? ("Failed to launch editor: " + exeUtf8)
+            : (launchResult.error.message + " (" + exeUtf8 + ")");
         return result;
     }
 

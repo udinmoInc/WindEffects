@@ -16,7 +16,7 @@ void EnvironmentHeightFog::ApplyDefaults() {
     Density = 0.02f;
     HeightFalloff = 0.2f;
     StartDistance = 0.0f;
-    VolumetricFog = true;
+    VolumetricFog = false;
     FogColor = we::math::Vec3(0.72f, 0.78f, 0.85f);
 }
 

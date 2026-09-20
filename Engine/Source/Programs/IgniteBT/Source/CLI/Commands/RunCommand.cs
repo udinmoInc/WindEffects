@@ -150,6 +150,7 @@ public static class RunCommand
             "welauncher" or "launcher" => "WeLauncher",
             "we" or "cli" => "We",
             "crashreporter" or "crash" => "CrashReporter",
+            "testviewport" or "cloudtest" => "TestViewport",
             _ => target
         };
 

@@ -31,10 +31,10 @@ struct RENDERER_API SceneEnvironmentUniform {
     float fogHeightFalloff = 0.2f;
     we::math::Vec3 fogColor{0.7f, 0.75f, 0.85f};
     float fogStartDistance = 0.0f;
-    we::math::Vec3 atmosphereRayleigh{0.18f, 0.42f, 0.82f};
-    float mieScattering = 0.004f;
+    we::math::Vec3 atmosphereRayleigh{0.005802f, 0.013558f, 0.033100f}; // Earth 1/km
+    float mieScattering = 0.003996f;
     we::math::Vec3 ozoneAbsorption{0.00065f, 0.00188f, 0.000085f};
-    float mieAnisotropy = 0.76f;
+    float mieAnisotropy = 0.80f;
     we::math::Vec3 worldOrigin{0.0f, 0.0f, 0.0f};
     float exposureEV = 0.0f;
     float planetRadius = 6360.0f;
